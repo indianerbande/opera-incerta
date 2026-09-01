@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+coverage/
+.angular/
+.DS_Store
+*.tsbuildinfo

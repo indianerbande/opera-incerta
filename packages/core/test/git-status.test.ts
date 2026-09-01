@@ -1,0 +1,135 @@
+import { describe, expect, it } from 'vitest';
+import {
+  canCommit,
+  isFullyStaged,
+  parseGitStatus,
+  selectAllState,
+  touchesWorkingTree,
+  type GitFileStatus,
+} from '../src/index.js';
+
+/** Builds NUL-separated porcelain v1 output from its fields. */
+function porcelain(...fields: readonly string[]): string {
+  return fields.map((field) => `${field}\0`).join('');
+}
+
+describe('parseGitStatus', () => {
+  it('reads the index and worktree status of one file', () => {
+    const [entry] = parseGitStatus(porcelain('M  chapters/intro.md'));
+
+    expect(entry).toMatchObject({
+      path: 'chapters/intro.md',
+      indexStatus: 'M',
+      worktreeStatus: ' ',
+      groups: ['staged'],
+    });
+  });
+
+  it('groups a file that is both staged and modified again', () => {
+    expect(parseGitStatus(porcelain('MM a.md'))[0]?.groups).toEqual(['staged', 'unstaged']);
+  });
+
+  it('groups an unstaged modification', () => {
+    expect(parseGitStatus(porcelain(' M a.md'))[0]?.groups).toEqual(['unstaged']);
+  });
+
+  it('groups untracked files', () => {
+    expect(parseGitStatus(porcelain('?? new.md'))[0]?.groups).toEqual(['untracked']);
+  });
+
+  it('counts every conflict pair as unstaged, never as staged', () => {
+    for (const pair of ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU']) {
+      const [entry] = parseGitStatus(porcelain(`${pair} conflicted.md`));
+      expect(entry?.groups, pair).toEqual(['unstaged']);
+    }
+  });
+
+  it('reads a rename as one entry with its previous path', () => {
+    const entries = parseGitStatus(porcelain('R  new.md', 'old.md'));
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ path: 'new.md', previousPath: 'old.md' });
+  });
+
+  it('reads a copy the same way', () => {
+    expect(parseGitStatus(porcelain('C  copy.md', 'source.md'))[0]?.previousPath).toBe('source.md');
+  });
+
+  it('does not invent a file from the second field of a rename', () => {
+    const entries = parseGitStatus(porcelain('R  new.md', 'old.md', ' M other.md'));
+
+    expect(entries.map((entry) => entry.path)).toEqual(['new.md', 'other.md']);
+  });
+
+  it('keeps paths with spaces and non-ASCII characters intact', () => {
+    const entries = parseGitStatus(porcelain(' M chapters/Größe und Übermut.md', '?? 🌊 sea.md'));
+
+    expect(entries.map((entry) => entry.path)).toEqual([
+      'chapters/Größe und Übermut.md',
+      '🌊 sea.md',
+    ]);
+  });
+
+  it('returns nothing for a clean repository', () => {
+    expect(parseGitStatus('')).toEqual([]);
+  });
+
+  it('ignores a truncated field rather than producing a nameless entry', () => {
+    expect(parseGitStatus(porcelain('M'))).toEqual([]);
+  });
+
+  it('reports paths relative to the repository root, never absolute', () => {
+    for (const entry of parseGitStatus(porcelain(' M a.md', '?? b/c.md'))) {
+      expect(entry.path.startsWith('/')).toBe(false);
+    }
+  });
+});
+
+describe('staging state', () => {
+  const staged = parseGitStatus(porcelain('M  a.md'))[0] as GitFileStatus;
+  const partly = parseGitStatus(porcelain('MM b.md'))[0] as GitFileStatus;
+  const untracked = parseGitStatus(porcelain('?? c.md'))[0] as GitFileStatus;
+
+  it('treats a file with remaining worktree changes as not fully staged', () => {
+    expect(isFullyStaged(staged)).toBe(true);
+    expect(isFullyStaged(partly)).toBe(false);
+    expect(isFullyStaged(untracked)).toBe(false);
+  });
+
+  it('reports the tri-state of the select-all checkbox', () => {
+    expect(selectAllState([])).toBe('none');
+    expect(selectAllState([untracked])).toBe('none');
+    expect(selectAllState([staged])).toBe('all');
+    expect(selectAllState([staged, untracked])).toBe('some');
+  });
+
+  it('allows a commit only with staged changes and a message', () => {
+    expect(canCommit([staged], 'Add chapter')).toBe(true);
+    expect(canCommit([staged], '   ')).toBe(false);
+    expect(canCommit([untracked], 'Add chapter')).toBe(false);
+    expect(canCommit([], 'Add chapter')).toBe(false);
+  });
+});
+
+describe('touchesWorkingTree', () => {
+  it('ignores events confined to the git directory, which git status itself causes', () => {
+    expect(touchesWorkingTree(['.git/index'])).toBe(false);
+    expect(touchesWorkingTree(['repo/.git/index', 'repo/.git/objects/ab/cdef'])).toBe(false);
+  });
+
+  it('reacts to a working-tree change, even alongside git-directory noise', () => {
+    expect(touchesWorkingTree(['.git/index', 'chapters/intro.md'])).toBe(true);
+  });
+
+  it('does not mistake a file merely containing .git in its name', () => {
+    expect(touchesWorkingTree(['notes/.gitignore-draft.md'])).toBe(true);
+  });
+
+  it('handles Windows separators', () => {
+    expect(touchesWorkingTree(['repo\\.git\\index'])).toBe(false);
+  });
+
+  it('is false for no events at all', () => {
+    expect(touchesWorkingTree([])).toBe(false);
+  });
+});

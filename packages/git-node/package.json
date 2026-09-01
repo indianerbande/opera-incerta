@@ -1,0 +1,21 @@
+{
+  "name": "@opera-incerta/git-node",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Source control adapter over the locally installed git executable.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --exclude 'dist/**'"
+  },
+  "dependencies": {
+    "@opera-incerta/core": "workspace:*"
+  }
+}

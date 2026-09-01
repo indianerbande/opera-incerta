@@ -1,0 +1,23 @@
+packages:
+  - packages/*
+  - apps/*
+  - spikes/*
+
+hoistPattern:
+  - '*'
+
+overrides:
+  # @electron/rebuild resolves @electron/node-gyp from a Git repository, which
+  # the workspace policy rejects as an exotic subdependency. The Electron fork
+  # is published to the registry under this version.
+  '@electron/rebuild@3.7.2>@electron/node-gyp': '10.2.0-electron.2'
+
+allowBuilds:
+  esbuild: true
+  electron: true
+  # Optional native helpers of transitive packaging dependencies. Writers IDE
+  # does not use them, and building them would add compiler toolchain
+  # requirements to every checkout.
+  '@parcel/watcher': false
+  lmdb: false
+  msgpackr-extract: false

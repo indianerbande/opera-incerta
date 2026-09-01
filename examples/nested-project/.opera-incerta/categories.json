@@ -1,0 +1,5 @@
+[
+  { "id": "8c1f0b52-3e47-4a90-b6d2-1f8e5c7a2d40", "name": "Draft", "color": "#E8D8A0" },
+  { "id": "2a9d6e31-7b04-4f18-8c53-9e2f1a6b4c77", "name": "Review", "color": "#7A8FB8" },
+  { "id": "c40b1f78-52a9-4e63-9d17-3b6c8e0a5f21", "name": "Done", "color": "#4B7A52" }
+]

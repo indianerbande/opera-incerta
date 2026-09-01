@@ -1,0 +1,30 @@
+{
+  "name": "@opera-incerta/desktop",
+  "productName": "Opera Incerta",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Electron shell: native lifecycle, windows, dialogs, filesystem, and packaging.",
+  "main": "dist/main.cjs",
+  "config": {
+    "forge": "./forge.config.cjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.cjs && esbuild src/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload.cjs",
+    "start": "electron-forge start",
+    "smoke": "OPERA_INCERTA_SMOKE=1 electron .",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "test": "tsc -p tsconfig.test.json --noEmit && vitest run --exclude 'dist/**'"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-zip": "7.11.2",
+    "@opera-incerta/core": "workspace:*",
+    "@opera-incerta/desktop-contract": "workspace:*",
+    "@opera-incerta/git-node": "workspace:*",
+    "@opera-incerta/project-node": "workspace:*",
+    "electron": "44.0.0",
+    "esbuild": "0.28.2"
+  }
+}

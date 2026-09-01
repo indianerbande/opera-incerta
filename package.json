@@ -1,0 +1,38 @@
+{
+  "name": "opera-incerta-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Opera Incerta \u2014 a local desktop tool for collecting and writing texts and assembling them into a structured book manuscript",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": "^24.15.0 || >=26.0.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.15.0",
+      "onFail": "warn"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --recursive --sort --if-present run build",
+    "test": "pnpm --recursive --sort --if-present run test",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
+    "typecheck": "pnpm run build && pnpm run typecheck:tests",
+    "check": "pnpm run build && pnpm run typecheck:tests && pnpm run test && pnpm run check:desktop-production",
+    "workbench:build": "pnpm --filter @opera-incerta/workbench run build",
+    "workbench:start": "pnpm --filter @opera-incerta/workbench run start",
+    "desktop:build": "pnpm --filter @opera-incerta/workbench... run build && pnpm --filter @opera-incerta/desktop... run build",
+    "desktop:start": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run start",
+    "desktop:smoke": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run smoke",
+    "desktop:package": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run package",
+    "desktop:make": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run make",
+    "check:desktop-production": "node scripts/check-desktop-production.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

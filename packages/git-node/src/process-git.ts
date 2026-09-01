@@ -1,0 +1,148 @@
+/**
+ * Source control over the locally installed `git` executable. SPEC.md §12.
+ *
+ * No Git library dependency and no bundled binary: the author's own Git, with
+ * their own credentials and configuration, is what synchronizes their
+ * manuscript (CONVENTIONS.md C-P10). This module is a thin process wrapper —
+ * the parsing lives in the portable core.
+ */
+import { execFile } from 'node:child_process';
+import { parseGitStatus, type GitFileStatus } from '@opera-incerta/core';
+import type { GitService } from './index.js';
+
+export interface GitCommandResult {
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly exitCode: number;
+}
+
+/** The single point where a process is started, so tests can substitute it. */
+export interface GitCommandRunner {
+  run(args: readonly string[], cwd: string): Promise<GitCommandResult>;
+}
+
+/** A failed Git invocation, carrying Git's own message unchanged. */
+export class GitError extends Error {
+  readonly code = 'git/command-failed';
+  readonly args: readonly string[];
+  readonly exitCode: number;
+  readonly stderr: string;
+
+  constructor(args: readonly string[], result: GitCommandResult) {
+    super(`git ${args.join(' ')} failed with ${result.exitCode}`);
+    this.name = 'GitError';
+    this.args = args;
+    this.exitCode = result.exitCode;
+    this.stderr = result.stderr;
+  }
+}
+
+const MAX_OUTPUT_BYTES = 32 * 1024 * 1024;
+
+export const systemGitRunner: GitCommandRunner = {
+  run(args, cwd) {
+    return new Promise((resolve) => {
+      execFile(
+        'git',
+        [...args],
+        { cwd, encoding: 'utf8', maxBuffer: MAX_OUTPUT_BYTES },
+        (error, stdout, stderr) => {
+          const exitCode =
+            error === null ? 0 : typeof error.code === 'number' ? error.code : 1;
+          resolve({ stdout, stderr, exitCode });
+        },
+      );
+    });
+  },
+};
+
+export function createGitService(runner: GitCommandRunner = systemGitRunner): GitService {
+  return new ProcessGitService(runner);
+}
+
+class ProcessGitService implements GitService {
+  readonly #runner: GitCommandRunner;
+
+  constructor(runner: GitCommandRunner) {
+    this.#runner = runner;
+  }
+
+  /**
+   * Resolves the repository root, or null when the path is not in a
+   * repository. Every other call is made against this root, because porcelain
+   * paths are relative to it and can point outside the project directory
+   * (SPEC.md §12).
+   */
+  async repositoryRoot(absolutePath: string): Promise<string | null> {
+    const result = await this.#runner.run(['rev-parse', '--show-toplevel'], absolutePath);
+    if (result.exitCode !== 0) {
+      return null;
+    }
+    const root = result.stdout.trim();
+    return root === '' ? null : root;
+  }
+
+  async status(repositoryRoot: string): Promise<readonly GitFileStatus[]> {
+    const result = await this.#run(['status', '--porcelain=v1', '-z'], repositoryRoot);
+    return parseGitStatus(result.stdout);
+  }
+
+  /**
+   * Stages every path in one invocation, so the caller's in-flight guard
+   * applies once to the whole action rather than per file (SPEC.md §12).
+   * `--` separates paths from options, so a file named like a flag is safe.
+   */
+  async stage(repositoryRoot: string, paths: readonly string[]): Promise<void> {
+    if (paths.length === 0) {
+      return;
+    }
+    await this.#run(['add', '--', ...paths], repositoryRoot);
+  }
+
+  /**
+   * Takes paths out of the index.
+   *
+   * `git restore --staged` resolves against `HEAD`, which does not exist in a
+   * repository without a first commit — exactly the state a freshly created
+   * project is in. There the file is simply removed from the index instead,
+   * which is the same outcome for something that was never committed.
+   */
+  async unstage(repositoryRoot: string, paths: readonly string[]): Promise<void> {
+    if (paths.length === 0) {
+      return;
+    }
+    if (await this.#hasCommit(repositoryRoot)) {
+      await this.#run(['restore', '--staged', '--', ...paths], repositoryRoot);
+      return;
+    }
+    await this.#run(['rm', '--cached', '--quiet', '--', ...paths], repositoryRoot);
+  }
+
+  async #hasCommit(repositoryRoot: string): Promise<boolean> {
+    const result = await this.#runner.run(['rev-parse', '--verify', 'HEAD'], repositoryRoot);
+    return result.exitCode === 0;
+  }
+
+  async commit(repositoryRoot: string, message: string): Promise<void> {
+    await this.#run(['commit', '-m', message], repositoryRoot);
+  }
+
+  /**
+   * Pushes with the author's own credentials and configuration.
+   *
+   * Deliberately no `--set-upstream`, no pull, no fetch: a missing remote or a
+   * failed authentication surfaces Git's own message rather than the
+   * application inventing a remote layout (SPEC.md §12).
+   */
+  async push(repositoryRoot: string): Promise<void> {
+    await this.#run(['push'], repositoryRoot);
+  }
+
+  async #run(args: readonly string[], cwd: string): Promise<GitCommandResult> {
+    const result = await this.#runner.run(args, cwd);
+    if (result.exitCode !== 0) {
+      throw new GitError(args, result);
+    }
+    return result;
+  }
+}

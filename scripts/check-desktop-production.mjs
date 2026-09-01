@@ -1,0 +1,134 @@
+/**
+ * Production boundary check for the desktop application.
+ *
+ * The unit tests assert the security boundary in the **source**. This checks
+ * the **built artifacts** that actually ship, because a boundary that survives
+ * review but not the build protects nothing (TESTING.md §2.7).
+ *
+ * Run after `pnpm run desktop:build`.
+ */
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const failures = [];
+
+function check(condition, message) {
+  if (!condition) {
+    failures.push(message);
+  }
+}
+
+function read(relativePath) {
+  const absolute = join(repositoryRoot, relativePath);
+  if (!existsSync(absolute)) {
+    failures.push(`missing build artifact: ${relativePath} — run "pnpm run desktop:build"`);
+    return null;
+  }
+  return readFileSync(absolute, 'utf8');
+}
+
+// --- pinned dependencies ------------------------------------------------
+const desktopManifest = JSON.parse(read('apps/desktop/package.json') ?? '{}');
+const pinned = { ...desktopManifest.dependencies, ...desktopManifest.devDependencies };
+
+for (const [name, range] of Object.entries(pinned)) {
+  if (range.startsWith('workspace:')) {
+    continue;
+  }
+  check(
+    /^\d+\.\d+\.\d+/.test(range),
+    `dependency ${name} must be pinned exactly, found "${range}"`,
+  );
+}
+check(pinned.electron !== undefined, 'the desktop application must depend on electron');
+
+// --- main process -------------------------------------------------------
+const main = read('apps/desktop/dist/main.cjs');
+if (main !== null) {
+  const required = [
+    'contextIsolation: true',
+    'sandbox: true',
+    'nodeIntegration: false',
+    'webviewTag: false',
+    'setWindowOpenHandler',
+    'will-navigate',
+    'will-attach-webview',
+    'setPermissionRequestHandler',
+    'registerSchemesAsPrivileged',
+  ];
+  for (const needle of required) {
+    check(main.includes(needle), `built main process is missing: ${needle}`);
+  }
+
+  const forbidden = [
+    /nodeIntegration:\s*true/,
+    /contextIsolation:\s*false/,
+    /sandbox:\s*false/,
+    /webSecurity:\s*false/,
+    /allowRunningInsecureContent:\s*true/,
+  ];
+  for (const pattern of forbidden) {
+    check(!pattern.test(main), `built main process enables a privileged option: ${pattern}`);
+  }
+
+  check(
+    !/loadFile\(/.test(main),
+    'built main process uses loadFile; the renderer must be served through the owned protocol',
+  );
+}
+
+// --- preload ------------------------------------------------------------
+const preload = read('apps/desktop/dist/preload.cjs');
+if (preload !== null) {
+  const exposeCalls = preload.match(/exposeInMainWorld/g) ?? [];
+  check(
+    exposeCalls.length === 1,
+    `preload must expose exactly one global, found ${exposeCalls.length}`,
+  );
+  check(
+    !/exposeInMainWorld\([^,]+,\s*ipcRenderer\s*\)/.test(preload),
+    'preload must not hand the renderer the raw IPC object',
+  );
+
+  const contract = read('packages/desktop-contract/dist/index.js') ?? '';
+  const declared = [...contract.matchAll(/'(opera-incerta:[^']+)'/g)].map((match) => match[1]);
+  const used = [...preload.matchAll(/"(opera-incerta:[^"]+)"|'(opera-incerta:[^']+)'/g)].map(
+    (match) => match[1] ?? match[2],
+  );
+  check(declared.length > 0, 'no channels found in the built contract');
+  for (const channel of used) {
+    check(
+      declared.includes(channel),
+      `preload reaches a channel the contract does not declare: ${channel}`,
+    );
+  }
+}
+
+// --- renderer artifact --------------------------------------------------
+const indexHtml = read('build/workbench/browser/index.html');
+if (indexHtml !== null) {
+  check(
+    indexHtml.includes('Content-Security-Policy'),
+    'the built renderer document must carry a content-security policy',
+  );
+  check(
+    /default-src\s+'self'/.test(indexHtml),
+    "the renderer content-security policy must default to 'self'",
+  );
+  check(
+    !/unsafe-eval/.test(indexHtml),
+    'the renderer content-security policy must not allow unsafe-eval',
+  );
+}
+
+// --- report -------------------------------------------------------------
+if (failures.length > 0) {
+  console.error('desktop production check failed:');
+  for (const failure of failures) {
+    console.error(`  - ${failure}`);
+  }
+  process.exit(1);
+}
+console.log('desktop production check passed');

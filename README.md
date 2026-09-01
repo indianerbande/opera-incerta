@@ -1,0 +1,97 @@
+# Opera Incerta
+
+**A local desktop tool for collecting and writing texts — and for growing a
+structured book manuscript out of them.**
+
+Opera Incerta is deliberately more than a Markdown editor: it accompanies the
+whole path from a first collected thought to a finished manuscript, and every
+display and editing decision is measured against **overview** and **practical
+operability**.
+
+## Guiding ideas
+
+- **The author's files belong to the author.** Texts are real Markdown files
+  (`.md`, UTF-8) on the filesystem. One text is one file. No database, no
+  proprietary container.
+- **Metadata stays with its content.** Title, topic, keywords, status, category,
+  and notes live in the YAML front matter of the same file.
+- **The folder structure *is* the library.** Groups are directories, sheets are
+  files.
+- **Standard Markdown on disk, comfortable presentation in the editor.**
+  Headings appear as sizes, not as `#`; the file stays standard-conformant.
+- **Saving never discards anything.** Front matter written by other tools
+  survives a load/save round trip byte-for-byte.
+- **Extensible through modules.** Export, import, and AI actions are separate
+  packages behind declared interfaces.
+
+## Project status
+
+Early scaffold. The specification documents are written; the workspace builds,
+tests, and launches; the product itself is not implemented yet. See
+[`TODO.md`](TODO.md) for what is open and [`DONE.md`](DONE.md) for what exists.
+
+## Development quick start
+
+Requires Node.js 24.15.0 or newer within a supported line, and pnpm 11.24.0.
+
+```bash
+pnpm install
+```
+
+```bash
+pnpm run check
+```
+
+```bash
+pnpm run desktop:smoke
+```
+
+```bash
+pnpm run desktop:start
+```
+
+`check` builds every package, type-checks test code, and runs all suites.
+`desktop:smoke` launches the shell headlessly, verifies that the renderer
+rendered and the bridge answers, and writes `build/desktop/smoke.png`.
+`desktop:start` opens the application window.
+
+If the Electron runtime is missing after installation, run `install.js` inside
+the installed `electron` package once — see [`TODO.md`](TODO.md) §1.7.
+
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `packages/core` | Portable domain rules. No DOM, no Electron, no Node.js APIs. |
+| `packages/desktop-contract` | The versioned main-process/renderer bridge and its runtime guards. |
+| `packages/project-node` | Project and library adapter — owns filesystem access. |
+| `packages/git-node` | Source-control adapter over the system `git`. |
+| `apps/workbench` | Angular renderer: the workbench UI. |
+| `apps/desktop` | Electron shell: lifecycle, windows, dialogs, packaging. |
+| `examples/` | Original fixture projects. |
+
+## Documentation
+
+- [SPEC.md](SPEC.md) — normative product behavior and architectural boundaries
+- [TESTING.md](TESTING.md) — the evidence required to claim that behavior works
+- [AGENTS.md](AGENTS.md) — working process, invariants, and definition of done
+- [CONVENTIONS.md](CONVENTIONS.md) — design and handling measures inherited from
+  the reference repositories, with their sources
+- [DEPENDENCIES.md](DEPENDENCIES.md) — dependency purpose, licensing, and
+  replacement boundaries
+- [TODO.md](TODO.md) — open work only
+- [DONE.md](DONE.md) — completed work, with reasoning and lessons
+
+## Templates
+
+`thothpad` is the functional template: a native macOS application by the same
+author whose specification defines *what* Opera Incerta must do. `c4ml`
+(C4thedral) is the technical template: its repository layout, process
+boundaries, and documentation discipline define *how* this project is built.
+Neither is copied; see [SPEC.md](SPEC.md) §4 and
+[CONVENTIONS.md](CONVENTIONS.md).
+
+## License
+
+Not yet decided ([SPEC.md](SPEC.md) §19). Package manifests deliberately carry
+no license field until it is.

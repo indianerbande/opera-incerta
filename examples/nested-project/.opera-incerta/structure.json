@@ -1,0 +1,9 @@
+{
+  ".": {
+    "order": ["preface.md", "part-1"]
+  },
+  "part-1": {
+    "displayName": "Part 1: Departure",
+    "order": ["scene-2.md", "scene-1.md", "pre"]
+  }
+}

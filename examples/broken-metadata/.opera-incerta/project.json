@@ -1,0 +1,5 @@
+{
+  "id": 42,
+  "displayName": null,
+  "note": "Deliberately malformed: the id must be a non-empty string."
+}

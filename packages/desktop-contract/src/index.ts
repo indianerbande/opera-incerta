@@ -1,0 +1,135 @@
+/**
+ * The single versioned bridge between the Electron main process and the
+ * sandboxed renderer. SPEC.md §5.3.
+ *
+ * The renderer never receives filesystem paths as authority: it addresses
+ * documents through opaque handles that the main process issues, resolves, and
+ * validates. Every field of every request is validated at runtime in the main
+ * process — a compile-time type is not validation (CONVENTIONS.md C-S2).
+ *
+ * This package is portable on purpose: main process, preload, and renderer all
+ * depend on it, and its guards are unit-tested without Electron.
+ */
+
+/** Contract version. A breaking change increments it and both sides check it. */
+export const CONTRACT_VERSION = 1;
+
+/** The global the preload script exposes on the renderer's `window`. */
+export const BRIDGE_GLOBAL = 'operaIncerta';
+
+/**
+ * Every channel the preload surface may reach. The main process rejects any
+ * channel outside this inventory, and the desktop production check asserts
+ * that the preload exposes no others.
+ */
+export const CHANNELS = {
+  contractVersion: 'opera-incerta:contract-version',
+  openProject: 'opera-incerta:project/open',
+  closeProject: 'opera-incerta:project/close',
+  readSheet: 'opera-incerta:sheet/read',
+  writeSheet: 'opera-incerta:sheet/write',
+} as const;
+
+export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
+
+const CHANNEL_VALUES: ReadonlySet<string> = new Set(Object.values(CHANNELS));
+
+/** True when `value` is a channel this contract declares. */
+export function isChannelName(value: unknown): value is ChannelName {
+  return typeof value === 'string' && CHANNEL_VALUES.has(value);
+}
+
+/**
+ * An opaque reference to a document the main process holds. It carries no
+ * filesystem path: the renderer cannot construct one, and forging a handle
+ * fails the main process's registry lookup.
+ */
+export interface DocumentHandle {
+  readonly kind: 'opera-incerta/document';
+  readonly id: string;
+}
+
+/** Maximum accepted document size, in bytes. Enforced in the main process. */
+export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
+
+const HANDLE_ID = /^[0-9a-f]{32}$/;
+
+/** Runtime guard for a handle arriving from the renderer. */
+export function isDocumentHandle(value: unknown): value is DocumentHandle {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<DocumentHandle>;
+  return (
+    candidate.kind === 'opera-incerta/document' &&
+    typeof candidate.id === 'string' &&
+    HANDLE_ID.test(candidate.id)
+  );
+}
+
+/** A request that carries only a handle. */
+export interface DocumentRequest {
+  readonly handle: DocumentHandle;
+}
+
+/** A write request. The main process enforces {@link MAX_DOCUMENT_BYTES}. */
+export interface WriteSheetRequest extends DocumentRequest {
+  readonly text: string;
+}
+
+/** Runtime guard for {@link WriteSheetRequest}. */
+export function isWriteSheetRequest(value: unknown): value is WriteSheetRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<WriteSheetRequest>;
+  return (
+    isDocumentHandle(candidate.handle) &&
+    typeof candidate.text === 'string' &&
+    utf8ByteLength(candidate.text) <= MAX_DOCUMENT_BYTES
+  );
+}
+
+/**
+ * UTF-8 byte length, computed without `TextEncoder` or Node.js `Buffer`.
+ *
+ * The size limit is part of the contract, so it must be checkable on both
+ * sides of the bridge. Reaching for a host global here would give this package
+ * a DOM or Node.js dependency and break the portability invariant
+ * (SPEC.md §5.2), which is why the arithmetic is spelled out.
+ */
+export function utf8ByteLength(value: string): number {
+  let bytes = 0;
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint === undefined) {
+      continue;
+    }
+    if (codePoint <= 0x7f) {
+      bytes += 1;
+    } else if (codePoint <= 0x7ff) {
+      bytes += 2;
+    } else if (codePoint <= 0xffff) {
+      bytes += 3;
+    } else {
+      bytes += 4;
+    }
+  }
+  return bytes;
+}
+
+/** A failed privileged request, reported rather than thrown across the bridge. */
+export interface BridgeFailure {
+  readonly ok: false;
+  /** Stable diagnostic code. SPEC.md §16. */
+  readonly code: string;
+  readonly message: string;
+}
+
+/** A successful privileged request. */
+export interface BridgeSuccess<TValue> {
+  readonly ok: true;
+  readonly value: TValue;
+}
+
+export type BridgeResult<TValue> = BridgeSuccess<TValue> | BridgeFailure;
