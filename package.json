@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Opera Incerta \u2014 a local desktop tool for collecting and writing texts and assembling them into a structured book manuscript",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@11.24.0",
   "engines": {
     "node": "^24.15.0 || >=26.0.0"

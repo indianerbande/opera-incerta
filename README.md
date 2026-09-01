@@ -93,5 +93,6 @@ Neither is copied; see [SPEC.md](SPEC.md) §4 and
 
 ## License
 
-Not yet decided ([SPEC.md](SPEC.md) §19). Package manifests deliberately carry
-no license field until it is.
+Opera Incerta is licensed under the [Apache License 2.0](LICENSE). Third-party
+dependencies retain their own licenses, documented in
+[DEPENDENCIES.md](DEPENDENCIES.md).

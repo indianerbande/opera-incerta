@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Angular renderer: the Opera Incerta workbench.",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "ng build opera-incerta-workbench",
     "start": "ng serve opera-incerta-workbench",

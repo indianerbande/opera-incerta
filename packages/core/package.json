@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Portable Opera Incerta domain rules. No DOM, no Electron, no Node.js APIs.",
+  "license": "Apache-2.0",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

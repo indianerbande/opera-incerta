@@ -78,6 +78,11 @@ explicit decision, because the project had no released artifact, no user file,
 and no stored preference — the only moment at which such an alignment is free.
 That window is now closed: the next product rename does not get to repeat it.
 
+**License.** Opera Incerta is licensed under the Apache License 2.0, the same
+license as the technical template. Third-party dependencies keep their own
+licenses and notices; the repository's license does not relicense them
+(`CONVENTIONS.md` C-L5).
+
 Still open: trademark clearance for the name before public distribution, and
 the application icon. The icon, when it exists, is installation chrome only; it
 MUST NOT appear inside a manuscript or an exported document.
@@ -168,7 +173,7 @@ project. Real manuscript content MUST NOT be used as test data.
 | Text file format | Markdown (`.md`), UTF-8, one sheet is one file |
 | Project metadata | JSON under `.opera-incerta/` in the project directory |
 | Synchronization | Git, driven by the author; the application only reads and writes the working tree |
-| License | To be decided (§19) |
+| License | Apache License 2.0 |
 
 Node.js and pnpm versions are pinned in the root manifest once the workspace
 exists, and the packaging path MUST fail early and clearly on an unsupported
@@ -1416,7 +1421,6 @@ depends on them:
 
 - trademark clearance for the accepted product name before public
   distribution;
-- the project license;
 - the editing component (§5.4) and the Markdown parser, pending a spike;
 - the mechanism for non-line-wise markup elements (§10.3);
 - the concrete import and export format list and its order;

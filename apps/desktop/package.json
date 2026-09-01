@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "description": "Electron shell: native lifecycle, windows, dialogs, filesystem, and packaging.",
+  "license": "Apache-2.0",
   "main": "dist/main.cjs",
   "config": {
     "forge": "./forge.config.cjs"

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Node.js project and library adapter. Owns every filesystem access.",
+  "license": "Apache-2.0",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

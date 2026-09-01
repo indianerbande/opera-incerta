@@ -34,18 +34,21 @@ check` green: 6 projects, **293 tests**. `pnpm run desktop:smoke` green.
 
 ## 2. To decide before code exists
 
-### 2.1 Editing component
+### 2.1 Markdown parser dependency
+
+The display transform and the outline are implemented without a parser, and the
+front matter codec deliberately needs none (`SPEC.md` §6.3). Full GFM rendering
+(`SPEC.md` §18, phase 2) does need one, and so does the independent
+standard-conformance cross-check in §1.1. The candidate and its boundary are
+recorded in `DEPENDENCIES.md`; the decision itself is open.
+
+### 2.2 Editing component
 
 `SPEC.md` §5.4 names CodeMirror 6 as the candidate and `TESTING.md` §2.8 defines
 the spike gate. The spike is the next architectural step after the codec,
 because the display model cannot be finished without knowing what the component
 can do. A failing criterion means the component is not accepted, not that the
 criterion is relaxed.
-
-### 2.2 Project license
-
-`SPEC.md` §19. Package manifests deliberately carry no `license` field yet. The
-technical template is Apache-2.0; this project has not decided.
 
 ## 3. Larger, not yet touched
 

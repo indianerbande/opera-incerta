@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Source control adapter over the locally installed git executable.",
+  "license": "Apache-2.0",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

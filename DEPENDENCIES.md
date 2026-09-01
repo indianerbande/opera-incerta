@@ -15,6 +15,11 @@ a spike alone is not permanent acceptance.
 All versions are pinned exactly (`save-exact=true` in `.npmrc`). A version
 change is a dependency decision, not a routine update.
 
+The repository is licensed under the Apache License 2.0. That does not
+relicense anything below: every package keeps its own license and notice
+obligations, and those notices ship with the application
+(`CONVENTIONS.md` C-L5).
+
 ## Accepted — build and test toolchain
 
 ### TypeScript 6.0.3

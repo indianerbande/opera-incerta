@@ -6,6 +6,27 @@ documents").
 
 ---
 
+## 2026-09-01 — licensed under Apache-2.0
+
+**Decision.** Opera Incerta is licensed under the Apache License 2.0, the same
+license as the technical template.
+
+**What changed.** `LICENSE` at the repository root, and a `license` field in
+all seven manifests. `SPEC.md` §1.1 and §5.1 record it, `SPEC.md` §19 no longer
+lists it as open, and `README.md` and `DEPENDENCIES.md` point at the file.
+
+**What it does not do.** The repository license does not relicense any
+dependency: every package keeps its own license and notice obligations, and
+those notices ship with the application (`CONVENTIONS.md` C-L5). That was
+already the rule; it is now stated where a reader of `DEPENDENCIES.md` meets it
+first.
+
+**Verification.** `pnpm run check` green, unchanged at **293 tests**, plus the
+desktop production check — the manifests are read by that check, so a malformed
+edit would have failed it.
+
+---
+
 ## 2026-09-01 — everything specified that needed no decision
 
 **Scope.** Build out every open item whose behavior was already specified and
