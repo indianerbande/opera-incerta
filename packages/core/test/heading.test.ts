@@ -69,6 +69,12 @@ describe('code fences', () => {
     expect(levels).toEqual([1, null, null, null, null, null, null, 2, null, null, null, null]);
   });
 
+  it('marks fence lines and their content as verbatim', () => {
+    const lines = markdownToDisplay(['text', '```', '# inside', '```', '# outside'].join('\n'));
+
+    expect(lines.map((line) => line.verbatim)).toEqual([false, true, true, true, false]);
+  });
+
   it('does not close a backtick fence with a tilde fence', () => {
     const lines = markdownToDisplay(['```', '~~~', '# still inside', '```', '# outside'].join('\n'));
     expect(lines[2]?.level).toBeNull();
@@ -114,7 +120,13 @@ describe('round trip', () => {
 });
 
 describe('withHeadingLevel', () => {
-  const plain: DisplayLine = { level: null, text: 'A line', prefix: '', suffix: '' };
+  const plain: DisplayLine = {
+    level: null,
+    text: 'A line',
+    prefix: '',
+    suffix: '',
+    verbatim: false,
+  };
 
   it('applies a level to a plain line', () => {
     const heading = withHeadingLevel(plain, 3);
@@ -146,7 +158,13 @@ describe('withHeadingLevel', () => {
     // The rule the functional template got wrong: pressing Return after a
     // heading must start an ordinary paragraph (SPEC.md §10.2).
     const heading = withHeadingLevel(plain, 2);
-    const next: DisplayLine = { level: null, text: '', prefix: '', suffix: '' };
+    const next: DisplayLine = {
+      level: null,
+      text: '',
+      prefix: '',
+      suffix: '',
+      verbatim: false,
+    };
 
     expect(displayToMarkdown([heading, next])).toBe('## A line\n');
   });

@@ -139,6 +139,64 @@ async function runSmokeCheck(window: BrowserWindow): Promise<void> {
       throw new Error(`bridge answered ${JSON.stringify(bridgeVersion)}`);
     }
 
+    // The editor is the part most likely to render as an empty box, so the
+    // smoke asks for evidence that it laid out: a heading line taller than
+    // body text, a gutter marker beside it, and no visible `#` prefix.
+    const editor = (await window.webContents.executeJavaScript(
+      `(() => {
+         const lines = [...document.querySelectorAll('.cm-line')];
+         const heading = lines.find((line) => line.classList.contains('cm-heading-1'));
+         const body = lines.find((line) => !line.className.includes('cm-heading'));
+         if (heading === undefined || body === undefined) { return null; }
+         return {
+           lines: lines.length,
+           headingHeight: heading.getBoundingClientRect().height,
+           bodyHeight: body.getBoundingClientRect().height,
+           markers: [...document.querySelectorAll('.cm-heading-marker')]
+             .filter((marker) => marker.dataset.line !== '0').length,
+           fencedMarkers: [...document.querySelectorAll('.cm-line')]
+             .filter((line) => line.textContent.startsWith('# A fenced block'))
+             .map((line) => [...document.querySelectorAll('.cm-heading-marker')]
+               .filter((marker) => marker.textContent === 'H1').length)
+             .length,
+           hidesPrefix: !heading.textContent.includes('#'),
+           fencedLineVisible: [...document.querySelectorAll('.cm-line')]
+             .some((line) => line.textContent.startsWith('# A fenced block')),
+         };
+       })()`,
+    )) as {
+      lines: number;
+      headingHeight: number;
+      bodyHeight: number;
+      markers: number;
+      hidesPrefix: boolean;
+      fencedLineVisible: boolean;
+    } | null;
+
+    if (editor === null) {
+      throw new Error('the editor did not render its lines');
+    }
+    if (!(editor.headingHeight > editor.bodyHeight)) {
+      throw new Error(
+        `heading not taller than body: ${editor.headingHeight} vs ${editor.bodyHeight}`,
+      );
+    }
+    if (editor.markers === 0) {
+      throw new Error('no heading markers in the gutter');
+    }
+    if (!editor.hidesPrefix) {
+      throw new Error('the heading line still shows its Markdown prefix');
+    }
+    // Three headings in the placeholder document. A fourth would mean the `#`
+    // inside the fenced block was labelled as one — the defect the visual
+    // check found.
+    if (editor.markers !== 3) {
+      throw new Error(`expected 3 gutter markers, found ${editor.markers}`);
+    }
+    if (!editor.fencedLineVisible) {
+      throw new Error('the fenced line is not shown verbatim');
+    }
+
     const image = await window.webContents.capturePage();
     const evidenceDirectory = join(currentDirectory, '..', '..', '..', 'build', 'desktop');
     mkdirSync(evidenceDirectory, { recursive: true });
@@ -146,6 +204,10 @@ async function runSmokeCheck(window: BrowserWindow): Promise<void> {
     writeFileSync(evidencePath, image.toPNG());
 
     console.log(`smoke ok: renderer rendered, bridge contract v${CONTRACT_VERSION}`);
+    console.log(
+      `smoke ok: editor laid out ${editor.lines} lines, heading ${editor.headingHeight}px ` +
+        `over body ${editor.bodyHeight}px, ${editor.markers} gutter markers`,
+    );
     console.log(`smoke evidence: ${evidencePath}`);
     app.exit(0);
   } catch (error: unknown) {

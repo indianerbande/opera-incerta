@@ -23,6 +23,12 @@ export interface DisplayLine {
   readonly prefix: string;
   /** Raw Markdown removed from the end of the line (closing hashes). */
   readonly suffix: string;
+  /**
+   * True for a fenced code block, its fence lines included. Such a line is
+   * shown exactly as written: no heading, and no inline markup, because
+   * backticks mean "literally this".
+   */
+  readonly verbatim: boolean;
 }
 
 /**
@@ -57,10 +63,10 @@ export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
       } else if (marker === openFence) {
         openFence = null;
       }
-      display.push(plainLine(line));
+      display.push(plainLine(line, true));
       continue;
     }
-    display.push(openFence === null ? readLine(line) : plainLine(line));
+    display.push(openFence === null ? readLine(line) : plainLine(line, true));
   }
 
   return display;
@@ -71,8 +77,8 @@ export function displayToMarkdown(lines: readonly DisplayLine[]): string {
   return lines.map((line) => `${line.prefix}${line.text}${line.suffix}`).join('\n');
 }
 
-function plainLine(line: string): DisplayLine {
-  return { level: null, text: line, prefix: '', suffix: '' };
+function plainLine(line: string, verbatim = false): DisplayLine {
+  return { level: null, text: line, prefix: '', suffix: '', verbatim };
 }
 
 function readLine(line: string): DisplayLine {
@@ -96,6 +102,7 @@ function readLine(line: string): DisplayLine {
     text,
     prefix: `${indent}${hashes}${spacing}`,
     suffix: `${closingSuffix}${trailingSpace}`,
+    verbatim: false,
   };
 }
 
@@ -108,7 +115,7 @@ function readLine(line: string): DisplayLine {
  */
 export function withHeadingLevel(line: DisplayLine, level: HeadingLevel | null): DisplayLine {
   if (level === null) {
-    return { level: null, text: line.text, prefix: '', suffix: '' };
+    return { level: null, text: line.text, prefix: '', suffix: '', verbatim: line.verbatim };
   }
 
   const previous = /^( {0,3})(#{1,6})([ \t]*)$/.exec(line.prefix);
@@ -120,6 +127,7 @@ export function withHeadingLevel(line: DisplayLine, level: HeadingLevel | null):
     text: line.text,
     prefix: `${indent}${'#'.repeat(level)}${spacing}`,
     suffix: line.suffix,
+    verbatim: false,
   };
 }
 

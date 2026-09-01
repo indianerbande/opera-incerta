@@ -59,6 +59,15 @@ importers:
       '@angular/platform-browser':
         specifier: 22.1.4
         version: 22.1.4(@angular/common@22.1.4(@angular/core@22.1.4(@angular/compiler@22.1.4)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.4(@angular/compiler@22.1.4)(rxjs@7.8.2))
+      '@codemirror/commands':
+        specifier: 6.8.1
+        version: 6.8.1
+      '@codemirror/state':
+        specifier: 6.5.2
+        version: 6.5.2
+      '@codemirror/view':
+        specifier: 6.38.1
+        version: 6.38.1
       '@opera-incerta/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -115,6 +124,9 @@ importers:
       '@opera-incerta/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@opera-incerta/workbench':
+        specifier: workspace:*
+        version: link:../../apps/workbench
       electron:
         specifier: 44.0.0
         version: 44.0.0(supports-color@8.1.1)

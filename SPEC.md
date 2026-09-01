@@ -879,6 +879,19 @@ unit-testable, free of the editor component:
 The editor core knows only the formatting model, never the concrete Markdown
 target syntax. Round-tripping MUST be lossless and idempotent.
 
+**Lines inside a fenced code block are shown exactly as written.** No heading is
+recognized there and no delimiter is hidden: backticks mean "literally this",
+and hiding a character inside them would display something the file does not
+contain.
+
+**The component sits behind an `EditorAdapter` boundary.** The portable core
+computes the display model — which lines are headings, which character ranges
+are hidden — and the adapter translates it into the component's own
+decorations. The interface carries no DOM type, so one contract suite can run
+against both the real implementation and a double (`TESTING.md` §2.6). The
+application speaks to the editor about text, lines, and heading levels; never
+about elements or key events.
+
 ### 10.2 Heading formatting and the marker gutter
 
 **Status: Accepted.**

@@ -21,7 +21,12 @@ import {
 } from '@codemirror/view';
 import { history, historyKeymap, undo } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
-import { markdownToDisplay, displayToMarkdown } from '@opera-incerta/core';
+import {
+  displayToMarkdown,
+  markdownToDisplay,
+  runEditorAdapterContract,
+} from '@opera-incerta/core';
+import { createCodeMirrorEditorAdapter } from '@opera-incerta/workbench/editor';
 
 interface CriterionResult {
   readonly id: number;
@@ -463,6 +468,33 @@ async function criterion6(parent: HTMLElement): Promise<CriterionResult> {
   };
 }
 
+/**
+ * The adapter contract, run against the real implementation.
+ *
+ * The same cases run under Vitest against an in-memory double
+ * (`packages/core/test/editor-adapter.test.ts`). An adapter that passes both is
+ * a boundary rather than a description of one component
+ * (`CONVENTIONS.md` C-T11).
+ */
+function criterion7(parent: HTMLElement): CriterionResult {
+  const host = document.createElement('div');
+  parent.append(host);
+
+  const cases = runEditorAdapterContract(() => createCodeMirrorEditorAdapter(host));
+  const failures = cases.filter((contractCase) => !contractCase.passed);
+  host.remove();
+
+  return {
+    id: 7,
+    name: 'the CodeMirror adapter satisfies the editor contract',
+    passed: failures.length === 0 && cases.length > 0,
+    detail: {
+      cases: cases.length,
+      failures: failures.map((contractCase) => `${contractCase.name} — ${contractCase.detail}`),
+    },
+  };
+}
+
 async function run(): Promise<void> {
   const parent = document.getElementById('editor');
   if (parent === null) {
@@ -477,6 +509,7 @@ async function run(): Promise<void> {
     criterion4(parent),
     criterion5(parent),
     await criterion6(parent),
+    criterion7(parent),
   ];
   globalThis.__spikeResult = { criteria };
 }

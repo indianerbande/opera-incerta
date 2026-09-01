@@ -8,10 +8,11 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-01:** everything specified that needs no open decision is
-built: the portable rule set, the project and Git adapters, the library scan,
-the owned renderer protocol, and the production boundary check. `pnpm run
-check` green: 6 projects, **293 tests**. `pnpm run desktop:smoke` green.
+**State 2026-09-01:** the portable rule set, the project and Git adapters, the
+library scan, the owned renderer protocol, the production boundary check, and
+the editor adapter with CodeMirror behind it. `pnpm run check` green: 6
+projects, **332 tests**. `pnpm run desktop:smoke` and `pnpm run spike:editor`
+green.
 
 ---
 
@@ -31,13 +32,18 @@ check` green: 6 projects, **293 tests**. `pnpm run desktop:smoke` green.
 3. **Filesystem watching** — the coordination rules exist and are tested
    (`RefreshCoordinator`, `ExclusiveTask` in the core); the watcher that drives
    them does not, because the mechanism is an open dependency question (§2.2).
-4. **Editor adapter in `apps/workbench`** — CodeMirror 6 is accepted
-   (`SPEC.md` §5.4) and the spike shows the shape that works. What the spike is
-   not: production code. The round is to define the `EditorAdapter` interface,
-   move the display model behind it — the core already owns heading transform,
-   outline, and inline detection — and give it the component and view tests of
-   `TESTING.md` §2.6. The spike stays until those tests carry the same
-   evidence.
+4. **Dot commands for heading levels** — `SPEC.md` §10.2 has the author type
+   `.h1`…`.h6` at the start of a line, after which the command text disappears.
+   The adapter can set a level (`setHeadingLevel`) and the gutter shows it, but
+   nothing recognizes the typed command yet.
+5. **The gutter menu** — clicking a level label opens a menu to change or
+   remove the level (`SPEC.md` §10.2). The action exists on the adapter; the
+   menu does not.
+6. **Cursor behavior around hidden heading syntax** — the `# ` prefix is
+   hidden, so pressing Backspace at the visual start of a heading line deletes
+   into syntax the author cannot see. Decide whether the range becomes atomic,
+   whether Backspace removes the heading level instead, or something else, and
+   then extend the contract suite with it.
 
 ## 2. To decide before code exists
 
@@ -64,10 +70,12 @@ is replaceable; the report in `AGENTS.md` decides it.
 Everything here waits on a decision from §2, on a user interface, or on both.
 
 - **Workbench views** — explorer, sheet list with its three density steps,
-  editor, inspector, outline, panel headers as one shared component
-  (`SPEC.md` §8.3, §9, §10, §11). The rules they display are all implemented
-  and tested, and the editing surface is now decided; they wait on the adapter
-  in §1.4 and on nothing else.
+  inspector, outline, panel headers as one shared component (`SPEC.md` §8.3,
+  §9, §11). The rules they display are implemented and tested and the editor
+  now exists; these are the remaining panes.
+- **Connecting the editor to real documents** — it shows a placeholder. Opening
+  a sheet through the bridge, saving it, and the dirty state belong to their
+  own round together with the library view.
 - **Settings record and localization catalogues** (`SPEC.md` §13, §14). The
   contract shape is accepted; the individual values are still draft.
 - **Source control interface** — the adapter is complete; the panel, the

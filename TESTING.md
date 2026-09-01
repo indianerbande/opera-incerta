@@ -229,6 +229,20 @@ Component and state tests MUST cover:
 - rejection of stale asynchronous results: a slow scan or search that completes
   after a newer one MUST NOT overwrite the newer result.
 
+**The editor adapter has one contract suite for every implementation**
+(`CONVENTIONS.md` C-T11). It is written without a test framework so that the
+same cases run in both places: under Vitest against an in-memory double, and
+inside a real renderer against the CodeMirror implementation, as criterion 7 of
+`pnpm run spike:editor`. The suite MUST cover opening and reading a document,
+the focused line, revealing a line, applying and removing a heading level, a
+heading never spreading to the next line, undo and redo, an undo history that
+belongs to its document across switches, change notification and
+unsubscription, and an idempotent destroy.
+
+A suite that only one implementation can satisfy is describing that component
+rather than a boundary, which is what the double exists to reveal. The suite is
+itself falsified by a test: a deliberately broken adapter must fail it.
+
 ### 2.7 Desktop shell and packaging
 
 Tests MUST cover:
@@ -284,7 +298,9 @@ A failing criterion means the component is not accepted. It does not mean the
 criterion is relaxed.
 
 **Outcome, 2026-09-01: CodeMirror 6 passed all six criteria** and is accepted
-(`SPEC.md` §5.4). Measured: H1 45 px against body 22.5 px with the line blocks
+(`SPEC.md` §5.4). A seventh criterion was added when the adapter was built: the
+real implementation runs the editor contract suite of §2.6 and passes all
+eleven cases, the same ones the in-memory double passes. Measured: H1 45 px against body 22.5 px with the line blocks
 plus padding accounting for the full content height; marker tops matching their
 lines to 0 px, including a heading wrapped over eight visual rows carrying
 exactly one marker; the focus exemption switching in both directions with the

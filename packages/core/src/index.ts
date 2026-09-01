@@ -12,6 +12,16 @@ export type {
   SheetMetadata,
 } from './front-matter.js';
 
+export type { EditorAdapter, EditorChangeListener, EditorDocument } from './editor-adapter.js';
+export { runEditorAdapterContract } from './editor-adapter-contract.js';
+export type { ContractCase } from './editor-adapter-contract.js';
+
+export { delimiterRanges, inlineSpans } from './inline.js';
+export type { InlineKind, InlineSpan } from './inline.js';
+
+export { displayModel } from './display-model.js';
+export type { DisplayModel, HeadingSpan, HiddenRange } from './display-model.js';
+
 export {
   markdownToDisplay,
   displayToMarkdown,

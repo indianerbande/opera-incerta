@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Disposable spike: does CodeMirror 6 satisfy the editor gate in TESTING.md §2.8?",
+  "description": "Disposable spike: does CodeMirror 6 satisfy the editor gate in TESTING.md \u00a72.8?",
   "license": "Apache-2.0",
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit && esbuild src/renderer.ts --bundle --format=iife --outfile=dist/renderer.js && esbuild src/main.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main.cjs",
@@ -14,6 +14,7 @@
     "@codemirror/state": "6.5.2",
     "@codemirror/view": "6.38.1",
     "@opera-incerta/core": "workspace:*",
+    "@opera-incerta/workbench": "workspace:*",
     "electron": "44.0.0",
     "esbuild": "0.28.2"
   }

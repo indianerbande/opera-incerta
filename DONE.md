@@ -6,6 +6,58 @@ documents").
 
 ---
 
+## 2026-09-01 — the editor adapter, and an editor that renders
+
+**What exists.** An `EditorAdapter` boundary in the portable core, a CodeMirror
+implementation of it in `apps/workbench`, an Angular component hosting it, and
+the editor visible in the workbench's editor region.
+
+**The boundary carries no DOM type.** The component is chosen when the adapter
+is constructed; from then on the application speaks about text, lines, and
+heading levels. That is what let one contract suite — written without a test
+framework — run in both worlds: under Vitest against an in-memory double, and
+inside the real renderer against CodeMirror as criterion 7 of the spike. Both
+pass all eleven cases (`CONVENTIONS.md` C-T11). The suite is itself falsified
+by a test: a deliberately broken adapter must fail it, and does.
+
+**New in the core.** `inline.ts` — pure inline markup detection for the
+asterisk forms, strikethrough, and code spans, with escapes honored, code spans
+shadowing emphasis, and underscores deliberately left alone because that
+decision is still open (`SPEC.md` §10.3). `display-model.ts` — what the editor
+shows: which lines are headings and which character ranges are hidden, in
+document offsets. `DisplayLine` gained `verbatim`, so a fenced code block is
+recognized as one.
+
+**Verification.** `pnpm run check` green: **332 tests** across 6 projects (core
+218). `pnpm run spike:editor` green at 7/7. `pnpm run desktop:smoke` green and
+now measuring the editor itself: 19 laid-out lines, a heading at 51.2 px over
+body text at 25.6 px, exactly 3 gutter markers, no visible `#` prefix, and the
+fenced line shown verbatim. Visually inspected in `build/desktop/smoke.png`.
+
+**Two defects, both found by evidence rather than by reading.**
+
+1. **The smoke found a specification violation on its first run.** The heading
+   line still showed its `# ` prefix. The display model computed heading
+   *classes* and inline *delimiters*, and nobody had told it to hide the
+   heading syntax itself — which `SPEC.md` §10.2 requires, and requires
+   unconditionally: heading level is a static paragraph attribute, so unlike an
+   inline delimiter there is no syntax for the author to edit in place. Hidden
+   ranges now carry a `kind`, and the two rules are visibly different.
+2. **The visual check found a `#` inside a fenced code block labelled H1 in the
+   gutter.** The gutter asked line by line, and whether a `#` is a heading
+   cannot be answered by one line — it needs the whole document. Gutter and
+   decorations now read one shared display model held in editor state. The
+   smoke asserts the marker count so the defect cannot return quietly.
+
+**Lesson.** Both defects were in the wiring between two correct pieces. The
+core knew about fences and the adapter knew about gutters; what was missing was
+that the gutter asked the wrong question. Component tests would not have caught
+either one — the first needed a rendered heading, the second needed a document
+with a fence in it. This is what the smoke and the visual inspection are for,
+and both earned their place today.
+
+---
+
 ## 2026-09-01 — CodeMirror 6 accepted after the editor spike
 
 **Question.** Can CodeMirror 6 carry the display model of `SPEC.md` §10 —
