@@ -18,18 +18,19 @@
   },
   "scripts": {
     "build": "pnpm --recursive --sort --if-present run build",
-    "test": "pnpm --recursive --sort --if-present run test",
-    "typecheck:tests": "tsc -p tsconfig.tests.json",
-    "typecheck": "pnpm run build && pnpm run typecheck:tests",
     "check": "pnpm run build && pnpm run typecheck:tests && pnpm run test && pnpm run check:desktop-production",
-    "workbench:build": "pnpm --filter @opera-incerta/workbench run build",
-    "workbench:start": "pnpm --filter @opera-incerta/workbench run start",
+    "check:desktop-production": "node scripts/check-desktop-production.mjs",
     "desktop:build": "pnpm --filter @opera-incerta/workbench... run build && pnpm --filter @opera-incerta/desktop... run build",
-    "desktop:start": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run start",
-    "desktop:smoke": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run smoke",
-    "desktop:package": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run package",
     "desktop:make": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run make",
-    "check:desktop-production": "node scripts/check-desktop-production.mjs"
+    "desktop:package": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run package",
+    "desktop:smoke": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run smoke",
+    "desktop:start": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run start",
+    "spike:editor": "pnpm --filter @opera-incerta/spike-editor-codemirror... run build && pnpm --filter @opera-incerta/spike-editor-codemirror run spike",
+    "test": "pnpm --recursive --sort --if-present run test",
+    "typecheck": "pnpm run build && pnpm run typecheck:tests",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
+    "workbench:build": "pnpm --filter @opera-incerta/workbench run build",
+    "workbench:start": "pnpm --filter @opera-incerta/workbench run start"
   },
   "devDependencies": {
     "@types/node": "24.13.3",

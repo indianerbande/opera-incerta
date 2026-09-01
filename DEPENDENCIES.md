@@ -1,7 +1,7 @@
 # Opera Incerta Dependency Record
 
-Status: Accepted toolchain and shell stack; editing component and Markdown
-parser remain open candidates
+Status: Accepted toolchain, shell stack, and editing surface; the Markdown
+parser remains an open candidate
 
 Date: 2026-09-01
 
@@ -112,6 +112,36 @@ obligations, and those notices ship with the application
   Angular requires it, not as an architectural choice.
 - **Evidence:** covered by the renderer build.
 
+## Accepted — editing surface
+
+### CodeMirror 6 (`@codemirror/state` 6.5.2, `@codemirror/view` 6.38.1, `@codemirror/commands` 6.8.1)
+
+- **Capability:** the text editing surface: a document model with transactions,
+  decoration-based rendering, gutters, variable line heights, undo history, and
+  the input handling a real editor needs.
+- **Why external:** text editing is one of the few components where a
+  self-built version is reliably worse than a mature one — input methods,
+  selection, clipboard, accessibility, and bidirectional text each take years
+  to get right, and getting them wrong shows up in the author's daily work.
+- **License:** MIT.
+- **Impact:** ships inside the packaged application; the spike bundle including
+  all three packages is about 510 kB unminified. No runtime network access.
+- **Offline behavior:** entirely local.
+- **Boundary:** an Opera-Incerta-owned `EditorAdapter` interface. The display
+  model — heading levels, inline spans, the marker gutter's content — is
+  computed in `@opera-incerta/core` and handed to the component as decorations.
+  The component renders and reports edits; it never owns Markdown semantics,
+  and it never persists anything. Replacing it means reimplementing that
+  interface, not rewriting the display model.
+- **Evidence:** the spike gate of `TESTING.md` §2.8, all six criteria passed in
+  a real rendering engine on 2026-09-01. Run it with `pnpm run spike:editor`;
+  the measurements are recorded in `spikes/editor-codemirror/README.md`.
+
+**Why not Monaco**, which the technical template uses: Monaco is built for
+source code and assumes a uniform line height. Opera Incerta shows H1 at 45 px
+next to body text at 22.5 px in the same document, which is the core of its
+display model rather than a decoration on top of it.
+
 ## Accepted — desktop shell
 
 ### Electron 44.0.0
@@ -173,16 +203,6 @@ recurring installation prompt.
 
 These are named in `SPEC.md` §5.4 and require the full report above, plus a
 spike, before they may be added.
-
-### Editing component — CodeMirror 6 (candidate)
-
-The template's Monaco choice does not transfer: Opera Incerta displays headings at
-different sizes in the same document, which a fixed-line-height code editor does
-not support well. CodeMirror 6 supports variable line heights and
-decoration-based rendering. It must pass the spike gate in `TESTING.md` §2.8 —
-variable heading sizes, a gutter aligned to measured line heights, hidden inline
-markers with a focused-line exception, per-document undo, safe external paste,
-and acceptable latency in a large document — before it is accepted.
 
 ### Markdown parser — CommonMark/GFM family (candidate)
 

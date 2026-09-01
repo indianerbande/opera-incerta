@@ -30,7 +30,14 @@ check` green: 6 projects, **293 tests**. `pnpm run desktop:smoke` green.
    `PLATFORMS.md`.
 3. **Filesystem watching** — the coordination rules exist and are tested
    (`RefreshCoordinator`, `ExclusiveTask` in the core); the watcher that drives
-   them does not, because the mechanism is an open dependency question (§2.1).
+   them does not, because the mechanism is an open dependency question (§2.2).
+4. **Editor adapter in `apps/workbench`** — CodeMirror 6 is accepted
+   (`SPEC.md` §5.4) and the spike shows the shape that works. What the spike is
+   not: production code. The round is to define the `EditorAdapter` interface,
+   move the display model behind it — the core already owns heading transform,
+   outline, and inline detection — and give it the component and view tests of
+   `TESTING.md` §2.6. The spike stays until those tests carry the same
+   evidence.
 
 ## 2. To decide before code exists
 
@@ -42,13 +49,15 @@ front matter codec deliberately needs none (`SPEC.md` §6.3). Full GFM rendering
 standard-conformance cross-check in §1.1. The candidate and its boundary are
 recorded in `DEPENDENCIES.md`; the decision itself is open.
 
-### 2.2 Editing component
+### 2.2 Filesystem watching mechanism
 
-`SPEC.md` §5.4 names CodeMirror 6 as the candidate and `TESTING.md` §2.8 defines
-the spike gate. The spike is the next architectural step after the codec,
-because the display model cannot be finished without knowing what the component
-can do. A failing criterion means the component is not accepted, not that the
-criterion is relaxed.
+Node's own `fs.watch` with a debouncing layer may be enough, or `chokidar` may
+be worth its weight — the difference shows up in recursive watching and in
+platform behavior, not in the rules, which are already built and tested. Either
+choice sits behind the `LibraryWatcher` port in `packages/project-node`, so it
+is replaceable; the report in `AGENTS.md` decides it.
+
+---
 
 ## 3. Larger, not yet touched
 
@@ -57,7 +66,8 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Workbench views** — explorer, sheet list with its three density steps,
   editor, inspector, outline, panel headers as one shared component
   (`SPEC.md` §8.3, §9, §10, §11). The rules they display are all implemented
-  and tested; what is missing is the editing surface, which waits on §2.1.
+  and tested, and the editing surface is now decided; they wait on the adapter
+  in §1.4 and on nothing else.
 - **Settings record and localization catalogues** (`SPEC.md` §13, §14). The
   contract shape is accepted; the individual values are still draft.
 - **Source control interface** — the adapter is complete; the panel, the

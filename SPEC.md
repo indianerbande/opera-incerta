@@ -246,12 +246,21 @@ filesystem, the process table, the network, or the DOM.
 
 ### 5.4 Dependency decisions
 
-**Status: Draft — each entry requires the report in `AGENTS.md` before it is
-accepted.**
+**Status: The editing surface is accepted; the remaining entries are draft and
+each requires the report in `AGENTS.md` before acceptance.**
+
+**CodeMirror 6 is the accepted editing surface (2026-09-01).** It passed all six
+criteria of the spike gate in `TESTING.md` §2.8, measured in a real rendering
+engine: heading lines at different sizes in one document, a gutter aligned to
+measured line heights across a heading wrapping over eight visual rows, inline
+markers hidden except on the cursor's line, per-document undo across document
+switches, an intact paste, and a 6.6 ms p95 keystroke latency in a
+112,000-character document against a 16 ms threshold. The evidence lives in
+`spikes/editor-codemirror`.
 
 | Capability | Candidate | Boundary that keeps it replaceable |
 | --- | --- | --- |
-| Text editing surface | CodeMirror 6 | A Opera-Incerta-owned `EditorAdapter` interface; the editor component owns the display model, the library only renders it |
+| Text editing surface | CodeMirror 6 (**accepted**) | An Opera-Incerta-owned `EditorAdapter` interface; the display model stays in the core, and the component only renders it |
 | Markdown parsing | A CommonMark/GFM parser (e.g. `remark`/`micromark` family) | The parser produces a syntax representation that is translated into Opera-Incerta-owned domain types; parser AST types MUST NOT become the public model |
 | Filesystem watching | Node.js `fs.watch` with a debouncing layer, or `chokidar` | One `LibraryWatcher` interface in the Node adapter |
 | Git | The locally installed `git` executable via `child_process` | A `GitService` interface; no Git library dependency, no bundled Git |
@@ -261,8 +270,7 @@ Note on the editing surface: the technical template uses Monaco because it
 edits source code. Opera Incerta displays headings at **different sizes in the
 same document**, which a fixed-line-height code editor does not support well.
 CodeMirror 6 supports variable line heights and decoration-based rendering,
-which is why it is the candidate. This is a draft decision and MUST be
-validated by a spike (`TESTING.md` §2.8) before it is accepted.
+and the spike confirmed every part of that in practice.
 
 ### 5.5 Deviations from the functional template
 
@@ -1421,7 +1429,8 @@ depends on them:
 
 - trademark clearance for the accepted product name before public
   distribution;
-- the editing component (§5.4) and the Markdown parser, pending a spike;
+- the Markdown parser (§5.4), needed for full GFM rendering and for the
+  independent conformance cross-check of the front matter codec;
 - the mechanism for non-line-wise markup elements (§10.3);
 - the concrete import and export format list and its order;
 - which `AIProvider` implementations ship first and which is preselected;

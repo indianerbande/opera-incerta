@@ -6,6 +6,65 @@ documents").
 
 ---
 
+## 2026-09-01 — CodeMirror 6 accepted after the editor spike
+
+**Question.** Can CodeMirror 6 carry the display model of `SPEC.md` §10 —
+paragraph-level headings at different sizes, a gutter aligned to measured line
+heights, and inline markers hidden except on the cursor's line? It was the
+largest open technical decision, and every workbench view waited behind it.
+
+**Method.** `spikes/editor-codemirror`, run in a real Chromium renderer through
+Electron rather than a DOM stub. A stub reports zero for every height, which
+would have turned three of the six criteria into tests that pass while proving
+nothing. The six thresholds were written into `TESTING.md` §2.8 **before** the
+spike ran (`CONVENTIONS.md` C-T14) and were not touched afterwards.
+
+**Result: 6/6.**
+
+| # | Criterion | Measurement |
+| --- | --- | --- |
+| 1 | Variable heading sizes | H1 45 px, H2 36 px, body 22.5 px; line blocks plus the 8 px content padding equal the content height exactly |
+| 2 | Gutter alignment | Marker top matches its line to 0 px; a heading wrapped over 8 visual rows carries exactly one marker, at the first row |
+| 3 | Inline markers | Unfocused line renders without `**`, focused line with them, switching in both directions; document text untouched |
+| 4 | Undo per document | One undo reverted only the document it belonged to |
+| 5 | Paste | A real `ClipboardEvent` with CRLF, a tab, and Markdown arrived intact and round-tripped |
+| 6 | Typing latency | 112,020 characters, 200 keystrokes: median 5.8 ms, p95 6.6 ms against 16 ms |
+
+**Decision.** CodeMirror 6 is accepted as the editing surface (`SPEC.md` §5.4)
+behind an Opera-Incerta-owned `EditorAdapter` interface, with the full
+dependency report in `DEPENDENCIES.md`. Monaco, which the technical template
+uses, was ruled out on the criterion that mattered most: it assumes a uniform
+line height, and this product shows H1 at twice the body size in the same
+document.
+
+**Deliberately not done.** The component was not wired into `apps/workbench`.
+A spike answers a question; turning it into production architecture in the same
+step is the widening `AGENTS.md` forbids. The integration is `TODO.md` §1.4,
+and the spike stays as evidence until that round carries its own tests.
+
+**Lessons.**
+
+1. **Three of the six criteria first passed or failed for the wrong reason.**
+   Heights read before the first real frame are CodeMirror's *estimates*, all
+   identical — the very "computed, not measured" mistake the gate exists to
+   catch (`CONVENTIONS.md` C-U5), and it appeared inside the test for that
+   rule. An unexplained 4 px marker offset was the content padding. And
+   criterion 2 passed while proving nothing, because its wrapped line carried
+   no marker at all; rewritten to wrap a heading, it then failed on a third
+   measurement error — `getClientRects()` reports one rectangle for a block
+   element however often its text wraps, so visual rows must be counted over a
+   range of the text.
+2. **The fix was always the measurement, never the threshold.** Each correction
+   made the test stricter: the height difference must now be *explained* by the
+   measured padding rather than tolerated, and the wrapped line must carry
+   exactly one marker rather than none.
+3. **The spike proved the portability invariant as a side effect.** Its browser
+   bundle imports `@opera-incerta/core` for the heading transform, so the
+   portable core ran unchanged inside a Chromium bundle — `SPEC.md` §5.2
+   exercised rather than asserted.
+
+---
+
 ## 2026-09-01 — licensed under Apache-2.0
 
 **Decision.** Opera Incerta is licensed under the Apache License 2.0, the same

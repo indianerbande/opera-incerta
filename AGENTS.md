@@ -306,7 +306,9 @@ succeeded in this checkout. The following have:
 - `pnpm run desktop:build` builds the renderer and bundles the Electron main and
   preload files;
 - `pnpm run desktop:smoke` launches the shell, verifies that the renderer
-  rendered and the bridge answers, and writes `build/desktop/smoke.png`.
+  rendered and the bridge answers, and writes `build/desktop/smoke.png`;
+- `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
+  real rendering engine and exits non-zero on any failed criterion.
 
 Not yet run here, and therefore not approved: `pnpm run desktop:start`,
 `desktop:package`, and `desktop:make`.

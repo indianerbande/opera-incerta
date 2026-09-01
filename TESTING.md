@@ -266,19 +266,38 @@ system is evidence only for that operating system (`CONVENTIONS.md` C-P3).
 ### 2.8 Editor component spike gate
 
 The editing component (`SPEC.md` §5.4) is a draft decision. Before it is
-accepted, a spike MUST demonstrate, with tests:
+accepted, a spike MUST demonstrate, in a real rendering engine rather than a
+DOM stub, that the component can do the following. The thresholds are fixed
+here **before** the spike runs, because a threshold chosen after a measurement
+proves nothing (`CONVENTIONS.md` C-T14).
 
-- different font sizes for heading lines in the same document, with correct
-  layout and scrolling;
-- a gutter column aligned to line heights, including wrapped lines, with
-  heights **measured, not computed** (`CONVENTIONS.md` C-U5);
-- decoration-based hiding of inline markers with a focused-line exception;
-- an undo history per document that survives switching documents;
-- paste from an external application without corrupting the display model; and
-- acceptable typing latency in a document of at least 100,000 characters.
+| # | Criterion | Threshold |
+| --- | --- | --- |
+| 1 | Different font sizes for heading lines in one document | An H1 line block is measurably taller than a body line; total content height equals the sum of the line blocks, so scrolling stays correct |
+| 2 | A gutter column aligned to line heights, including wrapped lines, with heights **measured, not computed** (`CONVENTIONS.md` C-U5) | Every gutter marker's top edge is within 1 px of its line's top edge; a wrapped line carries exactly one marker, at its first visual row |
+| 3 | Decoration-based hiding of inline markers, with the cursor's line exempt | The rendered text of an unfocused line contains no `**` delimiters; the focused line shows them; moving the cursor switches both within one update |
+| 4 | An undo history per document that survives switching documents | After editing A, switching to B, and returning, one undo reverts only A's edit, and B is untouched |
+| 5 | Paste from an external application without corrupting the display model | Pasted text containing CRLF, tabs, and Markdown syntax arrives in the document byte-for-byte, and the display transform round-trips it unchanged |
+| 6 | Typing latency in a document of at least 100,000 characters | The 95th percentile of a single-keystroke transaction stays under 16 ms — one frame at 60 Hz |
 
-A failing spike criterion means the component is not accepted, not that the
+A failing criterion means the component is not accepted. It does not mean the
 criterion is relaxed.
+
+**Outcome, 2026-09-01: CodeMirror 6 passed all six criteria** and is accepted
+(`SPEC.md` §5.4). Measured: H1 45 px against body 22.5 px with the line blocks
+plus padding accounting for the full content height; marker tops matching their
+lines to 0 px, including a heading wrapped over eight visual rows carrying
+exactly one marker; the focus exemption switching in both directions with the
+document text untouched; one undo reverting only the document it belonged to; a
+real `ClipboardEvent` arriving intact; and a 6.6 ms p95 keystroke latency in a
+112,020-character document. Re-run with `pnpm run spike:editor`.
+
+Two of the six initially failed, and both times the spike's measurement was
+wrong rather than the component: heights read before the first real frame are
+CodeMirror's estimates, and an unexplained 4 px offset turned out to be the
+content padding. A third criterion passed while proving nothing — its wrapped
+line carried no marker at all — and was rewritten to wrap a heading. The
+thresholds above were not touched.
 
 ### 2.9 Modules and registry
 
