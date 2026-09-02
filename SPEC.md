@@ -520,13 +520,29 @@ leaves its path-keyed entry pointing nowhere, and that directory falls back to
 default behavior. Under Git a real directory rename is safe and normal, and
 inside the application the entry is carried along.
 
-### 6.5 Creating sheets
+**Renaming**, from the context menu of a sheet row or a tree node:
+
+- **A sheet** — only the front matter `title` is rewritten. The file keeps its
+  name, so `order`, links, and Git history all stay valid.
+- **The open sheet** — the new title goes into the **editing state**, not onto
+  disk, and the sheet becomes dirty exactly as editing the title in the
+  inspector does, because it is the same change. Writing the file behind the
+  editor would discard whatever is unsaved in it.
+- **A group** — only its `displayName` in `structure.json` changes. The
+  directory keeps its name for the same reason a sheet keeps its file name.
+
+While a title is being edited, the tree, the sheet list, and the editor header
+all name the sheet the way the author just named it — a rename that nothing
+visibly answers looks like a rename that failed. The dirty marker in the header
+is what says it is not saved yet.
+
+### 6.5 Creating sheets and groups
 
 **Status: Accepted.**
 
-New sheets are created from a group's context menu in the project explorer. A
-small dialog asks for the title; the create action is disabled for an empty or
-whitespace-only title.
+New sheets and groups are created from a group's context menu in the project
+explorer. A small dialog asks for the name; the create action is disabled for an
+empty or whitespace-only one.
 
 - **File name = slug(title)** with a `-2`/`-3` collision suffix against the
   `.md` files already in the target directory. The generator is a pure,
@@ -538,6 +554,32 @@ whitespace-only title.
 - The sheet is always created in the directory of the group that was
   right-clicked. Afterwards it is visibly selected in both columns and open in
   the editor.
+
+**Groups** are created the same way, in the directory of the group that was
+right-clicked:
+
+- **Directory name = slug(display name)**, with the same collision suffix
+  against the entries already there.
+- The display name is written to `structure.json` only when it differs from the
+  directory name, so the file stays free of entries that say nothing.
+- The new group is selected and revealed in the tree; its sheet list is empty.
+  Creating a group does **not** close the open sheet — nothing about it changed.
+
+**Where the selection lands** after any of these edits:
+
+| What happened | Tree and sheet list show | Editor |
+| --- | --- | --- |
+| A sheet was created | the group holding it, sheet selected | the new sheet |
+| A group was created | the new group, empty | unchanged |
+| Something was renamed | unchanged | unchanged |
+
+The interface never patches its own copy of the library: every edit is answered
+by the main process with a freshly read project, and that is what the interface
+adopts. A patched copy is how a tree starts disagreeing with the disk.
+
+Both operations append the new entry to the group's `order` **only if that group
+already has one** — recording an order for a group that never had one would
+freeze an arrangement the author never chose (§6.4).
 
 ### 6.6 Page categories
 

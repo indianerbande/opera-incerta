@@ -9,6 +9,7 @@
 import { computed, signal } from '@angular/core';
 import {
   ancestorPaths,
+  withSheetDisplayName,
   findGroup,
   findSheet,
   markdownToDisplay,
@@ -27,7 +28,12 @@ import {
   type SheetMetadata,
   type TextStatistics,
 } from '@opera-incerta/core';
-import type { OperaIncertaBridge, ProjectSnapshot } from '@opera-incerta/desktop-contract';
+import type {
+  BridgeResult,
+  LibraryEditResult,
+  OperaIncertaBridge,
+  ProjectSnapshot,
+} from '@opera-incerta/desktop-contract';
 import { unwrap, unwrapSnapshot } from './bridge.js';
 
 export interface OpenSheet {
@@ -74,7 +80,6 @@ export class WorkspaceStore {
   }
 
   readonly project = this.#project.asReadonly();
-  readonly library = this.#library.asReadonly();
   readonly openSheet = this.#openSheet.asReadonly();
   readonly failure = this.#failure.asReadonly();
   readonly busy = this.#busy.asReadonly();
@@ -86,9 +91,35 @@ export class WorkspaceStore {
     return this.#bridge !== null;
   }
 
+  /**
+   * The library as the interface shows it: the open sheet carries the title
+   * being edited, not the one still on disk. Renaming the open sheet changes
+   * its editing state (§6.4), and a rename nothing visibly answers looks like
+   * a rename that failed.
+   */
+  readonly library = computed<GroupEntry | null>(() => {
+    const library = this.#library();
+    const open = this.#openSheet();
+    if (library === null || open === null) {
+      return library;
+    }
+    const edited = this.openTitle();
+    return edited === null ? library : withSheetDisplayName(library, open.relativePath, edited);
+  });
+
+  /** The name the open sheet goes by, edited or saved. */
+  readonly openTitle = computed<string | null>(() => {
+    const open = this.#openSheet();
+    if (open === null) {
+      return null;
+    }
+    const title = this.#currentMetadata().title?.trim() ?? '';
+    return title === '' ? open.displayName : title;
+  });
+
   /** The group whose sheets the middle column shows. */
   readonly selectedGroup = computed<GroupEntry | null>(() => {
-    const library = this.#library();
+    const library = this.library();
     return library === null ? null : findGroup(library, this.#selectedGroupPath());
   });
 
@@ -314,8 +345,87 @@ export class WorkspaceStore {
     });
   }
 
+  /** Creates a sheet in a group and opens it. SPEC.md §6.5. */
+  async createSheet(groupPath: string, title: string): Promise<void> {
+    await this.#libraryEdit(async (bridge) => bridge.createSheet({ path: groupPath, name: title }));
+  }
+
+  async createGroup(parentPath: string, displayName: string): Promise<void> {
+    await this.#libraryEdit(async (bridge) =>
+      bridge.createGroup({ path: parentPath, name: displayName }),
+    );
+  }
+
+  /**
+   * Renames a sheet. SPEC.md §6.4 — the title changes, the file name never
+   * does.
+   *
+   * The open sheet is renamed through its editing state rather than on disk:
+   * writing the file would discard whatever is unsaved in the editor. It
+   * becomes dirty, exactly as changing the title in the inspector does, since
+   * that is the same change.
+   */
+  async renameSheet(relativePath: string, title: string): Promise<void> {
+    if (this.#openSheet()?.relativePath === relativePath) {
+      this.updateMetadata({ title });
+      return;
+    }
+    await this.#libraryEdit(async (bridge) =>
+      bridge.renameSheet({ path: relativePath, name: title }),
+    );
+  }
+
+  async renameGroup(relativePath: string, displayName: string): Promise<void> {
+    await this.#libraryEdit(async (bridge) =>
+      bridge.renameGroup({ path: relativePath, name: displayName }),
+    );
+  }
+
   dismissFailure(): void {
     this.#failure.set(null);
+  }
+
+  /**
+   * Runs a library edit and adopts the refreshed project it returns.
+   *
+   * The main process re-reads after every edit, so the interface takes one
+   * refreshed truth instead of patching its own copy — a patched copy is how a
+   * tree starts disagreeing with the disk.
+   *
+   * What was created decides where the selection lands (SPEC.md §6.5): a new
+   * sheet reveals the group holding it, a new group reveals itself, and a
+   * rename leaves the selection alone. Keeping the old group after a creation
+   * would put a sheet in the editor that the list beside it does not show.
+   */
+  async #libraryEdit(
+    operation: (bridge: OperaIncertaBridge) => Promise<BridgeResult<LibraryEditResult>>,
+  ): Promise<void> {
+    const previousGroup = this.#selectedGroupPath();
+    const previousSheet = this.#openSheet()?.relativePath ?? null;
+
+    await this.#withBridge(async (bridge) => {
+      const result = unwrap(await operation(bridge));
+      const created = result.createdPath;
+      this.#adopt(result.snapshot);
+
+      const ancestors = created === null ? [] : ancestorPaths(created);
+      const reveal =
+        created === null
+          ? previousGroup
+          : created.endsWith('.md')
+            ? (ancestors[ancestors.length - 1] ?? '.')
+            : created;
+      this.#expand(ancestors);
+      this.#selectedGroupPath.set(reveal);
+
+      // A created sheet is selected and opened; otherwise the previously open
+      // one stays open — creating a *group* must not close the editor
+      // (SPEC.md §6.5).
+      const toOpen = created !== null && created.endsWith('.md') ? created : previousSheet;
+      if (toOpen !== null) {
+        await this.selectSheet(toOpen);
+      }
+    });
   }
 
   #adopt(snapshot: ProjectSnapshot): void {

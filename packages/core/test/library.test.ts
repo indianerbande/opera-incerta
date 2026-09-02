@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ancestorPaths,
+  withSheetDisplayName,
   findGroup,
   findSheet,
   groupsOf,
@@ -93,5 +94,32 @@ describe('ancestorPaths', () => {
   it('returns nothing for the root itself', () => {
     expect(ancestorPaths('.')).toEqual([]);
     expect(ancestorPaths('')).toEqual([]);
+  });
+});
+
+describe('withSheetDisplayName', () => {
+  it('renames one sheet, deep in the tree', () => {
+    const renamed = withSheetDisplayName(library, 'part-1/pre/note.md', 'A Renamed Note');
+
+    expect(findSheet(renamed, 'part-1/pre/note.md')?.displayName).toBe('A Renamed Note');
+    // Everything else is untouched.
+    expect(findSheet(renamed, 'preface.md')?.displayName).toBe(
+      findSheet(library, 'preface.md')?.displayName,
+    );
+  });
+
+  it('returns the very same tree when nothing matches', () => {
+    expect(withSheetDisplayName(library, 'nowhere.md', 'X')).toBe(library);
+    // An unchanged name is not a change either.
+    const name = findSheet(library, 'preface.md')?.displayName ?? '';
+    expect(withSheetDisplayName(library, 'preface.md', name)).toBe(library);
+  });
+
+  it('leaves the branches it did not descend into identical', () => {
+    const renamed = withSheetDisplayName(library, 'part-1/pre/note.md', 'A Renamed Note');
+    const before = library.children.find((child) => child.relativePath === 'preface.md');
+    const after = renamed.children.find((child) => child.relativePath === 'preface.md');
+
+    expect(after).toBe(before);
   });
 });

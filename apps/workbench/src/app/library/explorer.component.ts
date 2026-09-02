@@ -16,7 +16,11 @@ import { subgroupsOf, type GroupEntry } from '@opera-incerta/core';
   selector: 'wi-explorer-node',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="row" [class.selected]="selectedPath() === group().relativePath">
+    <div
+      class="row"
+      [class.selected]="selectedPath() === group().relativePath"
+      (contextmenu)="onContextMenu($event)"
+    >
       <button
         type="button"
         class="twisty"
@@ -40,6 +44,7 @@ import { subgroupsOf, type GroupEntry } from '@opera-incerta/core';
             [expandedPaths]="expandedPaths()"
             (select)="select.emit($event)"
             (toggle)="toggle.emit($event)"
+            (contextMenu)="contextMenu.emit($event)"
           />
         }
       </div>
@@ -93,6 +98,16 @@ export class ExplorerNodeComponent {
 
   readonly select = output<string>();
   readonly toggle = output<string>();
+  readonly contextMenu = output<{ path: string; x: number; y: number }>();
+
+  protected onContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+    this.contextMenu.emit({
+      path: this.group().relativePath,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }
 
   protected readonly subgroups = computed(() => subgroupsOf(this.group()));
   protected readonly expanded = computed(() => this.expandedPaths().has(this.group().relativePath));

@@ -32,6 +32,7 @@ export { displayModel, headingPrefixRange, visibleLineStart } from './display-mo
 
 export {
   ancestorPaths,
+  withSheetDisplayName,
   findGroup,
   findSheet,
   groupsOf,

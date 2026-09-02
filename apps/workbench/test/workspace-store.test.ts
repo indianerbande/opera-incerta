@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GroupEntry } from '@opera-incerta/core';
+import type { GroupEntry, SheetEntry } from '@opera-incerta/core';
 import type {
   BridgeResult,
   OperaIncertaBridge,
@@ -337,5 +337,139 @@ describe('without a shell', () => {
 
     expect(store.hasBridge).toBe(false);
     expect(store.failure()).toBe('bridge/absent');
+  });
+});
+
+describe('creating and renaming', () => {
+  /** The project as it looks once `created` has been added to `part-1`. */
+  function snapshotWith(created: GroupEntry | SheetEntry): ProjectSnapshot {
+    const part1 = library.children.find(
+      (child): child is GroupEntry => child.relativePath === 'part-1',
+    );
+    if (part1 === undefined) {
+      throw new Error('the fixture lost part-1');
+    }
+    return {
+      ...snapshot,
+      library: {
+        ...library,
+        children: library.children.map((child) =>
+          child === part1 ? { ...part1, children: [...part1.children, created] } : child,
+        ),
+      },
+      handles:
+        created.kind === 'sheet'
+          ? { ...snapshot.handles, [created.relativePath]: 'd'.repeat(32) }
+          : snapshot.handles,
+    };
+  }
+
+  const newSheet: SheetEntry = {
+    kind: 'sheet',
+    name: 'a-late-arrival.md',
+    relativePath: 'part-1/a-late-arrival.md',
+    displayName: 'A Late Arrival',
+    preview: [],
+  };
+
+  const newGroup: GroupEntry = {
+    kind: 'group',
+    name: 'chapter-2',
+    relativePath: 'part-1/chapter-2',
+    displayName: 'Chapter 2',
+    children: [],
+  };
+
+  it('reveals the group holding a created sheet, and opens it', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        createSheet: async () => ({
+          ok: true,
+          value: { snapshot: snapshotWith(newSheet), createdPath: newSheet.relativePath },
+        }),
+        readSheet: async () => ({ ok: true, value: '---\nopera-incerta:\n  title: A Late Arrival\n---\n' }),
+      }),
+    );
+    await store.openProject();
+    await store.createSheet('part-1', 'A Late Arrival');
+
+    // The list beside the editor has to show the sheet the editor holds.
+    expect(store.selectedGroupPath()).toBe('part-1');
+    expect(store.visibleSheets().map((sheet) => sheet.displayName)).toContain('A Late Arrival');
+    expect(store.openSheet()?.relativePath).toBe('part-1/a-late-arrival.md');
+    expect(store.isExpanded('part-1')).toBe(true);
+  });
+
+  it('selects a created group, leaving the open sheet alone', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        createGroup: async () => ({
+          ok: true,
+          value: { snapshot: snapshotWith(newGroup), createdPath: newGroup.relativePath },
+        }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.createGroup('part-1', 'Chapter 2');
+
+    expect(store.selectedGroupPath()).toBe('part-1/chapter-2');
+    expect(store.visibleSheets()).toEqual([]);
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+  });
+
+  it('keeps the selection when a rename creates nothing', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        renameSheet: async () => ({ ok: true, value: { snapshot, createdPath: null } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('part-1/scene.md');
+    store.selectGroup('part-1');
+    await store.renameSheet('preface.md', 'A Better Preface');
+
+    expect(store.selectedGroupPath()).toBe('part-1');
+    expect(store.openSheet()?.relativePath).toBe('part-1/scene.md');
+  });
+
+  it('renames the open sheet through its editing state, not on disk', async () => {
+    let asked = 0;
+    const store = new WorkspaceStore(
+      fakeBridge({
+        renameSheet: async () => {
+          asked += 1;
+          return { ok: true, value: { snapshot, createdPath: null } };
+        },
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.renameSheet('preface.md', 'A Better Preface');
+
+    // Writing the file would discard whatever is unsaved in the editor.
+    expect(asked).toBe(0);
+    expect(store.metadata()['title']).toBe('A Better Preface');
+    expect(store.dirty()).toBe(true);
+  });
+
+  it('names the open sheet by the title being edited, not the saved one', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.renameSheet('preface.md', 'A Better Preface');
+
+    // A rename nothing visibly answers looks like a rename that failed.
+    expect(store.openTitle()).toBe('A Better Preface');
+    expect(store.visibleSheets().map((sheet) => sheet.displayName)).toEqual(['A Better Preface']);
+  });
+
+  it('falls back to the saved name when the title is emptied', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.updateMetadata({ title: '   ' });
+
+    expect(store.openTitle()).toBe('Preface');
   });
 });

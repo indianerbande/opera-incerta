@@ -284,6 +284,16 @@ Tests MUST cover:
 - that front matter never appears inside the writing surface;
 - that switching group and sheet loads the other document and leaves nothing of
   the previous one behind;
+- creating and renaming, through the real context menus (`SPEC.md` §6.4, §6.5):
+  a sheet created from a group's menu appears on disk under the slug of its
+  title, opens in the editor, and the sheet list beside it shows the group that
+  holds it; renaming a **closed** sheet rewrites the file's `title` and leaves
+  its file name alone; renaming the **open** one changes nothing on disk and
+  shows the new name, marked dirty, in the header, the list, and the inspector;
+  a created group takes the slug as its directory and its display name goes to
+  `structure.json`; renaming it changes that entry and nothing else. The file
+  and directory names on disk are read from the filesystem, so what is checked
+  is that nothing moved;
 - the cursor rules around hidden heading syntax, through real keys and the real
   clipboard: the line-start shortcut lands on the first visible character,
   copying a heading yields Markdown with its prefix, cutting one removes the

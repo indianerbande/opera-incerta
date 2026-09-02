@@ -42,6 +42,10 @@ export const CHANNELS = {
   gitCommit: 'opera-incerta:git/commit',
   gitPush: 'opera-incerta:git/push',
   menuCommand: 'opera-incerta:menu/command',
+  createSheet: 'opera-incerta:sheet/create',
+  createGroup: 'opera-incerta:group/create',
+  renameSheet: 'opera-incerta:sheet/rename',
+  renameGroup: 'opera-incerta:group/rename',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
 } as const;
@@ -181,6 +185,39 @@ export function isCreateProjectRequest(value: unknown): value is CreateProjectRe
     typeof candidate.displayName === 'string' &&
     candidate.displayName.trim() !== ''
   );
+}
+
+/**
+ * Creating or renaming a library entry. SPEC.md §6.4, §6.5.
+ *
+ * `path` is relative to the project root: for a creation it is the group that
+ * receives the new entry, for a rename it is the entry itself.
+ */
+export interface LibraryEditRequest {
+  readonly path: string;
+  readonly name: string;
+}
+
+export function isLibraryEditRequest(value: unknown): value is LibraryEditRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<LibraryEditRequest>;
+  return (
+    typeof candidate.path === 'string' &&
+    candidate.path !== '' &&
+    typeof candidate.name === 'string' &&
+    candidate.name.trim() !== ''
+  );
+}
+
+/**
+ * What a library edit produced: the refreshed project, and the entry that was
+ * created — so the interface can select it without guessing its path.
+ */
+export interface LibraryEditResult {
+  readonly snapshot: ProjectSnapshot;
+  readonly createdPath: string | null;
 }
 
 /** A chosen location, with a short form for display. */
@@ -348,6 +385,14 @@ export interface OperaIncertaBridge {
    * would hand the page a way back into the IPC layer.
    */
   onMenuCommand(listener: (command: MenuCommand) => void): () => void;
+  /** Creates a sheet in a group, and returns the refreshed project. */
+  createSheet(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Creates a subgroup. */
+  createGroup(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Renames a sheet by its front matter title; the file name never changes. */
+  renameSheet(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Renames a group by its display name; the directory never changes. */
+  renameGroup(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

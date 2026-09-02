@@ -1,9 +1,13 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { sheetsOf, type GroupEntry } from '@opera-incerta/core';
-import { PROJECT_DIRECTORY, canonicalPath } from '@opera-incerta/project-node';
+import { parseSheet, sheetsOf, type GroupEntry } from '@opera-incerta/core';
+import {
+  PROJECT_DIRECTORY,
+  canonicalPath,
+  createProjectFilesystem,
+} from '@opera-incerta/project-node';
 import { ProjectSession, ProjectSessionError, libraryOf } from '../src/project-session.js';
 
 let root = '';
@@ -190,5 +194,152 @@ describe('the library it hands over', () => {
       relativePath: '.',
       displayName: 'A Novel',
     });
+  });
+});
+
+describe('creating sheets and groups', () => {
+  it('creates a sheet whose file name is a slug of its title', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    const created = await session.createSheet('.', 'The First Scene');
+
+    expect(created).toBe('the-first-scene.md');
+    const text = await readFile(join(root, 'the-first-scene.md'), 'utf8');
+    expect(text).toBe('---\nopera-incerta:\n  title: The First Scene\n---\n');
+  });
+
+  it('gives a new sheet an empty body', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.createSheet('.', 'Empty');
+    const { sheet } = parseSheet(await readFile(join(root, 'empty.md'), 'utf8'));
+
+    expect(sheet.body).toBe('');
+    expect(sheet.metadata.title).toBe('Empty');
+  });
+
+  it('avoids a collision with an existing file', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    // The fixture already holds chapter.md, so the first one taken is -2.
+    expect(await session.createSheet('.', 'Chapter')).toBe('chapter-2.md');
+    expect(await session.createSheet('.', 'Chapter')).toBe('chapter-3.md');
+  });
+
+  it('creates inside the group that was named', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    const created = await session.createSheet('part-1', 'Nested');
+
+    expect(created).toBe('part-1/nested.md');
+    await expect(readFile(join(root, 'part-1', 'nested.md'), 'utf8')).resolves.toContain('Nested');
+  });
+
+  it('creates a group with a slugged directory and records its display name', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    const created = await session.createGroup('.', 'Part Two: The Return');
+
+    expect(created).toBe('part-two-the-return');
+    const structure = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8'),
+    ) as Record<string, { displayName?: string }>;
+    expect(structure['part-two-the-return']?.displayName).toBe('Part Two: The Return');
+  });
+
+  it('records no display name when it equals the directory name', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.createGroup('.', 'notes');
+
+    // Nothing to record means no file at all: `structure.json` exists to hold
+    // what differs from the filesystem, and here nothing does.
+    const structure = await createProjectFilesystem().readStructure(root);
+    expect(structure['notes']?.displayName).toBeUndefined();
+  });
+
+  it('appends to a recorded order, and creates none where there was none', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.createSheet('.', 'First');
+
+    let structure = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8').catch(() => '{}'),
+    ) as Record<string, { order?: string[] }>;
+    // No order existed, so none was invented: alphabetical still applies.
+    expect(structure['.']?.order).toBeUndefined();
+
+    await new ProjectSession().open(root);
+    const filesystem = createProjectFilesystem();
+    await filesystem.writeStructure(root, { '.': { order: ['chapter.md'] } });
+
+    const second = new ProjectSession();
+    await second.open(root);
+    await second.createSheet('.', 'Second');
+    structure = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8'),
+    ) as Record<string, { order?: string[] }>;
+
+    expect(structure['.']?.order).toEqual(['chapter.md', 'second.md']);
+  });
+
+  it('refuses to create outside the project', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    await expect(session.createSheet('../escape', 'Nope')).rejects.toMatchObject({
+      code: 'group/outside-project',
+    });
+  });
+});
+
+describe('renaming', () => {
+  it('changes a sheet title without touching its file name', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.renameSheet('chapter.md', 'A Better Title');
+
+    const text = await readFile(join(root, 'chapter.md'), 'utf8');
+    expect(text).toContain('title: A Better Title');
+    expect(text).toContain('Text');
+  });
+
+  it('keeps foreign front matter through a rename', async () => {
+    await writeFile(
+      join(root, 'imported.md'),
+      '---\nlayout: post\nopera-incerta:\n  title: Old\n---\nBody\n',
+      'utf8',
+    );
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.renameSheet('imported.md', 'New');
+
+    const text = await readFile(join(root, 'imported.md'), 'utf8');
+    expect(text).toContain('layout: post');
+    expect(text).toContain('title: New');
+  });
+
+  it('refuses to rename a sheet whose front matter it cannot read', async () => {
+    await writeFile(join(root, 'broken.md'), '---\nopera-incerta: nonsense\n---\nBody\n', 'utf8');
+    const session = new ProjectSession();
+    await session.open(root);
+
+    await expect(session.renameSheet('broken.md', 'New')).rejects.toMatchObject({
+      code: 'front-matter/namespace-not-a-mapping',
+    });
+  });
+
+  it('renames a group by recording a display name, leaving the directory alone', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.renameGroup('part-1', 'Part One');
+
+    const structure = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8'),
+    ) as Record<string, { displayName?: string }>;
+    expect(structure['part-1']?.displayName).toBe('Part One');
+    // The directory is what the recorded order refers to, so it must not move.
+    await expect(readFile(join(root, 'part-1', 'scene.md'), 'utf8')).resolves.toContain('Scene');
   });
 });

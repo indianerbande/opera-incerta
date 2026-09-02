@@ -8,6 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 
+import { findGroup } from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
 import {
@@ -16,6 +17,11 @@ import {
 } from './library/sheet-list.component.js';
 import { SourceControlComponent } from './library/source-control.component.js';
 import { ActivityBarComponent } from './shell/activity-bar.component.js';
+import {
+  ContextMenuComponent,
+  type ContextMenuEntry,
+} from './shell/context-menu.component.js';
+import { TextPromptComponent } from './shell/text-prompt.component.js';
 import {
   LayoutState,
   NAVIGATOR_ITEMS,
@@ -41,6 +47,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ActivityBarComponent,
+    ContextMenuComponent,
     DensitySwitchComponent,
     EditorComponent,
     ExplorerNodeComponent,
@@ -50,6 +57,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     ResizeDividerComponent,
     SheetListComponent,
     SourceControlComponent,
+    TextPromptComponent,
   ],
 
   template: `
@@ -80,6 +88,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 [expandedPaths]="store.expanded()"
                 (select)="store.selectGroup($event)"
                 (toggle)="store.toggleExpanded($event)"
+                (contextMenu)="openGroupMenu($event)"
               />
             } @else {
               <p class="hint">No project open.</p>
@@ -128,6 +137,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           [density]="layout.sheetListDensity()"
           [showBlankLines]="layout.showBlankLines()"
           (select)="store.selectSheet($event)"
+          (contextMenu)="openSheetMenu($event)"
         />
       </section>
 
@@ -204,6 +214,28 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         (activate)="layout.showSecondary($event)"
       />
     </div>
+
+    @if (menu(); as open) {
+      <wi-context-menu
+        [entries]="open.entries"
+        [x]="open.x"
+        [y]="open.y"
+        (choose)="chooseMenuEntry($event)"
+        (dismiss)="menu.set(null)"
+      />
+    }
+
+    @if (prompt(); as open) {
+      <wi-text-prompt
+        [title]="open.title"
+        [initial]="open.initial"
+        [placeholder]="open.placeholder"
+        [hint]="open.hint"
+        [confirmLabel]="open.confirmLabel"
+        (confirm)="confirmPrompt($event)"
+        (cancel)="prompt.set(null)"
+      />
+    }
 
     @if (store.failure(); as failure) {
       <div class="failure" role="alert">
@@ -329,11 +361,125 @@ export class AppComponent {
 
   /** The dirty marker follows the document name, as in every editor. */
   protected editorTitle(): string | null {
-    const sheet = this.store.openSheet();
-    if (sheet === null) {
+    const title = this.store.openTitle();
+    if (title === null) {
       return null;
     }
-    return this.store.dirty() ? `${sheet.displayName} •` : sheet.displayName;
+    return this.store.dirty() ? `${title} •` : title;
+  }
+
+  /** The open context menu, and what it acts on. */
+  protected readonly menu = signal<{
+    entries: readonly ContextMenuEntry[];
+    x: number;
+    y: number;
+    target: { kind: 'group' | 'sheet'; path: string; name: string };
+  } | null>(null);
+
+  /** The open prompt, and what confirming it will do. */
+  protected readonly prompt = signal<{
+    title: string;
+    initial: string;
+    placeholder: string;
+    hint: string | null;
+    confirmLabel: string;
+    action: (value: string) => void;
+  } | null>(null);
+
+  protected openGroupMenu(event: { path: string; x: number; y: number }): void {
+    const group = this.store.library() === null ? null : event.path;
+    if (group === null) {
+      return;
+    }
+    this.menu.set({
+      entries: [
+        { id: 'sheet/new', label: 'New Sheet…' },
+        { id: 'group/new', label: 'New Group…' },
+        { id: 'group/rename', label: 'Rename…' },
+      ],
+      x: event.x,
+      y: event.y,
+      target: { kind: 'group', path: event.path, name: this.groupName(event.path) },
+    });
+  }
+
+  protected openSheetMenu(event: { path: string; name: string; x: number; y: number }): void {
+    this.menu.set({
+      entries: [{ id: 'sheet/rename', label: 'Rename…' }],
+      x: event.x,
+      y: event.y,
+      target: { kind: 'sheet', path: event.path, name: event.name },
+    });
+  }
+
+  protected chooseMenuEntry(id: string): void {
+    const open = this.menu();
+    this.menu.set(null);
+    if (open === undefined || open === null) {
+      return;
+    }
+    const { target } = open;
+
+    switch (id) {
+      case 'sheet/new':
+        this.prompt.set({
+          title: 'New sheet',
+          initial: '',
+          placeholder: 'The First Scene',
+          // The rule, where it applies: the file name is derived once and then
+          // stays, while this title can change any time (SPEC.md §6.4).
+          hint: 'The title can change later; the file name is set once, from it.',
+          confirmLabel: 'Create',
+          action: (value) => void this.store.createSheet(target.path, value),
+        });
+        return;
+      case 'group/new':
+        this.prompt.set({
+          title: 'New group',
+          initial: '',
+          placeholder: 'Part One',
+          hint: 'The name can change later; the folder name is set once, from it.',
+          confirmLabel: 'Create',
+          action: (value) => void this.store.createGroup(target.path, value),
+        });
+        return;
+      case 'group/rename':
+        this.prompt.set({
+          title: 'Rename group',
+          initial: target.name,
+          placeholder: '',
+          hint: 'Renaming changes the name shown here, never the folder on disk.',
+          confirmLabel: 'Rename',
+          action: (value) => void this.store.renameGroup(target.path, value),
+        });
+        return;
+      case 'sheet/rename':
+        this.prompt.set({
+          title: 'Rename sheet',
+          initial: target.name,
+          placeholder: '',
+          hint: 'Renaming changes the title in the file, never the file name.',
+          confirmLabel: 'Rename',
+          action: (value) => void this.store.renameSheet(target.path, value),
+        });
+        return;
+      default:
+        return;
+    }
+  }
+
+  protected confirmPrompt(value: string): void {
+    const open = this.prompt();
+    this.prompt.set(null);
+    open?.action(value);
+  }
+
+  private groupName(path: string): string {
+    const library = this.store.library();
+    if (library === null) {
+      return path;
+    }
+    return findGroup(library, path)?.displayName ?? path;
   }
 
   /** The toggle lives in the layout state; the outline reads it from there. */

@@ -37,6 +37,10 @@ const bridge = {
    * The event object never crosses: the renderer receives a validated command
    * string, so the page cannot reach the IPC layer through what it is handed.
    */
+  createSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.createSheet, request),
+  createGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.createGroup, request),
+  renameSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameSheet, request),
+  renameGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameGroup, request),
   readPreferences: () => ipcRenderer.invoke(CHANNELS.readPreferences),
   writePreferences: (record: unknown) => ipcRenderer.invoke(CHANNELS.writePreferences, record),
 

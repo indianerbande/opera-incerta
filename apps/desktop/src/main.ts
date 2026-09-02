@@ -5,7 +5,15 @@
  * native dialogs, and menus. It never owns document semantics — those live in
  * the portable core.
  */
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { mkdir, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -19,6 +27,7 @@ import {
   isGitCommitRequest,
   isGitPathsRequest,
   isCreateProjectRequest,
+  isLibraryEditRequest,
   isRecentProjectRequest,
   isWriteSheetRequest,
   type BridgeResult,
@@ -459,6 +468,43 @@ privileged(CHANNELS.writeSheet, isWriteSheetRequest, async (request) => {
   return null;
 });
 
+/**
+ * Library edits all end the same way: re-read the project, so the renderer
+ * receives one refreshed truth rather than patching its own copy.
+ */
+async function libraryEdit(
+  operation: () => Promise<string | null>,
+): Promise<{ snapshot: ProjectSnapshot; createdPath: string | null }> {
+  const createdPath = await operation();
+  const snapshot = await session.reopen();
+  if (snapshot === null) {
+    throw new ProjectSessionError('project/none-open');
+  }
+  return { snapshot, createdPath };
+}
+
+privileged(CHANNELS.createSheet, isLibraryEditRequest, async (request) =>
+  libraryEdit(async () => session.createSheet(request.path, request.name)),
+);
+
+privileged(CHANNELS.createGroup, isLibraryEditRequest, async (request) =>
+  libraryEdit(async () => session.createGroup(request.path, request.name)),
+);
+
+privileged(CHANNELS.renameSheet, isLibraryEditRequest, async (request) =>
+  libraryEdit(async () => {
+    await session.renameSheet(request.path, request.name);
+    return null;
+  }),
+);
+
+privileged(CHANNELS.renameGroup, isLibraryEditRequest, async (request) =>
+  libraryEdit(async () => {
+    await session.renameGroup(request.path, request.name);
+    return null;
+  }),
+);
+
 const git = createGitService();
 
 /**
@@ -558,6 +604,19 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+/**
+ * Ends the smoke with an exit code.
+ *
+ * `app.exit` emits no `before-quit`, so without the flag the project window's
+ * close handler would take the shutdown for an ordinary project close and
+ * build a fresh launcher — a new window on the way out, and a process that
+ * never ends.
+ */
+function endSmoke(code: number): void {
+  isTerminating = true;
+  app.exit(code);
+}
 
 /**
  * Checks that the library views show the project the launcher opened, and
@@ -1280,6 +1339,308 @@ async function checkColumnDragging(window: BrowserWindow): Promise<void> {
     `smoke ok: dragged the navigator from ${Math.round(before.width)}px to ${applied}px, ` +
       'unchanged by a view switch and stored in the preference file',
   );
+  await checkLibraryEdits(window);
+}
+
+/**
+ * Creating and renaming from the context menus. SPEC.md §6.4, §6.5.
+ *
+ * The rule under test is the one that makes the library survive: renaming
+ * changes a title, never a file name.
+ */
+async function checkLibraryEdits(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  // Back to the explorer: the previous check left the navigator on source
+  // control, and the tree is where a group is right-clicked.
+  const backToExplorer = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-activity-bar button')]
+         .find((candidate) => candidate.getAttribute('aria-label') === 'Explorer');
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!backToExplorer) {
+    throw new Error('no Explorer entry in the activity bar');
+  }
+  await waitForSelector(window, 'wi-explorer-node .name');
+
+  // Right-click the root group and create a sheet.
+  await rightClick(window, 'wi-explorer-node .name');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Sheet');
+  await waitForSelector(window, 'wi-text-prompt input');
+
+  await fillPrompt(window, 'A Brand New Scene');
+  await new Promise((resolve) => setTimeout(resolve, 600));
+
+  const created = readFileSync(join(smokeProjectPath, 'a-brand-new-scene.md'), 'utf8');
+  if (!created.includes('title: A Brand New Scene')) {
+    throw new Error(`the new sheet lacks its title: ${JSON.stringify(created)}`);
+  }
+  if (!created.endsWith('---\n')) {
+    throw new Error(`the new sheet should start empty: ${JSON.stringify(created)}`);
+  }
+
+  const openedTitle = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')]
+       .map((element) => element.textContent.trim())
+       .find((text) => text.startsWith('A Brand New Scene')) ?? null`,
+  )) as string | null;
+  if (openedTitle === null) {
+    throw new Error('the created sheet did not open in the editor');
+  }
+
+  // Rename a sheet that is *not* open, so the file itself is rewritten.
+  await rightClickRowContaining(window, 'Opening');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'Rename');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'Renamed In Place');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  const files = readdirSync(smokeProjectPath).filter((name) => name.endsWith('.md')).sort();
+  // The rule that makes the library survive: the title changed, the file name
+  // did not (SPEC.md §6.4).
+  if (!files.includes('opening.md') || !files.includes('a-brand-new-scene.md')) {
+    throw new Error(`renaming moved a file: ${JSON.stringify(files)}`);
+  }
+  const opening = readFileSync(join(smokeProjectPath, 'opening.md'), 'utf8');
+  if (!opening.includes('title: Renamed In Place')) {
+    throw new Error('the file does not carry the new title');
+  }
+
+  // Renaming the *open* sheet goes through its editing state instead, because
+  // writing the file would discard what is unsaved in the editor.
+  await rightClickRowContaining(window, 'A Brand New Scene');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'Rename');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'Renamed While Open');
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const onDisk = readFileSync(join(smokeProjectPath, 'a-brand-new-scene.md'), 'utf8');
+  if (onDisk.includes('Renamed While Open')) {
+    throw new Error('renaming the open sheet wrote the file behind the editor');
+  }
+
+  const dirtyTitle = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')]
+       .map((element) => element.textContent.trim())
+       .find((text) => text.startsWith('Renamed While Open')) ?? null`,
+  )) as string | null;
+  if (dirtyTitle === null || !dirtyTitle.endsWith('•')) {
+    throw new Error(`the open sheet was not renamed into its editing state: ${String(dirtyTitle)}`);
+  }
+
+  // A group: the directory takes the slug, the display name goes to
+  // structure.json, and the new group is what the columns show (SPEC.md §6.4).
+  await rightClickNodeContaining(window, 'Smoke Project');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'Part Two');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  const groupPath = join(smokeProjectPath, 'part-two');
+  if (!statSync(groupPath, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error('the group directory was not created under its slug');
+  }
+  if (displayNameOf(smokeProjectPath, 'part-two') !== 'Part Two') {
+    throw new Error('structure.json did not record the display name');
+  }
+
+  const afterGroup = (await window.webContents.executeJavaScript(
+    `(() => {
+       const selected = document.querySelector('wi-explorer-node .row.selected .name');
+       return {
+         selected: selected === null ? null : selected.textContent.trim(),
+         sheets: document.querySelectorAll('wi-sheet-list .row').length,
+         title: document.querySelector('wi-panel-header .title')?.textContent.trim() ?? null,
+       };
+     })()`,
+  )) as { selected: string | null; sheets: number; title: string | null };
+  if (afterGroup.selected !== 'Part Two') {
+    throw new Error(`the new group is not the selected one: ${String(afterGroup.selected)}`);
+  }
+  if (afterGroup.sheets !== 0) {
+    throw new Error(`the new group should hold no sheets, the list shows ${afterGroup.sheets}`);
+  }
+
+  // Renaming a group touches structure.json alone — the directory keeps its
+  // name, which is what keeps `order` and every path valid.
+  await rightClickNodeContaining(window, 'Part Two');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'Rename');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'The Second Part');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  if (!statSync(groupPath, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error('renaming a group moved its directory');
+  }
+  if (displayNameOf(smokeProjectPath, 'part-two') !== 'The Second Part') {
+    throw new Error('the group rename did not reach structure.json');
+  }
+
+  console.log(
+    'smoke ok: created a sheet, renamed a closed one on disk and the open one into its edits, ' +
+      'and created and renamed a group — no file or directory name changed',
+  );
+}
+
+/** The display name `structure.json` records for a group, if any. */
+function displayNameOf(projectPath: string, relativePath: string): string | null {
+  const structure = JSON.parse(
+    readFileSync(join(projectPath, '.opera-incerta', 'structure.json'), 'utf8'),
+  ) as Record<string, { displayName?: string } | undefined>;
+  return structure[relativePath]?.displayName ?? null;
+}
+
+/** Right-clicks the explorer node whose name is the given text. */
+async function rightClickNodeContaining(window: BrowserWindow, text: string): Promise<void> {
+  const point = (await window.webContents.executeJavaScript(
+    `(() => {
+       const name = [...document.querySelectorAll('wi-explorer-node .name')]
+         .find((candidate) => candidate.textContent.trim() === ${JSON.stringify(text)});
+       if (name === undefined) { return null; }
+       const bounds = name.getBoundingClientRect();
+       return { x: Math.round(bounds.left + 8), y: Math.round(bounds.top + bounds.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (point === null) {
+    throw new Error(`no explorer node named ${text}`);
+  }
+
+  window.webContents.sendInputEvent({
+    type: 'mouseDown',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  window.webContents.sendInputEvent({
+    type: 'mouseUp',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+
+/** Right-clicks the sheet-list row containing the given text. */
+async function rightClickRowContaining(window: BrowserWindow, text: string): Promise<void> {
+  const point = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-sheet-list .row')]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(text)}));
+       if (row === undefined) { return null; }
+       const bounds = row.getBoundingClientRect();
+       return { x: Math.round(bounds.left + 12), y: Math.round(bounds.top + 10) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (point === null) {
+    throw new Error(`no sheet row containing ${text}`);
+  }
+
+  window.webContents.sendInputEvent({
+    type: 'mouseDown',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  window.webContents.sendInputEvent({
+    type: 'mouseUp',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+
+/** Right-clicks the first element matching a selector. */
+async function rightClick(window: BrowserWindow, selector: string): Promise<void> {
+  const point = (await window.webContents.executeJavaScript(
+    `(() => {
+       const element = document.querySelector(${JSON.stringify(selector)});
+       if (element === null) { return null; }
+       const bounds = element.getBoundingClientRect();
+       return { x: Math.round(bounds.left + 8), y: Math.round(bounds.top + bounds.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (point === null) {
+    throw new Error(`nothing to right-click at ${selector}`);
+  }
+
+  window.webContents.sendInputEvent({
+    type: 'mouseDown',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  window.webContents.sendInputEvent({
+    type: 'mouseUp',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+
+/** Clicks the first element matching a selector whose text contains `text`. */
+async function clickText(window: BrowserWindow, selector: string, text: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const element = [...document.querySelectorAll(${JSON.stringify(selector)})]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(text)}));
+       if (element === undefined) { return false; }
+       element.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no ${selector} containing ${text}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+
+/** Types into the open prompt and confirms it. */
+async function fillPrompt(window: BrowserWindow, value: string): Promise<void> {
+  const filled = (await window.webContents.executeJavaScript(
+    `(() => {
+       const input = document.querySelector('wi-text-prompt input');
+       if (input === null) { return false; }
+       input.value = ${JSON.stringify(value)};
+       input.dispatchEvent(new Event('input', { bubbles: true }));
+       return true;
+     })()`,
+  )) as boolean;
+  if (!filled) {
+    throw new Error('no prompt to fill');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const confirmed = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-text-prompt button')]
+         .find((candidate) => !candidate.disabled && candidate.textContent.trim() !== 'Cancel');
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!confirmed) {
+    throw new Error('the prompt would not confirm');
+  }
 }
 
 /** The menu offers what is possible, and only that. SPEC.md §8.5. */
@@ -1702,9 +2063,9 @@ async function runSmokeCheck(launcher: BrowserWindow): Promise<void> {
 
     // Last, because it closes the window everything else needed.
     await checkReturnToLauncher(window);
-    app.exit(0);
+    endSmoke(0);
   } catch (error: unknown) {
     console.error('smoke failed:', error);
-    app.exit(1);
+    endSmoke(1);
   }
 }

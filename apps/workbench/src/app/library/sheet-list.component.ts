@@ -30,6 +30,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
             class="row"
             [class.selected]="sheet.relativePath === selectedPath()"
             (click)="select.emit(sheet.relativePath)"
+            (contextmenu)="onContextMenu($event, sheet)"
           >
             <span class="title">{{ sheet.displayName }}</span>
             @for (line of preview(sheet); track $index) {
@@ -101,6 +102,17 @@ export class SheetListComponent {
   readonly showBlankLines = input(false);
 
   readonly select = output<string>();
+  readonly contextMenu = output<{ path: string; name: string; x: number; y: number }>();
+
+  protected onContextMenu(event: MouseEvent, sheet: SheetEntry): void {
+    event.preventDefault();
+    this.contextMenu.emit({
+      path: sheet.relativePath,
+      name: sheet.displayName,
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }
 
   /** The preview lines this density shows for one sheet. */
   protected preview(sheet: SheetEntry): readonly { text: string; level: number | null }[] {

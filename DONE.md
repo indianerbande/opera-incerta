@@ -6,6 +6,68 @@ documents").
 
 ---
 
+## 2026-09-02 — creating and renaming sheets and groups
+
+**What exists.** The context menus of `SPEC.md` §6.4 and §6.5. Right-clicking a
+group in the tree offers a new sheet, a new group, and a rename; right-clicking
+a sheet row offers a rename. A small prompt asks for the name and refuses an
+empty one.
+
+**What the rules protect.** Names on disk never move:
+
+- a sheet's file name is fixed at creation from the slug of its title, and a
+  rename rewrites only the front matter `title`;
+- a group's directory name is fixed the same way, and a rename writes only
+  `displayName` in `structure.json`;
+- both operations append to a group's `order` **only when that group already
+  has one** — recording an order for a group that never had one would freeze an
+  arrangement the author never chose.
+
+**Renaming the open sheet does not touch the file.** It goes into the editing
+state and the sheet turns dirty, exactly as editing the title in the inspector
+does, because it *is* that change. Writing the file behind the editor would
+discard whatever is unsaved in it.
+
+**The interface adopts, it does not patch.** Every edit is answered by the main
+process with a freshly read project. A patched copy is how a tree starts
+disagreeing with the disk.
+
+**Two defects the checks found, both invisible to green unit tests.**
+
+The first: after creating a sheet, the editor held it while the sheet list
+still showed the group the author had been in — a sheet you can edit but cannot
+see in the list beside it. The selection now follows what was created: a new
+sheet reveals its group, a new group reveals itself, a rename moves nothing.
+Creating a *group* must still leave the open sheet open, and that took a second
+correction after the first fix closed the editor.
+
+The second: renaming the open sheet changed the title everywhere except where
+the author was looking. The tree, the sheet list, and the header all read the
+saved name. They now read the edited one — a rename that nothing visibly
+answers looks like a rename that failed — and the dirty marker is what says it
+is not saved yet. The substitution is a pure function in the core
+(`withSheetDisplayName`) that rebuilds only the branch down to that sheet and
+otherwise returns the very same tree.
+
+**A third defect, in the smoke's own exit.** `app.exit` emits no `before-quit`,
+so the project window's close handler took the shutdown for an ordinary project
+close and built a fresh launcher — the process never ended, and two runs looked
+like hangs. The smoke now sets the terminating flag before it exits. The lesson
+is older than this round: a guard that reads a flag is only as good as every
+path that sets it.
+
+**Verification.** `pnpm run check` green: **478 tests**. The smoke's fourteenth
+check drives the real context menus with real right-clicks: it creates a sheet
+and finds it on disk under its slug, renames a closed sheet and reads the new
+`title` out of the file it was already in, renames the open one and confirms the
+file did **not** change while the header shows the new name and a dirty marker,
+then creates a group and renames it, reading `structure.json` from the
+filesystem both times. Falsified: with `renameGroup` made a no-op the check
+fails; with the reveal rule removed two store tests fail. The screenshot shows
+both renamed sheets in the list, the new title in the header and the inspector.
+
+---
+
 ## 2026-09-02 — draggable column dividers, and the preference record
 
 **What exists.** The three resizable columns of `SPEC.md` §8.2 can be dragged,

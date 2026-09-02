@@ -91,6 +91,40 @@ export function subgroupsOf(group: GroupEntry): readonly GroupEntry[] {
 }
 
 /**
+ * The library with one sheet shown under a different name.
+ *
+ * A title that is edited but not yet saved is still the sheet's name as far as
+ * the author is concerned, so the tree and the sheet list have to say it. Only
+ * the branch down to that sheet is rebuilt; when nothing matches, the very same
+ * tree comes back.
+ */
+export function withSheetDisplayName(
+  root: GroupEntry,
+  relativePath: string,
+  displayName: string,
+): GroupEntry {
+  let changed = false;
+  const children = root.children.map((child) => {
+    if (child.kind === 'sheet') {
+      if (child.relativePath !== relativePath || child.displayName === displayName) {
+        return child;
+      }
+      changed = true;
+      return { ...child, displayName };
+    }
+    if (child.relativePath !== '.' && !relativePath.startsWith(`${child.relativePath}/`)) {
+      return child;
+    }
+    const rebuilt = withSheetDisplayName(child, relativePath, displayName);
+    if (rebuilt !== child) {
+      changed = true;
+    }
+    return rebuilt;
+  });
+  return changed ? { ...root, children } : root;
+}
+
+/**
  * The path of every ancestor group of a relative path, root first.
  * Used to expand the tree down to a revealed sheet.
  */

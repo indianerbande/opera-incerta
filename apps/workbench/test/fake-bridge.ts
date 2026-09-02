@@ -10,6 +10,11 @@ import type { OperaIncertaBridge } from '@opera-incerta/desktop-contract';
  * It is deliberately exhaustive rather than a partial cast: a channel added to
  * the contract and forgotten here fails to compile, which is the reminder.
  */
+/** A refusal for the operations a test has not scripted. */
+function notScripted() {
+  return { ok: false as const, code: 'test/not-scripted', message: 'not scripted by this test' };
+}
+
 export function baseBridge(): OperaIncertaBridge {
   return {
     contractVersion: async () => 1,
@@ -37,6 +42,10 @@ export function baseBridge(): OperaIncertaBridge {
     gitCommit: async () => ({ ok: true, value: null }),
     gitPush: async () => ({ ok: true, value: null }),
     onMenuCommand: () => () => {},
+    createSheet: async () => notScripted(),
+    createGroup: async () => notScripted(),
+    renameSheet: async () => notScripted(),
+    renameGroup: async () => notScripted(),
     readPreferences: async () => ({ ok: true, value: null }),
     writePreferences: async () => ({ ok: true, value: null }),
   };

@@ -65,9 +65,11 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   shows front matter, and the codec protects it. What is missing is the area
   that *displays* it: the owned block read-only, the foreign block with its
   visibility and writability switches.
-- **Sheet and group creation, renaming, reordering** — the rules exist in the
-  core (slug generation, `structure.json` writing); the context menus do not
-  (`SPEC.md` §6.4, §6.5).
+- **Reordering sheets and groups** — creating and renaming are built
+  (`SPEC.md` §6.4, §6.5); what is missing is dragging an entry to a new place
+  and writing the group's `order`. Two decisions come with it: whether a drag
+  may move an entry *between* groups (a file move, not an `order` edit), and
+  what an author sees while dragging.
 - **The settings panel and localization** (`SPEC.md` §13, §14). The record
   exists and persists the workbench layout; what is missing is the category
   panel that lets the author change the rest of it, and the English/German
