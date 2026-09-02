@@ -31,6 +31,7 @@ const PLACEHOLDER_DOCUMENT: EditorDocument = {
     '```markdown',
     '# A fenced block is shown exactly as written.',
     '```',
+    '',
   ].join('\n'),
 };
 

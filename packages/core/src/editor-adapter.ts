@@ -20,6 +20,24 @@ export interface EditorDocument {
 /** Notified after a change; returns the current text. */
 export type EditorChangeListener = (text: string) => void;
 
+/**
+ * The author activated a heading marker in the gutter. SPEC.md §10.2.
+ *
+ * Carries plain numbers rather than an event: the adapter reports *what* was
+ * activated and *where* on screen, and the view decides what to show there.
+ * Only a line that has a level can be activated — a plain line has no marker.
+ */
+export interface HeadingMarkerActivation {
+  /** One-based line number. */
+  readonly line: number;
+  readonly level: HeadingLevel;
+  /** Viewport coordinates of the marker, for placing a menu beside it. */
+  readonly x: number;
+  readonly y: number;
+}
+
+export type HeadingMarkerListener = (activation: HeadingMarkerActivation) => void;
+
 export interface EditorAdapter {
   /**
    * Shows a document.
@@ -53,6 +71,14 @@ export interface EditorAdapter {
 
   /** Registers a change listener; the returned function unregisters it. */
   onChange(listener: EditorChangeListener): () => void;
+
+  /**
+   * Registers a listener for gutter marker activation; the returned function
+   * unregisters it. The adapter never opens a menu itself — that is the view's
+   * decision, and keeping it there is what allows one menu implementation for
+   * every adapter.
+   */
+  onHeadingMarkerActivate(listener: HeadingMarkerListener): () => void;
 
   /** Releases the component. Calling it twice is not an error. */
   destroy(): void;

@@ -12,9 +12,18 @@ export type {
   SheetMetadata,
 } from './front-matter.js';
 
-export type { EditorAdapter, EditorChangeListener, EditorDocument } from './editor-adapter.js';
+export type {
+  EditorAdapter,
+  EditorChangeListener,
+  EditorDocument,
+  HeadingMarkerActivation,
+  HeadingMarkerListener,
+} from './editor-adapter.js';
 export { runEditorAdapterContract } from './editor-adapter-contract.js';
 export type { ContractCase } from './editor-adapter-contract.js';
+
+export { applyDotCommand, dotCommandAt } from './dot-command.js';
+export type { DotCommand } from './dot-command.js';
 
 export { delimiterRanges, inlineSpans } from './inline.js';
 export type { InlineKind, InlineSpan } from './inline.js';

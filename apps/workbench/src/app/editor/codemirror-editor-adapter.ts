@@ -24,6 +24,7 @@ import { history, historyKeymap } from '@codemirror/commands';
 import { defaultKeymap } from '@codemirror/commands';
 import { redo as cmRedo, undo as cmUndo } from '@codemirror/commands';
 import {
+  applyDotCommand,
   displayModel,
   displayToMarkdown,
   markdownToDisplay,
@@ -33,6 +34,8 @@ import {
   type EditorChangeListener,
   type EditorDocument,
   type HeadingLevel,
+  type HeadingMarkerActivation,
+  type HeadingMarkerListener,
 } from '@opera-incerta/core';
 
 /** Heading sizes. One place, as SPEC.md §8.2 requires of every layout number. */
@@ -132,8 +135,35 @@ const displayPlugin = ViewPlugin.fromClass(
   { decorations: (plugin) => plugin.decorations },
 );
 
+/**
+ * Set while an adapter builds its extensions, so the gutter's event handler can
+ * reach the adapter that owns the view. A gutter extension is created once per
+ * state, and CodeMirror hands its handler the view rather than the adapter.
+ */
+const activationSink = new WeakMap<EditorView, (activation: HeadingMarkerActivation) => void>();
+
 const markerGutter = gutter({
   class: 'cm-marker-gutter',
+  domEventHandlers: {
+    mousedown(view, block, event) {
+      const line = view.state.doc.lineAt(block.from);
+      const heading = view.state
+        .field(displayModelField)
+        .headings.find((candidate) => candidate.line === line.number);
+      // A line without a level has no marker, and no menu (SPEC.md §10.2).
+      if (heading === undefined) {
+        return false;
+      }
+
+      const sink = activationSink.get(view);
+      if (sink === undefined) {
+        return false;
+      }
+      const pointer = event as MouseEvent;
+      sink({ line: line.number, level: heading.level, x: pointer.clientX, y: pointer.clientY });
+      return true;
+    },
+  },
   lineMarker(view, block) {
     const line = view.state.doc.lineAt(block.from);
     const heading = view.state
@@ -147,9 +177,57 @@ const markerGutter = gutter({
   initialSpacer: () => new HeadingGutterMarker(6, 0),
 });
 
+/**
+ * Turns a typed dot command into a heading level. SPEC.md §10.2.
+ *
+ * A transaction filter rather than a listener, so the conversion is part of
+ * the same transaction as the keystroke: one undo takes back the whole thing,
+ * and no intermediate state is ever rendered.
+ *
+ * It reacts to typing only. A file containing a line that begins with `.h1`
+ * must open unchanged — converting it would mean that opening a document
+ * rewrites it.
+ */
+const dotCommandFilter = EditorState.transactionFilter.of((transaction) => {
+  if (!transaction.docChanged || !transaction.isUserEvent('input.type')) {
+    return transaction;
+  }
+
+  const state = transaction.state;
+  const line = state.doc.lineAt(state.selection.main.head);
+
+  // Whether this line is inside a fenced code block is a question about the
+  // whole document, not about the line — asking the line alone turned a `.h3`
+  // inside a fence into a heading, which the smoke caught.
+  if (state.field(displayModelField).verbatimLines.has(line.number)) {
+    return transaction;
+  }
+
+  const [display] = markdownToDisplay(line.text);
+  if (display === undefined) {
+    return transaction;
+  }
+
+  const converted = applyDotCommand(display);
+  if (converted === null) {
+    return transaction;
+  }
+
+  const rewritten = displayToMarkdown([converted]);
+  return [
+    transaction,
+    {
+      changes: { from: line.from, to: line.to, insert: rewritten },
+      selection: { anchor: line.from + rewritten.length },
+      sequential: true,
+    },
+  ];
+});
+
 function extensions(onChange: () => void): readonly Extension[] {
   return [
     displayModelField,
+    dotCommandFilter,
     history(),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     editorTheme,
@@ -180,6 +258,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
   /** One state per document: this is what gives each its own undo history. */
   readonly #states = new Map<string, EditorState>();
   readonly #listeners = new Set<EditorChangeListener>();
+  readonly #markerListeners = new Set<HeadingMarkerListener>();
   #openId: string | null = null;
   #destroyed = false;
 
@@ -188,6 +267,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
       state: EditorState.create({ extensions: [...extensions(() => this.#notify())] }),
       parent: host,
     });
+    activationSink.set(this.#view, (activation) => this.#activate(activation));
   }
 
   open(document_: EditorDocument): void {
@@ -268,14 +348,23 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
     };
   }
 
+  onHeadingMarkerActivate(listener: HeadingMarkerListener): () => void {
+    this.#markerListeners.add(listener);
+    return () => {
+      this.#markerListeners.delete(listener);
+    };
+  }
+
   destroy(): void {
     if (this.#destroyed) {
       return;
     }
     this.#destroyed = true;
     this.#listeners.clear();
+    this.#markerListeners.clear();
     this.#states.clear();
     this.#openId = null;
+    activationSink.delete(this.#view);
     this.#view.destroy();
   }
 
@@ -290,6 +379,12 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
     const text = this.text();
     for (const listener of this.#listeners) {
       listener(text);
+    }
+  }
+
+  #activate(activation: HeadingMarkerActivation): void {
+    for (const listener of this.#markerListeners) {
+      listener(activation);
     }
   }
 }

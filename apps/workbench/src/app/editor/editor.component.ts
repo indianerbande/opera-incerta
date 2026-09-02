@@ -11,8 +11,14 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import type { EditorAdapter, EditorDocument, HeadingLevel } from '@opera-incerta/core';
+import type {
+  EditorAdapter,
+  EditorDocument,
+  HeadingLevel,
+  HeadingMarkerActivation,
+} from '@opera-incerta/core';
 import { createCodeMirrorEditorAdapter } from './codemirror-editor-adapter.js';
+import { HeadingMenuComponent } from './heading-menu.component.js';
 
 /**
  * Hosts the editor adapter. SPEC.md §10.
@@ -24,7 +30,17 @@ import { createCodeMirrorEditorAdapter } from './codemirror-editor-adapter.js';
 @Component({
   selector: 'wi-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<div class="editor-host" #host></div>`,
+  imports: [HeadingMenuComponent],
+  template: `
+    <div class="editor-host" #host></div>
+    @if (menu(); as activation) {
+      <wi-heading-menu
+        [activation]="activation"
+        (select)="applyLevel($event)"
+        (dismiss)="menu.set(null)"
+      />
+    }
+  `,
   styles: `
     :host {
       display: block;
@@ -46,12 +62,16 @@ export class EditorComponent {
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
   private readonly adapter = signal<EditorAdapter | null>(null);
 
+  /** The open gutter menu, or null. */
+  protected readonly menu = signal<HeadingMarkerActivation | null>(null);
+
   constructor() {
     const destroyRef = inject(DestroyRef);
 
     afterNextRender(() => {
       const adapter = createCodeMirrorEditorAdapter(this.host().nativeElement);
       adapter.onChange((text) => this.textChange.emit(text));
+      adapter.onHeadingMarkerActivate((activation) => this.menu.set(activation));
       adapter.open(this.document());
       this.adapter.set(adapter);
 
@@ -72,5 +92,14 @@ export class EditorComponent {
   /** The gutter menu of SPEC.md §10.2. */
   setHeadingLevel(line: number, level: HeadingLevel | null): void {
     this.adapter()?.setHeadingLevel(line, level);
+  }
+
+  /** A choice from the gutter menu. */
+  protected applyLevel(level: HeadingLevel | null): void {
+    const activation = this.menu();
+    this.menu.set(null);
+    if (activation !== null) {
+      this.setHeadingLevel(activation.line, level);
+    }
   }
 }

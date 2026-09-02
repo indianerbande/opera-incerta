@@ -927,6 +927,29 @@ A heading applies to exactly one line: pressing Return at the end of a heading
 line MUST start the next line as a normal paragraph. Carrying the heading
 attribute into the following paragraph is a defect (`CONVENTIONS.md` C-U4).
 
+**Rules of the dot command:**
+
+- it is recognized at the start of the **visible** text, not of the raw line.
+  A line that is already a heading shows its text without the `# ` prefix, so
+  typing `.h2` in front of it changes the level — which is what the author sees
+  themselves doing;
+- a single space or tab after the digit belongs to the command and is consumed
+  with it, or the heading would begin with a stray space;
+- anything else after the digit ends the command: `.h1x` is ordinary text;
+- it never fires inside a fenced code block; and
+- **it is applied to typing only, never while loading a file.** A document
+  containing a line that begins with `.h1` MUST open unchanged. Converting it
+  would mean that opening a file rewrites it, which is the rule of §6.3 one
+  level up.
+
+The conversion happens in the same edit step as the keystroke, so one undo
+takes back the whole thing and no intermediate state is ever shown.
+
+**The gutter menu.** Clicking a level label opens a menu listing "No heading"
+and the six levels, with a checkmark on the active one. Choosing an entry
+applies it and closes the menu; Escape and a click outside dismiss it without
+a change. A line without a level has no marker, and therefore no menu.
+
 The gutter is also an **input surface**: clicking a label opens a menu to
 choose another level (with the active one marked) or to remove the heading
 format from that line. The change writes immediately to the document model.

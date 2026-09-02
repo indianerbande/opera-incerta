@@ -37,6 +37,12 @@ export interface DisplayModel {
   readonly headings: readonly HeadingSpan[];
   /** Delimiter ranges outside the focused line. */
   readonly hidden: readonly HiddenRange[];
+  /**
+   * One-based numbers of lines inside a fenced code block, its fences
+   * included. Whether a line is verbatim cannot be judged from the line
+   * itself, so every consumer that needs to know asks here.
+   */
+  readonly verbatimLines: ReadonlySet<number>;
 }
 
 /**
@@ -52,11 +58,16 @@ export function displayModel(markdown: string, focusedLine: number | null): Disp
   const lines = markdownToDisplay(markdown);
   const headings: HeadingSpan[] = [];
   const hidden: HiddenRange[] = [];
+  const verbatimLines = new Set<number>();
 
   let offset = 0;
   lines.forEach((line, index) => {
     const number = index + 1;
     const rawLength = line.prefix.length + line.text.length + line.suffix.length;
+
+    if (line.verbatim) {
+      verbatimLines.add(number);
+    }
 
     if (line.level !== null) {
       headings.push({ line: number, level: line.level, from: offset });
@@ -89,5 +100,5 @@ export function displayModel(markdown: string, focusedLine: number | null): Disp
   });
 
   hidden.sort((left, right) => left.from - right.from);
-  return { headings, hidden };
+  return { headings, hidden, verbatimLines };
 }

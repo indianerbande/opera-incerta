@@ -8,11 +8,10 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-01:** the portable rule set, the project and Git adapters, the
+**State 2026-09-02:** the portable rule set, the project and Git adapters, the
 library scan, the owned renderer protocol, the production boundary check, and
-the editor adapter with CodeMirror behind it. `pnpm run check` green: 6
-projects, **332 tests**. `pnpm run desktop:smoke` and `pnpm run spike:editor`
-green.
+the editor with both heading gestures. `pnpm run check` green: 6 projects,
+**349 tests**. `pnpm run desktop:smoke` and `pnpm run spike:editor` green.
 
 ---
 
@@ -32,14 +31,7 @@ green.
 3. **Filesystem watching** — the coordination rules exist and are tested
    (`RefreshCoordinator`, `ExclusiveTask` in the core); the watcher that drives
    them does not, because the mechanism is an open dependency question (§2.2).
-4. **Dot commands for heading levels** — `SPEC.md` §10.2 has the author type
-   `.h1`…`.h6` at the start of a line, after which the command text disappears.
-   The adapter can set a level (`setHeadingLevel`) and the gutter shows it, but
-   nothing recognizes the typed command yet.
-5. **The gutter menu** — clicking a level label opens a menu to change or
-   remove the level (`SPEC.md` §10.2). The action exists on the adapter; the
-   menu does not.
-6. **Cursor behavior around hidden heading syntax** — the `# ` prefix is
+4. **Cursor behavior around hidden heading syntax** — the `# ` prefix is
    hidden, so pressing Backspace at the visual start of a heading line deletes
    into syntax the author cannot see. Decide whether the range becomes atomic,
    whether Backspace removes the heading level instead, or something else, and

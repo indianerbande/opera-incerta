@@ -117,6 +117,154 @@ app.on('window-all-closed', () => {
   }
 });
 
+/** Types a string into the focused element as real key events. */
+async function typeText(window: BrowserWindow, text: string): Promise<void> {
+  for (const character of text) {
+    window.webContents.sendInputEvent({ type: 'keyDown', keyCode: character });
+    window.webContents.sendInputEvent({ type: 'char', keyCode: character });
+    window.webContents.sendInputEvent({ type: 'keyUp', keyCode: character });
+  }
+  await new Promise((resolve) => setTimeout(resolve, 120));
+}
+
+/**
+ * Exercises the two gestures that change a heading level: the dot command and
+ * the gutter menu. SPEC.md §10.2.
+ *
+ * Driven through real input events rather than through the adapter's own API,
+ * because what is in doubt is precisely the path from a keystroke or a click to
+ * the document.
+ */
+async function checkHeadingGestures(window: BrowserWindow): Promise<void> {
+  // Put the cursor at the start of the last line, which is empty.
+  const placed = (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')];
+       const last = lines[lines.length - 1];
+       if (last === undefined) { return null; }
+       const rect = last.getBoundingClientRect();
+       return { x: Math.round(rect.left + 4), y: Math.round(rect.top + rect.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (placed === null) {
+    throw new Error('could not locate the last editor line');
+  }
+
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: placed.x, y: placed.y, clickCount: 1 });
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: placed.x, y: placed.y, clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 120));
+
+  await typeText(window, '.h3 Typed heading');
+
+  const afterTyping = (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')];
+       const typed = lines.find((line) => line.textContent.includes('Typed heading'));
+       if (typed === undefined) { return null; }
+       return {
+         text: typed.textContent,
+         isHeading: typed.classList.contains('cm-heading-3'),
+       };
+     })()`,
+  )) as { text: string; isHeading: boolean } | null;
+
+  if (afterTyping === null) {
+    throw new Error('the typed line did not appear');
+  }
+  if (!afterTyping.isHeading) {
+    throw new Error(`the dot command did not apply: ${JSON.stringify(afterTyping)}`);
+  }
+  if (afterTyping.text.includes('.h3')) {
+    throw new Error(`the dot command text is still visible: ${JSON.stringify(afterTyping.text)}`);
+  }
+
+  // Now the gutter menu on that same line's marker.
+  const marker = (await window.webContents.executeJavaScript(
+    `(() => {
+       const markers = [...document.querySelectorAll('.cm-heading-marker')]
+         .filter((element) => element.textContent === 'H3' && element.dataset.line !== '0');
+       const target = markers[markers.length - 1];
+       if (target === undefined) { return null; }
+       const rect = target.getBoundingClientRect();
+       return { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (marker === null) {
+    throw new Error('no H3 gutter marker to activate');
+  }
+
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: marker.x, y: marker.y, clickCount: 1 });
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: marker.x, y: marker.y, clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const menu = (await window.webContents.executeJavaScript(
+    `(() => {
+       const element = document.querySelector('wi-heading-menu [role="menu"]');
+       if (element === null) { return null; }
+       const items = [...element.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')];
+       const checked = items.filter((item) => item.getAttribute('aria-checked') === 'true');
+       const target = items.find((item) => item.textContent.includes('Heading 5'));
+       const rect = target === undefined ? null : target.getBoundingClientRect();
+       return {
+         items: items.length,
+         checkedLabel: checked.length === 1 ? checked[0].textContent.trim() : null,
+         target: rect === null
+           ? null
+           : { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) },
+       };
+     })()`,
+  )) as { items: number; checkedLabel: string | null; target: { x: number; y: number } | null } | null;
+
+  if (menu === null) {
+    throw new Error('the gutter menu did not open');
+  }
+  if (menu.items !== 7) {
+    throw new Error(`expected six levels plus "no heading", found ${menu.items}`);
+  }
+  if (menu.checkedLabel !== '✓ Heading 3') {
+    throw new Error(`the active level is not marked: ${JSON.stringify(menu.checkedLabel)}`);
+  }
+  if (menu.target === null) {
+    throw new Error('no "Heading 5" entry in the menu');
+  }
+
+  window.webContents.sendInputEvent({
+    type: 'mouseDown',
+    x: menu.target.x,
+    y: menu.target.y,
+    clickCount: 1,
+  });
+  window.webContents.sendInputEvent({
+    type: 'mouseUp',
+    x: menu.target.x,
+    y: menu.target.y,
+    clickCount: 1,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  const afterMenu = (await window.webContents.executeJavaScript(
+    `(() => {
+       const line = [...document.querySelectorAll('.cm-line')]
+         .find((candidate) => candidate.textContent.includes('Typed heading'));
+       return line === undefined
+         ? null
+         : {
+             level5: line.classList.contains('cm-heading-5'),
+             menuOpen: document.querySelector('wi-heading-menu [role="menu"]') !== null,
+           };
+     })()`,
+  )) as { level5: boolean; menuOpen: boolean } | null;
+
+  if (afterMenu === null || !afterMenu.level5) {
+    throw new Error(`choosing Heading 5 did not change the line: ${JSON.stringify(afterMenu)}`);
+  }
+  if (afterMenu.menuOpen) {
+    throw new Error('the menu stayed open after a choice');
+  }
+
+  console.log('smoke ok: dot command applied, gutter menu opened and changed the level');
+}
+
 /**
  * Verifies the two things a shell smoke test can prove without a user: the
  * renderer rendered, and the versioned bridge answers through IPC.
@@ -196,6 +344,8 @@ async function runSmokeCheck(window: BrowserWindow): Promise<void> {
     if (!editor.fencedLineVisible) {
       throw new Error('the fenced line is not shown verbatim');
     }
+
+    await checkHeadingGestures(window);
 
     const image = await window.webContents.capturePage();
     const evidenceDirectory = join(currentDirectory, '..', '..', '..', 'build', 'desktop');

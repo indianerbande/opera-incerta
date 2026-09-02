@@ -47,6 +47,7 @@ export function runEditorAdapterContract(create: Create): readonly ContractCase[
   cases.push(casePerDocumentUndo(create));
   cases.push(caseChangeListener(create));
   cases.push(caseUnsubscribe(create));
+  cases.push(caseMarkerListenerRegistration(create));
   cases.push(caseDestroyIsIdempotent(create));
 
   return cases;
@@ -219,6 +220,30 @@ function caseUnsubscribe(create: Create): ContractCase {
       'unsubscribing stops the notifications',
       count === before,
       `before=${before} after=${count}`,
+    );
+  });
+}
+
+/**
+ * Only registration and unsubscription are contracted here. Whether a click
+ * actually produces an activation depends on a real gutter, and is checked by
+ * the desktop smoke against the rendered editor.
+ */
+function caseMarkerListenerRegistration(create: Create): ContractCase {
+  return withAdapter(create, (adapter) => {
+    adapter.open(documentA());
+    let unsubscribeFailed = false;
+    try {
+      const unsubscribe = adapter.onHeadingMarkerActivate(() => {});
+      unsubscribe();
+      unsubscribe();
+    } catch {
+      unsubscribeFailed = true;
+    }
+    return check(
+      'a heading marker listener can be registered and removed',
+      !unsubscribeFailed,
+      `unsubscribeFailed=${String(unsubscribeFailed)}`,
     );
   });
 }

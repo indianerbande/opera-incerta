@@ -8,6 +8,8 @@ import {
   type EditorChangeListener,
   type EditorDocument,
   type HeadingLevel,
+  type HeadingMarkerActivation,
+  type HeadingMarkerListener,
 } from '../src/index.js';
 
 /**
@@ -21,6 +23,7 @@ class FakeEditorAdapter implements EditorAdapter {
   #documents = new Map<string, { text: string; undo: string[]; redo: string[]; line: number }>();
   #openId: string | null = null;
   #listeners = new Set<EditorChangeListener>();
+  #markerListeners = new Set<HeadingMarkerListener>();
   #destroyed = false;
 
   open(document_: EditorDocument): void {
@@ -97,9 +100,24 @@ class FakeEditorAdapter implements EditorAdapter {
     };
   }
 
+  onHeadingMarkerActivate(listener: HeadingMarkerListener): () => void {
+    this.#markerListeners.add(listener);
+    return () => {
+      this.#markerListeners.delete(listener);
+    };
+  }
+
+  /** Test seam: the double has no gutter, so activation is triggered by hand. */
+  activateMarker(activation: HeadingMarkerActivation): void {
+    for (const listener of this.#markerListeners) {
+      listener(activation);
+    }
+  }
+
   destroy(): void {
     this.#destroyed = true;
     this.#listeners.clear();
+    this.#markerListeners.clear();
     this.#documents.clear();
     this.#openId = null;
   }
@@ -138,6 +156,20 @@ describe('editor adapter contract, against the in-memory double', () => {
       expect(contractCase.passed, contractCase.detail).toBe(true);
     });
   }
+});
+
+describe('heading marker activation, on the double', () => {
+  it('delivers an activation to its listener and stops after unsubscribing', () => {
+    const adapter = new FakeEditorAdapter();
+    const seen: HeadingMarkerActivation[] = [];
+    const unsubscribe = adapter.onHeadingMarkerActivate((activation) => seen.push(activation));
+
+    adapter.activateMarker({ line: 2, level: 3, x: 10, y: 20 });
+    unsubscribe();
+    adapter.activateMarker({ line: 4, level: 1, x: 0, y: 0 });
+
+    expect(seen).toEqual([{ line: 2, level: 3, x: 10, y: 20 }]);
+  });
 });
 
 describe('the contract itself', () => {

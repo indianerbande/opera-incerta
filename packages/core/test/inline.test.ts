@@ -179,4 +179,18 @@ describe('displayModel', () => {
 
     expect(displayModel(text, null).headings).toEqual([]);
   });
+
+  it('names the verbatim lines, because a line cannot tell on its own', () => {
+    // Every consumer that must not act inside a fence — the gutter, the dot
+    // command filter — asks here. Both once judged a line in isolation and got
+    // it wrong.
+    const text = ['text', '```', '.h1 not a command', '```', 'more text'].join('\n');
+    const model = displayModel(text, null);
+
+    expect([...model.verbatimLines].sort()).toEqual([2, 3, 4]);
+  });
+
+  it('reports no verbatim lines for a document without fences', () => {
+    expect(displayModel('# Heading\ntext', null).verbatimLines.size).toBe(0);
+  });
 });

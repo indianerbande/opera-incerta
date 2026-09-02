@@ -6,6 +6,50 @@ documents").
 
 ---
 
+## 2026-09-02 — dot commands and the gutter menu
+
+**What exists.** Both ways of setting a heading level from `SPEC.md` §10.2:
+typing `.h1`…`.h6` at the start of a line, and clicking the level label in the
+gutter to pick from a menu.
+
+**The dot command is a transaction filter, not a listener.** The conversion
+joins the same edit step as the keystroke, so one undo takes the whole thing
+back and no intermediate state is ever rendered. Its rules are a pure function
+in the core: recognized against the *visible* text, so typing `.h2` in front of
+an existing heading changes its level; the separating space consumed with the
+command; `.h1x` left as ordinary text; and — the rule that matters most — it
+applies to typing only. A file containing a line that starts with `.h1` opens
+unchanged, because opening a document must never rewrite it.
+
+**The menu is a view, not an adapter concern.** The adapter reports *what* was
+activated and *where* on screen as plain numbers; the view decides what to show
+there. One menu will therefore serve any adapter, and the adapter needs no DOM
+vocabulary beyond the two coordinates.
+
+**Verification.** `pnpm run check` green: **349 tests** (core 235).
+`pnpm run spike:editor` 7/7. The smoke now drives both gestures with **real
+input events** — key events for the dot command, mouse events for the marker
+and the menu entry — because what was in doubt is exactly the path from a
+keystroke or a click to the document. It types `.h3 Typed heading`, checks the
+line became an H3 with the command text gone, clicks the marker, checks the
+menu shows seven entries with `✓ Heading 3` marked, clicks `Heading 5`, and
+checks the line changed and the menu closed. Visually confirmed in
+`build/desktop/smoke.png`.
+
+**The same mistake, a third time.** The transaction filter parsed the line it
+was editing in isolation, so a `.h3` typed inside a fenced code block became a
+heading. The gutter had made this exact mistake two days' work earlier, and
+`applyDotCommand` even guards on a `verbatim` flag — but the caller computed
+that flag from one line, where it is always false. Whether a line is verbatim
+is a question about the document.
+
+The fix is structural rather than another guard: `DisplayModel` now carries
+`verbatimLines`, so there is one answer that every consumer reads instead of
+each deriving its own. The core test names the reason in place, and the smoke
+holds the end-to-end evidence.
+
+---
+
 ## 2026-09-01 — the editor adapter, and an editor that renders
 
 **What exists.** An `EditorAdapter` boundary in the portable core, a CodeMirror
