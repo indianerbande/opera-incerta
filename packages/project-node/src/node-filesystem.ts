@@ -9,7 +9,9 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import {
+  readCategories,
   readStructureRecord,
+  type PageCategory,
   type ProjectRecord,
   type StructureRecord,
 } from '@opera-incerta/core';
@@ -113,6 +115,21 @@ class NodeProjectFilesystem implements ProjectFilesystem {
    * record, so the library falls back to directory names and alphabetical
    * order rather than failing to open (SPEC.md §6.4, §16).
    */
+  async readCategories(projectPath: string): Promise<readonly PageCategory[]> {
+    try {
+      const raw = await readFile(categoriesFilePath(projectPath), 'utf8');
+      return readCategories(JSON.parse(raw) as unknown);
+    } catch {
+      // A missing file means no categories, and is not an error (SPEC.md §6.6).
+      return [];
+    }
+  }
+
+  async writeCategories(projectPath: string, categories: readonly PageCategory[]): Promise<void> {
+    await mkdir(join(projectPath, PROJECT_DIRECTORY), { recursive: true });
+    await writeJson(categoriesFilePath(projectPath), categories);
+  }
+
   async readStructure(projectPath: string): Promise<StructureRecord> {
     try {
       const raw = await readFile(structureFilePath(projectPath), 'utf8');

@@ -18,6 +18,7 @@ import {
   arrivalName,
   findGroup,
   moveChild,
+  readCategories,
   reorderChild,
   sheetsOf,
   withChildOrder,
@@ -108,7 +109,13 @@ export class ProjectSession {
     }
 
     this.#open = { path: projectPath, id: record.id, displayName: record.displayName, handles };
-    return { id: record.id, displayName: record.displayName, library, handles: exposed };
+    return {
+      id: record.id,
+      displayName: record.displayName,
+      library,
+      handles: exposed,
+      categories: await this.#filesystem.readCategories(projectPath),
+    };
   }
 
   /** Re-reads the open project, keeping handles for sheets that still exist. */
@@ -262,6 +269,15 @@ export class ProjectSession {
   }
 
   /** Appends a child to a group's recorded order, when it has one. */
+  /** Replaces the project's page categories. SPEC.md §6.6. */
+  async writeCategories(value: unknown): Promise<void> {
+    const projectPath = this.#requireOpen().path;
+    // Read through the core's tolerant reader before writing: whatever the
+    // renderer sends is checked against the record's shape here, where the
+    // filesystem is.
+    await this.#filesystem.writeCategories(projectPath, readCategories(value));
+  }
+
   /**
    * Puts one entry in a place: a group, and a position within it.
    * SPEC.md §6.4, §6.8.

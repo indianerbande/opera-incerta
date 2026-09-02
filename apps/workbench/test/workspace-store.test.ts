@@ -63,6 +63,7 @@ const snapshot: ProjectSnapshot = {
     'part-1/scene.md': 'b'.repeat(32),
     'part-1/pre/note.md': 'c'.repeat(32),
   },
+  categories: [{ id: 'draft', name: 'Draft', color: '#ffcc00' }],
 };
 
 /** A bridge whose behavior each test scripts. */
@@ -1007,5 +1008,56 @@ describe('re-reading a project with unsaved work', () => {
     // That operation was not about this file, so it does not ask about it.
     expect(store.conflict()).toBeNull();
     expect(store.dirty()).toBe(true);
+  });
+});
+
+describe('page categories', () => {
+  it('resolves the open sheet’s category, and an unknown id as none', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+
+    expect(store.category()).toBeNull();
+    store.updateMetadata({ category: 'draft' });
+    expect(store.category()?.name).toBe('Draft');
+
+    // A deleted category leaves its id behind in the sheet, on purpose.
+    store.updateMetadata({ category: 'gone' });
+    expect(store.category()).toBeNull();
+  });
+
+  it('shows a category the author has chosen but not saved', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.updateMetadata({ category: 'draft' });
+
+    const shown = store.visibleSheets().find((sheet) => sheet.relativePath === 'preface.md');
+    // An assignment nothing visibly answers looks like one that failed.
+    expect(shown?.category).toBe('draft');
+  });
+
+  it('sends the categories and adopts what comes back', async () => {
+    let sent: unknown = null;
+    const withReview: ProjectSnapshot = {
+      ...snapshot,
+      categories: [{ id: 'review', name: 'Review', color: '#102040' }],
+    };
+    const store = new WorkspaceStore(
+      fakeBridge({
+        writeCategories: async (categories) => {
+          sent = categories;
+          return { ok: true, value: withReview };
+        },
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.saveCategories([{ id: 'review', name: 'Review', color: '#102040' }]);
+
+    expect(sent).toEqual([{ id: 'review', name: 'Review', color: '#102040' }]);
+    expect(store.categories().map((category) => category.name)).toEqual(['Review']);
+    // Editing the definitions does not close the sheet being worked on.
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
   });
 });

@@ -47,6 +47,7 @@ export const CHANNELS = {
   renameSheet: 'opera-incerta:sheet/rename',
   renameGroup: 'opera-incerta:group/rename',
   placeEntry: 'opera-incerta:library/place',
+  writeCategories: 'opera-incerta:categories/write',
   deleteEntry: 'opera-incerta:library/delete',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
@@ -123,6 +124,14 @@ export interface ProjectSnapshot {
   readonly library: unknown;
   /** Relative sheet path to handle id. */
   readonly handles: Readonly<Record<string, string>>;
+  /**
+   * The project's page categories. SPEC.md §6.6.
+   *
+   * Part of the snapshot rather than a channel of their own: they are read
+   * with the project and change with it, and a second source would be a second
+   * chance to disagree.
+   */
+  readonly categories: readonly unknown[];
 }
 
 /**
@@ -450,6 +459,8 @@ export interface OperaIncertaBridge {
   renameGroup(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Puts an entry in a place: a group, and a position within it. */
   placeEntry(request: LibraryPlaceRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Replaces the project's page categories, and returns the refreshed project. */
+  writeCategories(categories: readonly unknown[]): Promise<BridgeResult<ProjectSnapshot>>;
   /** Moves an entry to the desktop trash, from where the author can restore it. */
   deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** The installation-local preference record. SPEC.md §13. */

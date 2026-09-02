@@ -626,6 +626,16 @@ whose `category` is absent or references an unknown UUID counts as
 uncategorized and is not an error. Deleting a category does not rewrite sheets:
 the UUID stays in the file and the sheet becomes uncategorized.
 
+Categories are **project data, not a setting** (§13 is installation-local), so
+they are defined where a sheet is edited: the Inspector assigns one and opens
+the manager that adds, renames, recolors and deletes them. The manager edits a
+copy — closing it without saving leaves the project as it was.
+
+A category the author has assigned but not yet **saved** is already shown as
+the sheet's badge, for the same reason a title being edited is already shown as
+its name (§6.4): an edit that nothing visibly answers looks like an edit that
+failed.
+
 Category names are **user data** and are never localized (§14.2).
 
 ### 6.7 Deleting into the trash

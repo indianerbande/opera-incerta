@@ -38,7 +38,7 @@ export { displayModel, headingPrefixRange, visibleLineStart } from './display-mo
 
 export {
   ancestorPaths,
-  withSheetDisplayName,
+  withShownSheet,
   findGroup,
   findSheet,
   groupsOf,
@@ -47,7 +47,7 @@ export {
   subgroupsOf,
   walkLibrary,
 } from './library.js';
-export type { GroupEntry, LibraryEntry, PreviewLine, SheetEntry } from './library.js';
+export type { GroupEntry, LibraryEntry, PreviewLine, SheetEntry, ShownSheet } from './library.js';
 export type { DisplayModel, HeadingSpan, HiddenRange } from './display-model.js';
 
 export {
@@ -142,9 +142,12 @@ export {
 export type { ColumnBounds } from './layout.js';
 
 export {
+  MAX_CATEGORIES,
+  categoryTextColor,
+  findCategory,
   parseHexColor,
+  readCategories,
   relativeLuminance,
   textColorFor,
-  categoryTextColor,
 } from './category.js';
-export type { RgbColor, BadgeTextColor } from './category.js';
+export type { BadgeTextColor, PageCategory, RgbColor } from './category.js';

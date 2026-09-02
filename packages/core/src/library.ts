@@ -26,6 +26,12 @@ export interface SheetEntry {
   /** Front matter title, or the file name without its extension. */
   readonly displayName: string;
   /**
+   * The page category's id, as the file carries it. Resolving it is the
+   * reader's job: an id naming nothing is uncategorized, not an error
+   * (SPEC.md §6.6).
+   */
+  readonly category?: string;
+  /**
    * The first lines of the body, for the sheet list. Blank lines are kept:
    * whether to show them is the reader's choice, not the scanner's
    * (SPEC.md §9.2).
@@ -90,38 +96,60 @@ export function subgroupsOf(group: GroupEntry): readonly GroupEntry[] {
   return group.children.filter((child): child is GroupEntry => child.kind === 'group');
 }
 
+/** What may be shown differently from what the file says. */
+export interface ShownSheet {
+  readonly displayName?: string;
+  /** `null` removes the category; leaving it out keeps the file's. */
+  readonly category?: string | null;
+}
+
 /**
- * The library with one sheet shown under a different name.
+ * The library with one sheet shown as the author is currently editing it.
  *
- * A title that is edited but not yet saved is still the sheet's name as far as
- * the author is concerned, so the tree and the sheet list have to say it. Only
- * the branch down to that sheet is rebuilt; when nothing matches, the very same
- * tree comes back.
+ * A title or a category that has been changed but not saved is still what the
+ * author means, so the tree and the sheet list have to say it — an edit that
+ * nothing visibly answers looks like an edit that failed. Only the branch down
+ * to that sheet is rebuilt; when nothing matches, the very same tree comes
+ * back.
  */
-export function withSheetDisplayName(
+export function withShownSheet(
   root: GroupEntry,
   relativePath: string,
-  displayName: string,
+  shown: ShownSheet,
 ): GroupEntry {
   let changed = false;
   const children = root.children.map((child) => {
     if (child.kind === 'sheet') {
-      if (child.relativePath !== relativePath || child.displayName === displayName) {
+      if (child.relativePath !== relativePath) {
         return child;
       }
-      changed = true;
-      return { ...child, displayName };
+      const next = applyShown(child, shown);
+      if (next !== child) {
+        changed = true;
+      }
+      return next;
     }
     if (child.relativePath !== '.' && !relativePath.startsWith(`${child.relativePath}/`)) {
       return child;
     }
-    const rebuilt = withSheetDisplayName(child, relativePath, displayName);
+    const rebuilt = withShownSheet(child, relativePath, shown);
     if (rebuilt !== child) {
       changed = true;
     }
     return rebuilt;
   });
   return changed ? { ...root, children } : root;
+}
+
+function applyShown(sheet: SheetEntry, shown: ShownSheet): SheetEntry {
+  const displayName = shown.displayName ?? sheet.displayName;
+  const category = shown.category === undefined ? sheet.category : (shown.category ?? undefined);
+  if (displayName === sheet.displayName && category === sheet.category) {
+    return sheet;
+  }
+
+  const { category: _dropped, ...rest } = sheet;
+  return category === undefined ? { ...rest, displayName } : { ...rest, displayName, category };
 }
 
 /**

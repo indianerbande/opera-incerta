@@ -8,7 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { findGroup, sheetsOf, walkLibrary } from '@opera-incerta/core';
+import { findGroup, sheetsOf, walkLibrary, type PageCategory } from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
@@ -32,6 +32,7 @@ import {
 } from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
+import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
 import { OutlineComponent } from './sidebar/outline.component.js';
 import { resolveBridge } from './workspace/bridge.js';
@@ -50,6 +51,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ActivityBarComponent,
+    CategoryManagerComponent,
     ContextMenuComponent,
     DensitySwitchComponent,
     EditorComponent,
@@ -151,6 +153,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           [showBlankLines]="layout.showBlankLines()"
           [drag]="libraryDrag"
           [groupPath]="store.selectedGroupPath()"
+          [categories]="store.categories()"
           (select)="store.selectSheet($event)"
           (contextMenu)="openSheetMenu($event)"
         />
@@ -253,6 +256,8 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 [metadata]="store.metadata()"
                 [statistics]="store.statistics()"
                 [available]="store.openSheet() !== null"
+                [categories]="store.categories()"
+                (manage)="managingCategories.set(true)"
                 (change)="store.updateMetadata($event)"
               />
             }
@@ -297,6 +302,14 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         [confirmLabel]="open.confirmLabel"
         (confirm)="confirmPrompt($event)"
         (cancel)="prompt.set(null)"
+      />
+    }
+
+    @if (managingCategories()) {
+      <wi-category-manager
+        [categories]="store.categories()"
+        (confirm)="saveCategories($event)"
+        (cancel)="managingCategories.set(false)"
       />
     }
 
@@ -548,6 +561,14 @@ export class AppComponent {
     y: number;
     target: { kind: 'group' | 'sheet'; path: string; name: string };
   } | null>(null);
+
+  /** Whether the category manager is open. SPEC.md §6.6. */
+  protected readonly managingCategories = signal(false);
+
+  protected saveCategories(categories: readonly PageCategory[]): void {
+    this.managingCategories.set(false);
+    void this.store.saveCategories(categories);
+  }
 
   /** The open confirmation, and what it would take away. SPEC.md §6.7. */
   protected readonly confirmation = signal<{

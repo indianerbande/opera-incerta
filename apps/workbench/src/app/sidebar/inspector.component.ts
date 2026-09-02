@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import type { SheetMetadata, TextStatistics } from '@opera-incerta/core';
+import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta/core';
 
 /**
  * Metadata of the active sheet. SPEC.md §11.
@@ -61,6 +61,24 @@ import type { SheetMetadata, TextStatistics } from '@opera-incerta/core';
           />
         </label>
 
+        <label class="category">
+          Category
+          <span class="row">
+            <select
+              [value]="metadata().category ?? ''"
+              (change)="change.emit({ category: value($event) })"
+            >
+              <option value="">None</option>
+              @for (category of categories(); track category.id) {
+                <option [value]="category.id" [selected]="category.id === metadata().category">
+                  {{ category.name }}
+                </option>
+              }
+            </select>
+            <button type="button" (click)="manage.emit()">Manage…</button>
+          </span>
+        </label>
+
         <label class="notes">
           Notes
           <textarea
@@ -76,6 +94,14 @@ import type { SheetMetadata, TextStatistics } from '@opera-incerta/core';
     }
   `,
   styles: `
+    .category .row {
+      display: flex;
+      gap: 6px;
+    }
+    .category select {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
     :host {
       display: block;
       overflow-y: auto;
@@ -124,8 +150,11 @@ export class InspectorComponent {
   readonly metadata = input.required<SheetMetadata>();
   readonly statistics = input.required<TextStatistics>();
   readonly available = input.required<boolean>();
+  readonly categories = input.required<readonly PageCategory[]>();
 
   readonly change = output<Partial<SheetMetadata>>();
+  /** Asks for the category manager; the shell owns the dialog. */
+  readonly manage = output<void>();
 
   protected value(event: Event): string {
     return (event.target as HTMLInputElement | HTMLTextAreaElement).value;

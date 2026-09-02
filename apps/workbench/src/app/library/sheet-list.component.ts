@@ -1,8 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import {
   PREVIEW_DENSITIES,
+  categoryTextColor,
+  findCategory,
   previewFontSize,
   previewLines,
+  type PageCategory,
   type PreviewDensity,
   type SheetEntry,
 } from '@opera-incerta/core';
@@ -46,7 +49,17 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
             (click)="onSelect(sheet.relativePath)"
             (contextmenu)="onContextMenu($event, sheet)"
           >
-            <span class="title">{{ sheet.displayName }}</span>
+            <span class="line">
+              <span class="title">{{ sheet.displayName }}</span>
+              @if (badge(sheet); as category) {
+                <span
+                  class="badge"
+                  [style.background]="category.color"
+                  [style.color]="textColor(category.color)"
+                  >{{ category.name }}</span
+                >
+              }
+            </span>
             @for (line of preview(sheet); track $index) {
               <span class="preview" [style.font-size.px]="size(line.level)">{{ line.text }}</span>
             }
@@ -99,11 +112,28 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
     .row.selected {
       background: rgba(128, 128, 128, 0.22);
     }
+    .line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
     .title {
       overflow: hidden;
+      flex: 1 1 auto;
       white-space: nowrap;
       text-overflow: ellipsis;
       font-weight: 600;
+    }
+    .badge {
+      flex: none;
+      max-width: 45%;
+      overflow: hidden;
+      padding: 0 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
     .preview {
       overflow: hidden;
@@ -127,9 +157,22 @@ export class SheetListComponent {
   readonly drag = input.required<LibraryDrag>();
   /** The group these sheets belong to; part of what a row says about itself. */
   readonly groupPath = input.required<string>();
+  readonly categories = input.required<readonly PageCategory[]>();
 
   readonly select = output<string>();
   readonly contextMenu = output<{ path: string; name: string; x: number; y: number }>();
+
+  /**
+   * The category a row shows, or null. An id naming nothing shows nothing:
+   * a deleted category leaves its id behind on purpose (SPEC.md §6.6).
+   */
+  protected badge(sheet: SheetEntry): PageCategory | null {
+    return findCategory(this.categories(), sheet.category);
+  }
+
+  protected textColor(color: string): string {
+    return categoryTextColor(color) ?? 'black';
+  }
 
   /** The insertion line's slot, when it belongs to this list. */
   protected readonly lineAt = computed(() => {

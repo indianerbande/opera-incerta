@@ -294,6 +294,12 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- page categories end to end (`SPEC.md` §6.6): defined in the manager and
+  found in `categories.json`, assigned in the Inspector, shown at once as a
+  badge in the sheet list, and written into the sheet on save. The badge's text
+  colour is read from the **computed style**, so the rule is checked where it
+  lands rather than where it is written: a dark background must carry white
+  text;
 - the front matter area (`SPEC.md` §10.4): hidden until asked for, then a
   foreign and an own block carrying what the file carries; read-only presented
   as a **selectable** control rather than a disabled one, and only the foreign

@@ -673,3 +673,39 @@ describe('placing while moving', () => {
     expect((await orderOf('part-1'))?.[0]).toBe('chapter.md');
   });
 });
+
+describe('page categories', () => {
+  it('hands over what the file carries, and nothing unusable', async () => {
+    await writeFile(
+      join(root, PROJECT_DIRECTORY, 'categories.json'),
+      JSON.stringify([
+        { id: 'a', name: 'Draft', color: '#ff0000' },
+        { id: 'b', name: 'Broken', color: 'not a colour' },
+      ]),
+      'utf8',
+    );
+    const snapshot = await new ProjectSession().open(root);
+
+    expect(snapshot.categories).toEqual([{ id: 'a', name: 'Draft', color: '#ff0000' }]);
+  });
+
+  it('treats a missing file as no categories', async () => {
+    const snapshot = await new ProjectSession().open(root);
+    expect(snapshot.categories).toEqual([]);
+  });
+
+  it('writes what it was given, after reading it through the record', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.writeCategories([
+      { id: 'a', name: 'Draft', color: '#ff0000' },
+      { id: 'b', name: 'Nonsense', color: 'red' },
+    ]);
+
+    const written = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'categories.json'), 'utf8'),
+    ) as unknown;
+    // Whatever the renderer sends is checked here, where the filesystem is.
+    expect(written).toEqual([{ id: 'a', name: 'Draft', color: '#ff0000' }]);
+  });
+});

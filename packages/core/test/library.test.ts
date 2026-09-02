@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ancestorPaths,
-  withSheetDisplayName,
+  withShownSheet,
   findGroup,
   findSheet,
   groupsOf,
@@ -97,9 +97,9 @@ describe('ancestorPaths', () => {
   });
 });
 
-describe('withSheetDisplayName', () => {
+describe('withShownSheet', () => {
   it('renames one sheet, deep in the tree', () => {
-    const renamed = withSheetDisplayName(library, 'part-1/pre/note.md', 'A Renamed Note');
+    const renamed = withShownSheet(library, 'part-1/pre/note.md', { displayName: 'A Renamed Note' });
 
     expect(findSheet(renamed, 'part-1/pre/note.md')?.displayName).toBe('A Renamed Note');
     // Everything else is untouched.
@@ -109,17 +109,39 @@ describe('withSheetDisplayName', () => {
   });
 
   it('returns the very same tree when nothing matches', () => {
-    expect(withSheetDisplayName(library, 'nowhere.md', 'X')).toBe(library);
+    expect(withShownSheet(library, 'nowhere.md', { displayName: 'X' })).toBe(library);
     // An unchanged name is not a change either.
     const name = findSheet(library, 'preface.md')?.displayName ?? '';
-    expect(withSheetDisplayName(library, 'preface.md', name)).toBe(library);
+    expect(withShownSheet(library, 'preface.md', { displayName: name })).toBe(library);
   });
 
   it('leaves the branches it did not descend into identical', () => {
-    const renamed = withSheetDisplayName(library, 'part-1/pre/note.md', 'A Renamed Note');
+    const renamed = withShownSheet(library, 'part-1/pre/note.md', { displayName: 'A Renamed Note' });
     const before = library.children.find((child) => child.relativePath === 'preface.md');
     const after = renamed.children.find((child) => child.relativePath === 'preface.md');
 
     expect(after).toBe(before);
+  });
+});
+
+describe('withShownSheet and categories', () => {
+  it('shows a category the author has chosen but not saved', () => {
+    const shown = withShownSheet(library, 'preface.md', { category: 'review' });
+    expect(findSheet(shown, 'preface.md')?.category).toBe('review');
+  });
+
+  it('takes a category away again', () => {
+    const assigned = withShownSheet(library, 'preface.md', { category: 'review' });
+    const cleared = withShownSheet(assigned, 'preface.md', { category: null });
+
+    expect(findSheet(cleared, 'preface.md')?.category).toBeUndefined();
+    expect('category' in (findSheet(cleared, 'preface.md') as object)).toBe(false);
+  });
+
+  it('leaves the category from the file alone when none is given', () => {
+    const assigned = withShownSheet(library, 'preface.md', { category: 'review' });
+    const renamed = withShownSheet(assigned, 'preface.md', { displayName: 'Another Name' });
+
+    expect(findSheet(renamed, 'preface.md')?.category).toBe('review');
   });
 });

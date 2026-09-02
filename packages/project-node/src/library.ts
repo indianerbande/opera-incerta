@@ -128,6 +128,7 @@ async function scanChildren(
       name,
       relativePath: childRelative,
       displayName: read.displayName,
+      ...(read.category === undefined ? {} : { category: read.category }),
       preview: read.preview,
     });
   }
@@ -158,7 +159,7 @@ async function readSheetForList(
   absolutePath: string,
   fileName: string,
   readTitles: boolean,
-): Promise<{ displayName: string; preview: readonly PreviewLine[] }> {
+): Promise<{ displayName: string; category?: string; preview: readonly PreviewLine[] }> {
   const fallback = fileName.replace(/\.md$/i, '');
   if (!readTitles) {
     return { displayName: fallback, preview: [] };
@@ -171,6 +172,7 @@ async function readSheetForList(
 
     return {
       displayName: title === undefined || title === '' ? fallback : title,
+      ...(sheet.metadata.category === undefined ? {} : { category: sheet.metadata.category }),
       preview: markdownToDisplay(sheet.body)
         .slice(0, PREVIEW_LINE_LIMIT)
         .map((line) => ({ text: line.text, level: line.level })),

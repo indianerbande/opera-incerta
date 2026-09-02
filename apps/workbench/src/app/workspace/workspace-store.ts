@@ -9,20 +9,23 @@
 import { computed, signal } from '@angular/core';
 import {
   ancestorPaths,
+  findCategory,
   findGroup,
   findSheet,
   markdownToDisplay,
   outlineOf,
   ownedFrontMatterLines,
   parseSheet,
+  readCategories,
   serializeSheet,
   sheetsInGroup,
   textStatistics,
   visibleOutline,
-  withSheetDisplayName,
+  withShownSheet,
   type EditorDocument,
   type GroupEntry,
   type OutlineEntry,
+  type PageCategory,
   type Sheet,
   type SheetDiagnostic,
   type SheetEntry,
@@ -77,6 +80,7 @@ export class WorkspaceStore {
   readonly #failure = signal<string | null>(null);
   readonly #conflict = signal<string | null>(null);
   readonly #editorDocument = signal<EditorDocument | null>(null);
+  readonly #categories = signal<readonly PageCategory[]>([]);
   readonly #busy = signal(false);
 
   constructor(bridge: OperaIncertaBridge | null) {
@@ -88,6 +92,8 @@ export class WorkspaceStore {
   readonly failure = this.#failure.asReadonly();
   /** The sheet whose file changed under unsaved work. SPEC.md §10.6. */
   readonly conflict = this.#conflict.asReadonly();
+  /** The project's page categories. SPEC.md §6.6. */
+  readonly categories = this.#categories.asReadonly();
   readonly busy = this.#busy.asReadonly();
   readonly expanded = this.#expanded.asReadonly();
   readonly selectedGroupPath = this.#selectedGroupPath.asReadonly();
@@ -109,8 +115,12 @@ export class WorkspaceStore {
     if (library === null || open === null) {
       return library;
     }
-    const edited = this.openTitle();
-    return edited === null ? library : withSheetDisplayName(library, open.relativePath, edited);
+    const title = this.openTitle();
+    const category = this.#currentMetadata().category ?? null;
+    return withShownSheet(library, open.relativePath, {
+      ...(title === null ? {} : { displayName: title }),
+      category,
+    });
   });
 
   /** The name the open sheet goes by, edited or saved. */
@@ -349,6 +359,31 @@ export class WorkspaceStore {
       ? []
       : ownedFrontMatterLines({ ...open.sheet, metadata: this.#currentMetadata() });
   });
+
+  /**
+   * The category of the open sheet, or null. An id naming nothing counts as
+   * uncategorized, because a category may have been deleted (SPEC.md §6.6).
+   */
+  readonly category = computed(() =>
+    findCategory(this.#categories(), this.#currentMetadata().category),
+  );
+
+  /** Replaces the project's categories and adopts what came back. */
+  async saveCategories(categories: readonly PageCategory[]): Promise<void> {
+    await this.#withBridge(async (bridge) => {
+      const snapshot = unwrap(await bridge.writeCategories(categories));
+      const previousGroup = this.#selectedGroupPath();
+      const previousSheet = this.#openSheet()?.relativePath ?? null;
+      const before = this.#editingState();
+
+      this.#adopt(snapshot);
+      this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, previousGroup));
+      if (previousSheet !== null) {
+        await this.selectSheet(previousSheet);
+        this.#restoreEditing(before, previousSheet, false);
+      }
+    });
+  }
 
   /** Replaces the foreign block. Marks the sheet dirty, saves nothing. */
   updateForeignLines(lines: readonly string[]): void {
@@ -647,6 +682,7 @@ export class WorkspaceStore {
     this.#project.set({ id: snapshot.id, displayName: snapshot.displayName });
     this.#library.set(snapshot.library as GroupEntry);
     this.#handles.set(snapshot.handles);
+    this.#categories.set(readCategories(snapshot.categories));
     this.#selectedGroupPath.set('.');
     this.#openSheet.set(null);
     this.#editorDocument.set(null);

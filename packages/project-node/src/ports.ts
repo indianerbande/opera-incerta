@@ -6,7 +6,7 @@
  * implementation so that consumers can be tested against a double
  * (CONVENTIONS.md C-A3, C-A16).
  */
-import type { ProjectRecord, StructureRecord } from '@opera-incerta/core';
+import type { PageCategory, ProjectRecord, StructureRecord } from '@opera-incerta/core';
 
 /** The hidden directory that marks a directory as a Opera Incerta project. */
 export const PROJECT_DIRECTORY = '.opera-incerta';
@@ -37,6 +37,8 @@ export interface ProjectFilesystem {
   inspectFolder(absolutePath: string): Promise<FolderInspection>;
   readProject(absolutePath: string): Promise<ProjectRecord>;
   createProject(absolutePath: string, displayName: string): Promise<ProjectRecord>;
+  readCategories(projectPath: string): Promise<readonly PageCategory[]>;
+  writeCategories(projectPath: string, categories: readonly PageCategory[]): Promise<void>;
   readStructure(projectPath: string): Promise<StructureRecord>;
   writeStructure(projectPath: string, structure: StructureRecord): Promise<void>;
   readSheet(absolutePath: string): Promise<string>;

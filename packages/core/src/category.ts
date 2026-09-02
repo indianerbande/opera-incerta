@@ -56,3 +56,65 @@ export function categoryTextColor(hexColor: string): BadgeTextColor | null {
   const color = parseHexColor(hexColor);
   return color === null ? null : textColorFor(color);
 }
+
+/** A page category as `categories.json` carries it. SPEC.md §6.6. */
+export interface PageCategory {
+  readonly id: string;
+  readonly name: string;
+  /** Background colour as `#RRGGBB`; the text colour is computed, never stored. */
+  readonly color: string;
+}
+
+/**
+ * How many categories a project may hold. SPEC.md §6.6 asks for at least eight
+ * and at most sixty-four; the lower figure is a capacity, the upper a limit.
+ */
+export const MAX_CATEGORIES = 64;
+
+/**
+ * Reads a parsed `categories.json`, discarding whatever does not match.
+ *
+ * A missing or malformed file means no categories and is not an error, and one
+ * unusable entry costs that entry rather than the set (SPEC.md §6.6, §16).
+ */
+export function readCategories(value: unknown): readonly PageCategory[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const categories: PageCategory[] = [];
+  const seen = new Set<string>();
+  for (const entry of value) {
+    if (typeof entry !== 'object' || entry === null) {
+      continue;
+    }
+    const candidate = entry as Partial<PageCategory>;
+    const { id, name, color } = candidate;
+    if (typeof id !== 'string' || id === '' || seen.has(id)) {
+      continue;
+    }
+    if (typeof name !== 'string' || typeof color !== 'string' || parseHexColor(color) === null) {
+      continue;
+    }
+    seen.add(id);
+    categories.push({ id, name, color });
+    if (categories.length === MAX_CATEGORIES) {
+      break;
+    }
+  }
+  return categories;
+}
+
+/**
+ * The category a sheet carries, or null.
+ *
+ * An id that names nothing counts as uncategorized and is not an error: a
+ * category may have been deleted, and deleting one deliberately does not
+ * rewrite the sheets that referenced it (SPEC.md §6.6).
+ */
+export function findCategory(
+  categories: readonly PageCategory[],
+  id: string | undefined,
+): PageCategory | null {
+  return id === undefined ? null : (categories.find((category) => category.id === id) ?? null);
+}

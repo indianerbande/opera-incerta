@@ -64,9 +64,6 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Reordering without a pointer** — the drag has no keyboard equivalent. A
   command that moves the selected entry up or down within its group would also
   give the operation a menu item and a shortcut (`SPEC.md` §8.5).
-- **Page categories in the interface** (`SPEC.md` §6.6, §17.12) — the core
-  computes the badge text colour and tolerates unknown ids; defining,
-  assigning, and showing categories is not built, and neither is deleting one.
 - **Restoring from the trash inside the application** — deleting moves an entry
   to the desktop trash (`SPEC.md` §6.7), which is where restoring happens
   today: in the file manager, by putting it back. An in-application list of

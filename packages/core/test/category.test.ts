@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { categoryTextColor, parseHexColor, relativeLuminance, textColorFor } from '../src/index.js';
+import {
+  MAX_CATEGORIES,
+  categoryTextColor,
+  findCategory,
+  parseHexColor,
+  readCategories,
+  relativeLuminance,
+  textColorFor,
+} from '../src/index.js';
 
 describe('parseHexColor', () => {
   it('accepts #RRGGBB with and without the leading hash', () => {
@@ -50,5 +58,54 @@ describe('categoryTextColor', () => {
 
   it('returns null for an unreadable stored color instead of guessing', () => {
     expect(categoryTextColor('not-a-color')).toBeNull();
+  });
+});
+
+describe('readCategories', () => {
+  const good = [
+    { id: 'a', name: 'Draft', color: '#ff0000' },
+    { id: 'b', name: 'Done', color: '#00ff00' },
+  ];
+
+  it('reads well-formed entries', () => {
+    expect(readCategories(good)).toEqual(good);
+  });
+
+  it('costs one entry, not the set, when something is unusable', () => {
+    expect(
+      readCategories([
+        ...good,
+        { id: '', name: 'Nameless id', color: '#000000' },
+        { id: 'c', name: 'Bad colour', color: 'red' },
+        { id: 'd', name: 42, color: '#000000' },
+        { id: 'a', name: 'Duplicate', color: '#123456' },
+        'not an object',
+      ]),
+    ).toEqual(good);
+  });
+
+  it('is nothing for a missing or malformed file', () => {
+    expect(readCategories(undefined)).toEqual([]);
+    expect(readCategories({ categories: good })).toEqual([]);
+  });
+
+  it('stops at the limit', () => {
+    const many = Array.from({ length: MAX_CATEGORIES + 10 }, (_unused, index) => ({
+      id: `id-${String(index)}`,
+      name: `Category ${String(index)}`,
+      color: '#112233',
+    }));
+    expect(readCategories(many)).toHaveLength(MAX_CATEGORIES);
+  });
+});
+
+describe('findCategory', () => {
+  const categories = [{ id: 'a', name: 'Draft', color: '#ff0000' }];
+
+  it('finds one by id, and treats an unknown id as uncategorized', () => {
+    expect(findCategory(categories, 'a')?.name).toBe('Draft');
+    // A deleted category leaves its id behind in sheets, on purpose (§6.6).
+    expect(findCategory(categories, 'gone')).toBeNull();
+    expect(findCategory(categories, undefined)).toBeNull();
   });
 });

@@ -543,6 +543,15 @@ privileged(CHANNELS.placeEntry, isLibraryPlaceRequest, async (request) =>
   libraryEdit(async () => session.placeEntry(request.path, request.into, request.before)),
 );
 
+privileged(CHANNELS.writeCategories, Array.isArray, async (categories) => {
+  await session.writeCategories(categories);
+  const snapshot = await session.reopen();
+  if (snapshot === null) {
+    throw new ProjectSessionError('project/none-open');
+  }
+  return snapshot;
+});
+
 privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
   libraryEdit(async () => {
     await session.deleteEntry(request.path);
@@ -661,6 +670,99 @@ app.on('window-all-closed', () => {
 function endSmoke(code: number): void {
   isTerminating = true;
   app.exit(code);
+}
+
+/**
+ * Checks page categories end to end: defined in the manager, assigned in the
+ * inspector, shown as a badge with the computed text colour. SPEC.md §6.6.
+ */
+async function checkPageCategories(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  await clickText(window, 'wi-inspector button', 'Manage');
+  await waitForSelector(window, 'wi-category-manager');
+  await clickText(window, 'wi-category-manager button', 'Add');
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  // A dark colour, so the computed text colour has to be white.
+  const named = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = document.querySelector('wi-category-manager li');
+       const name = row?.querySelector('input.name');
+       const colour = row?.querySelector('input[type="color"]');
+       if (name === null || name === undefined || colour === null || colour === undefined) {
+         return false;
+       }
+       name.value = 'Review';
+       name.dispatchEvent(new Event('input', { bubbles: true }));
+       colour.value = '#102040';
+       colour.dispatchEvent(new Event('input', { bubbles: true }));
+       return true;
+     })()`,
+  )) as boolean;
+  if (!named) {
+    throw new Error('the category manager offered no row to fill in');
+  }
+  await clickText(window, 'wi-category-manager button', 'Save');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  const defined = JSON.parse(
+    readFileSync(join(smokeProjectPath, '.opera-incerta', 'categories.json'), 'utf8'),
+  ) as Array<{ id: string; name: string; color: string }>;
+  if (defined.length !== 1 || defined[0]?.name !== 'Review' || defined[0]?.color !== '#102040') {
+    throw new Error(`the category was not written: ${JSON.stringify(defined)}`);
+  }
+
+  // Assigned in the inspector, which is where the owned fields are edited.
+  const assigned = (await window.webContents.executeJavaScript(
+    `(() => {
+       const select = document.querySelector('wi-inspector select');
+       const option = [...(select?.options ?? [])].find((each) => each.textContent.trim() === 'Review');
+       if (select === null || option === undefined) { return false; }
+       select.value = option.value;
+       select.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;
+     })()`,
+  )) as boolean;
+  if (!assigned) {
+    throw new Error('the inspector offers no category to assign');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const badge = (await window.webContents.executeJavaScript(
+    `(() => {
+       const element = document.querySelector('wi-sheet-list .badge');
+       if (element === null) { return null; }
+       const style = getComputedStyle(element);
+       return { text: element.textContent.trim(), color: style.color, background: style.backgroundColor };
+     })()`,
+  )) as { text: string; color: string; background: string } | null;
+  if (badge === null || badge.text !== 'Review') {
+    throw new Error(`the sheet list shows no badge: ${JSON.stringify(badge)}`);
+  }
+  // Computed, never stored: a dark background must carry white text.
+  if (badge.color !== 'rgb(255, 255, 255)') {
+    throw new Error(`the badge text colour was not computed: ${badge.color}`);
+  }
+
+  const image = await window.webContents.capturePage();
+  const evidencePath = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-category.png');
+  writeFileSync(evidencePath, image.toPNG());
+  console.log(`smoke evidence: ${evidencePath}`);
+
+  clickMenuItem('sheet/save');
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  const sheet = readFileSync(join(smokeProjectPath, 'part-1', 'scene.md'), 'utf8');
+  if (!sheet.includes(`category: ${String(defined[0]?.id)}`)) {
+    throw new Error('the assignment did not reach the file');
+  }
+
+  console.log(
+    'smoke ok: a category was defined, assigned, written to the sheet, and shown as a badge ' +
+      'whose text colour is computed from its background',
+  );
 }
 
 /**
@@ -1315,6 +1417,7 @@ async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
 /** The remaining panes and the activity bars. SPEC.md §8.4, §11, §12. */
 async function checkPanes(window: BrowserWindow): Promise<void> {
   await checkFrontMatterArea(window);
+  await checkPageCategories(window);
 
   // The inspector shows the metadata of the open sheet and its progress.
   const inspector = (await window.webContents.executeJavaScript(
