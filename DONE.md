@@ -6,6 +6,88 @@ documents").
 
 ---
 
+## 2026-09-02 — four rounds towards the MVP, and the entries they should have had
+
+Written after the fact, together: four rounds went in without their `DONE.md`
+entry, which `AGENTS.md` asks for in the same round. The lapse is recorded here
+rather than tidied away, because a rule kept only when convenient is not one.
+
+### The conflict rule of §10.6, at every re-read
+
+Re-reading a project replaced the open sheet with what was on disk, and what
+the author had typed was not on disk. The rule §10.6 already specified now
+decides: nothing when the file is unchanged, the file taken silently when
+nothing was typed, and the prompt when both are true — with the author's
+version held meanwhile, so the prompt asks rather than announcing a loss. A
+library edit is not such a situation and carries the work across without
+asking.
+
+It uncovered two things. The editor was seeded from the *saved* body, so a
+restored version lived in the store while the screen showed the file; the
+editor document is now set deliberately at the three moments the text on screen
+has to change. And taking the file needed a way to replace an open document's
+content without pretending it is a different document, so the adapter port
+gained `replace`, with a case in the contract suite both adapters run.
+
+What is still missing is only the trigger — a watcher — which waits on the
+dependency decision in `TODO.md` §2.2.
+
+### The front matter area of §10.4
+
+Two blocks between the header and the text, three persisted switches, and
+read-only as a **different control**: a `<pre>`, readable and selectable, not a
+disabled field. The owned block goes through the serializer that saves, so
+display and file cannot drift apart.
+
+The height rule is a pure function — the ten-line cap applied proportionally to
+the *measured* height — and the measuring is where this round earned its
+lessons. It was taken from whichever control was visible, and a text area
+reports the height of its box rather than of its text; a dedicated hidden
+element is measured now, through a `ResizeObserver`, because fonts arrive late.
+Then the horizontal scrollbar that long values bring took its space out of the
+last line. Both were found by **looking at the screenshot** — the second one
+after a check that measured pixels had already passed. The check now asserts
+the property instead: what is visible against what there is to see.
+
+### Page categories, §6.6
+
+Defined in a manager opened from the Inspector, assigned there, shown as a
+badge whose text colour is computed from its background. They travel in the
+project snapshot rather than through a channel of their own: read with the
+project, refreshed with it, one source instead of two that can disagree.
+
+The defect: a category assigned in the Inspector showed no badge until the
+sheet was saved, because the badge came from the file. It is the same rule as
+for a title being edited, so the two now share one core function — the library
+as the interface shows it, carrying what the author has chosen.
+
+A note to self from this round: `git checkout <file>` to undo a falsification
+threw away uncommitted work in that file. A copy aside is the only safe undo
+mid-round.
+
+### The commit model of §12, against a real repository
+
+The panel was built but never exercised: the smoke project was a copy in a
+temporary directory, so it only ever reported "not inside a Git repository",
+and every claim about staging and committing rested on unit tests over a
+double. The fixture is a repository now, deliberately without a commit — the
+state a freshly created project is in, and the one where unstaging cannot
+resolve against `HEAD`.
+
+Two defects. A failed Git action reported **nothing**: the store held the
+failure and no one rendered it. And what it held was our code rather than Git's
+message — `git/command-failed` where Git had said "fatal: No configured push
+destination." `GitError` now carries what Git wrote, which is what its own doc
+comment already claimed.
+
+**Verification across the four.** `pnpm run check` green: **592 tests**, up
+from 569. The smoke runs twenty-one checks. Each round was falsified: removing
+the conflict prompt, dropping the scrollbar allowance, making the badge colour
+constant, and — for the commit model — the check simply could not have run
+before, which is why it was written.
+
+---
+
 ## 2026-09-02 — placing: moving and ordering became one operation
 
 **What exists.** A drag now says both things at once — which group an entry

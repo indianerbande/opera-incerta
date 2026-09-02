@@ -8,11 +8,17 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-02:** the two-window model is complete — the launcher with its
-recent projects, and the workbench with every pane of `SPEC.md` §8.
-`pnpm run check` green: 6 projects, **457 tests**, plus the desktop and asset
-checks. `pnpm run desktop:smoke` green across thirteen checks,
+**State 2026-09-02:** the library is complete — create, rename, place, delete —
+as are the front matter area (§10.4), page categories (§6.6), the conflict rule
+at every re-read (§10.6) and the committed slice of source control (§12).
+`pnpm run check` green: 6 projects, **592 tests**, plus the desktop and asset
+checks. `pnpm run desktop:smoke` green across twenty-one checks,
 `pnpm run spike:editor` 7/7.
+
+Of the sixteen MVP criteria in `SPEC.md` §17, what is left is **§17.13 and
+§17.14** — an external change noticed *without being asked*, which is the
+watcher in §2.2 below — and the parts of §12 and §15 that this stage
+deliberately excludes. Everything else is built and checked.
 
 ---
 
