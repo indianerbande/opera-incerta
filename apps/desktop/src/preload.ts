@@ -13,7 +13,8 @@ const bridge = {
   contractVersion: () => ipcRenderer.invoke(CHANNELS.contractVersion),
   windowRole: () => ipcRenderer.invoke(CHANNELS.windowRole),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
-  createProject: () => ipcRenderer.invoke(CHANNELS.createProject),
+  createProject: (request: unknown) => ipcRenderer.invoke(CHANNELS.createProject, request),
+  chooseProjectLocation: () => ipcRenderer.invoke(CHANNELS.chooseProjectLocation),
   openRecentProject: (request: unknown) =>
     ipcRenderer.invoke(CHANNELS.openRecentProject, request),
   forgetRecentProject: (request: unknown) =>

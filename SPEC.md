@@ -849,9 +849,20 @@ stays the author's decision.
 - several subprojects → inform the user and list them by name, asking them to
   open the intended one directly.
 
-**Creating** asks for a parent directory, derives the display name from it,
-creates the slug directory and `.opera-incerta/project.json` inside it, and
-opens the project immediately.
+**Creating** asks for a display name and a parent directory, in that order and
+in one dialog, then creates the slug directory with
+`.opera-incerta/project.json` inside it and opens the project immediately.
+
+The dialog **shows the directory name it will create** before the project
+exists. The display name is what the author writes and can change later; the
+directory name is a slug of it and never changes again (§6.1). Showing it is
+the difference between a rule and a surprise — an author who types
+"Die Nacht am Hafen" sees `die-nacht-am-hafen` and knows why.
+
+The collision suffix is not previewed: whether `-2` is needed is decided
+against the real directory when the project is created, and the renderer cannot
+know what is in it. The dialog says the folder name it derives, not the one it
+will certainly get.
 
 ## 9. Library
 

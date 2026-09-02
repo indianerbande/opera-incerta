@@ -18,7 +18,14 @@ export function baseBridge(): OperaIncertaBridge {
     recentProjects: async () => ({ ok: true, value: [] }),
     openRecentProject: async () => ({ ok: true, value: null }),
     forgetRecentProject: async () => ({ ok: true, value: null }),
-    createProject: async () => ({ ok: true, value: null }),
+    // Creating now returns a project rather than possibly nothing: the
+    // location is chosen in a separate step, so there is no cancel here.
+    createProject: async () => ({
+      ok: false,
+      code: 'test/not-scripted',
+      message: 'this double does not create projects',
+    }),
+    chooseProjectLocation: async () => ({ ok: true, value: null }),
     openProject: async () => ({ ok: true, value: null }),
     reopenProject: async () => ({ ok: true, value: null }),
     closeProject: async () => ({ ok: true, value: null }),

@@ -259,6 +259,10 @@ Tests MUST cover:
   than by calling the adapter: typing `.h3 ` converts the line and removes the
   command text; clicking a gutter marker opens a menu whose active level is
   marked, whose choice applies, and which closes afterwards;
+- creating a project from the launcher: the dialog previews the slug of the
+  typed name, Create is offered only with both a name and a location, and the
+  project that appears on disk carries the display name unchanged while its
+  directory carries the slug;
 - the native menu of `SPEC.md` §8.5: every declared command has an item with
   its specified accelerator, the items are enabled only when their command is
   possible, saving and closing are exercised **through the menu item** rather

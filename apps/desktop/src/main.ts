@@ -8,7 +8,7 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdir, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
 import {
@@ -18,6 +18,7 @@ import {
   isDocumentHandle,
   isGitCommitRequest,
   isGitPathsRequest,
+  isCreateProjectRequest,
   isRecentProjectRequest,
   isWriteSheetRequest,
   type BridgeResult,
@@ -67,6 +68,11 @@ if (SMOKE_RUN) {
   // write into the author's.
   app.setPath('userData', mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-userdata-')));
 }
+
+/** Where the smoke's "new project" lands, instead of a native chooser. */
+const smokeCreateParent = SMOKE_RUN
+  ? mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-new-'))
+  : null;
 
 function prepareSmokeProject(): string {
   const source = join(currentDirectory, '..', '..', '..', 'examples', 'smoke-project');
@@ -335,24 +341,32 @@ privileged(CHANNELS.openRecentProject, isRecentProjectRequest, async (request) =
   openProjectAt(request.path),
 );
 
-/**
- * Creates a project: a name, a parent directory, a slugged directory of its
- * own. SPEC.md §6.1, §8.6.
- */
-privileged(CHANNELS.createProject, acceptsNothing, async () => {
+/** The parent directory for a new project. SPEC.md §8.6. */
+privileged(CHANNELS.chooseProjectLocation, acceptsNothing, async () => {
+  if (smokeCreateParent !== null) {
+    return { path: smokeCreateParent, shortPath: smokeCreateParent };
+  }
+
   const chosen = await dialog.showOpenDialog({
     properties: ['openDirectory', 'createDirectory'],
     title: 'Where should the project live?',
-    buttonLabel: 'Create here',
+    buttonLabel: 'Choose',
   });
-  const parent = chosen.canceled ? undefined : chosen.filePaths[0];
-  if (parent === undefined) {
-    return null;
-  }
+  const path = chosen.canceled ? undefined : chosen.filePaths[0];
+  return path === undefined ? null : { path, shortPath: abbreviatePath(path) };
+});
 
-  const displayName = basename(parent);
-  const directoryName = projectDirectoryName(displayName, await readdir(parent));
-  const projectPath = join(parent, directoryName);
+/**
+ * Creates a project: a display name the author chose, in a slugged directory
+ * of its own. SPEC.md §6.1, §8.6.
+ *
+ * The collision suffix is applied here, against what is actually in the parent
+ * directory — the renderer can preview the slug but cannot know what is there.
+ */
+privileged(CHANNELS.createProject, isCreateProjectRequest, async (request) => {
+  const displayName = request.displayName.trim();
+  const directoryName = projectDirectoryName(displayName, await readdir(request.parentPath));
+  const projectPath = join(request.parentPath, directoryName);
 
   await mkdir(projectPath, { recursive: true });
   await createProjectFilesystem().createProject(projectPath, displayName);
@@ -1216,6 +1230,7 @@ async function checkReturnToLauncher(_projectView: BrowserWindow): Promise<void>
   if (launcher === null) {
     throw new Error('closing the project did not bring the launcher back');
   }
+  forwardConsole(launcher);
 
   await waitForSelector(launcher, '.welcome .entry');
   const recent = (await launcher.webContents.executeJavaScript(
@@ -1233,6 +1248,102 @@ async function checkReturnToLauncher(_projectView: BrowserWindow): Promise<void>
   }
 
   console.log('smoke ok: closing the project returned to the launcher, with it listed as recent');
+  await checkCreateProject(launcher);
+}
+
+/**
+ * Creating a project from the launcher. SPEC.md §6.1, §8.6.
+ *
+ * The display name is what the author writes; the directory is a slug of it.
+ * The dialog shows that slug before the project exists, and this checks that
+ * what it promised is what appeared on disk.
+ */
+async function checkCreateProject(launcher: BrowserWindow): Promise<void> {
+  if (smokeCreateParent === null) {
+    throw new Error('no location for the new project');
+  }
+
+  clickMenuItem('project/new');
+  await waitForSelector(launcher, 'wi-new-project-dialog input');
+
+  const typed = (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const input = document.querySelector('wi-new-project-dialog input');
+       if (input === null) { return 'no input'; }
+       input.value = 'Die Nacht am Hafen';
+       input.dispatchEvent(new Event('input', { bubbles: true }));
+       const choose = [...document.querySelectorAll('wi-new-project-dialog button')]
+         .find((button) => button.textContent.includes('Choose'));
+       if (choose === undefined) { return 'no choose button'; }
+       choose.click();
+       return 'ok';
+     })()`,
+  )) as string;
+  if (typed !== 'ok') {
+    throw new Error(`could not fill the dialog: ${typed}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const preview = (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const code = document.querySelector('wi-new-project-dialog code');
+       const create = [...document.querySelectorAll('wi-new-project-dialog button')]
+         .find((button) => button.textContent.trim() === 'Create');
+       return {
+         folder: code === null ? null : code.textContent,
+         enabled: create === undefined ? null : !create.disabled,
+       };
+     })()`,
+  )) as { folder: string | null; enabled: boolean | null };
+
+  // Umlauts become ASCII, spaces become hyphens: the rule, shown before it
+  // takes effect.
+  if (preview.folder !== 'die-nacht-am-hafen') {
+    throw new Error(`the dialog previewed ${JSON.stringify(preview.folder)}`);
+  }
+  if (preview.enabled !== true) {
+    throw new Error('Create is not offered with a name and a location');
+  }
+
+  const created = (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const create = [...document.querySelectorAll('wi-new-project-dialog button')]
+         .find((button) => button.textContent.trim() === 'Create');
+       if (create === undefined) { return false; }
+       create.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!created) {
+    throw new Error('no Create button');
+  }
+
+  const window = await waitForProjectWindow();
+  await waitForSelector(window, 'wi-root .workbench');
+
+  const projectPath = join(smokeCreateParent, 'die-nacht-am-hafen');
+  const record = JSON.parse(
+    readFileSync(join(projectPath, '.opera-incerta', 'project.json'), 'utf8'),
+  ) as { displayName: string; id: string; created: string };
+
+  if (record.displayName !== 'Die Nacht am Hafen') {
+    throw new Error(`the record kept ${JSON.stringify(record.displayName)}`);
+  }
+  if (typeof record.id !== 'string' || record.id === '') {
+    throw new Error('the new project has no id');
+  }
+
+  const shownName = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')]
+       .map((element) => element.textContent.trim())[0] ?? null`,
+  )) as string | null;
+  if (shownName !== 'Die Nacht am Hafen') {
+    throw new Error(`the workbench shows ${JSON.stringify(shownName)}`);
+  }
+
+  console.log(
+    'smoke ok: created a project — the display name kept its spaces, the folder took the slug',
+  );
 }
 
 /** Clicks an entry of the trailing activity bar by its accessible name. */

@@ -1,6 +1,11 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import type { OperaIncertaBridge, RecentProjectEntry } from '@opera-incerta/desktop-contract';
+import type {
+  ChosenLocation,
+  OperaIncertaBridge,
+  RecentProjectEntry,
+} from '@opera-incerta/desktop-contract';
 import { resolveBridge, unwrap } from '../workspace/bridge.js';
+import { NewProjectDialogComponent } from './new-project-dialog.component.js';
 
 /**
  * The launcher. SPEC.md §8.6.
@@ -13,6 +18,7 @@ import { resolveBridge, unwrap } from '../workspace/bridge.js';
   // The same root element as the workbench: index.html holds one, and exactly
   // one of the two components is ever bootstrapped into it (SPEC.md §8.5).
   selector: 'wi-root',
+  imports: [NewProjectDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="welcome">
@@ -60,6 +66,16 @@ import { resolveBridge, unwrap } from '../workspace/bridge.js';
         <p class="failure" role="alert">{{ message(code) }}</p>
       }
     </div>
+
+    @if (creating()) {
+      <wi-new-project-dialog
+        [location]="location()"
+        [failure]="createFailure()"
+        (chooseLocation)="chooseLocation()"
+        (create)="createProject($event.displayName)"
+        (cancel)="closeDialog()"
+      />
+    }
   `,
   styles: `
     :host {
@@ -183,6 +199,9 @@ export class WelcomeComponent {
 
   protected readonly recent = signal<readonly RecentProjectEntry[]>([]);
   protected readonly failure = signal<string | null>(null);
+  protected readonly creating = signal(false);
+  protected readonly location = signal<ChosenLocation | null>(null);
+  protected readonly createFailure = signal<string | null>(null);
 
   constructor() {
     void this.refresh();
@@ -194,7 +213,7 @@ export class WelcomeComponent {
       if (command === 'project/open') {
         void this.open();
       } else if (command === 'project/new') {
-        void this.create();
+        this.create();
       }
     });
     inject(DestroyRef).onDestroy(() => stopListening?.());
@@ -212,10 +231,50 @@ export class WelcomeComponent {
     });
   }
 
-  protected async create(): Promise<void> {
-    await this.#run(async (bridge) => {
-      unwrap(await bridge.createProject());
-    });
+  /** Opens the dialog. Creating happens when the author confirms it. */
+  protected create(): void {
+    this.createFailure.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeDialog(): void {
+    this.creating.set(false);
+    this.location.set(null);
+    this.createFailure.set(null);
+  }
+
+  protected async chooseLocation(): Promise<void> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      this.createFailure.set('bridge/absent');
+      return;
+    }
+    try {
+      const chosen = unwrap(await bridge.chooseProjectLocation());
+      if (chosen !== null) {
+        this.location.set(chosen);
+      }
+    } catch (error: unknown) {
+      this.createFailure.set(codeOf(error));
+    }
+  }
+
+  protected async createProject(displayName: string): Promise<void> {
+    const bridge = this.#bridge;
+    const parent = this.location();
+    if (bridge === null || parent === null) {
+      this.createFailure.set('bridge/absent');
+      return;
+    }
+
+    try {
+      unwrap(await bridge.createProject({ parentPath: parent.path, displayName }));
+      this.closeDialog();
+    } catch (error: unknown) {
+      // The dialog stays open with the failure, so the author keeps what they
+      // typed instead of starting over.
+      this.createFailure.set(codeOf(error));
+    }
   }
 
   /**
@@ -255,11 +314,13 @@ export class WelcomeComponent {
       await operation(bridge);
       this.failure.set(null);
     } catch (error: unknown) {
-      this.failure.set(
-        typeof error === 'object' && error !== null && 'code' in error
-          ? String((error as { code: unknown }).code)
-          : 'bridge/failed',
-      );
+      this.failure.set(codeOf(error));
     }
   }
+}
+
+function codeOf(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : 'bridge/failed';
 }

@@ -27,6 +27,7 @@ export const CHANNELS = {
   windowRole: 'opera-incerta:window/role',
   openProject: 'opera-incerta:project/open',
   createProject: 'opera-incerta:project/create',
+  chooseProjectLocation: 'opera-incerta:project/choose-location',
   openRecentProject: 'opera-incerta:project/open-recent',
   currentProject: 'opera-incerta:project/current',
   recentProjects: 'opera-incerta:project/recent',
@@ -153,6 +154,37 @@ export interface RecentProjectEntry {
   readonly displayName: string;
   /** False when the directory is gone or is no longer a project. */
   readonly available: boolean;
+}
+
+/**
+ * Creating a project: a display name and the directory to put it in.
+ * SPEC.md §6.1, §8.6.
+ *
+ * The display name is what the author writes; the directory name is a slug
+ * derived from it, and never changes afterwards.
+ */
+export interface CreateProjectRequest {
+  readonly parentPath: string;
+  readonly displayName: string;
+}
+
+export function isCreateProjectRequest(value: unknown): value is CreateProjectRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<CreateProjectRequest>;
+  return (
+    typeof candidate.parentPath === 'string' &&
+    candidate.parentPath !== '' &&
+    typeof candidate.displayName === 'string' &&
+    candidate.displayName.trim() !== ''
+  );
+}
+
+/** A chosen location, with a short form for display. */
+export interface ChosenLocation {
+  readonly path: string;
+  readonly shortPath: string;
 }
 
 /** A request naming a recent project by its path. */
@@ -291,8 +323,10 @@ export interface OperaIncertaBridge {
   openRecentProject(request: RecentProjectRequest): Promise<BridgeResult<ProjectSnapshot | null>>;
   /** Removes an entry from the recent list without touching the directory. */
   forgetRecentProject(request: RecentProjectRequest): Promise<BridgeResult<null>>;
-  /** Asks for a name and a location, then creates and opens the project. */
-  createProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
+  /** Opens the directory chooser for a project's parent. Null when cancelled. */
+  chooseProjectLocation(): Promise<BridgeResult<ChosenLocation | null>>;
+  /** Creates the project and opens it. */
+  createProject(request: CreateProjectRequest): Promise<BridgeResult<ProjectSnapshot>>;
   /** Opens the native directory chooser. Resolves to null when cancelled. */
   openProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   /** Re-reads the open project from disk, after an external change. */

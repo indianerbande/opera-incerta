@@ -6,6 +6,43 @@ documents").
 
 ---
 
+## 2026-09-02 — naming a project when creating it
+
+**What exists.** A dialog asking for a display name and a location, replacing
+the directory chooser that derived the name from whatever folder was picked.
+
+**Why not a save dialog**, which asks for a name and a place in one native
+step: it would show the author typing a *folder* name, when what they type is
+the display name and the folder gets a slug of it. The dialog would have looked
+like it was doing one thing while doing another.
+
+**It shows the folder it will create.** Typing "Die Nacht am Hafen" previews
+`die-nacht-am-hafen` with a line saying the name can change later and the
+folder cannot. Displaying the rule at the moment it applies is the difference
+between a rule and a surprise.
+
+The collision suffix is deliberately **not** previewed. Whether `-2` is needed
+is decided against the real directory when the project is created, and the
+renderer cannot know what is in it, so the dialog says the folder name it
+derives rather than promising one it might not get.
+
+A failed creation leaves the dialog open with what the author typed, rather
+than making them start over.
+
+**Verification.** `pnpm run check` green: **438 tests**. The smoke's twelfth
+check drives the whole thing: open the dialog from the File menu, type a name
+with spaces and a German article, confirm the preview reads
+`die-nacht-am-hafen`, confirm Create is offered only with both a name and a
+location, create it, and then read `project.json` from disk to confirm the
+display name kept its spaces while the directory took the slug.
+
+**Finding.** The shared test double caught the signature change immediately:
+creating now returns a project rather than possibly nothing, because cancelling
+happens in the separate location step. One type error, one place, naming
+exactly what changed.
+
+---
+
 ## 2026-09-02 — the native menu
 
 **What exists.** A File menu with New Project (`Cmd/Ctrl+Shift+N`), Open
