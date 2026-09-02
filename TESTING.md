@@ -294,6 +294,13 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- the front matter area (`SPEC.md` §10.4): hidden until asked for, then a
+  foreign and an own block carrying what the file carries; read-only presented
+  as a **selectable** control rather than a disabled one, and only the foreign
+  block turning writable. The height is checked as the property it is — what is
+  visible against what there is to see — rather than as a number: a block whose
+  last line sits under a horizontal scrollbar passes a check about pixels and
+  fails this one;
 - the comparison rule of `SPEC.md` §10.6 at the explicit re-read: with unsaved
   work in the editor and the file changed underneath — written from the main
   process, behind the application's back — the reload asks instead of

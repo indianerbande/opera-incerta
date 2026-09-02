@@ -664,6 +664,118 @@ function endSmoke(code: number): void {
 }
 
 /**
+ * Checks the front matter area: two blocks, three switches, and read-only that
+ * is a different control rather than a disabled one. SPEC.md §10.4.
+ */
+async function checkFrontMatterArea(window: BrowserWindow): Promise<void> {
+  const blocksNow = (await window.webContents.executeJavaScript(
+    "document.querySelectorAll('wi-front-matter-block').length",
+  )) as number;
+  if (blocksNow !== 0) {
+    throw new Error('the front matter area is showing before it was asked for');
+  }
+
+  await toggleSwitch(window, 'Variables');
+  const shown = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-front-matter-block')].map((block) => ({
+       label: block.querySelector('pre, textarea')?.getAttribute('aria-label') ?? null,
+       control: block.querySelector('textarea') !== null ? 'textarea' : 'pre',
+       text: (block.querySelector('pre, textarea')?.textContent ??
+              block.querySelector('textarea')?.value ?? '').trim(),
+       // What the author can actually see, against what there is to see. A
+       // scrollbar along the bottom takes its space out of the first.
+       visible: Math.round(block.querySelector('.block')?.clientHeight ?? 0),
+       needed: Math.round(block.querySelector('.measure')?.getBoundingClientRect().height ?? 0),
+     }))`,
+  )) as Array<{
+    label: string | null;
+    control: string;
+    text: string;
+    visible: number;
+    needed: number;
+  }>;
+
+  if (shown.length !== 2) {
+    throw new Error(`expected a foreign and an own block, found ${JSON.stringify(shown)}`);
+  }
+  const [foreign, owned] = shown as [(typeof shown)[0], (typeof shown)[0]];
+  if (!foreign.text.includes('layout: post') || !foreign.text.includes('author: Someone Else')) {
+    throw new Error(`the foreign block does not show the foreign keys: ${foreign.text}`);
+  }
+  if (!owned.text.includes('opera-incerta:') || !owned.text.includes('title: A Scene in Part One')) {
+    throw new Error(`the own block does not show what the file carries: ${owned.text}`);
+  }
+  // "Show everything, up to ten lines" (SPEC.md §10.4). Both blocks are well
+  // under the cap, so all of them must be visible — the defect the visual
+  // check found was a block one line short, its last line under a scrollbar.
+  for (const block of shown) {
+    if (block.needed <= 0 || block.visible + 1 < block.needed) {
+      throw new Error(`a block shows ${block.visible}px of ${block.needed}px: ${block.text}`);
+    }
+  }
+  // Read-only is a different control, never a disabled one (SPEC.md §10.4).
+  if (foreign.control !== 'pre' || owned.control !== 'pre') {
+    throw new Error(`read-only is not a pre: ${JSON.stringify(shown.map((b) => b.control))}`);
+  }
+
+  await toggleSwitch(window, 'Writable');
+  const writable = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-front-matter-block')].map((block) =>
+       block.querySelector('textarea') !== null ? 'textarea' : 'pre')`,
+  )) as readonly string[];
+  if (writable[0] !== 'textarea' || writable[1] !== 'pre') {
+    throw new Error(`only the foreign block becomes writable: ${JSON.stringify(writable)}`);
+  }
+  const disabled = (await window.webContents.executeJavaScript(
+    "document.querySelector('wi-front-matter-block textarea')?.disabled === true",
+  )) as boolean;
+  if (disabled) {
+    throw new Error('the writable block is disabled, which is not what writable means');
+  }
+
+  await toggleSwitch(window, 'System');
+  const withoutOwned = (await window.webContents.executeJavaScript(
+    "document.querySelectorAll('wi-front-matter-block').length",
+  )) as number;
+  if (withoutOwned !== 1) {
+    throw new Error(`turning off "System" left ${withoutOwned} blocks`);
+  }
+
+  const image = await window.webContents.capturePage();
+  const evidencePath = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-front-matter.png');
+  writeFileSync(evidencePath, image.toPNG());
+  console.log(`smoke evidence: ${evidencePath}`);
+
+  // Back to where it started, so the checks after this one see what they expect.
+  await toggleSwitch(window, 'System');
+  await toggleSwitch(window, 'Writable');
+  await toggleSwitch(window, 'Variables');
+
+  console.log(
+    'smoke ok: the front matter area shows the foreign and the own block, read-only as a ' +
+      'selectable control rather than a disabled one, and only the foreign one turns writable',
+  );
+}
+
+/** Clicks one of the editor header's switches by its label. */
+async function toggleSwitch(window: BrowserWindow, label: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const found = [...document.querySelectorAll('.switch')]
+         .find((element) => element.textContent.trim() === ${JSON.stringify(label)});
+       const box = found?.querySelector('input');
+       if (box === null || box === undefined) { return false; }
+       box.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no switch labelled ${label}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+
+/**
  * Checks that the library views show the project the launcher opened, and
  * selects a sheet. SPEC.md §9.
  */
@@ -1202,6 +1314,8 @@ async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
 
 /** The remaining panes and the activity bars. SPEC.md §8.4, §11, §12. */
 async function checkPanes(window: BrowserWindow): Promise<void> {
+  await checkFrontMatterArea(window);
+
   // The inspector shows the metadata of the open sheet and its progress.
   const inspector = (await window.webContents.executeJavaScript(
     `(() => {

@@ -13,6 +13,7 @@ import {
   findSheet,
   markdownToDisplay,
   outlineOf,
+  ownedFrontMatterLines,
   parseSheet,
   serializeSheet,
   sheetsInGroup,
@@ -70,6 +71,7 @@ export class WorkspaceStore {
   readonly #openSheet = signal<OpenSheet | null>(null);
   readonly #currentText = signal<string>('');
   readonly #currentMetadata = signal<SheetMetadata>({});
+  readonly #currentForeign = signal<readonly string[]>([]);
   readonly #showDeeperOutline = signal(false);
   readonly #expanded = signal<ReadonlySet<string>>(new Set(['.']));
   readonly #failure = signal<string | null>(null);
@@ -156,7 +158,8 @@ export class WorkspaceStore {
     }
     return (
       this.#currentText() !== open.savedBody ||
-      !sameMetadata(this.#currentMetadata(), open.sheet.metadata)
+      !sameMetadata(this.#currentMetadata(), open.sheet.metadata) ||
+      this.#currentForeign().join('\n') !== open.sheet.foreignLines.join('\n')
     );
   });
 
@@ -252,6 +255,8 @@ export class WorkspaceStore {
       this.#editorDocument.set(null);
       this.#currentText.set('');
       this.#currentMetadata.set({});
+      this.#currentForeign.set([]);
+    this.#currentForeign.set([]);
       this.#selectedGroupPath.set('.');
       this.#expanded.set(new Set(['.']));
     });
@@ -301,6 +306,7 @@ export class WorkspaceStore {
       });
       this.#currentText.set(parsed.sheet.body);
       this.#currentMetadata.set(parsed.sheet.metadata);
+      this.#currentForeign.set(parsed.sheet.foreignLines);
       this.#editorDocument.set({ id: handleId, text: parsed.sheet.body });
       this.#expand(ancestorPaths(relativePath));
     });
@@ -326,6 +332,29 @@ export class WorkspaceStore {
     this.#currentMetadata.set(next as SheetMetadata);
   }
 
+  /**
+   * The foreign front matter as the area shows it, and edits it. SPEC.md §6.3,
+   * §10.4.
+   *
+   * Lines rather than parsed values: what is foreign is kept verbatim, and the
+   * only honest way to let the author change it is to let them change the
+   * lines.
+   */
+  readonly foreignLines = this.#currentForeign.asReadonly();
+
+  /** The owned block, produced by the serializer that saves. SPEC.md §10.4. */
+  readonly ownedLines = computed<readonly string[]>(() => {
+    const open = this.#openSheet();
+    return open === null
+      ? []
+      : ownedFrontMatterLines({ ...open.sheet, metadata: this.#currentMetadata() });
+  });
+
+  /** Replaces the foreign block. Marks the sheet dirty, saves nothing. */
+  updateForeignLines(lines: readonly string[]): void {
+    this.#currentForeign.set([...lines]);
+  }
+
   /** Set from the layout state, which owns the preference. */
   setDeeperOutline(show: boolean): void {
     this.#showDeeperOutline.set(show);
@@ -349,9 +378,10 @@ export class WorkspaceStore {
 
     const body = this.#currentText();
     const metadata = this.#currentMetadata();
+    const foreignLines = this.#currentForeign();
     // The codec reassembles the file, which is what keeps foreign front matter
     // intact through an edit the author made to the body or the inspector.
-    const text = serializeSheet({ ...open.sheet, metadata, body });
+    const text = serializeSheet({ ...open.sheet, metadata, foreignLines, body });
 
     await this.#withBridge(async (bridge) => {
       unwrap(
@@ -362,7 +392,7 @@ export class WorkspaceStore {
       );
       this.#openSheet.set({
         ...open,
-        sheet: { ...open.sheet, metadata, body },
+        sheet: { ...open.sheet, metadata, foreignLines, body },
         savedBody: body,
       });
     });
@@ -459,8 +489,10 @@ export class WorkspaceStore {
       path: open.relativePath,
       savedBody: open.savedBody,
       savedMetadata: open.sheet.metadata,
+      savedForeign: open.sheet.foreignLines,
       text: this.#currentText(),
       metadata: this.#currentMetadata(),
+      foreign: this.#currentForeign(),
       dirty: this.dirty(),
     };
   }
@@ -485,7 +517,9 @@ export class WorkspaceStore {
     // The file itself, compared against the baseline that was loaded — not
     // against what the author typed. Only a real difference counts (§10.6).
     const changedOnDisk =
-      open.savedBody !== before.savedBody || !sameMetadata(open.sheet.metadata, before.savedMetadata);
+      open.savedBody !== before.savedBody ||
+      !sameMetadata(open.sheet.metadata, before.savedMetadata) ||
+      open.sheet.foreignLines.join('\n') !== before.savedForeign.join('\n');
 
     if (!before.dirty) {
       // Nothing was typed: whatever is on disk is simply the truth now.
@@ -494,6 +528,7 @@ export class WorkspaceStore {
 
     this.#currentText.set(before.text);
     this.#currentMetadata.set(before.metadata);
+    this.#currentForeign.set(before.foreign);
     // The editor was seeded from the file a moment ago; what belongs on screen
     // is the author's version.
     this.#editorDocument.set({ id: open.handleId, text: before.text });
@@ -512,6 +547,7 @@ export class WorkspaceStore {
     if (take === 'disk' && open !== null) {
       this.#currentText.set(open.savedBody);
       this.#currentMetadata.set(open.sheet.metadata);
+      this.#currentForeign.set(open.sheet.foreignLines);
       this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
     }
     this.#conflict.set(null);
@@ -616,6 +652,7 @@ export class WorkspaceStore {
     this.#editorDocument.set(null);
     this.#currentText.set('');
     this.#currentMetadata.set({});
+    this.#currentForeign.set([]);
     this.#expanded.set(new Set(['.']));
   }
 
@@ -680,8 +717,10 @@ interface EditingState {
   readonly path: string;
   readonly savedBody: string;
   readonly savedMetadata: SheetMetadata;
+  readonly savedForeign: readonly string[];
   readonly text: string;
   readonly metadata: SheetMetadata;
+  readonly foreign: readonly string[];
   readonly dirty: boolean;
 }
 

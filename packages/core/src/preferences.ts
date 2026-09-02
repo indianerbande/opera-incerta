@@ -35,6 +35,13 @@ export interface WorkbenchPreferences {
   readonly sheetListDensity: PreviewDensity;
   readonly showBlankLines: boolean;
   readonly showDeeperOutline: boolean;
+  /**
+   * The three switches of the front matter area. SPEC.md §10.4: looking is the
+   * harmless starting state, so the area is off and, once on, read-only.
+   */
+  readonly showFrontMatter: boolean;
+  readonly frontMatterWritable: boolean;
+  readonly showOwnedFrontMatter: boolean;
 }
 
 export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
@@ -49,6 +56,9 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   secondaryVisible: true,
   sheetListDensity: DEFAULT_PREVIEW_DENSITY,
   showBlankLines: false,
+  showFrontMatter: false,
+  frontMatterWritable: false,
+  showOwnedFrontMatter: true,
   showDeeperOutline: false,
 };
 
@@ -80,6 +90,15 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
       DEFAULT_PREFERENCES.sheetListDensity,
     ),
     showBlankLines: boolean_(stored['showBlankLines'], DEFAULT_PREFERENCES.showBlankLines),
+    showFrontMatter: boolean_(stored['showFrontMatter'], DEFAULT_PREFERENCES.showFrontMatter),
+    frontMatterWritable: boolean_(
+      stored['frontMatterWritable'],
+      DEFAULT_PREFERENCES.frontMatterWritable,
+    ),
+    showOwnedFrontMatter: boolean_(
+      stored['showOwnedFrontMatter'],
+      DEFAULT_PREFERENCES.showOwnedFrontMatter,
+    ),
     showDeeperOutline: boolean_(stored['showDeeperOutline'], DEFAULT_PREFERENCES.showDeeperOutline),
   };
 }

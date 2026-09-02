@@ -24,6 +24,9 @@ describe('readPreferences', () => {
       sheetListDensity: 'large',
       showBlankLines: true,
       showDeeperOutline: true,
+      showFrontMatter: true,
+      frontMatterWritable: true,
+      showOwnedFrontMatter: false,
     };
 
     expect(readPreferences(stored)).toEqual({ ...stored, version: PREFERENCES_VERSION });

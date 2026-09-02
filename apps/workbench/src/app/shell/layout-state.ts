@@ -54,6 +54,10 @@ export class LayoutState {
   readonly sheetListDensity = signal<PreviewDensity>(DEFAULT_PREFERENCES.sheetListDensity);
   readonly showBlankLines = signal(DEFAULT_PREFERENCES.showBlankLines);
   readonly showDeeperOutline = signal(DEFAULT_PREFERENCES.showDeeperOutline);
+  /** The three switches of the front matter area. SPEC.md §10.4. */
+  readonly showFrontMatter = signal(DEFAULT_PREFERENCES.showFrontMatter);
+  readonly frontMatterWritable = signal(DEFAULT_PREFERENCES.frontMatterWritable);
+  readonly showOwnedFrontMatter = signal(DEFAULT_PREFERENCES.showOwnedFrontMatter);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
     this.#bridge = bridge;
@@ -82,6 +86,9 @@ export class LayoutState {
     this.sheetListDensity.set(preferences.sheetListDensity);
     this.showBlankLines.set(preferences.showBlankLines);
     this.showDeeperOutline.set(preferences.showDeeperOutline);
+    this.showFrontMatter.set(preferences.showFrontMatter);
+    this.frontMatterWritable.set(preferences.frontMatterWritable);
+    this.showOwnedFrontMatter.set(preferences.showOwnedFrontMatter);
   }
 
   /** The record as it currently stands. */
@@ -95,6 +102,9 @@ export class LayoutState {
       sheetListDensity: this.sheetListDensity(),
       showBlankLines: this.showBlankLines(),
       showDeeperOutline: this.showDeeperOutline(),
+      showFrontMatter: this.showFrontMatter(),
+      frontMatterWritable: this.frontMatterWritable(),
+      showOwnedFrontMatter: this.showOwnedFrontMatter(),
     };
   }
 
@@ -146,6 +156,18 @@ export class LayoutState {
   setDensity(density: PreviewDensity): void {
     this.sheetListDensity.set(density);
     this.#store();
+  }
+
+  toggleFrontMatter(): void {
+    this.showFrontMatter.set(!this.showFrontMatter());
+  }
+
+  toggleFrontMatterWritable(): void {
+    this.frontMatterWritable.set(!this.frontMatterWritable());
+  }
+
+  toggleOwnedFrontMatter(): void {
+    this.showOwnedFrontMatter.set(!this.showOwnedFrontMatter());
   }
 
   toggleBlankLines(): void {

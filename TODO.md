@@ -61,10 +61,6 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   that say "not built yet". The AI panel is a docking point for the provider
   interface (`SPEC.md` §15); snapshots need their storage and diff decisions
   first (`SPEC.md` §11).
-- **The front matter area** (`SPEC.md` §10.4) — the editor correctly never
-  shows front matter, and the codec protects it. What is missing is the area
-  that *displays* it: the owned block read-only, the foreign block with its
-  visibility and writability switches.
 - **Reordering without a pointer** — the drag has no keyboard equivalent. A
   command that moves the selected entry up or down within its group would also
   give the operation a menu item and a shortcut (`SPEC.md` §8.5).

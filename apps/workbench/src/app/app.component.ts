@@ -10,6 +10,7 @@ import {
 
 import { findGroup, sheetsOf, walkLibrary } from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
+import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
 import {
   DensitySwitchComponent,
@@ -52,6 +53,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     ContextMenuComponent,
     DensitySwitchComponent,
     EditorComponent,
+    FrontMatterBlockComponent,
     ExplorerNodeComponent,
     InspectorComponent,
     OutlineComponent,
@@ -164,10 +166,58 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           @if (store.diagnostics().length > 0) {
             <span class="read-only" [title]="store.diagnostics()[0]?.code">read-only</span>
           }
+          @if (store.openSheet() !== null) {
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="layout.showFrontMatter()"
+                (change)="layout.toggleFrontMatter()"
+              />
+              Variables
+            </label>
+            @if (layout.showFrontMatter()) {
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  [checked]="layout.frontMatterWritable()"
+                  (change)="layout.toggleFrontMatterWritable()"
+                />
+                Writable
+              </label>
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  [checked]="layout.showOwnedFrontMatter()"
+                  (change)="layout.toggleOwnedFrontMatter()"
+                />
+                System
+              </label>
+            }
+          }
           @if (store.canSave()) {
             <button type="button" (click)="store.save()">Save</button>
           }
         </wi-panel-header>
+
+        @if (layout.showFrontMatter() && store.openSheet() !== null) {
+          <!-- Foreign first: it is what an author of a project shared with
+               other tools actually came here to look at (SPEC.md §10.4). -->
+          @if (store.foreignLines().length > 0) {
+            <wi-front-matter-block
+              label="Foreign front matter"
+              [lines]="store.foreignLines()"
+              [writable]="layout.frontMatterWritable()"
+              (linesChange)="store.updateForeignLines($event)"
+            />
+          }
+          @if (layout.showOwnedFrontMatter() && store.ownedLines().length > 0) {
+            <wi-front-matter-block
+              label="Own front matter"
+              [lines]="store.ownedLines()"
+              [owned]="true"
+            />
+          }
+        }
 
         @if (store.editorDocument(); as document) {
           <wi-editor #editor [document]="document" (textChange)="store.noteText($event)" />
@@ -320,6 +370,13 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     wi-editor {
       flex: 1 1 auto;
       min-height: 0;
+    }
+    .switch {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      color: rgba(128, 128, 128, 0.95);
+      white-space: nowrap;
     }
     .read-only {
       padding: 1px 5px;

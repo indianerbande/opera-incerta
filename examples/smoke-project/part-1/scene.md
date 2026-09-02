@@ -1,7 +1,9 @@
 ---
+layout: post
 opera-incerta:
   title: A Scene in Part One
   topic: harbour
+author: Someone Else
 ---
 ## The Second Bell
 

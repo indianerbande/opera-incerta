@@ -11,19 +11,24 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
  * `side` says which column the divider belongs to. The secondary sidebar's
  * divider sits to its **left**, so dragging right must make it *narrower*;
  * without this the drag runs backwards.
+ *
+ * `orientation` turns it on its side for the front matter blocks (§10.4),
+ * which are sized by height. The mechanics are the same; only the axis and the
+ * cursor change.
  */
 @Component({
   selector: 'wi-resize-divider',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.dragging]': 'dragging()',
+    '[class.horizontal]': "orientation() === 'horizontal'",
     '(pointerdown)': 'start($event)',
     '(pointermove)': 'move($event)',
     '(pointerup)': 'end($event)',
     '(pointercancel)': 'end($event)',
     '(dblclick)': 'reset.emit()',
     role: 'separator',
-    'aria-orientation': 'vertical',
+    '[attr.aria-orientation]': 'orientation()',
   },
   template: '<span class="line"></span>',
   styles: `
@@ -38,10 +43,22 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
       user-select: none;
       z-index: 1;
     }
+    :host(.horizontal) {
+      align-items: center;
+      width: auto;
+      height: 6px;
+      margin-inline: 0;
+      margin-block: -3px;
+      cursor: row-resize;
+    }
     .line {
       width: 1px;
       height: 100%;
       background: rgba(128, 128, 128, 0.35);
+    }
+    :host(.horizontal) .line {
+      width: 100%;
+      height: 1px;
     }
     :host(:hover) .line,
     :host(.dragging) .line {
@@ -53,6 +70,9 @@ export class ResizeDividerComponent {
   /** Which side of the divider the column being sized is on. */
   readonly side = input<'leading' | 'trailing'>('leading');
 
+  /** Which axis it sizes: columns by width, blocks by height. */
+  readonly orientation = input<'vertical' | 'horizontal'>('vertical');
+
   /** Pixels the column should grow by; negative to shrink. */
   readonly resize = output<number>();
 
@@ -60,7 +80,7 @@ export class ResizeDividerComponent {
   readonly reset = output<void>();
 
   protected readonly dragging = signal(false);
-  #lastX = 0;
+  #last = 0;
 
   protected start(event: PointerEvent): void {
     // Capture keeps the drag alive when the pointer leaves the 6 px strip. A
@@ -71,7 +91,7 @@ export class ResizeDividerComponent {
     } catch {
       // Nothing to do; dragging continues through the host's own events.
     }
-    this.#lastX = event.clientX;
+    this.#last = this.#axis(event);
     this.dragging.set(true);
     event.preventDefault();
   }
@@ -80,10 +100,15 @@ export class ResizeDividerComponent {
     if (!this.dragging()) {
       return;
     }
-    const movement = event.clientX - this.#lastX;
-    this.#lastX = event.clientX;
+    const position = this.#axis(event);
+    const movement = position - this.#last;
+    this.#last = position;
     // A trailing column grows when the pointer moves left.
     this.resize.emit(this.side() === 'leading' ? movement : -movement);
+  }
+
+  #axis(event: PointerEvent): number {
+    return this.orientation() === 'horizontal' ? event.clientY : event.clientX;
   }
 
   protected end(event: PointerEvent): void {

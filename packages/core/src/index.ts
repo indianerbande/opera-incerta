@@ -12,6 +12,12 @@ export type {
   SheetMetadata,
 } from './front-matter.js';
 
+export {
+  FRONT_MATTER_MAX_LINES,
+  frontMatterHeight,
+  ownedFrontMatterLines,
+} from './front-matter-view.js';
+
 export type {
   EditorAdapter,
   EditorChangeListener,
