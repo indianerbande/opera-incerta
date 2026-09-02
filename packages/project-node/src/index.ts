@@ -24,5 +24,5 @@ export {
 } from './node-filesystem.js';
 export type { ProjectEnvironment } from './node-filesystem.js';
 
-export { scanLibrary, sheetsOf, walkLibrary } from './library.js';
-export type { GroupEntry, Library, LibraryEntry, ScanOptions, SheetEntry } from './library.js';
+export { absolutePathOf, scanLibrary } from './library.js';
+export type { Library, ScanOptions } from './library.js';

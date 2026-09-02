@@ -10,7 +10,12 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { BRIDGE_GLOBAL, CHANNELS } from '@opera-incerta/desktop-contract';
 
 const bridge = {
-  contractVersion: (): Promise<number> => ipcRenderer.invoke(CHANNELS.contractVersion),
+  contractVersion: () => ipcRenderer.invoke(CHANNELS.contractVersion),
+  openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
+  reopenProject: () => ipcRenderer.invoke(CHANNELS.reopenProject),
+  closeProject: () => ipcRenderer.invoke(CHANNELS.closeProject),
+  readSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.readSheet, request),
+  writeSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.writeSheet, request),
 } as const;
 
 contextBridge.exposeInMainWorld(BRIDGE_GLOBAL, bridge);

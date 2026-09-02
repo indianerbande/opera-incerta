@@ -6,6 +6,67 @@ documents").
 
 ---
 
+## 2026-09-02 — documents, explorer, and sheet list: it can be written in
+
+**What exists.** Opening a project, walking its tree, choosing a sheet, editing
+it, and saving it — end to end, through the real bridge, to the real file.
+
+- **The bridge** carries `openProject`, `reopenProject`, `closeProject`,
+  `readSheet`, and `writeSheet`. Every privileged request validates its sender
+  against the windows this process created and reports failures as results
+  rather than as exceptions crossing the boundary.
+- **`ProjectSession`** in the main process owns what the renderer must never
+  hold: absolute paths and the authority to reach them. It mints one opaque
+  handle per sheet at open time; a handle from a previous project, a forged
+  one, or a path pretending to be one all fail a registry lookup.
+- **The workspace store** holds the state and applies the core's rules. Its
+  bridge is injected, so all of it is tested against a scripted double.
+- **The explorer, the sheet list, and a shared panel header.** The header is
+  the component `SPEC.md` §8.3 demands: fixed height, and the separator
+  belongs to it, so no panel can misplace either.
+- **Sheet-list previews** carry the actual formatting from the file, sized by
+  the core's geometric formula, with the three density steps.
+
+**Verification.** `pnpm run check` green: **397 tests** (core 250, project-node
+58, desktop 36, workbench 25, git-node 19, contract 9). The smoke now runs
+eight checks against a **copy** of a fixture project, ending with: type a
+marker, press `Cmd+S`, and read the file from the filesystem — not through the
+bridge — to confirm both the edit and the untouched front matter.
+
+**The visual check caught the defect that mattered most.** The first working
+version showed the front matter as raw text at the top of the editor:
+
+```
+---
+opera-incerta:
+  title: A Scene in Part One
+---
+The Second Bell
+```
+
+Every test was green. The store had handed the editor the whole file, and
+nothing tested what the editor was *given* — only what it did with it. Two
+things were wrong at once: `SPEC.md` §10.4 puts front matter in its own area,
+deliberately outside the writing surface; and an author editing that text could
+have broken their own metadata, or a foreign tool's, in a product whose central
+promise is that this cannot happen.
+
+The editor now receives the **body alone**, and the codec reassembles the file
+on save. The protection is structural rather than careful: what is never shown
+cannot be edited, and what the codec writes cannot lose a foreign key. A sheet
+whose front matter carries a diagnostic is marked read-only in the header and
+is not written back at all.
+
+**Lesson.** Tests check what a unit does with its input. They do not ask
+whether it should have received that input. The store's tests passed because
+they asserted the round trip of exactly the string the store chose to pass on —
+the mistake was one layer above every assertion. Looking at the running
+application is not a formality at the end of a round; here it was the only
+thing standing between a green suite and a product that could corrupt a
+manuscript.
+
+---
+
 ## 2026-09-02 — cutting a heading takes its prefix
 
 **What changed.** A cut whose selection starts at the visible beginning of a

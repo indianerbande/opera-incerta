@@ -2,13 +2,8 @@ import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseSheet, serializeSheet } from '@opera-incerta/core';
-import {
-  createProjectFilesystem,
-  scanLibrary,
-  sheetsOf,
-  type GroupEntry,
-} from '../src/index.js';
+import { parseSheet, serializeSheet, sheetsOf, type GroupEntry } from '@opera-incerta/core';
+import { createProjectFilesystem, scanLibrary } from '../src/index.js';
 
 const EXAMPLES = fileURLToPath(new URL('../../../examples/', import.meta.url));
 const filesystem = createProjectFilesystem();

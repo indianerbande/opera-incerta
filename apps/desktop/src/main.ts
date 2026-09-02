@@ -5,11 +5,20 @@
  * native dialogs, and menus. It never owns document semantics — those live in
  * the portable core.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BrowserWindow, app, clipboard, ipcMain, net, protocol } from 'electron';
-import { BRIDGE_GLOBAL, CHANNELS, CONTRACT_VERSION } from '@opera-incerta/desktop-contract';
+import { BrowserWindow, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
+import {
+  BRIDGE_GLOBAL,
+  CHANNELS,
+  CONTRACT_VERSION,
+  isDocumentHandle,
+  isWriteSheetRequest,
+  type BridgeResult,
+} from '@opera-incerta/desktop-contract';
+import { ProjectSession } from './project-session.js';
 import {
   RENDERER_ENTRY_URL,
   RENDERER_SCHEME,
@@ -33,6 +42,22 @@ const RENDERER_ROOT = join(currentDirectory, '..', '..', '..', 'build', 'workben
  * reach the bridge, reports the result, and quits. TESTING.md §2.7.
  */
 const SMOKE_RUN = process.env['OPERA_INCERTA_SMOKE'] === '1';
+
+/**
+ * A copy of the smoke fixture, opened instead of showing the native chooser.
+ *
+ * A copy, because the smoke writes to it and a fixture the tests modify stops
+ * proving what it says. This is the only place the shell behaves differently
+ * under the smoke, and it does so only for the directory chooser.
+ */
+const smokeProjectPath = SMOKE_RUN ? prepareSmokeProject() : null;
+
+function prepareSmokeProject(): string {
+  const source = join(currentDirectory, '..', '..', '..', 'examples', 'smoke-project');
+  const destination = join(mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-')), 'smoke-project');
+  cpSync(source, destination, { recursive: true });
+  return destination;
+}
 
 /** Project window geometry. SPEC.md §8.2. */
 const WINDOW = {
@@ -79,6 +104,80 @@ function createProjectWindow(): BrowserWindow {
 
 ipcMain.handle(CHANNELS.contractVersion, () => CONTRACT_VERSION);
 
+const session = new ProjectSession();
+
+/**
+ * Wraps a privileged handler.
+ *
+ * Two things happen for every request, and both are the point of the bridge:
+ * the sender is checked against the windows this process created, so IPC from
+ * anywhere else is refused; and a failure becomes a reported result rather
+ * than an exception crossing the boundary, because an unhandled rejection in
+ * the renderer tells the author nothing (SPEC.md §16).
+ */
+function privileged<TRequest, TValue>(
+  channel: string,
+  validate: (request: unknown) => request is TRequest,
+  handle: (request: TRequest) => Promise<TValue>,
+): void {
+  ipcMain.handle(channel, async (event, request: unknown): Promise<BridgeResult<TValue>> => {
+    const sender = BrowserWindow.fromWebContents(event.sender);
+    if (sender === null) {
+      return { ok: false, code: 'bridge/untrusted-sender', message: 'unknown sender' };
+    }
+    if (!validate(request)) {
+      return { ok: false, code: 'bridge/invalid-request', message: `invalid request on ${channel}` };
+    }
+
+    try {
+      return { ok: true, value: await handle(request) };
+    } catch (error: unknown) {
+      const code =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? String((error as { code: unknown }).code)
+          : 'bridge/failed';
+      return { ok: false, code, message: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
+
+const acceptsNothing = (request: unknown): request is null =>
+  request === undefined || request === null;
+
+privileged(CHANNELS.openProject, acceptsNothing, async () => {
+  if (smokeProjectPath !== null) {
+    return session.open(smokeProjectPath);
+  }
+
+  const chosen = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Open project',
+  });
+  const directory = chosen.canceled ? undefined : chosen.filePaths[0];
+  return directory === undefined ? null : await session.open(directory);
+});
+
+privileged(CHANNELS.reopenProject, acceptsNothing, async () => session.reopen());
+
+privileged(CHANNELS.closeProject, acceptsNothing, async () => {
+  session.close();
+  return null;
+});
+
+privileged(
+  CHANNELS.readSheet,
+  (request): request is { handle: { id: string } } =>
+    typeof request === 'object' &&
+    request !== null &&
+    isDocumentHandle((request as { handle?: unknown }).handle),
+  async (request) => session.readSheet(request.handle.id),
+);
+
+privileged(CHANNELS.writeSheet, isWriteSheetRequest, async (request) => {
+  await session.writeSheet(request.handle.id, request.text);
+  return null;
+});
+
 /**
  * The renderer scheme must be privileged before the application is ready, so
  * that the page it serves is a secure context with a normal origin rather than
@@ -116,6 +215,67 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+/**
+ * Opens the project, selects a sheet, and checks that the library views show
+ * it. SPEC.md §9.
+ */
+async function openSmokeProject(window: BrowserWindow): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('button')]
+         .find((candidate) => candidate.textContent.includes('Open project'));
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error('no "Open project" button in the navigator');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const library = (await window.webContents.executeJavaScript(
+    `(() => {
+       const nodes = [...document.querySelectorAll('wi-explorer-node .name')]
+         .map((element) => element.textContent.trim());
+       const sheets = [...document.querySelectorAll('wi-sheet-list .title')]
+         .map((element) => element.textContent.trim());
+       const failure = document.querySelector('[role="alert"]');
+       return { nodes, sheets, failure: failure === null ? null : failure.textContent };
+     })()`,
+  )) as { nodes: string[]; sheets: string[]; failure: string | null };
+
+  if (library.failure !== null) {
+    throw new Error(`opening the project failed: ${library.failure}`);
+  }
+  if (!library.nodes.includes('Smoke Project')) {
+    throw new Error(`the tree does not show the project: ${JSON.stringify(library.nodes)}`);
+  }
+  if (!library.nodes.includes('Part One')) {
+    throw new Error(`the tree does not show the recorded group name: ${JSON.stringify(library.nodes)}`);
+  }
+  if (!library.sheets.includes('Opening')) {
+    throw new Error(`the sheet list does not show the sheet: ${JSON.stringify(library.sheets)}`);
+  }
+
+  // Select the sheet, which is what puts a document in the editor.
+  const selected = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-sheet-list .row')]
+         .find((candidate) => candidate.textContent.includes('Opening'));
+       if (row === undefined) { return false; }
+       row.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!selected) {
+    throw new Error('could not select the sheet');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  console.log('smoke ok: project opened, tree and sheet list populated, sheet selected');
+}
 
 /** Types a string into the focused element as real key events. */
 async function typeText(window: BrowserWindow, text: string): Promise<void> {
@@ -364,7 +524,13 @@ async function checkHeadingCursorRules(window: BrowserWindow): Promise<void> {
     throw new Error(`the text changed unexpectedly: ${JSON.stringify(afterFirst.text)}`);
   }
 
-  // A second backspace merges with the line above, as in any editor.
+  // A second backspace merges with the line above, as in any editor. The line
+  // above is empty, so the text is unchanged by the merge — the line count is
+  // what says it happened.
+  const linesBefore = (await window.webContents.executeJavaScript(
+    "document.querySelectorAll('.cm-line').length",
+  )) as number;
+
   await pressKey(window, lineStartKey, lineStartModifiers);
   await pressKey(window, 'Backspace');
 
@@ -372,8 +538,13 @@ async function checkHeadingCursorRules(window: BrowserWindow): Promise<void> {
   if (afterSecond === null) {
     throw new Error('the line vanished on the second backspace');
   }
-  if (afterSecond.text === 'Typed heading') {
-    throw new Error('the second backspace did not merge with the line above');
+  const linesAfter = (await window.webContents.executeJavaScript(
+    "document.querySelectorAll('.cm-line').length",
+  )) as number;
+  if (linesAfter !== linesBefore - 1) {
+    throw new Error(
+      `the second backspace did not merge: ${linesBefore} lines before, ${linesAfter} after`,
+    );
   }
 
   console.log(
@@ -433,6 +604,140 @@ async function checkCutTakesPrefix(
   }
 
   console.log('smoke ok: cut took the heading prefix with it, leaving an empty line');
+  await checkDocumentFlow(window);
+}
+
+/**
+ * The document round trip: edit, save, and find the change on disk.
+ * SPEC.md §6, §10.6.
+ *
+ * The file is read here in the main process rather than through the bridge,
+ * so what is checked is the manuscript itself and not the application's belief
+ * about it.
+ */
+async function checkDocumentFlow(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  const marker = `Written by the smoke at line ${Date.now() % 100000}`;
+  await typeText(window, marker);
+
+  const dirty = (await window.webContents.executeJavaScript(
+    `(() => {
+       const title = [...document.querySelectorAll('wi-panel-header .title')]
+         .map((element) => element.textContent.trim())
+         .find((text) => text.startsWith('Opening'));
+       const saveButton = [...document.querySelectorAll('button')]
+         .some((button) => button.textContent.trim() === 'Save');
+       return { title: title ?? null, saveButton };
+     })()`,
+  )) as { title: string | null; saveButton: boolean };
+
+  if (dirty.title === null || !dirty.title.endsWith('•')) {
+    throw new Error(`the dirty marker is missing: ${JSON.stringify(dirty.title)}`);
+  }
+  if (!dirty.saveButton) {
+    throw new Error('no save action while the document is dirty');
+  }
+
+  // Save through the keyboard, the way an author would.
+  await pressKey(window, 'S', [process.platform === 'darwin' ? 'cmd' : 'control']);
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const onDisk = readFileSync(join(smokeProjectPath, 'opening.md'), 'utf8');
+  if (!onDisk.includes(marker)) {
+    throw new Error('the saved file does not contain the edit');
+  }
+  if (!onDisk.startsWith('---\nopera-incerta:\n  title: Opening\n---\n')) {
+    throw new Error(`saving damaged the front matter: ${JSON.stringify(onDisk.slice(0, 80))}`);
+  }
+
+  const clean = (await window.webContents.executeJavaScript(
+    `(() => {
+       const title = [...document.querySelectorAll('wi-panel-header .title')]
+         .map((element) => element.textContent.trim())
+         .find((text) => text.startsWith('Opening'));
+       const saveButton = [...document.querySelectorAll('button')]
+         .some((button) => button.textContent.trim() === 'Save');
+       return { title: title ?? null, saveButton };
+     })()`,
+  )) as { title: string | null; saveButton: boolean };
+
+  if (clean.title !== 'Opening') {
+    throw new Error(`the dirty marker survived the save: ${JSON.stringify(clean.title)}`);
+  }
+  if (clean.saveButton) {
+    throw new Error('the save action is still offered after saving');
+  }
+
+  console.log('smoke ok: edited, saved with the keyboard, and the change is on disk');
+  await checkSheetSwitch(window);
+}
+
+/** Switching groups and sheets. SPEC.md §9. */
+async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
+  const switched = (await window.webContents.executeJavaScript(
+    `(() => {
+       const group = [...document.querySelectorAll('wi-explorer-node .name')]
+         .find((element) => element.textContent.trim() === 'Part One');
+       if (group === undefined) { return 'no group'; }
+       group.click();
+       return 'ok';
+     })()`,
+  )) as string;
+  if (switched !== 'ok') {
+    throw new Error(`could not select the nested group: ${switched}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 250));
+
+  const listed = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-sheet-list .title')].map((element) => element.textContent.trim())`,
+  )) as string[];
+  if (listed.length !== 1 || listed[0] !== 'A Scene in Part One') {
+    throw new Error(`the sheet list did not follow the group: ${JSON.stringify(listed)}`);
+  }
+
+  const opened = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-sheet-list .row')][0];
+       if (row === undefined) { return 'no row'; }
+       row.click();
+       return 'ok';
+     })()`,
+  )) as string;
+  if (opened !== 'ok') {
+    throw new Error('could not open the nested sheet');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 350));
+
+  const editor = (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')].map((line) => line.textContent);
+       const title = [...document.querySelectorAll('wi-panel-header .title')]
+         .map((element) => element.textContent.trim())
+         .find((text) => text.startsWith('A Scene'));
+       return { lines, title: title ?? null };
+     })()`,
+  )) as { lines: string[]; title: string | null };
+
+  if (editor.title !== 'A Scene in Part One') {
+    throw new Error(`the editor header did not follow: ${JSON.stringify(editor.title)}`);
+  }
+  if (!editor.lines.some((line) => line.includes('The Second Bell'))) {
+    throw new Error(`the editor did not load the other sheet: ${JSON.stringify(editor.lines)}`);
+  }
+  // Front matter belongs to its own area, not to the writing surface
+  // (SPEC.md §10.4) — and keeping it out is what protects it from being
+  // edited into something the codec can no longer read.
+  if (editor.lines.some((line) => line.includes('opera-incerta:'))) {
+    throw new Error('front matter is showing inside the editor');
+  }
+  if (editor.lines.some((line) => line.includes('Written by the smoke'))) {
+    throw new Error('the previous document is still in the editor');
+  }
+
+  console.log('smoke ok: switching group and sheet loaded the other document');
 }
 
 /**
@@ -441,17 +746,31 @@ async function checkCutTakesPrefix(
  */
 async function runSmokeCheck(window: BrowserWindow): Promise<void> {
   try {
-    const heading: unknown = await window.webContents.executeJavaScript(
-      "document.querySelector('wi-root h1')?.textContent ?? null",
-    );
+    const shell = (await window.webContents.executeJavaScript(
+      `(() => {
+         const workbench = document.querySelector('wi-root .workbench');
+         if (workbench === null) { return null; }
+         return {
+           regions: workbench.children.length,
+           headers: document.querySelectorAll('wi-panel-header').length,
+         };
+       })()`,
+    )) as { regions: number; headers: number } | null;
     const bridgeVersion: unknown = await window.webContents.executeJavaScript(
       `typeof window.${BRIDGE_GLOBAL} === 'object'` +
         ` ? window.${BRIDGE_GLOBAL}.contractVersion()` +
         ' : null',
     );
 
-    if (heading !== 'Opera Incerta') {
-      throw new Error(`renderer did not render; heading was ${JSON.stringify(heading)}`);
+    if (shell === null) {
+      throw new Error('the workbench did not render');
+    }
+    // Six regions: two activity bars and four columns (SPEC.md §8.2).
+    if (shell.regions !== 6) {
+      throw new Error(`expected six regions, found ${shell.regions}`);
+    }
+    if (shell.headers < 4) {
+      throw new Error(`every panel needs a header, found ${shell.headers}`);
     }
     if (bridgeVersion !== CONTRACT_VERSION) {
       throw new Error(`bridge answered ${JSON.stringify(bridgeVersion)}`);
@@ -460,6 +779,8 @@ async function runSmokeCheck(window: BrowserWindow): Promise<void> {
     // The editor is the part most likely to render as an empty box, so the
     // smoke asks for evidence that it laid out: a heading line taller than
     // body text, a gutter marker beside it, and no visible `#` prefix.
+    await openSmokeProject(window);
+
     const editor = (await window.webContents.executeJavaScript(
       `(() => {
          const lines = [...document.querySelectorAll('.cm-line')];

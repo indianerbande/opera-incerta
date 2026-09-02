@@ -226,6 +226,11 @@ filesystem, the process table, the network, or the DOM.
   addressed by **opaque handles** issued by the main process; the main process
   resolves them and enforces containment, size limits, and path-traversal
   rejection.
+- Opening a project hands the renderer a snapshot: the project record, the
+  library tree with **relative** paths, and one opaque handle per sheet. The
+  renderer addresses a sheet by looking its handle up, never by sending a path
+  back. Handles are minted per open, so one from a previous project resolves to
+  nothing.
 - The renderer is served from an **owned local scheme**,
   `opera-incerta://app/`, rooted at the built renderer directory. `file://`
   is not used: it would give the page an origin from which relative requests
@@ -845,8 +850,12 @@ value 105 %) per level upward to H1 (H1 ≈ base × 1.05⁵ ≈ 15.3 px at a 12 
 base). The goal is that differences stay visible without the smallest step
 becoming unreadable. Both values are design constants first and settings later.
 
-Blank lines are removed from the preview by default and can be shown through a
-persisted toggle in the sheet-list header.
+Preview lines are collected during the library scan, which reads each sheet
+anyway to resolve its title. **Blank lines are kept in the scanned entry** and
+removed at display time: whether to show them is the reader's choice, and a
+scanner that dropped them would make the toggle impossible without a second
+pass. They are hidden by default and shown through a toggle in the sheet-list
+header.
 
 A sheet with a page category shows its title badge in the category background
 color with the computed text color (§6.6).
@@ -1147,6 +1156,17 @@ which presents as "the click did nothing" (`CONVENTIONS.md` C-F3).
 exactly **one** further refresh is scheduled afterwards. This makes a change
 that occurs after the running read started reliably visible without double
 firing.
+
+**The editor holds the body, and the codec puts the file back together.**
+What the writing surface receives is the body alone; front matter never enters
+it (§10.4). On save the codec reassembles owned fields, foreign lines, and the
+edited body into the file. This is what makes §6.3 hold in practice: an author
+editing prose cannot damage front matter they were never shown, and foreign
+keys survive an edit that had nothing to do with them.
+
+**A sheet with a front matter diagnostic is not written back.** It is shown,
+and marked read-only in the editor header. Saving it would mean guessing what a
+malformed block meant (§6.2).
 
 **Writes are atomic.** A sheet is written to a temporary file in the same
 directory and renamed into place. A rename within one directory is atomic on

@@ -8,10 +8,11 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-02:** the portable rule set, the project and Git adapters, the
-library scan, the owned renderer protocol, the production boundary check, and
-the editor with both heading gestures. `pnpm run check` green: 6 projects,
-**354 tests**. `pnpm run desktop:smoke` and `pnpm run spike:editor` green.
+**State 2026-09-02:** Opera Incerta can be written in. Opening a project,
+navigating the tree, choosing a sheet, editing it, and saving it all work end
+to end. `pnpm run check` green: 6 projects, **397 tests**.
+`pnpm run desktop:smoke` green across eight checks, `pnpm run spike:editor`
+7/7.
 
 ---
 
@@ -56,13 +57,23 @@ is replaceable; the report in `AGENTS.md` decides it.
 
 Everything here waits on a decision from §2, on a user interface, or on both.
 
-- **Workbench views** — explorer, sheet list with its three density steps,
-  inspector, outline, panel headers as one shared component (`SPEC.md` §8.3,
-  §9, §11). The rules they display are implemented and tested and the editor
-  now exists; these are the remaining panes.
-- **Connecting the editor to real documents** — it shows a placeholder. Opening
-  a sheet through the bridge, saving it, and the dirty state belong to their
-  own round together with the library view.
+- **The remaining panes** — inspector, outline, source control, and the
+  activity bars that switch between them (`SPEC.md` §8.4, §11). The rules they
+  display are implemented and tested; the explorer, sheet list, editor, and
+  shared panel header now exist.
+- **The front matter area** (`SPEC.md` §10.4) — the editor correctly never
+  shows front matter, and the codec protects it. What is missing is the area
+  that *displays* it: the owned block read-only, the foreign block with its
+  visibility and writability switches.
+- **Draggable column widths** — the clamp rule and the constants are
+  implemented and tested in the core; the dividers themselves are not built,
+  so the columns currently sit at their ideal widths (`SPEC.md` §8.2).
+- **Sheet and group creation, renaming, reordering** — the rules exist in the
+  core (slug generation, `structure.json` writing); the context menus do not
+  (`SPEC.md` §6.4, §6.5).
+- **The welcome window and recent projects** — the list logic is implemented
+  and tested; the window is not (`SPEC.md` §8.5, §8.6). Today the project is
+  opened from a button in the navigator header.
 - **Settings record and localization catalogues** (`SPEC.md` §13, §14). The
   contract shape is accepted; the individual values are still draft.
 - **Source control interface** — the adapter is complete; the panel, the

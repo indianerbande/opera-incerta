@@ -1,0 +1,4 @@
+{
+  ".": { "order": ["opening.md", "part-1"] },
+  "part-1": { "displayName": "Part One", "order": ["scene.md"] }
+}

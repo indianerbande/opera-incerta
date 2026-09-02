@@ -29,6 +29,18 @@ export { delimiterRanges, inlineSpans } from './inline.js';
 export type { InlineKind, InlineSpan } from './inline.js';
 
 export { displayModel, headingPrefixRange, visibleLineStart } from './display-model.js';
+
+export {
+  ancestorPaths,
+  findGroup,
+  findSheet,
+  groupsOf,
+  sheetsInGroup,
+  sheetsOf,
+  subgroupsOf,
+  walkLibrary,
+} from './library.js';
+export type { GroupEntry, LibraryEntry, PreviewLine, SheetEntry } from './library.js';
 export type { DisplayModel, HeadingSpan, HiddenRange } from './display-model.js';
 
 export {

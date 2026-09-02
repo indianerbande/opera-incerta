@@ -9,38 +9,28 @@
  */
 import { join } from 'node:path';
 import {
+  PREVIEW_DENSITIES,
   groupDisplayName,
+  markdownToDisplay,
   parseSheet,
   resolveChildOrder,
+  type GroupEntry,
+  type LibraryEntry,
+  type PreviewLine,
   type StructureRecord,
 } from '@opera-incerta/core';
+
+/** Enough lines for the largest density step. SPEC.md §9.2. */
+const PREVIEW_LINE_LIMIT = PREVIEW_DENSITIES.large.totalLines - 1;
 import { isGroupDirectory, isSheetFile } from './node-filesystem.js';
 import type { ProjectFilesystem } from './ports.js';
 
-export interface SheetEntry {
-  readonly kind: 'sheet';
-  /** File name, the stable technical identifier. Never renamed by the app. */
-  readonly name: string;
-  /** Path relative to the project root, with forward slashes. */
-  readonly relativePath: string;
-  readonly absolutePath: string;
-  /** Front matter title, or the file name without its extension. */
-  readonly displayName: string;
-}
-
-export interface GroupEntry {
-  readonly kind: 'group';
-  readonly name: string;
-  readonly relativePath: string;
-  readonly absolutePath: string;
-  /** Recorded display name, or the real directory name. */
-  readonly displayName: string;
-  readonly children: readonly LibraryEntry[];
-}
-
-export type LibraryEntry = SheetEntry | GroupEntry;
-
-/** Root of the scan. The project directory is itself the top visible node. */
+/**
+ * Root of the scan. The project directory is itself the top visible node.
+ *
+ * The entry types live in the portable core: the renderer displays them and
+ * must not depend on a package that imports `node:fs`.
+ */
 export interface Library {
   readonly root: GroupEntry;
 }
@@ -77,7 +67,6 @@ export async function scanLibrary(
       kind: 'group',
       name: '',
       relativePath: '.',
-      absolutePath: projectPath,
       displayName,
       children,
     },
@@ -127,19 +116,19 @@ async function scanChildren(
         kind: 'group',
         name,
         relativePath: childRelative,
-        absolutePath: childAbsolute,
         displayName: groupDisplayName(name, structure[childRelative]),
         children: await scanChildren(projectPath, childRelative, filesystem, structure, readTitles),
       });
       continue;
     }
 
+    const read = await readSheetForList(filesystem, childAbsolute, name, readTitles);
     children.push({
       kind: 'sheet',
       name,
       relativePath: childRelative,
-      absolutePath: childAbsolute,
-      displayName: await sheetDisplayName(filesystem, childAbsolute, name, readTitles),
+      displayName: read.displayName,
+      preview: read.preview,
     });
   }
 
@@ -160,37 +149,38 @@ async function isDirectory(filesystem: ProjectFilesystem, absolutePath: string):
   }
 }
 
-async function sheetDisplayName(
+/**
+ * Reads a sheet once for both the things the list needs: its display name and
+ * its preview lines. Reading the file twice would double the cost of a scan.
+ */
+async function readSheetForList(
   filesystem: ProjectFilesystem,
   absolutePath: string,
   fileName: string,
   readTitles: boolean,
-): Promise<string> {
+): Promise<{ displayName: string; preview: readonly PreviewLine[] }> {
   const fallback = fileName.replace(/\.md$/i, '');
   if (!readTitles) {
-    return fallback;
+    return { displayName: fallback, preview: [] };
   }
 
   try {
     const text = await filesystem.readSheet(absolutePath);
-    const title = parseSheet(text).sheet.metadata.title?.trim();
-    return title === undefined || title === '' ? fallback : title;
+    const { sheet } = parseSheet(text);
+    const title = sheet.metadata.title?.trim();
+
+    return {
+      displayName: title === undefined || title === '' ? fallback : title,
+      preview: markdownToDisplay(sheet.body)
+        .slice(0, PREVIEW_LINE_LIMIT)
+        .map((line) => ({ text: line.text, level: line.level })),
+    };
   } catch {
-    return fallback;
+    return { displayName: fallback, preview: [] };
   }
 }
 
-/** Depth-first walk over every entry of a library. */
-export function* walkLibrary(entry: LibraryEntry): Generator<LibraryEntry> {
-  yield entry;
-  if (entry.kind === 'group') {
-    for (const child of entry.children) {
-      yield* walkLibrary(child);
-    }
-  }
-}
-
-/** Every sheet in the library, in display order. */
-export function sheetsOf(entry: LibraryEntry): readonly SheetEntry[] {
-  return [...walkLibrary(entry)].filter((item): item is SheetEntry => item.kind === 'sheet');
+/** Absolute path of an entry inside a project. */
+export function absolutePathOf(projectPath: string, relativePath: string): string {
+  return relativePath === '.' ? projectPath : join(projectPath, relativePath);
 }

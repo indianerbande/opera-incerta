@@ -10,6 +10,7 @@ content (`TESTING.md` §1.7, §3).
 | `foreign-front-matter` | Keys from other conventions — nested mappings, sequences, folded blocks, comments — that must survive a load and save byte-for-byte, plus a file with no owned block at all |
 | `stale-structure` | An `order` naming a removed item and omitting a present one |
 | `broken-metadata` | A malformed project record, unparsable `structure.json`, and all three front matter failure modes |
+| `smoke-project` | The project the desktop smoke opens end to end: headings at three levels, inline markers, a fenced block, and a sheet in a nested group. It is copied to a temporary directory before the smoke writes to it |
 
 These directories are read by tests and are never written to. Changing one
 changes what the suite proves, so treat them as part of the specification

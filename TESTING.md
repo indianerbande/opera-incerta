@@ -259,6 +259,15 @@ Tests MUST cover:
   than by calling the adapter: typing `.h3 ` converts the line and removes the
   command text; clicking a gutter marker opens a menu whose active level is
   marked, whose choice applies, and which closes afterwards;
+- the document round trip against a **copy** of the smoke fixture: opening a
+  project populates the tree and the sheet list, selecting a sheet loads it,
+  typing marks it dirty, `Cmd/Ctrl+S` writes it, and the file on disk carries
+  both the edit and its untouched front matter — read from the filesystem
+  rather than through the bridge, so what is checked is the manuscript and not
+  the application's belief about it;
+- that front matter never appears inside the writing surface;
+- that switching group and sheet loads the other document and leaves nothing of
+  the previous one behind;
 - the cursor rules around hidden heading syntax, through real keys and the real
   clipboard: the line-start shortcut lands on the first visible character,
   copying a heading yields Markdown with its prefix, cutting one removes the

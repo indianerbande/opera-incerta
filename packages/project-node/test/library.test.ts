@@ -3,13 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { StructureRecord } from '@opera-incerta/core';
+import { sheetsOf, type GroupEntry } from '@opera-incerta/core';
 import {
   PROJECT_DIRECTORY,
   canonicalPath,
   createProjectFilesystem,
   scanLibrary,
-  sheetsOf,
-  type GroupEntry,
 } from '../src/index.js';
 
 const filesystem = createProjectFilesystem();

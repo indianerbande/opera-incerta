@@ -25,6 +25,7 @@ export const BRIDGE_GLOBAL = 'operaIncerta';
 export const CHANNELS = {
   contractVersion: 'opera-incerta:contract-version',
   openProject: 'opera-incerta:project/open',
+  reopenProject: 'opera-incerta:project/reopen',
   closeProject: 'opera-incerta:project/close',
   readSheet: 'opera-incerta:sheet/read',
   writeSheet: 'opera-incerta:sheet/write',
@@ -54,6 +55,25 @@ export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 const HANDLE_ID = /^[0-9a-f]{32}$/;
 
+/**
+ * Runtime guard for a project snapshot leaving the main process. Used by the
+ * renderer, which trusts nothing it did not validate either.
+ */
+export function isProjectSnapshot(value: unknown): value is ProjectSnapshot {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<ProjectSnapshot>;
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.displayName === 'string' &&
+    typeof candidate.library === 'object' &&
+    candidate.library !== null &&
+    typeof candidate.handles === 'object' &&
+    candidate.handles !== null
+  );
+}
+
 /** Runtime guard for a handle arriving from the renderer. */
 export function isDocumentHandle(value: unknown): value is DocumentHandle {
   if (typeof value !== 'object' || value === null) {
@@ -65,6 +85,23 @@ export function isDocumentHandle(value: unknown): value is DocumentHandle {
     typeof candidate.id === 'string' &&
     HANDLE_ID.test(candidate.id)
   );
+}
+
+/**
+ * A project as the renderer sees it.
+ *
+ * The library carries relative paths for display; the handles map each sheet's
+ * relative path to the opaque handle that addresses it. The renderer never
+ * turns a path into authority — it looks the handle up (SPEC.md §5.3).
+ */
+export interface ProjectSnapshot {
+  /** The project's stable id, from `project.json`. */
+  readonly id: string;
+  readonly displayName: string;
+  /** The library tree, rooted at the project directory. */
+  readonly library: unknown;
+  /** Relative sheet path to handle id. */
+  readonly handles: Readonly<Record<string, string>>;
 }
 
 /** A request that carries only a handle. */
@@ -133,3 +170,21 @@ export interface BridgeSuccess<TValue> {
 }
 
 export type BridgeResult<TValue> = BridgeSuccess<TValue> | BridgeFailure;
+
+/**
+ * The complete surface the preload exposes on `window[BRIDGE_GLOBAL]`.
+ *
+ * Declared here so that the main process, the preload, and the renderer agree
+ * on one shape, and so the renderer can be typed against the bridge without
+ * importing Electron.
+ */
+export interface OperaIncertaBridge {
+  contractVersion(): Promise<number>;
+  /** Opens the native directory chooser. Resolves to null when cancelled. */
+  openProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
+  /** Re-reads the open project from disk, after an external change. */
+  reopenProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
+  closeProject(): Promise<BridgeResult<null>>;
+  readSheet(request: DocumentRequest): Promise<BridgeResult<string>>;
+  writeSheet(request: WriteSheetRequest): Promise<BridgeResult<null>>;
+}
