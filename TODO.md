@@ -8,10 +8,10 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-02:** every pane of `SPEC.md` §8 exists — explorer, sheet
-list, editor, inspector, outline, source control, both activity bars.
-`pnpm run check` green: 6 projects, **421 tests**, plus the desktop and asset
-checks. `pnpm run desktop:smoke` green across nine checks,
+**State 2026-09-02:** the two-window model is complete — the launcher with its
+recent projects, and the workbench with every pane of `SPEC.md` §8.
+`pnpm run check` green: 6 projects, **430 tests**, plus the desktop and asset
+checks. `pnpm run desktop:smoke` green across ten checks,
 `pnpm run spike:editor` 7/7.
 
 ---
@@ -74,9 +74,12 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Sheet and group creation, renaming, reordering** — the rules exist in the
   core (slug generation, `structure.json` writing); the context menus do not
   (`SPEC.md` §6.4, §6.5).
-- **The welcome window and recent projects** — the list logic is implemented
-  and tested; the window is not (`SPEC.md` §8.5, §8.6). Today the project is
-  opened from a button in the navigator header.
+- **Native menus and their shortcuts** — `Cmd/Ctrl+O`, `Cmd/Ctrl+Shift+N`, and
+  "Close project" are specified (`SPEC.md` §8.5) but exist only as buttons in
+  the launcher. The menu is also where the platform expects them.
+- **Naming a project when creating one** — the name is currently taken from the
+  chosen directory. `SPEC.md` §8.6 asks for a name and a parent separately,
+  which needs a small dialog of its own rather than a directory chooser.
 - **Settings record and localization catalogues** (`SPEC.md` §13, §14). The
   contract shape is accepted; the individual values are still draft.
 - **Source control interface** — the adapter is complete; the panel, the

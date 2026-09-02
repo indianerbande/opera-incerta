@@ -6,6 +6,7 @@ import type {
   ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
 import { WorkspaceStore } from '../src/app/workspace/workspace-store.js';
+import { baseBridge } from './fake-bridge.js';
 
 const library: GroupEntry = {
   kind: 'group',
@@ -80,8 +81,8 @@ function fakeBridge(overrides: Partial<OperaIncertaBridge> = {}): OperaIncertaBr
   ]);
 
   return {
+    ...baseBridge(),
     writes,
-    contractVersion: async () => 1,
     openProject: async (): Promise<BridgeResult<ProjectSnapshot | null>> => ({
       ok: true,
       value: snapshot,
@@ -90,12 +91,6 @@ function fakeBridge(overrides: Partial<OperaIncertaBridge> = {}): OperaIncertaBr
       ok: true,
       value: snapshot,
     }),
-    closeProject: async () => ({ ok: true, value: null }),
-    gitStatus: async () => ({ ok: true, value: { root: null, entries: [] } }),
-    gitStage: async () => ({ ok: true, value: null }),
-    gitUnstage: async () => ({ ok: true, value: null }),
-    gitCommit: async () => ({ ok: true, value: null }),
-    gitPush: async () => ({ ok: true, value: null }),
     readSheet: async (request) => {
       const text = files.get(request.handle.id);
       return text === undefined

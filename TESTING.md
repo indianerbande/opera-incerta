@@ -259,6 +259,10 @@ Tests MUST cover:
   than by calling the adapter: typing `.h3 ` converts the line and removes the
   command text; clicking a gutter marker opens a menu whose active level is
   marked, whose choice applies, and which closes afterwards;
+- the window choreography of `SPEC.md` §8.5: the application starts on the
+  launcher, opening a project presents the workbench and dismisses the
+  launcher, and closing the project brings the launcher back with that project
+  listed as recent and available;
 - the document round trip against a **copy** of the smoke fixture: opening a
   project populates the tree and the sheet list, selecting a sheet loads it,
   typing marks it dirty, `Cmd/Ctrl+S` writes it, and the file on disk carries

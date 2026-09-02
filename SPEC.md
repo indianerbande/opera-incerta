@@ -777,6 +777,11 @@ trigger a second quit. The main process MUST set a terminating flag *before*
 windows begin closing, and the window handlers MUST check it and stay passive
 during shutdown.
 
+**One bundle, two windows.** Both windows load the same renderer and ask the
+main process which of the two they are. The role MUST NOT come from a query
+string or any other value the page itself could change. Only one component is
+bootstrapped, into the single root element the document provides.
+
 Platform difference (`CONVENTIONS.md` C-P4): closing all windows quits on
 Windows and Linux; on macOS the application stays active and recreates a window
 on activation.
@@ -797,9 +802,16 @@ Whenever no project is loaded, the welcome window shows:
 - an empty state with only the buttons and one explanatory line.
 
 The list updates on every successful open, create, or adopt through one shared
-endpoint. It is persisted installation-locally (§7.2). The pure list logic —
+endpoint — recording the entry and presenting the window happen there rather
+than in each caller, so no way of opening can forget either. It is persisted
+installation-locally (§7.2), and a list that cannot be written is a lost
+convenience rather than a reason to interrupt the author. The pure list logic —
 deduplicate by path, ordering, cap at 10 — lives in the portable core and is
 unit-tested.
+
+Availability is checked when the list is shown, not when it is stored: an entry
+whose directory is gone appears marked rather than disappearing, so removing it
+stays the author's decision.
 
 **Opening** presents a directory chooser and then inspects the chosen folder:
 
@@ -810,8 +822,9 @@ unit-tested.
 - several subprojects → inform the user and list them by name, asking them to
   open the intended one directly.
 
-**Creating** asks for the display name and a parent directory, creates the slug
-directory and `.opera-incerta/project.json`, and opens it immediately.
+**Creating** asks for a parent directory, derives the display name from it,
+creates the slug directory and `.opera-incerta/project.json` inside it, and
+opens the project immediately.
 
 ## 9. Library
 

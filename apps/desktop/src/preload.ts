@@ -11,7 +11,15 @@ import { BRIDGE_GLOBAL, CHANNELS } from '@opera-incerta/desktop-contract';
 
 const bridge = {
   contractVersion: () => ipcRenderer.invoke(CHANNELS.contractVersion),
+  windowRole: () => ipcRenderer.invoke(CHANNELS.windowRole),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
+  createProject: () => ipcRenderer.invoke(CHANNELS.createProject),
+  openRecentProject: (request: unknown) =>
+    ipcRenderer.invoke(CHANNELS.openRecentProject, request),
+  forgetRecentProject: (request: unknown) =>
+    ipcRenderer.invoke(CHANNELS.forgetRecentProject, request),
+  currentProject: () => ipcRenderer.invoke(CHANNELS.currentProject),
+  recentProjects: () => ipcRenderer.invoke(CHANNELS.recentProjects),
   reopenProject: () => ipcRenderer.invoke(CHANNELS.reopenProject),
   closeProject: () => ipcRenderer.invoke(CHANNELS.closeProject),
   readSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.readSheet, request),

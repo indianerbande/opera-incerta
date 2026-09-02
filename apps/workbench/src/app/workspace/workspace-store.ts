@@ -150,6 +150,21 @@ export class WorkspaceStore {
     return open !== null && open.writable && this.dirty();
   });
 
+  /**
+   * Adopts the project the main process already has open.
+   *
+   * The project window is created *because* a project was opened, so it finds
+   * one waiting rather than asking for it.
+   */
+  async adoptOpenProject(): Promise<void> {
+    await this.#withBridge(async (bridge) => {
+      const snapshot = unwrapSnapshot(await bridge.currentProject());
+      if (snapshot !== null) {
+        this.#adopt(snapshot);
+      }
+    });
+  }
+
   async openProject(): Promise<void> {
     await this.#withBridge(async (bridge) => {
       const snapshot = unwrapSnapshot(await bridge.openProject());

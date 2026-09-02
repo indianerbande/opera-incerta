@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseGitStatus } from '@opera-incerta/core';
 import type { BridgeResult, OperaIncertaBridge } from '@opera-incerta/desktop-contract';
 import { SourceControlStore } from '../src/app/workspace/source-control-store.js';
+import { baseBridge } from './fake-bridge.js';
 
 /** NUL-separated porcelain output, as git produces it. */
 function porcelain(...fields: readonly string[]): string {
@@ -33,13 +34,8 @@ function fakeBridge(
   };
 
   return {
+    ...baseBridge(),
     calls,
-    contractVersion: async () => 1,
-    openProject: async () => ({ ok: true, value: null }),
-    reopenProject: async () => ({ ok: true, value: null }),
-    closeProject: async () => ({ ok: true, value: null }),
-    readSheet: async () => ({ ok: true, value: '' }),
-    writeSheet: async () => ({ ok: true, value: null }),
     gitStatus: async () => (script.status ?? status)(),
     gitStage: async (request) => {
       calls.push(`stage:${request.paths.join(',')}`);

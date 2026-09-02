@@ -5,9 +5,10 @@
  * native dialogs, and menus. It never owns document semantics — those live in
  * the portable core.
  */
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdir, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
 import {
@@ -17,11 +18,16 @@ import {
   isDocumentHandle,
   isGitCommitRequest,
   isGitPathsRequest,
+  isRecentProjectRequest,
   isWriteSheetRequest,
   type BridgeResult,
+  type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
+import { projectDirectoryName } from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
+import { createProjectFilesystem } from '@opera-incerta/project-node';
 import { ProjectSession, ProjectSessionError } from './project-session.js';
+import { RecentProjectsFile } from './recent-projects-file.js';
 import {
   RENDERER_ENTRY_URL,
   RENDERER_SCHEME,
@@ -55,6 +61,12 @@ const SMOKE_RUN = process.env['OPERA_INCERTA_SMOKE'] === '1';
  */
 const smokeProjectPath = SMOKE_RUN ? prepareSmokeProject() : null;
 
+if (SMOKE_RUN) {
+  // The recent-projects list is installation-local state; a test run must not
+  // write into the author's.
+  app.setPath('userData', mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-userdata-')));
+}
+
 function prepareSmokeProject(): string {
   const source = join(currentDirectory, '..', '..', '..', 'examples', 'smoke-project');
   const destination = join(mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-')), 'smoke-project');
@@ -70,44 +82,143 @@ const WINDOW = {
   minHeight: 820,
 } as const;
 
-function createProjectWindow(): BrowserWindow {
-  const window = new BrowserWindow({
-    width: WINDOW.width,
-    height: WINDOW.height,
-    minWidth: WINDOW.minWidth,
-    minHeight: WINDOW.minHeight,
-    show: false,
-    webPreferences: {
-      preload: join(currentDirectory, 'preload.cjs'),
-      contextIsolation: true,
-      sandbox: true,
-      nodeIntegration: false,
-      webviewTag: false,
-    },
-  });
+/** The launcher is compact and not resizable into a workspace. SPEC.md §8.5. */
+const WELCOME_WINDOW = { width: 720, height: 460 } as const;
 
-  void window.loadURL(RENDERER_ENTRY_URL);
-  window.once('ready-to-show', () => {
-    window.show();
-    if (SMOKE_RUN) {
-      void runSmokeCheck(window);
-    }
-  });
+/**
+ * The two windows of SPEC.md §8.5, and the flag that keeps them from fighting
+ * during shutdown.
+ *
+ * Quitting closes the project window, and without this flag that close would
+ * re-open the welcome window mid-shutdown — after which closing *that* would
+ * quit a second time. The flag is set before any window begins closing, which
+ * is the only ordering that works.
+ */
+let welcomeWindow: BrowserWindow | null = null;
+let projectWindow: BrowserWindow | null = null;
+let isTerminating = false;
+let smokeStarted = false;
 
-  // Deny external navigation, new windows, permissions, and webviews.
+const windowRoles = new WeakMap<BrowserWindow, 'welcome' | 'project'>();
+
+function secureWebPreferences() {
+  return {
+    preload: join(currentDirectory, 'preload.cjs'),
+    contextIsolation: true,
+    sandbox: true,
+    nodeIntegration: false,
+    webviewTag: false,
+  } as const;
+}
+
+function harden(window: BrowserWindow): void {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event) => event.preventDefault());
   window.webContents.on('will-attach-webview', (event) => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => {
     callback(false);
   });
+}
+
+/** The launcher: recent projects, open, and new. SPEC.md §8.6. */
+function createWelcomeWindow(): BrowserWindow {
+  if (welcomeWindow !== null && !welcomeWindow.isDestroyed()) {
+    welcomeWindow.focus();
+    return welcomeWindow;
+  }
+
+  const window = new BrowserWindow({
+    width: WELCOME_WINDOW.width,
+    height: WELCOME_WINDOW.height,
+    resizable: false,
+    show: false,
+    title: 'Welcome to Opera Incerta',
+    webPreferences: secureWebPreferences(),
+  });
+  welcomeWindow = window;
+  windowRoles.set(window, 'welcome');
+
+  void window.loadURL(RENDERER_ENTRY_URL);
+  window.once('ready-to-show', () => {
+    window.show();
+    if (SMOKE_RUN && !smokeStarted) {
+      smokeStarted = true;
+      void runSmokeCheck(window);
+    }
+  });
+  harden(window);
+
+  window.on('closed', () => {
+    welcomeWindow = null;
+    // Closing the launcher with nothing open ends the session. During a quit
+    // the flag says so, and while a project window exists the launcher was
+    // dismissed by presentProject rather than by the author.
+    if (!isTerminating && projectWindow === null) {
+      app.quit();
+    }
+  });
 
   return window;
+}
+
+function createProjectWindow(): BrowserWindow {
+  if (projectWindow !== null && !projectWindow.isDestroyed()) {
+    projectWindow.focus();
+    return projectWindow;
+  }
+
+  const window = new BrowserWindow({
+    width: WINDOW.width,
+    height: WINDOW.height,
+    minWidth: WINDOW.minWidth,
+    minHeight: WINDOW.minHeight,
+    show: false,
+    webPreferences: secureWebPreferences(),
+  });
+  projectWindow = window;
+  windowRoles.set(window, 'project');
+
+  void window.loadURL(RENDERER_ENTRY_URL);
+  window.once('ready-to-show', () => window.show());
+
+  window.on('closed', () => {
+    projectWindow = null;
+    if (isTerminating) {
+      return;
+    }
+    // Every way of closing a project — the red button, the shortcut, a menu
+    // command — arrives here, so the reset and the launcher happen once and in
+    // one place (SPEC.md §8.5).
+    session.close();
+    createWelcomeWindow();
+  });
+
+  harden(window);
+  return window;
+}
+
+/**
+ * The one path from "a project is open" to "the workbench is showing".
+ *
+ * Every way of opening — the launcher's buttons, a recent entry, a menu
+ * command — ends here, so the transition cannot differ between them.
+ */
+function presentProject(): void {
+  createProjectWindow();
+  if (welcomeWindow !== null && !welcomeWindow.isDestroyed()) {
+    welcomeWindow.close();
+  }
 }
 
 ipcMain.handle(CHANNELS.contractVersion, () => CONTRACT_VERSION);
 
 const session = new ProjectSession();
+const recentProjects = new RecentProjectsFile(app.getPath('userData'));
+
+ipcMain.handle(CHANNELS.windowRole, (event) => {
+  const sender = BrowserWindow.fromWebContents(event.sender);
+  return sender === null ? 'welcome' : (windowRoles.get(sender) ?? 'welcome');
+});
 
 /**
  * Wraps a privileged handler.
@@ -147,9 +258,22 @@ function privileged<TRequest, TValue>(
 const acceptsNothing = (request: unknown): request is null =>
   request === undefined || request === null;
 
+/**
+ * Opens a project directory and shows the workbench.
+ *
+ * Recording it in the recent list and presenting the window happen here rather
+ * than in each caller, so no way of opening can forget either.
+ */
+async function openProjectAt(projectPath: string): Promise<ProjectSnapshot> {
+  const snapshot = await session.open(projectPath);
+  recentProjects.remember({ path: projectPath, displayName: snapshot.displayName });
+  presentProject();
+  return snapshot;
+}
+
 privileged(CHANNELS.openProject, acceptsNothing, async () => {
   if (smokeProjectPath !== null) {
-    return session.open(smokeProjectPath);
+    return openProjectAt(smokeProjectPath);
   }
 
   const chosen = await dialog.showOpenDialog({
@@ -157,8 +281,71 @@ privileged(CHANNELS.openProject, acceptsNothing, async () => {
     title: 'Open project',
   });
   const directory = chosen.canceled ? undefined : chosen.filePaths[0];
-  return directory === undefined ? null : await session.open(directory);
+  return directory === undefined ? null : await openProjectAt(directory);
 });
+
+privileged(CHANNELS.openRecentProject, isRecentProjectRequest, async (request) =>
+  openProjectAt(request.path),
+);
+
+/**
+ * Creates a project: a name, a parent directory, a slugged directory of its
+ * own. SPEC.md §6.1, §8.6.
+ */
+privileged(CHANNELS.createProject, acceptsNothing, async () => {
+  const chosen = await dialog.showOpenDialog({
+    properties: ['openDirectory', 'createDirectory'],
+    title: 'Where should the project live?',
+    buttonLabel: 'Create here',
+  });
+  const parent = chosen.canceled ? undefined : chosen.filePaths[0];
+  if (parent === undefined) {
+    return null;
+  }
+
+  const displayName = basename(parent);
+  const directoryName = projectDirectoryName(displayName, await readdir(parent));
+  const projectPath = join(parent, directoryName);
+
+  await mkdir(projectPath, { recursive: true });
+  await createProjectFilesystem().createProject(projectPath, displayName);
+  return openProjectAt(projectPath);
+});
+
+privileged(CHANNELS.currentProject, acceptsNothing, async () => session.reopen());
+
+/**
+ * The recent list, each entry checked against the disk.
+ *
+ * A project that has been moved or deleted stays in the list and is marked
+ * unavailable, so the author can remove it deliberately rather than finding it
+ * silently gone (SPEC.md §8.6).
+ */
+privileged(CHANNELS.recentProjects, acceptsNothing, async () => {
+  const filesystem = createProjectFilesystem();
+  const entries = [];
+  for (const project of recentProjects.read()) {
+    const inspection = await filesystem.inspectFolder(project.path);
+    entries.push({
+      path: project.path,
+      shortPath: abbreviatePath(project.path),
+      displayName: project.displayName,
+      available: inspection.kind === 'valid-project',
+    });
+  }
+  return entries;
+});
+
+privileged(CHANNELS.forgetRecentProject, isRecentProjectRequest, async (request) => {
+  recentProjects.forget(request.path);
+  return null;
+});
+
+/** `~` for the home directory, as every file dialog shows it. */
+function abbreviatePath(absolutePath: string): string {
+  const home = app.getPath('home');
+  return absolutePath.startsWith(home) ? `~${absolutePath.slice(home.length)}` : absolutePath;
+}
 
 privileged(CHANNELS.reopenProject, acceptsNothing, async () => session.reopen());
 
@@ -244,6 +431,14 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+/**
+ * Set before any window begins closing, so the close handlers know a quit is
+ * under way and stay passive. SPEC.md §8.5.
+ */
+app.on('before-quit', () => {
+  isTerminating = true;
+});
+
 void app.whenReady().then(() => {
   protocol.handle(RENDERER_SCHEME, async (request) => {
     const asset = resolveRendererAsset(RENDERER_ROOT, request.url);
@@ -253,13 +448,15 @@ void app.whenReady().then(() => {
     return net.fetch(pathToFileURL(asset).toString());
   });
 
-  createProjectWindow();
+  // The launcher is the start window; the workbench appears when a project
+  // does (SPEC.md §8.5).
+  createWelcomeWindow();
 
-  // macOS keeps the application active without windows and recreates one on
-  // activation; Windows and Linux quit. SPEC.md §8.5, CONVENTIONS.md C-P4.
+  // macOS keeps the application active without windows and brings the
+  // launcher back on activation; Windows and Linux quit.
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createProjectWindow();
+      createWelcomeWindow();
     }
   });
 });
@@ -271,23 +468,11 @@ app.on('window-all-closed', () => {
 });
 
 /**
- * Opens the project, selects a sheet, and checks that the library views show
- * it. SPEC.md §9.
+ * Checks that the library views show the project the launcher opened, and
+ * selects a sheet. SPEC.md §9.
  */
-async function openSmokeProject(window: BrowserWindow): Promise<void> {
-  const clicked = (await window.webContents.executeJavaScript(
-    `(() => {
-       const button = [...document.querySelectorAll('button')]
-         .find((candidate) => candidate.textContent.includes('Open project'));
-       if (button === undefined) { return false; }
-       button.click();
-       return true;
-     })()`,
-  )) as boolean;
-  if (!clicked) {
-    throw new Error('no "Open project" button in the navigator');
-  }
-  await new Promise((resolve) => setTimeout(resolve, 400));
+async function selectSmokeSheet(window: BrowserWindow): Promise<void> {
+  await waitForSelector(window, 'wi-sheet-list .row');
 
   const library = (await window.webContents.executeJavaScript(
     `(() => {
@@ -905,6 +1090,44 @@ async function checkPanes(window: BrowserWindow): Promise<void> {
   console.log('smoke ok: inspector, outline, sidebar collapse, and source control all work');
 }
 
+/**
+ * Closing the project returns to the launcher, with the project now in the
+ * recent list. SPEC.md §8.5, §8.6.
+ */
+async function checkReturnToLauncher(projectView: BrowserWindow): Promise<void> {
+  projectView.close();
+
+  let launcher: BrowserWindow | null = null;
+  for (let attempt = 0; attempt < 100 && launcher === null; attempt += 1) {
+    const candidate = welcomeWindow;
+    if (candidate !== null && !candidate.isDestroyed() && !candidate.webContents.isLoading()) {
+      launcher = candidate;
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+  if (launcher === null) {
+    throw new Error('closing the project did not bring the launcher back');
+  }
+
+  await waitForSelector(launcher, '.welcome .entry');
+  const recent = (await launcher.webContents.executeJavaScript(
+    `[...document.querySelectorAll('.welcome .entry')].map((entry) => ({
+       name: entry.querySelector('.name')?.textContent ?? null,
+       unavailable: entry.classList.contains('unavailable'),
+     }))`,
+  )) as Array<{ name: string | null; unavailable: boolean }>;
+
+  if (recent.length !== 1 || recent[0]?.name !== 'Smoke Project') {
+    throw new Error(`the recent list is wrong after closing: ${JSON.stringify(recent)}`);
+  }
+  if (recent[0]?.unavailable === true) {
+    throw new Error('the project it just closed is marked unavailable');
+  }
+
+  console.log('smoke ok: closing the project returned to the launcher, with it listed as recent');
+}
+
 /** Clicks an entry of the trailing activity bar by its accessible name. */
 async function activateSidebar(window: BrowserWindow, label: string): Promise<void> {
   const clicked = (await window.webContents.executeJavaScript(
@@ -922,20 +1145,121 @@ async function activateSidebar(window: BrowserWindow, label: string): Promise<vo
   await new Promise((resolve) => setTimeout(resolve, 250));
 }
 
-/**
- * Verifies the two things a shell smoke test can prove without a user: the
- * renderer rendered, and the versioned bridge answers through IPC.
- */
-async function runSmokeCheck(window: BrowserWindow): Promise<void> {
-  // A renderer-side error is otherwise invisible from here: the smoke would
-  // report only "script failed to execute" and leave the cause to guesswork.
+/** Renderer errors are otherwise invisible from here. */
+function forwardConsole(window: BrowserWindow): void {
   window.webContents.on('console-message', (details) => {
     if (details.level === 'error' || details.level === 'warning') {
       console.error(`renderer ${details.level}: ${details.message}`);
     }
   });
+}
+
+/**
+ * The launcher, and the transition to the workbench. SPEC.md §8.5, §8.6.
+ *
+ * Returns the project window, which every later check runs against.
+ */
+async function checkLauncherAndOpen(launcher: BrowserWindow): Promise<BrowserWindow> {
+  // `ready-to-show` fires before the renderer has asked which window it is and
+  // loaded the matching component, so the element is waited for rather than
+  // assumed.
+  await waitForSelector(launcher, '.welcome .actions button');
+
+  const welcome = (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const root = document.querySelector('wi-root .welcome');
+       if (root === null) { return null; }
+       return {
+         heading: root.querySelector('h1')?.textContent ?? null,
+         buttons: [...root.querySelectorAll('.actions button')].map((b) => b.textContent.trim()),
+         entries: root.querySelectorAll('.entry').length,
+         hint: root.querySelector('.hint')?.textContent ?? null,
+       };
+     })()`,
+  )) as { heading: string | null; buttons: string[]; entries: number; hint: string | null } | null;
+
+  if (welcome === null) {
+    throw new Error('the launcher did not render');
+  }
+  if (welcome.heading !== 'Opera Incerta') {
+    throw new Error(`unexpected launcher heading: ${JSON.stringify(welcome.heading)}`);
+  }
+  if (welcome.buttons.length !== 2) {
+    throw new Error(`the launcher must offer open and new: ${JSON.stringify(welcome.buttons)}`);
+  }
+  // Fresh user data, so nothing has been opened yet.
+  if (welcome.entries !== 0 || welcome.hint === null) {
+    throw new Error(`expected an empty recent list: ${JSON.stringify(welcome)}`);
+  }
+
+  const clicked = (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('.actions button')]
+         .find((candidate) => candidate.textContent.includes('Open project'));
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error('no "Open project" button in the launcher');
+  }
+
+  const window = await waitForProjectWindow();
+  await waitForSelector(window, 'wi-root .workbench');
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  if (welcomeWindow !== null && !welcomeWindow.isDestroyed()) {
+    throw new Error('the launcher stayed open after the project appeared');
+  }
+
+  console.log('smoke ok: launcher opened a project and gave way to the workbench');
+  return window;
+}
+
+/** Waits until a selector matches, or fails saying what was expected. */
+async function waitForSelector(
+  window: BrowserWindow,
+  selector: string,
+  attempts = 100,
+): Promise<void> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const found = (await window.webContents.executeJavaScript(
+      `document.querySelector(${JSON.stringify(selector)}) !== null`,
+    )) as boolean;
+    if (found) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`nothing matched ${selector} after waiting`);
+}
+
+/** Waits for the project window to exist and finish loading. */
+async function waitForProjectWindow(): Promise<BrowserWindow> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const window = projectWindow;
+    if (window !== null && !window.isDestroyed() && !window.webContents.isLoading()) {
+      return window;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error('the project window never appeared');
+}
+
+/**
+ * Verifies the two things a shell smoke test can prove without a user: the
+ * renderer rendered, and the versioned bridge answers through IPC.
+ */
+async function runSmokeCheck(launcher: BrowserWindow): Promise<void> {
+  // A renderer-side error is otherwise invisible from here: the smoke would
+  // report only "script failed to execute" and leave the cause to guesswork.
+  forwardConsole(launcher);
 
   try {
+    const window = await checkLauncherAndOpen(launcher);
+    forwardConsole(window);
+
     const shell = (await window.webContents.executeJavaScript(
       `(() => {
          const workbench = document.querySelector('wi-root .workbench');
@@ -969,7 +1293,7 @@ async function runSmokeCheck(window: BrowserWindow): Promise<void> {
     // The editor is the part most likely to render as an empty box, so the
     // smoke asks for evidence that it laid out: a heading line taller than
     // body text, a gutter marker beside it, and no visible `#` prefix.
-    await openSmokeProject(window);
+    await selectSmokeSheet(window);
 
     const editor = (await window.webContents.executeJavaScript(
       `(() => {
@@ -1040,6 +1364,9 @@ async function runSmokeCheck(window: BrowserWindow): Promise<void> {
         `over body ${editor.bodyHeight}px, ${editor.markers} gutter markers`,
     );
     console.log(`smoke evidence: ${evidencePath}`);
+
+    // Last, because it closes the window everything else needed.
+    await checkReturnToLauncher(window);
     app.exit(0);
   } catch (error: unknown) {
     console.error('smoke failed:', error);

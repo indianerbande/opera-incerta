@@ -6,6 +6,57 @@ documents").
 
 ---
 
+## 2026-09-02 — the welcome window and the two-window model
+
+**What exists.** The launcher of `SPEC.md` §8.5 and §8.6: recent projects with
+their abbreviated paths, open, new, and the choreography between the two
+windows.
+
+- **One path per transition.** Every way of opening — the launcher's button, a
+  recent entry, creating one — ends in the same function, which records the
+  entry in the recent list and presents the workbench. No caller can forget
+  either half.
+- **Closing runs through the window's own close event**, so the red button, the
+  shortcut, and a future menu command all reset the session and bring the
+  launcher back through one path.
+- **The quit guard.** A flag is set before any window begins closing, because
+  quitting closes the project window and that close would otherwise re-open the
+  launcher mid-shutdown — after which closing *that* would quit a second time.
+- **One bundle, two windows.** Both load the same renderer and ask the main
+  process which they are. The role does not come from a query string, which the
+  page itself could change.
+- **A missing project stays listed**, marked unavailable, and says so when
+  clicked. Availability is checked when the list is shown rather than when it
+  is stored, so removing an entry stays the author's decision.
+- **The recent list lives in the user-data directory** — installation-local,
+  never synchronized. A list that cannot be written is a lost convenience, not
+  a reason to interrupt.
+
+**Verification.** `pnpm run check` green: **430 tests** plus the desktop and
+asset checks. The smoke now runs ten checks and follows the whole
+choreography: it starts at the launcher, confirms an empty recent list, opens
+the project, confirms the launcher gave way to the workbench, does everything
+it did before, and finally closes the project to confirm the launcher returns
+with that project listed and available. It runs against its own temporary
+user-data directory, so a test never writes into the author's list.
+
+**Three findings while building it.**
+
+1. **Angular could not find its root element.** The launcher component had its
+   own selector, and the document holds one. Both components now share
+   `wi-root`, because only one is ever bootstrapped into it.
+2. **`ready-to-show` fires before the renderer knows what it is.** It has to
+   ask the main process and load a component first, so the smoke waits for the
+   element rather than assuming it. That wait is now a helper, used at both
+   window transitions.
+3. **Every new bridge channel broke two test doubles at once.** Each test file
+   carried its own complete fake. They now share one exhaustive base, so a
+   forgotten channel fails to compile in one place instead of two — the
+   shared-detail rule applies to test doubles as much as to panel headers
+   (`CONVENTIONS.md` C-U7).
+
+---
+
 ## 2026-09-02 — the remaining panes, and Material Symbols
 
 **What exists.** Every pane of `SPEC.md` §8: the inspector, the outline, source

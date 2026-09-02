@@ -24,7 +24,13 @@ export const BRIDGE_GLOBAL = 'operaIncerta';
  */
 export const CHANNELS = {
   contractVersion: 'opera-incerta:contract-version',
+  windowRole: 'opera-incerta:window/role',
   openProject: 'opera-incerta:project/open',
+  createProject: 'opera-incerta:project/create',
+  openRecentProject: 'opera-incerta:project/open-recent',
+  currentProject: 'opera-incerta:project/current',
+  recentProjects: 'opera-incerta:project/recent',
+  forgetRecentProject: 'opera-incerta:project/forget-recent',
   reopenProject: 'opera-incerta:project/reopen',
   closeProject: 'opera-incerta:project/close',
   readSheet: 'opera-incerta:sheet/read',
@@ -107,6 +113,38 @@ export interface ProjectSnapshot {
   readonly library: unknown;
   /** Relative sheet path to handle id. */
   readonly handles: Readonly<Record<string, string>>;
+}
+
+/**
+ * Which window the renderer is running in. SPEC.md §8.5.
+ *
+ * The welcome window is the launcher; the project window is the workbench.
+ * They share one bundle and ask which they are rather than being told by a
+ * query string the page could rewrite.
+ */
+export type WindowRole = 'welcome' | 'project';
+
+/** One entry of the recent-projects list. SPEC.md §8.6. */
+export interface RecentProjectEntry {
+  readonly path: string;
+  /** Abbreviated for display; the full path stays with the main process. */
+  readonly shortPath: string;
+  readonly displayName: string;
+  /** False when the directory is gone or is no longer a project. */
+  readonly available: boolean;
+}
+
+/** A request naming a recent project by its path. */
+export interface RecentProjectRequest {
+  readonly path: string;
+}
+
+export function isRecentProjectRequest(value: unknown): value is RecentProjectRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<RecentProjectRequest>;
+  return typeof candidate.path === 'string' && candidate.path !== '';
 }
 
 /** A request that carries only a handle. */
@@ -223,6 +261,17 @@ export function isGitCommitRequest(value: unknown): value is GitCommitRequest {
  */
 export interface OperaIncertaBridge {
   contractVersion(): Promise<number>;
+  /** Which window this renderer is. */
+  windowRole(): Promise<WindowRole>;
+  /** The project already open, for a project window that has just loaded. */
+  currentProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
+  recentProjects(): Promise<BridgeResult<readonly RecentProjectEntry[]>>;
+  /** Opens a project from the recent list, by path. */
+  openRecentProject(request: RecentProjectRequest): Promise<BridgeResult<ProjectSnapshot | null>>;
+  /** Removes an entry from the recent list without touching the directory. */
+  forgetRecentProject(request: RecentProjectRequest): Promise<BridgeResult<null>>;
+  /** Asks for a name and a location, then creates and opens the project. */
+  createProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   /** Opens the native directory chooser. Resolves to null when cancelled. */
   openProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   /** Re-reads the open project from disk, after an external change. */

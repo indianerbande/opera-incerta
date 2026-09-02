@@ -57,9 +57,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
 
       <section class="navigator" [style.width.px]="navigatorWidth()">
         <wi-panel-header [verbatimTitle]="store.project()?.displayName ?? null">
-          @if (store.project() === null) {
-            <button type="button" (click)="store.openProject()">Open project…</button>
-          } @else if (layout.navigatorView() === 'sourceControl') {
+          @if (layout.navigatorView() === 'sourceControl') {
             <button type="button" (click)="sourceControl.refresh()" title="Refresh">↻</button>
           } @else {
             <button type="button" (click)="store.reloadProject()" title="Reload from disk">↻</button>
@@ -279,6 +277,9 @@ export class AppComponent {
   private readonly editor = viewChild<EditorComponent>('editor');
 
   constructor() {
+    // The window exists because a project was opened; it finds it waiting.
+    void this.store.adoptOpenProject();
+
     // Source control reads when its view is shown, and after a save: both are
     // moments when what git reports has just changed.
     effect(() => {
