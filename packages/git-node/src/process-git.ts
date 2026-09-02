@@ -21,7 +21,14 @@ export interface GitCommandRunner {
   run(args: readonly string[], cwd: string): Promise<GitCommandResult>;
 }
 
-/** A failed Git invocation, carrying Git's own message unchanged. */
+/**
+ * A failed Git invocation, carrying Git's own message unchanged.
+ *
+ * The `message` **is** what Git wrote, because that is what reaches the author
+ * (SPEC.md §12): "does not appear to be a git repository" tells them what to
+ * do, while a summary of the exit code tells them nothing. The summary is the
+ * fallback for a command that failed without saying anything.
+ */
 export class GitError extends Error {
   readonly code = 'git/command-failed';
   readonly args: readonly string[];
@@ -29,7 +36,9 @@ export class GitError extends Error {
   readonly stderr: string;
 
   constructor(args: readonly string[], result: GitCommandResult) {
-    super(`git ${args.join(' ')} failed with ${result.exitCode}`);
+    super(result.stderr.trim() === ''
+      ? `git ${args.join(' ')} failed with ${result.exitCode}`
+      : result.stderr.trim());
     this.name = 'GitError';
     this.args = args;
     this.exitCode = result.exitCode;

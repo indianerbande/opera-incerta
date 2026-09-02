@@ -114,6 +114,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [entries]="sourceControl.entries()"
             [selectAll]="sourceControl.selectAll()"
             [message]="sourceControl.message()"
+            [failure]="sourceControl.failure()"
             [canCommit]="sourceControl.canCommit()"
             [root]="sourceControl.repositoryRoot()"
             [loaded]="sourceControl.loaded()"

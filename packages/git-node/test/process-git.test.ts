@@ -214,3 +214,21 @@ describe('against a real repository', () => {
     });
   });
 });
+
+describe('what a failure says', () => {
+  it('is what Git wrote, because that is what tells the author what to do', () => {
+    const error = new GitError(['push'], {
+      exitCode: 128,
+      stdout: '',
+      stderr: "fatal: No configured push destination.\n",
+    });
+
+    expect(error.message).toBe('fatal: No configured push destination.');
+    expect(error.code).toBe('git/command-failed');
+  });
+
+  it('falls back to a summary when Git said nothing at all', () => {
+    const error = new GitError(['status'], { exitCode: 3, stdout: '', stderr: '  ' });
+    expect(error.message).toBe('git status failed with 3');
+  });
+});

@@ -60,6 +60,10 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
           (input)="messageChange.emit(value($event))"
         ></textarea>
 
+        @if (failure(); as reason) {
+          <p class="failure" role="alert">{{ reason }}</p>
+        }
+
         <div class="actions">
           <button type="button" [disabled]="!canCommit()" (click)="commit.emit()">Commit</button>
           <button type="button" [disabled]="!canCommit()" (click)="commitAndPush.emit()">
@@ -70,6 +74,16 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
     }
   `,
   styles: `
+    .failure {
+      margin: 0;
+      padding: 4px 6px;
+      border-radius: 4px;
+      background: rgba(190, 90, 90, 0.18);
+      color: rgba(150, 60, 60, 0.95);
+      /* Git output is tool output: shown as it came (SPEC.md §12, §14.2). */
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
     :host {
       display: flex;
       overflow: hidden;
@@ -164,6 +178,8 @@ export class SourceControlComponent {
   readonly entries = input.required<readonly GitFileStatus[]>();
   readonly selectAll = input.required<SelectAllState>();
   readonly message = input.required<string>();
+  /** What the last Git action reported, if it failed. SPEC.md §12. */
+  readonly failure = input<string | null>(null);
   readonly canCommit = input.required<boolean>();
   readonly root = input.required<string | null>();
   readonly loaded = input.required<boolean>();

@@ -86,7 +86,7 @@ describe('reading status', () => {
     );
     await store.refresh();
 
-    expect(store.failure()).toBe('git/command-failed');
+    expect(store.failure()).toBe('boom');
   });
 });
 
@@ -195,7 +195,7 @@ describe('committing', () => {
     expect(bridge.calls).toContain('commit:Add chapter');
     expect(bridge.calls).toContain('push');
     expect(store.message()).toBe('');
-    expect(store.failure()).toBe('git/command-failed');
+    expect(store.failure()).toBe('no upstream');
   });
 
   it('does not push when the commit itself failed', async () => {
@@ -209,7 +209,7 @@ describe('committing', () => {
     await store.commitAndPush();
 
     expect(bridge.calls).not.toContain('push');
-    expect(store.failure()).toBe('git/command-failed');
+    expect(store.failure()).toBe('nothing to commit');
   });
 });
 

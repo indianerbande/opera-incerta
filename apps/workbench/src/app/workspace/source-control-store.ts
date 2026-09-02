@@ -138,7 +138,7 @@ export class SourceControlStore {
       this.#loaded.set(true);
       this.#failure.set(null);
     } catch (error: unknown) {
-      this.#failure.set(codeOf(error));
+      this.#failure.set(reasonOf(error));
       this.#loaded.set(true);
     }
   }
@@ -156,7 +156,7 @@ export class SourceControlStore {
         await operation(bridge);
         return { code: null };
       } catch (error: unknown) {
-        return { code: codeOf(error) };
+        return { code: reasonOf(error) };
       }
     });
 
@@ -181,8 +181,22 @@ export class SourceControlStore {
   }
 }
 
-function codeOf(error: unknown): string {
-  return typeof error === 'object' && error !== null && 'code' in error
-    ? String((error as { code: unknown }).code)
-    : 'git/failed';
+/**
+ * What to show the author when a Git action failed.
+ *
+ * **Git's own message, where there is one** (SPEC.md §12): "does not appear to
+ * be a git repository" tells the author what to do, and `git/command-failed`
+ * tells them nothing. The code is the fallback, and it is what the codes
+ * outside Git — a missing bridge, a busy guard — already are.
+ */
+function reasonOf(error: unknown): string {
+  if (typeof error !== 'object' || error === null) {
+    return 'git/failed';
+  }
+  const candidate = error as { message?: unknown; code?: unknown };
+  const message = typeof candidate.message === 'string' ? candidate.message.trim() : '';
+  if (message !== '') {
+    return message;
+  }
+  return 'code' in candidate ? String(candidate.code) : 'git/failed';
 }

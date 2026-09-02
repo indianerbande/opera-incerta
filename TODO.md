@@ -73,9 +73,12 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   exists and persists the workbench layout; what is missing is the category
   panel that lets the author change the rest of it, and the English/German
   catalogues.
-- **Source control interface** — the adapter is complete; the panel, the
-  tri-state select-all, "show diff", and the destructive "discard changes" with
-  its confirmation prompt are user interface (`SPEC.md` §12, §18).
+- **Source control beyond the committed slice** — the panel, the tri-state
+  select-all, committing and pushing are built and checked against a real
+  repository. What `SPEC.md` §12 lists as *not* goals of this stage is still
+  open and each needs its own round: "show diff", the destructive "discard
+  changes" with its prompt, pull and fetch, upstream creation, and branches.
+  The live watcher of §12 waits on the dependency decision in §2.2.
 - **A watcher to trigger the conflict rule** — the rule itself is built and
   runs on every re-read (`SPEC.md` §10.6): compare against the loaded baseline,
   reload silently when nothing was typed, ask when something was. What is

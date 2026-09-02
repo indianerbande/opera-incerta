@@ -5,6 +5,7 @@
  * native dialogs, and menus. It never owns document semantics — those live in
  * the portable core.
  */
+import { execFileSync } from 'node:child_process';
 import {
   cpSync,
   existsSync,
@@ -119,7 +120,22 @@ function prepareSmokeProject(): string {
   const source = join(currentDirectory, '..', '..', '..', 'examples', 'smoke-project');
   const destination = join(mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-')), 'smoke-project');
   cpSync(source, destination, { recursive: true });
+
+  // A real repository, so source control has something true to report. It is
+  // left without a commit on purpose: that is the state a freshly created
+  // project is in, and the one where unstaging cannot resolve against HEAD
+  // (SPEC.md §12). Identity and signing are set locally, so the check never
+  // depends on — or trips over — how the machine is configured.
+  runGit(destination, ['init', '-b', 'main']);
+  runGit(destination, ['config', 'user.email', 'smoke@opera-incerta.invalid']);
+  runGit(destination, ['config', 'user.name', 'Opera Incerta Smoke']);
+  runGit(destination, ['config', 'commit.gpgsign', 'false']);
   return destination;
+}
+
+/** Runs git in the smoke project and returns its output. */
+function runGit(projectPath: string, argv: readonly string[]): string {
+  return execFileSync('git', [...argv], { cwd: projectPath, encoding: 'utf8' });
 }
 
 /** Project window geometry. SPEC.md §8.2. */
@@ -1513,15 +1529,132 @@ async function checkPanes(window: BrowserWindow): Promise<void> {
   if (sourceControl === null) {
     throw new Error('the source control panel did not render');
   }
-  // The smoke project is a copy in a temporary directory, so it is not inside
-  // a repository — which the panel must state rather than fail on.
-  if (sourceControl.hasChangeList || !sourceControl.text.includes('not inside a Git repository')) {
-    throw new Error(`unexpected source control state: ${JSON.stringify(sourceControl)}`);
+  if (!sourceControl.hasChangeList) {
+    throw new Error(`the source control panel lists no changes: ${JSON.stringify(sourceControl)}`);
   }
 
   console.log('smoke ok: inspector, outline, sidebar collapse, and source control all work');
+  await checkCommitting(window);
   checkMenuState();
   await checkColumnDragging(window);
+}
+
+/**
+ * Checks the commit model of `SPEC.md` §12 against a real repository: stage
+ * everything in one batch, unstage one file where there is no `HEAD` to
+ * resolve against, commit, and surface a failing push without losing the
+ * commit.
+ */
+async function checkCommitting(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  const before = (await window.webContents.executeJavaScript(
+    "document.querySelectorAll('wi-source-control .change').length",
+  )) as number;
+  if (before < 2) {
+    throw new Error(`a fresh repository should list its files, found ${String(before)}`);
+  }
+
+  // Everything at once, through the tri-state header — one batch, one guard.
+  await clickSourceControl(window, '.changes-header input');
+  const staged = runGit(smokeProjectPath, ['diff', '--cached', '--name-only']).trim().split('\n');
+  if (staged.length < 2) {
+    throw new Error(`staging all left ${JSON.stringify(staged)} in the index`);
+  }
+
+  // One back out again. Without a commit there is no HEAD to restore against,
+  // which is exactly the case §12 calls out.
+  const removed = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-source-control .change')]
+         .find((candidate) => candidate.textContent.includes('opening.md'));
+       const box = row?.querySelector('input');
+       if (box === null || box === undefined) { return null; }
+       box.click();
+       return row.textContent.trim();
+     })()`,
+  )) as string | null;
+  if (removed === null) {
+    throw new Error('no row for opening.md to unstage');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 700));
+  if (runGit(smokeProjectPath, ['diff', '--cached', '--name-only']).includes('opening.md')) {
+    throw new Error('unstaging without a HEAD left the file in the index');
+  }
+
+  await fillCommitMessage(window, 'The first commit, from the smoke');
+  await clickText(window, 'wi-source-control button', 'Commit');
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  const log = runGit(smokeProjectPath, ['log', '--oneline']).trim();
+  if (!log.includes('The first commit, from the smoke')) {
+    throw new Error(`nothing was committed: ${JSON.stringify(log)}`);
+  }
+  const committed = runGit(smokeProjectPath, ['show', '--name-only', '--format=', 'HEAD']);
+  if (committed.includes('opening.md')) {
+    throw new Error('the file that was unstaged went into the commit anyway');
+  }
+
+  // A push with no remote must surface the error and keep the commit.
+  await clickSourceControl(window, '.changes-header input');
+  await fillCommitMessage(window, 'The second commit, which cannot be pushed');
+  await clickText(window, 'wi-source-control button', 'Commit and push');
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  const after = runGit(smokeProjectPath, ['log', '--oneline']).trim().split('\n');
+  if (after.length !== 2) {
+    throw new Error(`the commit did not stand through a failed push: ${JSON.stringify(after)}`);
+  }
+  const reported = (await window.webContents.executeJavaScript(
+    "document.querySelector('wi-source-control .failure, .failure')?.textContent?.trim() ?? null",
+  )) as string | null;
+  if (reported === null || reported === '') {
+    throw new Error('a failed push reported nothing');
+  }
+  // Git's own words, not our code for them: "no configured push destination"
+  // tells the author what to do (SPEC.md §12).
+  if (!reported.toLowerCase().includes('git') && !reported.toLowerCase().includes('remote')) {
+    throw new Error(`a failed push reported a code rather than a reason: ${reported}`);
+  }
+
+  console.log(
+    'smoke ok: staged in one batch, unstaged without a HEAD, committed, and a push with no ' +
+      `remote kept the commit and said why (${reported.slice(0, 40)})`,
+  );
+}
+
+/** Clicks one control inside the source control panel. */
+async function clickSourceControl(window: BrowserWindow, selector: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const element = document.querySelector('wi-source-control ' + ${JSON.stringify(selector)});
+       if (element === null) { return false; }
+       element.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`nothing to click at ${selector}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 900));
+}
+
+async function fillCommitMessage(window: BrowserWindow, message: string): Promise<void> {
+  const filled = (await window.webContents.executeJavaScript(
+    `(() => {
+       const field = document.querySelector('wi-source-control textarea.message');
+       if (field === null) { return false; }
+       field.value = ${JSON.stringify(message)};
+       field.dispatchEvent(new Event('input', { bubbles: true }));
+       return true;
+     })()`,
+  )) as boolean;
+  if (!filled) {
+    throw new Error('no commit message field');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 200));
 }
 
 /**

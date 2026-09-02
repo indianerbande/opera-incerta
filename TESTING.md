@@ -294,6 +294,15 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- the commit model of `SPEC.md` §12 against a **real repository**: the smoke
+  project is `git init`-ed without a commit, which is the state a freshly
+  created project is in. Everything is staged in one batch through the
+  tri-state header, one file is unstaged where there is no `HEAD` to resolve
+  against, the commit is read back with `git log` and its contents with
+  `git show`, and a push without a remote is confirmed to keep the commit and
+  to report **Git's own words** rather than a code. Identity and signing are
+  configured locally in the fixture, so the check neither depends on nor trips
+  over how the machine is set up;
 - page categories end to end (`SPEC.md` §6.6): defined in the manager and
   found in `categories.json`, assigned in the Inspector, shown at once as a
   badge in the sheet list, and written into the sheet on save. The badge's text
