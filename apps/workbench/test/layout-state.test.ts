@@ -1,7 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { LayoutState, NAVIGATOR_ITEMS, SECONDARY_ITEMS } from '../src/app/shell/layout-state.js';
+import { COLUMN_BOUNDS, COLUMN_IDEAL_WIDTH, DEFAULT_PREFERENCES } from '@opera-incerta/core';
+import type { OperaIncertaBridge } from '@opera-incerta/desktop-contract';
+import {
+  LayoutState,
+  NAVIGATOR_ITEMS,
+  SECONDARY_ITEMS,
+} from '../src/app/shell/layout-state.js';
+import { baseBridge } from './fake-bridge.js';
 
-describe('LayoutState', () => {
+/** A bridge that records what was stored and can hand back a record. */
+function storingBridge(stored: unknown = null): OperaIncertaBridge & { written: unknown[] } {
+  const written: unknown[] = [];
+  return {
+    ...baseBridge(),
+    written,
+    readPreferences: async () => ({ ok: true, value: stored }),
+    writePreferences: async (record) => {
+      written.push(record);
+      return { ok: true, value: null };
+    },
+  };
+}
+
+describe('regions', () => {
   it('starts on the explorer and the inspector, with the sidebar open', () => {
     const layout = new LayoutState();
 
@@ -10,44 +31,152 @@ describe('LayoutState', () => {
     expect(layout.secondaryVisible()).toBe(true);
   });
 
-  it('switches the navigator between its views', () => {
+  it('switches the navigator and ignores an unknown view', () => {
     const layout = new LayoutState();
     layout.showNavigator('sourceControl');
+    expect(layout.navigatorView()).toBe('sourceControl');
 
+    layout.showNavigator('nonsense');
     expect(layout.navigatorView()).toBe('sourceControl');
   });
 
-  it('ignores a view name it does not know', () => {
-    const layout = new LayoutState();
-    layout.showNavigator('nonsense');
-
-    expect(layout.navigatorView()).toBe('explorer');
-  });
-
-  it('collapses the sidebar when its visible view is activated again', () => {
+  it('collapses when the visible view is activated again, and reopens elsewhere', () => {
     const layout = new LayoutState();
     layout.showSecondary('inspector');
-
     expect(layout.secondaryVisible()).toBe(false);
     expect(layout.activeSecondaryId()).toBeNull();
-  });
 
-  it('reopens on the chosen view after being collapsed', () => {
-    const layout = new LayoutState();
-    layout.showSecondary('inspector');
     layout.showSecondary('outline');
-
     expect(layout.secondaryVisible()).toBe(true);
     expect(layout.secondaryView()).toBe('outline');
-    expect(layout.activeSecondaryId()).toBe('outline');
+  });
+});
+
+describe('column widths', () => {
+  it('starts every column at its ideal width', () => {
+    expect(new LayoutState().columnWidths()).toEqual(DEFAULT_PREFERENCES.columnWidths);
   });
 
-  it('switches between views without collapsing', () => {
+  it('widens and narrows by the reported pixels', () => {
     const layout = new LayoutState();
+    layout.resizeColumn('navigator', 30);
+    expect(layout.columnWidths().navigator).toBe(COLUMN_IDEAL_WIDTH.navigator + 30);
+
+    layout.resizeColumn('navigator', -10);
+    expect(layout.columnWidths().navigator).toBe(COLUMN_IDEAL_WIDTH.navigator + 20);
+  });
+
+  it('clamps at both bounds rather than following the pointer past them', () => {
+    const layout = new LayoutState();
+    layout.resizeColumn('navigator', 10_000);
+    expect(layout.columnWidths().navigator).toBe(COLUMN_BOUNDS.navigator.max);
+
+    layout.resizeColumn('navigator', -10_000);
+    expect(layout.columnWidths().navigator).toBe(COLUMN_BOUNDS.navigator.min);
+  });
+
+  it('moves only the column being dragged', () => {
+    const layout = new LayoutState();
+    layout.resizeColumn('sheetList', 40);
+
+    expect(layout.columnWidths().navigator).toBe(COLUMN_IDEAL_WIDTH.navigator);
+    expect(layout.columnWidths().secondarySidebar).toBe(COLUMN_IDEAL_WIDTH.secondarySidebar);
+  });
+
+  it('restores the ideal width on reset', () => {
+    const layout = new LayoutState();
+    layout.resizeColumn('sheetList', 50);
+    layout.resetColumn('sheetList');
+
+    expect(layout.columnWidths().sheetList).toBe(COLUMN_IDEAL_WIDTH.sheetList);
+  });
+
+  it('does not store a drag that changed nothing', async () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    layout.resizeColumn('navigator', -10_000);
+    const afterClamp = bridge.written.length;
+
+    layout.resizeColumn('navigator', -50);
+    expect(bridge.written).toHaveLength(afterClamp);
+  });
+
+  it('never lets a view switch move a column', () => {
+    // The regression this guards (CONVENTIONS.md C-U1).
+    const layout = new LayoutState();
+    layout.resizeColumn('navigator', 25);
+    const width = layout.columnWidths().navigator;
+
+    layout.showNavigator('sourceControl');
+    layout.showSecondary('outline');
     layout.showSecondary('outline');
 
-    expect(layout.secondaryVisible()).toBe(true);
+    expect(layout.columnWidths().navigator).toBe(width);
+  });
+});
+
+describe('persistence', () => {
+  it('stores the whole record on every change', async () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    layout.resizeColumn('navigator', 20);
+
+    expect(bridge.written).toHaveLength(1);
+    expect(bridge.written[0]).toMatchObject({
+      columnWidths: { navigator: COLUMN_IDEAL_WIDTH.navigator + 20 },
+      navigatorView: 'explorer',
+    });
+  });
+
+  it('applies a stored record on load', async () => {
+    const layout = new LayoutState(
+      storingBridge({
+        columnWidths: { navigator: 200, sheetList: 300, secondarySidebar: 210 },
+        secondaryView: 'outline',
+        secondaryVisible: false,
+        sheetListDensity: 'large',
+      }),
+    );
+    await layout.load();
+
+    expect(layout.columnWidths().navigator).toBe(200);
     expect(layout.secondaryView()).toBe('outline');
+    expect(layout.secondaryVisible()).toBe(false);
+    expect(layout.sheetListDensity()).toBe('large');
+  });
+
+  it('clamps a stored width that no longer fits its bounds', async () => {
+    const layout = new LayoutState(storingBridge({ columnWidths: { navigator: 9999 } }));
+    await layout.load();
+
+    expect(layout.columnWidths().navigator).toBe(COLUMN_BOUNDS.navigator.max);
+  });
+
+  it('keeps its defaults when nothing is stored', async () => {
+    const layout = new LayoutState(storingBridge(null));
+    await layout.load();
+
+    expect(layout.columnWidths()).toEqual(DEFAULT_PREFERENCES.columnWidths);
+  });
+
+  it('survives a bridge that cannot store, without interrupting', () => {
+    const layout = new LayoutState({
+      ...baseBridge(),
+      writePreferences: async () => {
+        throw new Error('disk full');
+      },
+    });
+
+    expect(() => layout.resizeColumn('navigator', 10)).not.toThrow();
+    expect(layout.columnWidths().navigator).toBe(COLUMN_IDEAL_WIDTH.navigator + 10);
+  });
+
+  it('works without a bridge at all', async () => {
+    const layout = new LayoutState(null);
+    await layout.load();
+    layout.resizeColumn('navigator', 10);
+
+    expect(layout.columnWidths().navigator).toBe(COLUMN_IDEAL_WIDTH.navigator + 10);
   });
 });
 
@@ -62,16 +191,14 @@ describe('the activity bar inventories', () => {
     ]);
   });
 
-  it('gives every entry an accessible name, because the icon is decorative', () => {
+  it('gives every entry an accessible name and its own icon', () => {
+    const icons = [...NAVIGATOR_ITEMS, ...SECONDARY_ITEMS].map((item) => item.icon);
+    expect(new Set(icons).size).toBe(icons.length);
+
     for (const item of [...NAVIGATOR_ITEMS, ...SECONDARY_ITEMS]) {
       expect(item.label.length).toBeGreaterThan(2);
       expect(item.icon.startsWith('icon-')).toBe(true);
     }
-  });
-
-  it('gives every entry its own icon', () => {
-    const icons = [...NAVIGATOR_ITEMS, ...SECONDARY_ITEMS].map((item) => item.icon);
-    expect(new Set(icons).size).toBe(icons.length);
   });
 
   it('offers no entry that merely toggles a region, which would name a position', () => {

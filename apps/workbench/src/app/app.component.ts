@@ -7,7 +7,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { COLUMN_IDEAL_WIDTH, type PreviewDensity } from '@opera-incerta/core';
+
 import { EditorComponent } from './editor/editor.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
 import {
@@ -22,6 +22,7 @@ import {
   SECONDARY_ITEMS,
 } from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
+import { ResizeDividerComponent } from './shell/resize-divider.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
 import { OutlineComponent } from './sidebar/outline.component.js';
 import { resolveBridge } from './workspace/bridge.js';
@@ -46,6 +47,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     InspectorComponent,
     OutlineComponent,
     PanelHeaderComponent,
+    ResizeDividerComponent,
     SheetListComponent,
     SourceControlComponent,
   ],
@@ -60,7 +62,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         (activate)="layout.showNavigator($event)"
       />
 
-      <section class="navigator" [style.width.px]="navigatorWidth()">
+      <section class="navigator" [style.width.px]="layout.columnWidths().navigator">
         <wi-panel-header [verbatimTitle]="store.project()?.displayName ?? null">
           @if (layout.navigatorView() === 'sourceControl') {
             <button type="button" (click)="sourceControl.refresh()" title="Refresh">↻</button>
@@ -100,14 +102,22 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         }
       </section>
 
-      <section class="sheet-list" [style.width.px]="sheetListWidth()">
+      <wi-resize-divider
+        (resize)="layout.resizeColumn('navigator', $event)"
+        (reset)="layout.resetColumn('navigator')"
+      />
+
+      <section class="sheet-list" [style.width.px]="layout.columnWidths().sheetList">
         <wi-panel-header>
-          <wi-density-switch [density]="density()" (densityChange)="density.set($event)" />
+          <wi-density-switch
+            [density]="layout.sheetListDensity()"
+            (densityChange)="layout.setDensity($event)"
+          />
           <label class="blank-lines">
             <input
               type="checkbox"
-              [checked]="showBlankLines()"
-              (change)="toggleBlankLines()"
+              [checked]="layout.showBlankLines()"
+              (change)="layout.toggleBlankLines()"
             />
             ¶
           </label>
@@ -115,11 +125,16 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         <wi-sheet-list
           [sheets]="store.visibleSheets()"
           [selectedPath]="store.openSheet()?.relativePath ?? null"
-          [density]="density()"
-          [showBlankLines]="showBlankLines()"
+          [density]="layout.sheetListDensity()"
+          [showBlankLines]="layout.showBlankLines()"
           (select)="store.selectSheet($event)"
         />
       </section>
+
+      <wi-resize-divider
+        (resize)="layout.resizeColumn('sheetList', $event)"
+        (reset)="layout.resetColumn('sheetList')"
+      />
 
       <section class="editor">
         <wi-panel-header [verbatimTitle]="editorTitle()">
@@ -139,14 +154,20 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       </section>
 
       @if (layout.secondaryVisible()) {
-        <section class="secondary-sidebar" [style.width.px]="secondarySidebarWidth()">
+        <wi-resize-divider
+          side="trailing"
+          (resize)="layout.resizeColumn('secondarySidebar', $event)"
+          (reset)="layout.resetColumn('secondarySidebar')"
+        />
+
+        <section class="secondary-sidebar" [style.width.px]="layout.columnWidths().secondarySidebar">
           <wi-panel-header [title]="secondaryTitle()">
             @if (layout.secondaryView() === 'outline') {
               <button
                 type="button"
-                [attr.aria-pressed]="store.showDeeperOutline()"
+                [attr.aria-pressed]="layout.showDeeperOutline()"
                 title="Show H3 to H6"
-                (click)="store.toggleDeeperOutline()"
+                (click)="toggleDeeperOutline()"
               >
                 H3–H6
               </button>
@@ -274,7 +295,7 @@ export class AppComponent {
   readonly #bridge = resolveBridge();
   protected readonly store = new WorkspaceStore(this.#bridge);
   protected readonly sourceControl = new SourceControlStore(this.#bridge);
-  protected readonly layout = new LayoutState();
+  protected readonly layout = new LayoutState(this.#bridge);
 
   protected readonly navigatorItems = NAVIGATOR_ITEMS;
   protected readonly secondaryItems = SECONDARY_ITEMS;
@@ -284,6 +305,7 @@ export class AppComponent {
   constructor() {
     // The window exists because a project was opened; it finds it waiting.
     void this.store.adoptOpenProject();
+    void this.layout.load();
 
     // Saving arrives from the menu, not from a key handler: the menu item owns
     // Cmd+S, so the keystroke never reaches this page (SPEC.md §8.5).
@@ -304,12 +326,6 @@ export class AppComponent {
   }
 
   protected readonly activityBarWidth = ACTIVITY_BAR_WIDTH;
-  protected readonly navigatorWidth = signal(COLUMN_IDEAL_WIDTH.navigator);
-  protected readonly sheetListWidth = signal(COLUMN_IDEAL_WIDTH.sheetList);
-  protected readonly secondarySidebarWidth = signal(COLUMN_IDEAL_WIDTH.secondarySidebar);
-
-  protected readonly density = signal<PreviewDensity>('standard');
-  protected readonly showBlankLines = signal(false);
 
   /** The dirty marker follows the document name, as in every editor. */
   protected editorTitle(): string | null {
@@ -320,8 +336,10 @@ export class AppComponent {
     return this.store.dirty() ? `${sheet.displayName} •` : sheet.displayName;
   }
 
-  protected toggleBlankLines(): void {
-    this.showBlankLines.set(!this.showBlankLines());
+  /** The toggle lives in the layout state; the outline reads it from there. */
+  protected toggleDeeperOutline(): void {
+    this.layout.toggleDeeperOutline();
+    this.store.setDeeperOutline(this.layout.showDeeperOutline());
   }
 
   /** Outline navigation, routed to the editor. */

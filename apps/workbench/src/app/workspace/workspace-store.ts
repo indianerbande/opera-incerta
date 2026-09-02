@@ -272,8 +272,9 @@ export class WorkspaceStore {
     this.#currentMetadata.set(next as SheetMetadata);
   }
 
-  toggleDeeperOutline(): void {
-    this.#showDeeperOutline.set(!this.#showDeeperOutline());
+  /** Set from the layout state, which owns the preference. */
+  setDeeperOutline(show: boolean): void {
+    this.#showDeeperOutline.set(show);
   }
 
   /**

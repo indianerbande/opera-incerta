@@ -667,10 +667,13 @@ Requirements that follow and MUST hold:
   width. Width belongs to the layout state, never to a layout container.
 - **Draggable** — every column except the editor is draggable, through a narrow
   hit area (about 6 px) with a resize cursor.
-- **Persisted** — the setter clamps to `min…max` and writes immediately.
-  On load the stored value is clamped again, so changed constants cannot drag
-  an old stored value into absurdity. The clamp rule is a pure, unit-tested
-  function.
+- **Persisted** — the setter clamps to `min…max` and writes immediately, into
+  the installation-local preference record (§13). On load the stored value is
+  clamped again, so changed constants cannot drag an old stored value into
+  absurdity. The clamp rule is a pure, unit-tested function.
+
+Double-clicking a divider restores that column's ideal width, which is the way
+back from a width dragged somewhere unhelpful.
 
 The divider of the secondary sidebar sits to its **left** and MUST be
 parameterized accordingly, or dragging runs backwards.
@@ -1347,7 +1350,11 @@ focus stays inside the modal and returns to the invoking control.
 
 **Persistence and evolution.** The record is one versioned JSON document under a
 stable key, validated at the application boundary. Unknown fields are
-discarded. An incompatible schema requires an explicit migration or a new
+discarded, and **a single malformed value costs that one setting rather than
+the whole record** — an unreadable preference must not send the author back to
+defaults everywhere. Both sides validate: the renderer because it must not
+trust a file, and the writer because a malformed record should never be
+written at all. An incompatible schema requires an explicit migration or a new
 versioned key; components MUST NOT parse storage directly. Settings needing
 project, document, or view scope require their own design and MUST NOT be
 smuggled into the installation-local record. Secrets never enter it (§5.3).

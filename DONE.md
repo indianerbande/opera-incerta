@@ -6,6 +6,56 @@ documents").
 
 ---
 
+## 2026-09-02 — draggable column dividers, and the preference record
+
+**What exists.** The three resizable columns of `SPEC.md` §8.2 can be dragged,
+and everything about the workbench's appearance now survives a restart.
+
+The dividers needed persistence to be finished at all — "stored" is one of the
+three properties the specification demands of a width — so this round also
+built the installation-local preference record of §13:
+
+- one versioned JSON document under a stable key, in the user-data directory;
+- **a single malformed value costs that one setting, not the whole record.** An
+  unreadable preference must not send the author back to defaults everywhere;
+- widths are clamped on read as well as on write, so a changed constant cannot
+  drag an old stored value into absurdity;
+- unknown fields are discarded, and both sides validate — the renderer because
+  it must not trust a file, the writer because a malformed record should never
+  be written.
+
+It carries the column widths, which view each region shows, whether the sidebar
+is open, the sheet-list density, and the two display toggles. That closes the
+layout-persistence item as a side effect of finishing the dividers.
+
+**The divider itself** is 6 px to grab and 1 px to see. It reports pixels
+moved; the width lives in the layout state, which is what keeps a view switch
+from ever moving a column. The sidebar's divider sits to its left, so it is
+told which side it belongs to — without that, dragging it would run backwards.
+Double-clicking restores the ideal width.
+
+**Verification.** `pnpm run check` green: **457 tests**. The smoke's thirteenth
+check drags the navigator with real pointer events, switches views to confirm
+the column does not move, and reads the width back out of the preference file.
+
+**Three findings.**
+
+1. **The measured width is not the applied width.** The check compared what the
+   file stored against what the column occupied on screen and failed by one
+   pixel — the divider overlaps its neighbours by design. It now compares the
+   stored number against the applied one, which is the comparison that was
+   meant: two numbers that must be identical, not two that happen to be close.
+2. **A synthetic pointer may not be capturable.** `setPointerCapture` keeps a
+   drag alive when the pointer leaves the 6 px strip, but a capture that cannot
+   be taken must not stop the drag; it is now attempted and ignored on failure.
+3. **`grep` in a pipe hid a running test.** Two runs looked hung because the
+   filter buffered everything until the process ended. Writing the log to a
+   file and waiting on its contents showed the run had been making progress the
+   whole time — a reminder that "no output" is a statement about the pipe, not
+   about the program.
+
+---
+
 ## 2026-09-02 — naming a project when creating it
 
 **What exists.** A dialog asking for a display name and a location, replacing

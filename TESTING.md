@@ -259,6 +259,9 @@ Tests MUST cover:
   than by calling the adapter: typing `.h3 ` converts the line and removes the
   command text; clicking a gutter marker opens a menu whose active level is
   marked, whose choice applies, and which closes afterwards;
+- dragging a column divider with real pointer events: the column widens, a
+  view switch afterwards leaves it exactly where it was, and the width that was
+  applied is the width found in the preference file;
 - creating a project from the launcher: the dialog previews the slug of the
   typed name, Create is offered only with both a name and a location, and the
   project that appears on disk carries the display name unchanged while its

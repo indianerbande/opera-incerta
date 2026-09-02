@@ -1,11 +1,20 @@
 import { signal } from '@angular/core';
+import {
+  COLUMN_BOUNDS,
+  COLUMN_IDEAL_WIDTH,
+  DEFAULT_PREFERENCES,
+  clampColumnWidth,
+  readPreferences,
+  type ColumnWidths,
+  type NavigatorView,
+  type PreviewDensity,
+  type SecondarySidebarView,
+  type WorkbenchPreferences,
+} from '@opera-incerta/core';
+import type { OperaIncertaBridge } from '@opera-incerta/desktop-contract';
 import type { ActivityItem } from './activity-bar.component.js';
 
-/** The views the navigator can show. SPEC.md §8.1. */
-export type NavigatorView = 'explorer' | 'sourceControl';
-
-/** The views the secondary sidebar can show. SPEC.md §8.1. */
-export type SecondarySidebarView = 'inspector' | 'outline' | 'ai' | 'snapshots';
+export type { NavigatorView, SecondarySidebarView };
 
 export const NAVIGATOR_ITEMS: readonly ActivityItem[] = [
   { id: 'explorer', icon: 'icon-explorer', label: 'Explorer' },
@@ -19,31 +28,86 @@ export const SECONDARY_ITEMS: readonly ActivityItem[] = [
   { id: 'snapshots', icon: 'icon-snapshots', label: 'Snapshots' },
 ];
 
+export type ResizableColumn = keyof ColumnWidths;
+
 /**
- * Which view each region shows, and whether the secondary sidebar is visible.
- * SPEC.md §8.1, §8.4.
+ * What the workbench looks like: which view each region shows, whether the
+ * sidebar is open, and how wide each column is. SPEC.md §8.1, §8.2, §8.4.
  *
- * Region state lives here rather than inside a view, because a region switches
- * between views and component-local state would be destroyed on every switch
- * (`CONVENTIONS.md` C-U2).
+ * Three properties the specification demands of a column width, and how each
+ * is met here:
  *
- * Not persisted yet: preferences belong in the installation-local record of
- * `SPEC.md` §13, which is its own round.
+ * - **Stable** — the width belongs to this state, never to a layout container,
+ *   so switching the view inside a region cannot move it
+ *   (`CONVENTIONS.md` C-U1).
+ * - **Draggable** — a divider reports pixels, and the setter applies them.
+ * - **Persisted** — the setter clamps and stores immediately, and a stored
+ *   value is clamped again on read.
  */
 export class LayoutState {
-  readonly navigatorView = signal<NavigatorView>('explorer');
-  readonly secondaryView = signal<SecondarySidebarView>('inspector');
-  readonly secondaryVisible = signal(true);
+  readonly #bridge: OperaIncertaBridge | null;
+
+  readonly navigatorView = signal<NavigatorView>(DEFAULT_PREFERENCES.navigatorView);
+  readonly secondaryView = signal<SecondarySidebarView>(DEFAULT_PREFERENCES.secondaryView);
+  readonly secondaryVisible = signal(DEFAULT_PREFERENCES.secondaryVisible);
+  readonly columnWidths = signal<ColumnWidths>(DEFAULT_PREFERENCES.columnWidths);
+  readonly sheetListDensity = signal<PreviewDensity>(DEFAULT_PREFERENCES.sheetListDensity);
+  readonly showBlankLines = signal(DEFAULT_PREFERENCES.showBlankLines);
+  readonly showDeeperOutline = signal(DEFAULT_PREFERENCES.showDeeperOutline);
+
+  constructor(bridge: OperaIncertaBridge | null = null) {
+    this.#bridge = bridge;
+  }
+
+  /** Applies the stored record, or the defaults when there is none. */
+  async load(): Promise<void> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      return;
+    }
+    try {
+      const result = await bridge.readPreferences();
+      this.apply(readPreferences(result.ok ? result.value : null));
+    } catch {
+      // A preference that cannot be read is a lost convenience, not a reason
+      // to stop: the defaults are already in place.
+    }
+  }
+
+  apply(preferences: WorkbenchPreferences): void {
+    this.navigatorView.set(preferences.navigatorView);
+    this.secondaryView.set(preferences.secondaryView);
+    this.secondaryVisible.set(preferences.secondaryVisible);
+    this.columnWidths.set(preferences.columnWidths);
+    this.sheetListDensity.set(preferences.sheetListDensity);
+    this.showBlankLines.set(preferences.showBlankLines);
+    this.showDeeperOutline.set(preferences.showDeeperOutline);
+  }
+
+  /** The record as it currently stands. */
+  snapshot(): WorkbenchPreferences {
+    return {
+      version: DEFAULT_PREFERENCES.version,
+      columnWidths: this.columnWidths(),
+      navigatorView: this.navigatorView(),
+      secondaryView: this.secondaryView(),
+      secondaryVisible: this.secondaryVisible(),
+      sheetListDensity: this.sheetListDensity(),
+      showBlankLines: this.showBlankLines(),
+      showDeeperOutline: this.showDeeperOutline(),
+    };
+  }
 
   showNavigator(view: string): void {
     if (view === 'explorer' || view === 'sourceControl') {
       this.navigatorView.set(view);
+      this.#store();
     }
   }
 
   /**
-   * Activating the already visible view collapses the sidebar, and activating
-   * anything else opens it on that view.
+   * Activating the already visible view collapses the sidebar; anything else
+   * opens it on that view.
    */
   showSecondary(view: string): void {
     if (view !== 'inspector' && view !== 'outline' && view !== 'ai' && view !== 'snapshots') {
@@ -51,14 +115,51 @@ export class LayoutState {
     }
     if (this.secondaryVisible() && this.secondaryView() === view) {
       this.secondaryVisible.set(false);
-      return;
+    } else {
+      this.secondaryView.set(view);
+      this.secondaryVisible.set(true);
     }
-    this.secondaryView.set(view);
-    this.secondaryVisible.set(true);
+    this.#store();
   }
 
-  /** The active entry of the trailing bar, or null while it is collapsed. */
   activeSecondaryId(): string | null {
     return this.secondaryVisible() ? this.secondaryView() : null;
+  }
+
+  /** Widens or narrows a column, clamped to its bounds. */
+  resizeColumn(column: ResizableColumn, delta: number): void {
+    const current = this.columnWidths();
+    const next = clampColumnWidth(current[column] + delta, COLUMN_BOUNDS[column]);
+    if (next === current[column]) {
+      return;
+    }
+    this.columnWidths.set({ ...current, [column]: next });
+    this.#store();
+  }
+
+  /** Double-clicking a divider restores that column's ideal width. */
+  resetColumn(column: ResizableColumn): void {
+    this.columnWidths.set({ ...this.columnWidths(), [column]: COLUMN_IDEAL_WIDTH[column] });
+    this.#store();
+  }
+
+  setDensity(density: PreviewDensity): void {
+    this.sheetListDensity.set(density);
+    this.#store();
+  }
+
+  toggleBlankLines(): void {
+    this.showBlankLines.set(!this.showBlankLines());
+    this.#store();
+  }
+
+  toggleDeeperOutline(): void {
+    this.showDeeperOutline.set(!this.showDeeperOutline());
+    this.#store();
+  }
+
+  /** Stores immediately; a dropped preference is not worth a prompt. */
+  #store(): void {
+    void this.#bridge?.writePreferences(this.snapshot()).catch(() => undefined);
   }
 }

@@ -37,6 +37,9 @@ const bridge = {
    * The event object never crosses: the renderer receives a validated command
    * string, so the page cannot reach the IPC layer through what it is handed.
    */
+  readPreferences: () => ipcRenderer.invoke(CHANNELS.readPreferences),
+  writePreferences: (record: unknown) => ipcRenderer.invoke(CHANNELS.writePreferences, record),
+
   onMenuCommand: (listener: (command: string) => void) => {
     const forward = (_event: unknown, command: unknown): void => {
       if (isMenuCommand(command)) {

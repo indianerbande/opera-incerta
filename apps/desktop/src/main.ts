@@ -8,7 +8,7 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdir, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
 import {
@@ -24,7 +24,7 @@ import {
   type BridgeResult,
   type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
-import { projectDirectoryName } from '@opera-incerta/core';
+import { projectDirectoryName, readPreferences } from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
 import { createProjectFilesystem } from '@opera-incerta/project-node';
 import { MENU_ACCELERATORS, installApplicationMenu, menuItemId } from './application-menu.js';
@@ -401,6 +401,36 @@ privileged(CHANNELS.forgetRecentProject, isRecentProjectRequest, async (request)
   recentProjects.forget(request.path);
   return null;
 });
+
+/**
+ * The preference record. SPEC.md §13.
+ *
+ * The main process only stores and returns the document; validating it is the
+ * core's job, and both sides do it — the renderer because it must not trust a
+ * file, and the writer because a malformed record should never be written.
+ */
+const preferencesPath = join(app.getPath('userData'), 'preferences.json');
+
+privileged(CHANNELS.readPreferences, acceptsNothing, async () => {
+  try {
+    return JSON.parse(readFileSync(preferencesPath, 'utf8')) as unknown;
+  } catch {
+    // No record yet, or an unreadable one: the renderer applies its defaults.
+    return null;
+  }
+});
+
+privileged(
+  CHANNELS.writePreferences,
+  (request): request is Record<string, unknown> =>
+    typeof request === 'object' && request !== null,
+  async (request) => {
+    const record = readPreferences(request);
+    mkdirSync(dirname(preferencesPath), { recursive: true });
+    writeFileSync(preferencesPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+    return null;
+  },
+);
 
 /** `~` for the home directory, as every file dialog shows it. */
 function abbreviatePath(absolutePath: string): string {
@@ -1170,6 +1200,86 @@ async function checkPanes(window: BrowserWindow): Promise<void> {
 
   console.log('smoke ok: inspector, outline, sidebar collapse, and source control all work');
   checkMenuState();
+  await checkColumnDragging(window);
+}
+
+/**
+ * Dragging a column divider. SPEC.md §8.2.
+ *
+ * Through real pointer events, and then read back from the preference file —
+ * so what is checked is that the width was stored, not that a signal changed.
+ */
+async function checkColumnDragging(window: BrowserWindow): Promise<void> {
+  const before = (await window.webContents.executeJavaScript(
+    `(() => {
+       const navigator = document.querySelector('.navigator');
+       const divider = document.querySelector('wi-resize-divider');
+       if (navigator === null || divider === null) { return null; }
+       const bounds = divider.getBoundingClientRect();
+       return {
+         width: navigator.getBoundingClientRect().width,
+         x: Math.round(bounds.left + bounds.width / 2),
+         y: Math.round(bounds.top + 200),
+       };
+     })()`,
+  )) as { width: number; x: number; y: number } | null;
+  if (before === null) {
+    throw new Error('no divider beside the navigator');
+  }
+
+  // Press, move right in steps, release — as a hand does.
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: before.x, y: before.y, clickCount: 1 });
+  for (let offset = 10; offset <= 40; offset += 10) {
+    window.webContents.sendInputEvent({ type: 'mouseMove', x: before.x + offset, y: before.y });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  window.webContents.sendInputEvent({
+    type: 'mouseUp',
+    x: before.x + 40,
+    y: before.y,
+    clickCount: 1,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const after = (await window.webContents.executeJavaScript(
+    "document.querySelector('.navigator')?.getBoundingClientRect().width ?? null",
+  )) as number | null;
+  if (after === null) {
+    throw new Error('the navigator disappeared while dragging');
+  }
+  if (Math.round(after) <= Math.round(before.width)) {
+    throw new Error(`dragging right did not widen the column: ${before.width} to ${after}`);
+  }
+
+  // Switching a view must not move it (CONVENTIONS.md C-U1).
+  await activateSidebar(window, 'Outline');
+  await activateSidebar(window, 'Inspector');
+  const afterSwitch = (await window.webContents.executeJavaScript(
+    "document.querySelector('.navigator')?.getBoundingClientRect().width ?? null",
+  )) as number | null;
+  if (Math.round(afterSwitch ?? 0) !== Math.round(after)) {
+    throw new Error(`switching views moved the column: ${after} to ${String(afterSwitch)}`);
+  }
+
+  // And the width reached the preference file.
+  //
+  // Compared against the *applied* width rather than the measured one: the
+  // divider overlaps its neighbours by a few pixels, so what the column
+  // occupies on screen is not the number the layout state set.
+  const applied = (await window.webContents.executeJavaScript(
+    `Number.parseFloat(document.querySelector('.navigator')?.style.width ?? '0')`,
+  )) as number;
+  const stored = JSON.parse(readFileSync(preferencesPath, 'utf8')) as {
+    columnWidths: { navigator: number };
+  };
+  if (stored.columnWidths.navigator !== applied) {
+    throw new Error(`stored ${stored.columnWidths.navigator}, applied ${applied}`);
+  }
+
+  console.log(
+    `smoke ok: dragged the navigator from ${Math.round(before.width)}px to ${applied}px, ` +
+      'unchanged by a view switch and stored in the preference file',
+  );
 }
 
 /** The menu offers what is possible, and only that. SPEC.md §8.5. */
@@ -1483,11 +1593,14 @@ async function runSmokeCheck(launcher: BrowserWindow): Promise<void> {
          const workbench = document.querySelector('wi-root .workbench');
          if (workbench === null) { return null; }
          return {
-           regions: workbench.children.length,
+           regions:
+             workbench.querySelectorAll(':scope > section').length +
+             workbench.querySelectorAll(':scope > wi-activity-bar').length,
+           dividers: workbench.querySelectorAll(':scope > wi-resize-divider').length,
            headers: document.querySelectorAll('wi-panel-header').length,
          };
        })()`,
-    )) as { regions: number; headers: number } | null;
+    )) as { regions: number; dividers: number; headers: number } | null;
     const bridgeVersion: unknown = await window.webContents.executeJavaScript(
       `typeof window.${BRIDGE_GLOBAL} === 'object'` +
         ` ? window.${BRIDGE_GLOBAL}.contractVersion()` +
@@ -1500,6 +1613,10 @@ async function runSmokeCheck(launcher: BrowserWindow): Promise<void> {
     // Six regions: two activity bars and four columns (SPEC.md §8.2).
     if (shell.regions !== 6) {
       throw new Error(`expected six regions, found ${shell.regions}`);
+    }
+    // One divider per resizable column: navigator, sheet list, sidebar.
+    if (shell.dividers !== 3) {
+      throw new Error(`expected three dividers, found ${shell.dividers}`);
     }
     if (shell.headers < 4) {
       throw new Error(`every panel needs a header, found ${shell.headers}`);

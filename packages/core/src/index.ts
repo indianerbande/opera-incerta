@@ -112,6 +112,19 @@ export {
 } from './slug.js';
 
 export {
+  DEFAULT_PREFERENCES,
+  PREFERENCES_KEY,
+  PREFERENCES_VERSION,
+  readPreferences,
+} from './preferences.js';
+export type {
+  ColumnWidths,
+  NavigatorView,
+  SecondarySidebarView,
+  WorkbenchPreferences,
+} from './preferences.js';
+
+export {
   COLUMN_BOUNDS,
   COLUMN_IDEAL_WIDTH,
   clampColumnWidth,

@@ -10,8 +10,8 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 
 **State 2026-09-02:** the two-window model is complete — the launcher with its
 recent projects, and the workbench with every pane of `SPEC.md` §8.
-`pnpm run check` green: 6 projects, **438 tests**, plus the desktop and asset
-checks. `pnpm run desktop:smoke` green across twelve checks,
+`pnpm run check` green: 6 projects, **457 tests**, plus the desktop and asset
+checks. `pnpm run desktop:smoke` green across thirteen checks,
 `pnpm run spike:editor` 7/7.
 
 ---
@@ -61,21 +61,17 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   that say "not built yet". The AI panel is a docking point for the provider
   interface (`SPEC.md` §15); snapshots need their storage and diff decisions
   first (`SPEC.md` §11).
-- **Persisting the workbench layout** — which view each region shows, and
-  whether the sidebar is open, are lost on restart. They belong in the
-  installation-local settings record (`SPEC.md` §13), which is its own round.
 - **The front matter area** (`SPEC.md` §10.4) — the editor correctly never
   shows front matter, and the codec protects it. What is missing is the area
   that *displays* it: the owned block read-only, the foreign block with its
   visibility and writability switches.
-- **Draggable column widths** — the clamp rule and the constants are
-  implemented and tested in the core; the dividers themselves are not built,
-  so the columns currently sit at their ideal widths (`SPEC.md` §8.2).
 - **Sheet and group creation, renaming, reordering** — the rules exist in the
   core (slug generation, `structure.json` writing); the context menus do not
   (`SPEC.md` §6.4, §6.5).
-- **Settings record and localization catalogues** (`SPEC.md` §13, §14). The
-  contract shape is accepted; the individual values are still draft.
+- **The settings panel and localization** (`SPEC.md` §13, §14). The record
+  exists and persists the workbench layout; what is missing is the category
+  panel that lets the author change the rest of it, and the English/German
+  catalogues.
 - **Source control interface** — the adapter is complete; the panel, the
   tri-state select-all, "show diff", and the destructive "discard changes" with
   its confirmation prompt are user interface (`SPEC.md` §12, §18).

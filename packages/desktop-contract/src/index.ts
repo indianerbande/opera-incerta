@@ -42,6 +42,8 @@ export const CHANNELS = {
   gitCommit: 'opera-incerta:git/commit',
   gitPush: 'opera-incerta:git/push',
   menuCommand: 'opera-incerta:menu/command',
+  readPreferences: 'opera-incerta:preferences/read',
+  writePreferences: 'opera-incerta:preferences/write',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
@@ -346,4 +348,8 @@ export interface OperaIncertaBridge {
    * would hand the page a way back into the IPC layer.
    */
   onMenuCommand(listener: (command: MenuCommand) => void): () => void;
+  /** The installation-local preference record. SPEC.md §13. */
+  readPreferences(): Promise<BridgeResult<unknown>>;
+  /** Stores it. A preference never touches a document. */
+  writePreferences(record: unknown): Promise<BridgeResult<null>>;
 }

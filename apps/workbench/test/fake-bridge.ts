@@ -37,5 +37,7 @@ export function baseBridge(): OperaIncertaBridge {
     gitCommit: async () => ({ ok: true, value: null }),
     gitPush: async () => ({ ok: true, value: null }),
     onMenuCommand: () => () => {},
+    readPreferences: async () => ({ ok: true, value: null }),
+    writePreferences: async () => ({ ok: true, value: null }),
   };
 }
