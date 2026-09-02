@@ -381,6 +381,19 @@ export class WorkspaceStore {
     );
   }
 
+  /**
+   * Moves an entry in front of one of its siblings, or to the end of the
+   * group. SPEC.md §6.4.
+   *
+   * The interface names the sibling, never a position: by the time the main
+   * process has re-read the group, an index could point at something else.
+   */
+  async reorderEntry(relativePath: string, before: string | null): Promise<void> {
+    await this.#libraryEdit(async (bridge) =>
+      bridge.reorderEntry({ path: relativePath, before }),
+    );
+  }
+
   dismissFailure(): void {
     this.#failure.set(null);
   }
@@ -402,6 +415,12 @@ export class WorkspaceStore {
   ): Promise<void> {
     const previousGroup = this.#selectedGroupPath();
     const previousSheet = this.#openSheet()?.relativePath ?? null;
+    // Adopting a refreshed project re-reads the open sheet from disk. What the
+    // author has typed but not saved is not on disk, and renaming a *different*
+    // sheet is no reason to lose it.
+    const unsaved = this.dirty()
+      ? { text: this.#currentText(), metadata: this.#currentMetadata() }
+      : null;
 
     await this.#withBridge(async (bridge) => {
       const result = unwrap(await operation(bridge));
@@ -424,6 +443,10 @@ export class WorkspaceStore {
       const toOpen = created !== null && created.endsWith('.md') ? created : previousSheet;
       if (toOpen !== null) {
         await this.selectSheet(toOpen);
+        if (unsaved !== null && toOpen === previousSheet) {
+          this.#currentText.set(unsaved.text);
+          this.#currentMetadata.set(unsaved.metadata);
+        }
       }
     });
   }

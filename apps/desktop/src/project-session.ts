@@ -15,6 +15,8 @@ import {
   projectDirectoryName,
   serializeSheet,
   sheetFileName,
+  findGroup,
+  reorderChild,
   sheetsOf,
   withChildOrder,
   withDisplayName,
@@ -241,6 +243,40 @@ export class ProjectSession {
   }
 
   /** Appends a child to a group's recorded order, when it has one. */
+  /**
+   * Moves one entry in front of a sibling, or to the end. SPEC.md §6.4.
+   *
+   * The order is read back from a fresh scan rather than from the caller: the
+   * renderer says *what* to move and *where*, never what the group contains.
+   * The whole resolved order is then recorded, because a partial one would
+   * leave the rest to be appended alphabetically — scrambling the arrangement
+   * the author just made. This is also the moment a group without a recorded
+   * order gets one, which is exactly what §6.4 says it is for.
+   */
+  async reorderEntry(relativePath: string, before: string | null): Promise<void> {
+    const projectPath = this.#requireOpen().path;
+    const segments = relativePath.split('/');
+    const name = segments[segments.length - 1] ?? '';
+    const groupPath = segments.length === 1 ? '.' : segments.slice(0, -1).join('/');
+
+    const snapshot = await this.reopen();
+    const group = snapshot === null ? null : findGroup(snapshot.library as GroupEntry, groupPath);
+    if (group === null) {
+      throw new ProjectSessionError('group/unknown');
+    }
+
+    const resolved = group.children.map((child) => child.name);
+    if (!resolved.includes(name)) {
+      throw new ProjectSessionError('entry/unknown');
+    }
+
+    const structure = await this.#filesystem.readStructure(projectPath);
+    await this.#filesystem.writeStructure(
+      projectPath,
+      withChildOrder(structure, groupPath, reorderChild(resolved, name, before)),
+    );
+  }
+
   async #appendToOrder(projectPath: string, groupPath: string, name: string): Promise<void> {
     const structure = await this.#filesystem.readStructure(projectPath);
     const order = structure[groupPath]?.order;

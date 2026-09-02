@@ -294,6 +294,12 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- reordering by a **real pointer drag** (`SPEC.md` §6.4): a sheet dragged past
+  the row below it and a group dragged past its sibling both change the order
+  shown *and* the order recorded in `structure.json`, and neither drag opens or
+  selects what it moved. A screenshot is taken while the pointer is still down,
+  because the insertion line exists only during the drag — a check that never
+  looks at it cannot say the author sees anything;
 - the cursor rules around hidden heading syntax, through real keys and the real
   clipboard: the line-start shortcut lands on the first visible character,
   copying a heading yields Markdown with its prefix, cutting one removes the

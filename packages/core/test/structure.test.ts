@@ -4,6 +4,7 @@ import {
   groupDisplayName,
   moveChild,
   readStructureRecord,
+  reorderChild,
   resolveChildOrder,
   withChildOrder,
   withDisplayName,
@@ -157,5 +158,39 @@ describe('readStructureRecord', () => {
       good: { order: ['a.md'], displayName: 'Good' },
       partial: {},
     });
+  });
+});
+
+describe('reorderChild', () => {
+  const order = ['a.md', 'part-1', 'b.md', 'c.md'];
+
+  it('puts the item in front of the named sibling', () => {
+    expect(reorderChild(order, 'c.md', 'part-1')).toEqual(['a.md', 'c.md', 'part-1', 'b.md']);
+  });
+
+  it('puts it last when no sibling follows', () => {
+    expect(reorderChild(order, 'a.md', null)).toEqual(['part-1', 'b.md', 'c.md', 'a.md']);
+  });
+
+  it('moves an item down past its neighbour', () => {
+    // Dropping a.md in front of c.md means a.md ends up after b.md.
+    expect(reorderChild(order, 'a.md', 'c.md')).toEqual(['part-1', 'b.md', 'a.md', 'c.md']);
+  });
+
+  it('changes nothing when the item lands on itself', () => {
+    expect(reorderChild(order, 'b.md', 'b.md')).toBe(order);
+  });
+
+  it('changes nothing for an item that is not there', () => {
+    expect(reorderChild(order, 'gone.md', 'a.md')).toBe(order);
+  });
+
+  it('returns the whole order, so nothing is left to be appended alphabetically', () => {
+    // A partial order would scramble the arrangement being made (§6.4).
+    expect(reorderChild(order, 'c.md', 'a.md')).toHaveLength(order.length);
+  });
+
+  it('treats an unknown sibling as the end rather than losing the item', () => {
+    expect(reorderChild(order, 'a.md', 'nowhere.md')).toEqual(['part-1', 'b.md', 'c.md', 'a.md']);
   });
 });

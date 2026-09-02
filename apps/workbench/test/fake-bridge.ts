@@ -46,6 +46,7 @@ export function baseBridge(): OperaIncertaBridge {
     createGroup: async () => notScripted(),
     renameSheet: async () => notScripted(),
     renameGroup: async () => notScripted(),
+    reorderEntry: async () => notScripted(),
     readPreferences: async () => ({ ok: true, value: null }),
     writePreferences: async () => ({ ok: true, value: null }),
   };

@@ -46,6 +46,7 @@ export const CHANNELS = {
   createGroup: 'opera-incerta:group/create',
   renameSheet: 'opera-incerta:sheet/rename',
   renameGroup: 'opera-incerta:group/rename',
+  reorderEntry: 'opera-incerta:library/reorder',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
 } as const;
@@ -208,6 +209,31 @@ export function isLibraryEditRequest(value: unknown): value is LibraryEditReques
     candidate.path !== '' &&
     typeof candidate.name === 'string' &&
     candidate.name.trim() !== ''
+  );
+}
+
+/**
+ * Moving one entry among its siblings. SPEC.md §6.4.
+ *
+ * `path` is the entry being moved; `before` is the sibling it lands in front
+ * of, by file or directory **name**, or `null` for last. A name rather than an
+ * index, because an index would mean something different the moment the group
+ * changed underneath.
+ */
+export interface LibraryReorderRequest {
+  readonly path: string;
+  readonly before: string | null;
+}
+
+export function isLibraryReorderRequest(value: unknown): value is LibraryReorderRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<LibraryReorderRequest>;
+  return (
+    typeof candidate.path === 'string' &&
+    candidate.path !== '' &&
+    (candidate.before === null || (typeof candidate.before === 'string' && candidate.before !== ''))
   );
 }
 
@@ -393,6 +419,8 @@ export interface OperaIncertaBridge {
   renameSheet(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Renames a group by its display name; the directory never changes. */
   renameGroup(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Moves an entry among its siblings, recording the group's order. */
+  reorderEntry(request: LibraryReorderRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

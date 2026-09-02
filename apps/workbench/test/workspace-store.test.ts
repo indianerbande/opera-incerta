@@ -473,3 +473,110 @@ describe('creating and renaming', () => {
     expect(store.openTitle()).toBe('Preface');
   });
 });
+
+describe('reordering', () => {
+  /** The project with `part-1` holding its sheet after a second one. */
+  const reordered: ProjectSnapshot = {
+    ...snapshot,
+    library: {
+      ...library,
+      children: library.children.map((child) =>
+        child.relativePath === 'part-1'
+          ? {
+              ...(child as GroupEntry),
+              children: [...(child as GroupEntry).children].reverse(),
+            }
+          : child,
+      ),
+    },
+  };
+
+  it('names the sibling to land before, never a position', async () => {
+    let asked: unknown = null;
+    const store = new WorkspaceStore(
+      fakeBridge({
+        reorderEntry: async (request) => {
+          asked = request;
+          return { ok: true, value: { snapshot, createdPath: null } };
+        },
+      }),
+    );
+    await store.openProject();
+    await store.reorderEntry('part-1/scene.md', 'pre');
+
+    // An index would mean something else by the time the group is re-read.
+    expect(asked).toEqual({ path: 'part-1/scene.md', before: 'pre' });
+  });
+
+  it('takes the new order from the refreshed project, without patching its own', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        reorderEntry: async () => ({ ok: true, value: { snapshot: reordered, createdPath: null } }),
+      }),
+    );
+    await store.openProject();
+    store.selectGroup('part-1');
+    await store.selectSheet('preface.md');
+    store.selectGroup('part-1');
+    await store.reorderEntry('part-1/scene.md', null);
+
+    expect(store.selectedGroup()?.children.map((child) => child.name)).toEqual([
+      'pre',
+      'scene.md',
+    ]);
+    // A move changes an order, not a selection.
+    expect(store.selectedGroupPath()).toBe('part-1');
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+  });
+
+  it('reports a refusal instead of leaving the tree in a half-moved state', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        reorderEntry: async () => ({ ok: false, code: 'entry/unknown', message: 'gone' }),
+      }),
+    );
+    await store.openProject();
+    await store.reorderEntry('ghost.md', null);
+
+    expect(store.failure()).toBe('entry/unknown');
+    expect(store.library()?.children.map((child) => child.name)).toEqual(['preface.md', 'part-1']);
+  });
+});
+
+describe('unsaved work during a library edit', () => {
+  it('survives an edit to another entry', async () => {
+    const bridge = fakeBridge({
+      createGroup: async () => ({ ok: true, value: { snapshot, createdPath: 'part-2' } }),
+    });
+    const store = new WorkspaceStore(bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nA paragraph nobody saved yet.\n');
+    store.updateMetadata({ title: 'A Better Preface' });
+
+    await store.createGroup('.', 'Part 2');
+
+    // The refreshed project is read from disk; what was typed is not on disk.
+    expect(store.dirty()).toBe(true);
+    expect(store.metadata()['title']).toBe('A Better Preface');
+
+    // What is finally written is the proof: the paragraph, not the re-read file.
+    await store.save();
+    expect(bridge.writes.at(-1)?.text).toContain('A paragraph nobody saved yet.');
+    expect(bridge.writes.at(-1)?.text).toContain('title: A Better Preface');
+  });
+
+  it('does not resurrect anything for a sheet that was clean', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        createGroup: async () => ({ ok: true, value: { snapshot, createdPath: 'part-2' } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.createGroup('.', 'Part 2');
+
+    expect(store.dirty()).toBe(false);
+    expect(store.editorDocument()?.text).toBe('# Preface\n');
+  });
+});

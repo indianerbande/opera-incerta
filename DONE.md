@@ -6,6 +6,61 @@ documents").
 
 ---
 
+## 2026-09-02 — reordering by drag, and the unsaved work it nearly cost
+
+**What exists.** Sheets can be dragged into a new order in the sheet list, and
+groups among their siblings in the tree (`SPEC.md` §6.4). The dragged row dims,
+an insertion line shows where it would land, and the drop writes the group's
+`order` to `structure.json`.
+
+**Scope, deliberately.** An entry moves among its **siblings only**. Dragging a
+sheet into another group is a file move — the path changes, and handles, the
+open document, both orders and Git all have a stake in it — so it stays a
+separate operation, still unbuilt. The core's `moveChild` already anticipates
+it.
+
+**Pointer events, not the drag-and-drop API.** The native API cannot be driven
+by a synthetic pointer, and a gesture no check can drive is a gesture nothing
+proves. The pointer also gives the insertion line the same feel the column
+dividers already have. A press becomes a drag only after a few pixels of
+travel, so an ordinary click stays a click — and the click that follows a real
+drag is swallowed, because the author was moving the row, not choosing it.
+
+**Two rules that keep the file honest.** The interface names the sibling to
+land in front of, never a position: by the time the main process has re-read
+the group, an index could point at something else. And the *whole* resolved
+order is recorded, because a partial one would leave the rest to be appended
+alphabetically — scrambling the arrangement just made.
+
+**In the tree, a node owns the drag of its children, not of itself.** A dragged
+node's siblings are not its ancestors, so pointer events during the drag would
+never reach it; they do reach the one node that contains all of them. Pointer
+capture would have been the alternative, and it is exactly what a synthetic
+pointer may not support. It also makes "a group only moves among its siblings"
+a property of the structure rather than a check.
+
+**The defect this round found is the one that mattered.** Every library edit
+re-reads the open sheet from disk — and silently threw away whatever was typed
+but not saved. Renaming some *other* sheet was enough to lose a paragraph. The
+editing state is now carried across the refresh and put back on top of the
+freshly read file. It surfaced only because the new drag check ran after the
+rename check and found the renamed title gone; the older checks had never
+looked after a second edit. The explicit refresh still has this hole, recorded
+in `TODO.md` where the §10.6 comparison rule belongs.
+
+**Verification.** `pnpm run check` green: **506 tests**. The smoke's fifteenth
+check drags a sheet past the row below it and a group past its sibling with
+real pointer events, then reads both the shown order and `structure.json` from
+the filesystem, and confirms that neither drag opened what it moved. Falsified
+three ways: an unreachable drag threshold fails the smoke, a `reorderChild`
+that returns its input fails nine unit tests across two packages, and removing
+the carried-over editing state fails the unsaved-work test. A screenshot taken
+**while the pointer is still down** shows the insertion line under the target
+row and the dragged row dimmed — the line exists only during the drag, so no
+check after it could have seen it.
+
+---
+
 ## 2026-09-02 — creating and renaming sheets and groups
 
 **What exists.** The context menus of `SPEC.md` §6.4 and §6.5. Right-clicking a

@@ -89,6 +89,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 (select)="store.selectGroup($event)"
                 (toggle)="store.toggleExpanded($event)"
                 (contextMenu)="openGroupMenu($event)"
+                (reorder)="store.reorderEntry($event.path, $event.before)"
               />
             } @else {
               <p class="hint">No project open.</p>
@@ -138,6 +139,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           [showBlankLines]="layout.showBlankLines()"
           (select)="store.selectSheet($event)"
           (contextMenu)="openSheetMenu($event)"
+          (reorder)="store.reorderEntry($event.path, $event.before)"
         />
       </section>
 

@@ -111,6 +111,34 @@ export function withDisplayName(
 }
 
 /**
+ * The order that results from moving one child in front of a sibling.
+ *
+ * It takes the **resolved** order (§6.4), not the recorded one, because that is
+ * what the author sees and drags. `before` names the sibling the item lands in
+ * front of; `null` puts it last. Dropping an item onto itself, or where it
+ * already is, changes nothing.
+ *
+ * The whole resolved order is returned, which is what the caller must record: a
+ * partial `order` would leave the unlisted children to be appended
+ * alphabetically, scrambling the very arrangement being made.
+ */
+export function reorderChild(
+  resolvedOrder: readonly string[],
+  name: string,
+  before: string | null,
+): readonly string[] {
+  if (before === name || !resolvedOrder.includes(name)) {
+    return resolvedOrder;
+  }
+
+  const without = resolvedOrder.filter((candidate) => candidate !== name);
+  const index = before === null ? -1 : without.indexOf(before);
+  return index === -1
+    ? [...without, name]
+    : [...without.slice(0, index), name, ...without.slice(index)];
+}
+
+/**
  * Moves an item from one group to another, rewriting both orders in one step
  * so the two files can never disagree. The item lands at the end of the target
  * order (SPEC.md §18, phase 3).

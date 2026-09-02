@@ -28,6 +28,7 @@ import {
   isGitPathsRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
+  isLibraryReorderRequest,
   isRecentProjectRequest,
   isWriteSheetRequest,
   type BridgeResult,
@@ -501,6 +502,13 @@ privileged(CHANNELS.renameSheet, isLibraryEditRequest, async (request) =>
 privileged(CHANNELS.renameGroup, isLibraryEditRequest, async (request) =>
   libraryEdit(async () => {
     await session.renameGroup(request.path, request.name);
+    return null;
+  }),
+);
+
+privileged(CHANNELS.reorderEntry, isLibraryReorderRequest, async (request) =>
+  libraryEdit(async () => {
+    await session.reorderEntry(request.path, request.before);
     return null;
   }),
 );
@@ -1491,6 +1499,136 @@ async function checkLibraryEdits(window: BrowserWindow): Promise<void> {
     'smoke ok: created a sheet, renamed a closed one on disk and the open one into its edits, ' +
       'and created and renamed a group — no file or directory name changed',
   );
+
+  await checkReordering(window, smokeProjectPath);
+}
+
+/**
+ * Checks that a sheet and a group can be dragged into a new order, and that
+ * the order lands in `structure.json`. SPEC.md §6.4.
+ */
+async function checkReordering(window: BrowserWindow, projectPath: string): Promise<void> {
+  // Back to the root group, whose sheet list holds two sheets.
+  await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  const first = await rowPoint(window, 'wi-sheet-list li', 'Renamed In Place');
+  const second = await rowPoint(window, 'wi-sheet-list li', 'Renamed While Open');
+  // Past the middle of the row below, which is where the insertion line moves.
+  await dragVertically(window, first, second.y + Math.round(second.height / 2) + 2, 'smoke-drag.png');
+
+  const sheetOrder = orderOf(projectPath, '.');
+  if (sheetOrder.indexOf('a-brand-new-scene.md') > sheetOrder.indexOf('opening.md')) {
+    throw new Error(`the sheet did not move: ${JSON.stringify(sheetOrder)}`);
+  }
+
+  const shown = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-sheet-list .title')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (shown[0] !== 'Renamed While Open' || shown[1] !== 'Renamed In Place') {
+    throw new Error(`the list still shows the old order: ${JSON.stringify(shown)}`);
+  }
+
+  // Dragging a sheet must not also open it: the author was moving it.
+  const headers = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (!headers.some((title) => title.startsWith('Renamed While Open'))) {
+    throw new Error(`the editor lost its sheet while dragging: ${JSON.stringify(headers)}`);
+  }
+  if (headers.some((title) => title.startsWith('Renamed In Place'))) {
+    throw new Error('dragging a sheet opened it');
+  }
+
+  // The same gesture in the tree, where a group moves among its siblings.
+  const second_ = await rowPoint(window, 'wi-explorer-node .row', 'The Second Part');
+  const partOne = await rowPoint(window, 'wi-explorer-node .row', 'Part One');
+  await dragVertically(window, second_, partOne.y - Math.round(partOne.height / 2) - 2);
+
+  const groupOrder = orderOf(projectPath, '.');
+  if (groupOrder.indexOf('part-two') > groupOrder.indexOf('part-1')) {
+    throw new Error(`the group did not move: ${JSON.stringify(groupOrder)}`);
+  }
+
+  const tree = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-explorer-node .name')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (tree[1] !== 'The Second Part' || tree[2] !== 'Part One') {
+    throw new Error(`the tree still shows the old order: ${JSON.stringify(tree)}`);
+  }
+
+  console.log(
+    'smoke ok: dragged a sheet and a group into a new order, recorded in structure.json, ' +
+      'and dragging opened nothing',
+  );
+}
+
+/** The recorded order of one group. */
+function orderOf(projectPath: string, relativePath: string): readonly string[] {
+  const structure = JSON.parse(
+    readFileSync(join(projectPath, '.opera-incerta', 'structure.json'), 'utf8'),
+  ) as Record<string, { order?: string[] } | undefined>;
+  return structure[relativePath]?.order ?? [];
+}
+
+/** The middle of the element matching `selector` that carries `text`. */
+async function rowPoint(
+  window: BrowserWindow,
+  selector: string,
+  text: string,
+): Promise<{ x: number; y: number; height: number }> {
+  const point = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll(${JSON.stringify(selector)})]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(text)}));
+       if (row === undefined) { return null; }
+       const bounds = row.getBoundingClientRect();
+       return {
+         x: Math.round(bounds.left + bounds.width / 2),
+         y: Math.round(bounds.top + bounds.height / 2),
+         height: Math.round(bounds.height),
+       };
+     })()`,
+  )) as { x: number; y: number; height: number } | null;
+  if (point === null) {
+    throw new Error(`no row containing ${text}`);
+  }
+  return point;
+}
+
+/**
+ * Presses on a row, moves to a height in steps, and releases — as a hand does.
+ *
+ * `evidence` names a screenshot taken while the pointer is still down, because
+ * the insertion line only exists during the drag and a check that never looks
+ * at it cannot say the author sees anything (`TESTING.md` §1.9).
+ */
+async function dragVertically(
+  window: BrowserWindow,
+  from: { x: number; y: number },
+  toY: number,
+  evidence?: string,
+): Promise<void> {
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: from.x, y: from.y, clickCount: 1 });
+
+  const steps = 6;
+  for (let step = 1; step <= steps; step += 1) {
+    const y = Math.round(from.y + ((toY - from.y) * step) / steps);
+    window.webContents.sendInputEvent({ type: 'mouseMove', x: from.x, y });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+
+  if (evidence !== undefined) {
+    const image = await window.webContents.capturePage();
+    const directory = join(currentDirectory, '..', '..', '..', 'build', 'desktop');
+    mkdirSync(directory, { recursive: true });
+    const path = join(directory, evidence);
+    writeFileSync(path, image.toPNG());
+    console.log(`smoke evidence: ${path}`);
+  }
+
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: from.x, y: toY, clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 600));
 }
 
 /** The display name `structure.json` records for a group, if any. */

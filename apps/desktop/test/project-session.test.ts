@@ -343,3 +343,80 @@ describe('renaming', () => {
     await expect(readFile(join(root, 'part-1', 'scene.md'), 'utf8')).resolves.toContain('Scene');
   });
 });
+
+describe('reordering', () => {
+  /** The order `structure.json` records for a group, if any. */
+  async function recordedOrder(groupPath: string): Promise<string[] | undefined> {
+    const structure = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8').catch(() => '{}'),
+    ) as Record<string, { order?: string[] } | undefined>;
+    return structure[groupPath]?.order;
+  }
+
+  beforeEach(async () => {
+    await writeFile(join(root, 'appendix.md'), 'Appendix\n', 'utf8');
+  });
+
+  it('records the whole resolved order, not just the moved entry', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    // Alphabetically: appendix.md, chapter.md, part-1.
+    await session.reorderEntry('part-1', 'appendix.md');
+
+    // A partial order would leave the rest to be appended alphabetically,
+    // scrambling the arrangement just made (SPEC.md §6.4).
+    expect(await recordedOrder('.')).toEqual(['part-1', 'appendix.md', 'chapter.md']);
+  });
+
+  it('moves an entry to the end when no sibling follows', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.reorderEntry('appendix.md', null);
+
+    expect(await recordedOrder('.')).toEqual(['chapter.md', 'part-1', 'appendix.md']);
+  });
+
+  it('is the moment a group without an order gets one', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    expect(await recordedOrder('.')).toBeUndefined();
+
+    await session.reorderEntry('chapter.md', null);
+    expect(await recordedOrder('.')).toEqual(['appendix.md', 'part-1', 'chapter.md']);
+  });
+
+  it('reorders inside a subgroup by its own path', async () => {
+    await writeFile(join(root, 'part-1', 'other.md'), 'Other\n', 'utf8');
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.reorderEntry('part-1/scene.md', 'other.md');
+
+    expect(await recordedOrder('part-1')).toEqual(['scene.md', 'other.md']);
+    expect(await recordedOrder('.')).toBeUndefined();
+  });
+
+  it('shows the new order the next time the project is read', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.reorderEntry('part-1', 'appendix.md');
+    const snapshot = await session.reopen();
+
+    expect(libraryOf(snapshot as never).children.map((child) => child.name)).toEqual([
+      'part-1',
+      'appendix.md',
+      'chapter.md',
+    ]);
+  });
+
+  it('refuses an entry that is not in the group', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    await expect(session.reorderEntry('ghost.md', null)).rejects.toMatchObject({
+      code: 'entry/unknown',
+    });
+    await expect(session.reorderEntry('nowhere/ghost.md', null)).rejects.toMatchObject({
+      code: 'group/unknown',
+    });
+  });
+});

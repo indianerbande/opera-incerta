@@ -536,6 +536,31 @@ all name the sheet the way the author just named it — a rename that nothing
 visibly answers looks like a rename that failed. The dirty marker in the header
 is what says it is not saved yet.
 
+**Reordering**, by dragging a row in the sheet list or a group in the tree:
+
+- An entry moves **among its siblings only**. Dragging a sheet into another
+  group would be a file move, with consequences a reorder does not have; it is
+  a separate operation and is not built.
+- The interface names the sibling the entry lands **in front of**, or nothing
+  for last — never a position. By the time the main process has re-read the
+  group, an index could point at something else.
+- The whole resolved order is then recorded for that group. A partial `order`
+  would leave the unlisted children to be appended alphabetically, scrambling
+  the very arrangement being made.
+- The sheet list shows sheets and the tree shows groups, while one `order`
+  holds both. Landing "in front of the next sheet" therefore leaves the
+  subgroups between them where they are, which is what the author sees and
+  means.
+- A drop that changes nothing writes nothing, and dragging an entry never also
+  opens or selects it.
+- The gesture is built on **pointer** events, not the drag-and-drop API: a
+  synthetic pointer can drive it, and a gesture no check can drive is a gesture
+  nothing proves (`TESTING.md` §1.4). A press becomes a drag only after the
+  pointer has travelled a few pixels, so an ordinary click stays a click.
+
+A drop is where a group without a recorded order first gets one — the same
+moment a rename does, and for the same reason (above).
+
 ### 6.5 Creating sheets and groups
 
 **Status: Accepted.**

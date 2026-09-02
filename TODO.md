@@ -65,11 +65,20 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   shows front matter, and the codec protects it. What is missing is the area
   that *displays* it: the owned block read-only, the foreign block with its
   visibility and writability switches.
-- **Reordering sheets and groups** — creating and renaming are built
-  (`SPEC.md` §6.4, §6.5); what is missing is dragging an entry to a new place
-  and writing the group's `order`. Two decisions come with it: whether a drag
-  may move an entry *between* groups (a file move, not an `order` edit), and
-  what an author sees while dragging.
+- **Moving an entry between groups** — reordering among siblings is built
+  (`SPEC.md` §6.4). Moving a sheet into another group is a file move: the path
+  changes, so handles, the open document, both groups' `order`, and Git all
+  have a stake in it. `moveChild` in the core already rewrites both orders in
+  one step; what is undecided is the gesture and what happens to an open sheet
+  that moves.
+- **Reordering without a pointer** — the drag has no keyboard equivalent. A
+  command that moves the selected entry up or down within its group would also
+  give the operation a menu item and a shortcut (`SPEC.md` §8.5).
+- **Re-reading a project discards unsaved work** — a library edit no longer
+  does (it carries the editing state across), but the explicit refresh in
+  `reloadProject` still re-reads the open sheet from disk. What should happen
+  is the comparison rule of `SPEC.md` §10.6, which is where the conflict prompt
+  belongs; until then, refreshing with unsaved changes loses them.
 - **The settings panel and localization** (`SPEC.md` §13, §14). The record
   exists and persists the workbench layout; what is missing is the category
   panel that lets the author change the rest of it, and the English/German

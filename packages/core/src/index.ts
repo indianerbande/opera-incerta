@@ -62,6 +62,7 @@ export {
   moveChild,
   readStructureRecord,
   resolveChildOrder,
+  reorderChild,
   withChildOrder,
   withDisplayName,
 } from './structure.js';

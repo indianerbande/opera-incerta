@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
 import {
   PREVIEW_DENSITIES,
   previewFontSize,
@@ -6,6 +6,7 @@ import {
   type PreviewDensity,
   type SheetEntry,
 } from '@opera-incerta/core';
+import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
 
 const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
 
@@ -17,19 +18,34 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
  * too — scaled down to row height. The sizes follow the geometric formula of
  * the core, deliberately independent of the real editor sizes: differences
  * must stay visible without the smallest step becoming unreadable.
+ *
+ * Rows can be dragged into a new order (SPEC.md §6.4). The list reports the
+ * sibling a row was dropped in front of; what that means for the group's
+ * recorded order is decided in the main process, over a freshly read group.
  */
 @Component({
   selector: 'wi-sheet-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(pointerdown)': 'onPointerDown($event)',
+    '(pointermove)': 'onPointerMove($event)',
+    '(pointerup)': 'onPointerUp()',
+    '(pointercancel)': 'drag.cancel()',
+  },
   template: `
     <ul class="list">
       @for (sheet of sheets(); track sheet.relativePath) {
-        <li>
+        <li
+          [attr.data-index]="$index"
+          [class.dragging]="drag.index() === $index"
+          [class.drop-above]="drag.slot() === $index"
+          [class.drop-below]="drag.slot() === sheets().length && $last"
+        >
           <button
             type="button"
             class="row"
             [class.selected]="sheet.relativePath === selectedPath()"
-            (click)="select.emit(sheet.relativePath)"
+            (click)="onSelect(sheet.relativePath)"
             (contextmenu)="onContextMenu($event, sheet)"
           >
             <span class="title">{{ sheet.displayName }}</span>
@@ -54,6 +70,16 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
       margin: 0;
       padding: 4px;
       list-style: none;
+      touch-action: none;
+    }
+    li.dragging {
+      opacity: 0.45;
+    }
+    li.drop-above {
+      box-shadow: inset 0 2px 0 0 rgba(128, 128, 128, 0.95);
+    }
+    li.drop-below {
+      box-shadow: inset 0 -2px 0 0 rgba(128, 128, 128, 0.95);
     }
     .row {
       display: flex;
@@ -103,6 +129,62 @@ export class SheetListComponent {
 
   readonly select = output<string>();
   readonly contextMenu = output<{ path: string; name: string; x: number; y: number }>();
+  readonly reorder = output<{ path: string; before: string | null }>();
+
+  protected readonly drag = new ReorderDrag();
+  readonly #host = inject(ElementRef<HTMLElement>);
+  #dropped = false;
+
+  protected onPointerDown(event: PointerEvent): void {
+    const index = this.#rowIndex(event.target);
+    if (index !== null && event.button === 0) {
+      this.drag.press(index, event.clientY);
+    }
+  }
+
+  protected onPointerMove(event: PointerEvent): void {
+    if (this.drag.move(event.clientY, this.#rowBoxes())) {
+      // Otherwise the pointer selects the row's text while it is being moved.
+      event.preventDefault();
+    }
+  }
+
+  protected onPointerUp(): void {
+    const drop = this.drag.release(this.sheets().map((sheet) => sheet.name));
+    if (drop === null) {
+      return;
+    }
+    // The click that follows this release must not also open the sheet: the
+    // author was moving it, not choosing it.
+    this.#dropped = true;
+    const moved = this.sheets()[drop.index];
+    if (moved !== undefined) {
+      this.reorder.emit({ path: moved.relativePath, before: drop.before });
+    }
+  }
+
+  protected onSelect(relativePath: string): void {
+    if (this.#dropped) {
+      this.#dropped = false;
+      return;
+    }
+    this.select.emit(relativePath);
+  }
+
+  /** The row index an event started in, or null when it started elsewhere. */
+  #rowIndex(target: EventTarget | null): number | null {
+    const row = target instanceof Element ? target.closest('li[data-index]') : null;
+    const index = row?.getAttribute('data-index');
+    return index === undefined || index === null ? null : Number(index);
+  }
+
+  #rowBoxes(): readonly RowBox[] {
+    const element = this.#host.nativeElement as HTMLElement;
+    return [...element.querySelectorAll('li[data-index]')].map((row) => {
+      const bounds = row.getBoundingClientRect();
+      return { top: bounds.top, bottom: bounds.bottom };
+    });
+  }
 
   protected onContextMenu(event: MouseEvent, sheet: SheetEntry): void {
     event.preventDefault();

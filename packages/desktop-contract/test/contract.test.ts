@@ -5,6 +5,7 @@ import {
   MAX_DOCUMENT_BYTES,
   isChannelName,
   isDocumentHandle,
+  isLibraryReorderRequest,
   isWriteSheetRequest,
 } from '../src/index.js';
 
@@ -64,5 +65,22 @@ describe('isWriteSheetRequest', () => {
 
     const multiByte = 'ä'.repeat(MAX_DOCUMENT_BYTES / 2 + 1);
     expect(isWriteSheetRequest({ handle: validHandle, text: multiByte })).toBe(false);
+  });
+});
+
+describe('isLibraryReorderRequest', () => {
+  it('accepts a sibling name and accepts the end', () => {
+    expect(isLibraryReorderRequest({ path: 'part-1/scene.md', before: 'other.md' })).toBe(true);
+    expect(isLibraryReorderRequest({ path: 'part-1', before: null })).toBe(true);
+  });
+
+  it('rejects an empty path, an empty sibling, and a missing one', () => {
+    // `undefined` must not pass as "the end": a typo would silently move the
+    // entry to the bottom of its group.
+    expect(isLibraryReorderRequest({ path: '', before: null })).toBe(false);
+    expect(isLibraryReorderRequest({ path: 'a.md', before: '' })).toBe(false);
+    expect(isLibraryReorderRequest({ path: 'a.md' })).toBe(false);
+    expect(isLibraryReorderRequest({ path: 'a.md', before: 3 })).toBe(false);
+    expect(isLibraryReorderRequest(null)).toBe(false);
   });
 });
