@@ -8,7 +8,12 @@ import {
   canonicalPath,
   createProjectFilesystem,
 } from '@opera-incerta/project-node';
-import { ProjectSession, ProjectSessionError, libraryOf } from '../src/project-session.js';
+import {
+  ProjectSession,
+  ProjectSessionError,
+  libraryOf,
+  type TrashItem,
+} from '../src/project-session.js';
 
 let root = '';
 
@@ -417,6 +422,96 @@ describe('reordering', () => {
     });
     await expect(session.reorderEntry('nowhere/ghost.md', null)).rejects.toMatchObject({
       code: 'group/unknown',
+    });
+  });
+});
+
+describe('deleting into the trash', () => {
+  /** A trash that records what it was handed, and really moves it aside. */
+  function recordingTrash(): { readonly moved: string[]; readonly trash: TrashItem } {
+    const moved: string[] = [];
+    return {
+      moved,
+      trash: async (absolutePath: string) => {
+        moved.push(absolutePath);
+        await rm(absolutePath, { recursive: true, force: true });
+      },
+    };
+  }
+
+  async function structureRecord(): Promise<Record<string, { order?: string[] } | undefined>> {
+    return JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8').catch(() => '{}'),
+    ) as Record<string, { order?: string[] } | undefined>;
+  }
+
+  it('hands the sheet’s absolute path to the trash, and forgets it', async () => {
+    const { moved, trash } = recordingTrash();
+    const filesystem = createProjectFilesystem();
+    await filesystem.writeStructure(root, { '.': { order: ['chapter.md', 'part-1'] } });
+
+    const session = new ProjectSession(filesystem, trash);
+    await session.open(root);
+    await session.deleteEntry('chapter.md');
+
+    expect(moved).toEqual([join(root, 'chapter.md')]);
+    expect((await structureRecord())['.']?.order).toEqual(['part-1']);
+    expect(sheetsOf(libraryOf((await session.reopen()) as never)).map((s) => s.name)).toEqual([
+      'scene.md',
+    ]);
+  });
+
+  it('takes a group’s contents with it, in one piece', async () => {
+    const { moved, trash } = recordingTrash();
+    const session = new ProjectSession(createProjectFilesystem(), trash);
+    await session.open(root);
+    await session.deleteEntry('part-1');
+
+    // One move, of the directory — not a file-by-file deletion.
+    expect(moved).toEqual([join(root, 'part-1')]);
+    expect((await structureRecord())['part-1']).toBeUndefined();
+  });
+
+  it('never removes anything itself', async () => {
+    // A trash that does nothing must leave the file exactly where it was.
+    const session = new ProjectSession(createProjectFilesystem(), async () => {});
+    await session.open(root);
+    await session.deleteEntry('chapter.md');
+
+    expect(await readFile(join(root, 'chapter.md'), 'utf8')).toContain('Chapter One');
+  });
+
+  it('leaves the record untouched when the trash refuses', async () => {
+    const filesystem = createProjectFilesystem();
+    await filesystem.writeStructure(root, { '.': { order: ['chapter.md', 'part-1'] } });
+    const session = new ProjectSession(filesystem, async () => {
+      throw new Error('the disk said no');
+    });
+    await session.open(root);
+
+    await expect(session.deleteEntry('chapter.md')).rejects.toThrow('the disk said no');
+    // Nothing was moved, so nothing may be forgotten.
+    expect((await structureRecord())['.']?.order).toEqual(['chapter.md', 'part-1']);
+  });
+
+  it('refuses without a trash rather than deleting irreversibly', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    await expect(session.deleteEntry('chapter.md')).rejects.toMatchObject({
+      code: 'trash/unavailable',
+    });
+    expect(await readFile(join(root, 'chapter.md'), 'utf8')).toContain('Chapter One');
+  });
+
+  it('refuses the project root and anything outside the project', async () => {
+    const { trash } = recordingTrash();
+    const session = new ProjectSession(createProjectFilesystem(), trash);
+    await session.open(root);
+
+    await expect(session.deleteEntry('.')).rejects.toMatchObject({ code: 'project/root' });
+    await expect(session.deleteEntry('../escape')).rejects.toMatchObject({
+      code: 'entry/outside-project',
     });
   });
 });

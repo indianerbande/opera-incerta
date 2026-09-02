@@ -20,6 +20,7 @@ import {
   sheetsOf,
   withChildOrder,
   withDisplayName,
+  withoutChild,
   type GroupEntry,
 } from '@opera-incerta/core';
 import {
@@ -49,14 +50,30 @@ interface OpenProject {
 }
 
 /**
+ * Moves a path to the desktop trash.
+ *
+ * Injected rather than imported, because the only implementation that really
+ * reaches the trash is Electron's, and this class must stay testable without
+ * an Electron process — the same seam the functional template uses. A session
+ * that was never given one refuses to delete instead of falling back to
+ * something irreversible.
+ */
+export type TrashItem = (absolutePath: string) => Promise<void>;
+
+/**
  * One open project at a time, matching the window model of SPEC.md §8.5.
  */
 export class ProjectSession {
   readonly #filesystem: ProjectFilesystem;
+  readonly #trashItem: TrashItem | null;
   #open: OpenProject | null = null;
 
-  constructor(filesystem: ProjectFilesystem = createProjectFilesystem()) {
+  constructor(
+    filesystem: ProjectFilesystem = createProjectFilesystem(),
+    trashItem: TrashItem | null = null,
+  ) {
     this.#filesystem = filesystem;
+    this.#trashItem = trashItem;
   }
 
   get openPath(): string | null {
@@ -275,6 +292,42 @@ export class ProjectSession {
       projectPath,
       withChildOrder(structure, groupPath, reorderChild(resolved, name, before)),
     );
+  }
+
+  /**
+   * Moves one entry to the trash and forgets it in `structure.json`.
+   * SPEC.md §6.7.
+   *
+   * The trash first, the record second: if the move fails there is nothing to
+   * forget, and the author's arrangement is left exactly as it was. The
+   * reverse order would leave a group whose recorded order has a hole in it
+   * and whose file is still on disk.
+   *
+   * A group takes its contents with it, which is what a trash is for — the
+   * whole directory is recoverable in one piece.
+   */
+  async deleteEntry(relativePath: string): Promise<void> {
+    const projectPath = this.#requireOpen().path;
+    if (relativePath === '.' || relativePath === '') {
+      throw new ProjectSessionError('project/root');
+    }
+    if (this.#trashItem === null) {
+      throw new ProjectSessionError('trash/unavailable');
+    }
+
+    const absolute = absolutePathOf(projectPath, relativePath);
+    if (!(await isInside(projectPath, absolute))) {
+      throw new ProjectSessionError('entry/outside-project');
+    }
+
+    const segments = relativePath.split('/');
+    const name = segments[segments.length - 1] ?? '';
+    const groupPath = segments.length === 1 ? '.' : segments.slice(0, -1).join('/');
+
+    await this.#trashItem(absolute);
+
+    const structure = await this.#filesystem.readStructure(projectPath);
+    await this.#filesystem.writeStructure(projectPath, withoutChild(structure, groupPath, name));
   }
 
   async #appendToOrder(projectPath: string, groupPath: string, name: string): Promise<void> {

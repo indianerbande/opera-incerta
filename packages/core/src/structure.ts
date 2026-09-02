@@ -139,6 +139,40 @@ export function reorderChild(
 }
 
 /**
+ * The record with one entry gone: its own key, every key beneath it, and its
+ * name struck from its parent's order.
+ *
+ * A group takes its whole subtree's entries with it, because those keys are
+ * paths and the paths no longer exist. The parent's order is only touched when
+ * it has one — inventing an order here would freeze an arrangement the author
+ * never chose (§6.4).
+ */
+export function withoutChild(
+  structure: StructureRecord,
+  parentPath: string,
+  name: string,
+): StructureRecord {
+  const childPath = parentPath === '.' ? name : `${parentPath}/${name}`;
+  const next: Record<string, StructureEntry> = {};
+
+  for (const [path, entry] of Object.entries(structure)) {
+    if (path === childPath || path.startsWith(`${childPath}/`)) {
+      continue;
+    }
+    next[path] = entry;
+  }
+
+  const order = next[parentPath]?.order;
+  return order === undefined
+    ? next
+    : withChildOrder(
+        next,
+        parentPath,
+        order.filter((candidate) => candidate !== name),
+      );
+}
+
+/**
  * Moves an item from one group to another, rewriting both orders in one step
  * so the two files can never disagree. The item lands at the end of the target
  * order (SPEC.md §18, phase 3).

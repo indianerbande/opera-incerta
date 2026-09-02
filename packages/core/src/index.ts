@@ -64,6 +64,7 @@ export {
   resolveChildOrder,
   reorderChild,
   withChildOrder,
+  withoutChild,
   withDisplayName,
 } from './structure.js';
 export type { ProjectRecord, StructureEntry, StructureRecord } from './structure.js';

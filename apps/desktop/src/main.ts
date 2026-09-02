@@ -7,6 +7,7 @@
  */
 import {
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -14,11 +15,21 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { mkdir, readdir } from 'node:fs/promises';
+import { mkdir, readdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
+import {
+  BrowserWindow,
+  Menu,
+  app,
+  clipboard,
+  dialog,
+  ipcMain,
+  net,
+  protocol,
+  shell,
+} from 'electron';
 import {
   BRIDGE_GLOBAL,
   CHANNELS,
@@ -28,6 +39,7 @@ import {
   isGitPathsRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
+  isLibraryPathRequest,
   isLibraryReorderRequest,
   isRecentProjectRequest,
   isWriteSheetRequest,
@@ -72,6 +84,25 @@ const SMOKE_RUN = process.env['OPERA_INCERTA_SMOKE'] === '1';
  * under the smoke, and it does so only for the directory chooser.
  */
 const smokeProjectPath = SMOKE_RUN ? prepareSmokeProject() : null;
+
+/**
+ * Where a deleted entry goes. SPEC.md §6.7.
+ *
+ * In the application, the desktop trash — the one place the author already
+ * knows how to restore from. Under the smoke, a directory of its own: running
+ * the real trash would leave a little rubbish behind on every run, and the
+ * property worth proving is the same either way — the entry is **moved**, not
+ * destroyed.
+ */
+const smokeTrashPath = SMOKE_RUN ? mkdtempSync(join(tmpdir(), 'opera-incerta-trash-')) : null;
+
+async function trashItem(absolutePath: string): Promise<void> {
+  if (smokeTrashPath !== null) {
+    await rename(absolutePath, join(smokeTrashPath, basename(absolutePath)));
+    return;
+  }
+  await shell.trashItem(absolutePath);
+}
 
 if (SMOKE_RUN) {
   // The recent-projects list is installation-local state; a test run must not
@@ -275,7 +306,7 @@ function presentProject(): void {
 
 ipcMain.handle(CHANNELS.contractVersion, () => CONTRACT_VERSION);
 
-const session = new ProjectSession();
+const session = new ProjectSession(undefined, trashItem);
 const recentProjects = new RecentProjectsFile(app.getPath('userData'));
 
 ipcMain.handle(CHANNELS.windowRole, (event) => {
@@ -509,6 +540,13 @@ privileged(CHANNELS.renameGroup, isLibraryEditRequest, async (request) =>
 privileged(CHANNELS.reorderEntry, isLibraryReorderRequest, async (request) =>
   libraryEdit(async () => {
     await session.reorderEntry(request.path, request.before);
+    return null;
+  }),
+);
+
+privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
+  libraryEdit(async () => {
+    await session.deleteEntry(request.path);
     return null;
   }),
 );
@@ -1561,6 +1599,125 @@ async function checkReordering(window: BrowserWindow, projectPath: string): Prom
     'smoke ok: dragged a sheet and a group into a new order, recorded in structure.json, ' +
       'and dragging opened nothing',
   );
+
+  await checkDeletion(window, projectPath);
+}
+
+/**
+ * Checks that an entry goes to the trash, that it is really *moved* there, and
+ * that neither Escape nor Return takes anything away. SPEC.md §6.7.
+ */
+async function checkDeletion(window: BrowserWindow, projectPath: string): Promise<void> {
+  if (smokeTrashPath === null) {
+    throw new Error('the smoke has no trash to delete into');
+  }
+
+  // Return must not delete — and the dialog must actually be gone afterwards.
+  // Without that second half, a dialog that ignores Return passes this check.
+  for (const key of ['Return', 'Escape']) {
+    await openDeleteDialog(window, 'wi-sheet-list .row', 'Renamed In Place', 'Delete Sheet');
+
+    const focused = (await window.webContents.executeJavaScript(
+      "(document.activeElement || {}).textContent?.trim() ?? null",
+    )) as string | null;
+    if (focused !== 'Cancel') {
+      throw new Error(`the confirmation put the keyboard on ${String(focused)}, not on Cancel`);
+    }
+
+    await pressKey(window, key);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const stillOpen = (await window.webContents.executeJavaScript(
+      "document.querySelector('wi-confirm-prompt') !== null",
+    )) as boolean;
+    if (stillOpen) {
+      throw new Error(`${key} left the confirmation open`);
+    }
+    if (!existsSync(join(projectPath, 'opening.md'))) {
+      throw new Error(`${key} in the confirmation deleted the sheet`);
+    }
+  }
+
+  // Aimed at, it deletes.
+  await openDeleteDialog(window, 'wi-sheet-list .row', 'Renamed In Place', 'Delete Sheet');
+  await clickText(window, 'wi-confirm-prompt button', 'Delete');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  if (existsSync(join(projectPath, 'opening.md'))) {
+    throw new Error('the sheet is still in the project');
+  }
+  // Moved, not destroyed — the whole point of a trash.
+  const trashed = readFileSync(join(smokeTrashPath, 'opening.md'), 'utf8');
+  if (!trashed.includes('title: Renamed In Place')) {
+    throw new Error('what reached the trash is not the sheet that was deleted');
+  }
+  if (orderOf(projectPath, '.').includes('opening.md')) {
+    throw new Error('structure.json still names the deleted sheet');
+  }
+
+  // The author is left somewhere, not nowhere.
+  const remaining = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-sheet-list .title')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (remaining.length !== 1 || remaining[0] !== 'Renamed While Open') {
+    throw new Error(`the list is wrong after deleting: ${JSON.stringify(remaining)}`);
+  }
+
+  // A group takes its contents along, in one piece.
+  await openDeleteDialog(window, 'wi-explorer-node .row', 'Part One', 'Delete Group');
+  const warning = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-confirm-prompt .warning')?.textContent.trim() ?? null`,
+  )) as string | null;
+  if (warning === null || !warning.includes('1 sheet')) {
+    throw new Error(`the confirmation does not say what goes along: ${String(warning)}`);
+  }
+
+  const image = await window.webContents.capturePage();
+  const evidencePath = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-delete.png');
+  writeFileSync(evidencePath, image.toPNG());
+  console.log(`smoke evidence: ${evidencePath}`);
+
+  await clickText(window, 'wi-confirm-prompt button', 'Delete');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  if (existsSync(join(projectPath, 'part-1'))) {
+    throw new Error('the group is still in the project');
+  }
+  if (!existsSync(join(smokeTrashPath, 'part-1', 'scene.md'))) {
+    throw new Error('the group did not reach the trash with its sheet inside');
+  }
+
+  console.log(
+    'smoke ok: a sheet and a group moved to the trash with their contents, the record forgot ' +
+      'them, and neither Return nor Escape deleted anything',
+  );
+}
+
+/** Opens the confirmation for one entry through its context menu. */
+async function openDeleteDialog(
+  window: BrowserWindow,
+  selector: string,
+  text: string,
+  entry: string,
+): Promise<void> {
+  const point = await rowPoint(window, selector, text);
+  window.webContents.sendInputEvent({
+    type: 'mouseDown',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  window.webContents.sendInputEvent({
+    type: 'mouseUp',
+    x: point.x,
+    y: point.y,
+    button: 'right',
+    clickCount: 1,
+  });
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', entry);
+  await waitForSelector(window, 'wi-confirm-prompt button');
 }
 
 /** The recorded order of one group. */

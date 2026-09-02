@@ -8,7 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { findGroup } from '@opera-incerta/core';
+import { findGroup, sheetsOf, walkLibrary } from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
 import {
@@ -21,6 +21,7 @@ import {
   ContextMenuComponent,
   type ContextMenuEntry,
 } from './shell/context-menu.component.js';
+import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
 import {
   LayoutState,
@@ -57,6 +58,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     ResizeDividerComponent,
     SheetListComponent,
     SourceControlComponent,
+    ConfirmPromptComponent,
     TextPromptComponent,
   ],
 
@@ -239,6 +241,15 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       />
     }
 
+    @if (confirmation(); as open) {
+      <wi-confirm-prompt
+        [title]="open.title"
+        [warning]="open.warning"
+        (confirm)="confirmDeletion()"
+        (cancel)="confirmation.set(null)"
+      />
+    }
+
     @if (store.failure(); as failure) {
       <div class="failure" role="alert">
         <span>{{ failure }}</span>
@@ -378,6 +389,13 @@ export class AppComponent {
     target: { kind: 'group' | 'sheet'; path: string; name: string };
   } | null>(null);
 
+  /** The open confirmation, and what it would take away. SPEC.md §6.7. */
+  protected readonly confirmation = signal<{
+    title: string;
+    warning: string | null;
+    action: () => void;
+  } | null>(null);
+
   /** The open prompt, and what confirming it will do. */
   protected readonly prompt = signal<{
     title: string;
@@ -398,6 +416,8 @@ export class AppComponent {
         { id: 'sheet/new', label: 'New Sheet…' },
         { id: 'group/new', label: 'New Group…' },
         { id: 'group/rename', label: 'Rename…' },
+        // The project root has no group above it to delete it from.
+        ...(event.path === '.' ? [] : [{ id: 'group/delete', label: 'Delete Group…' }]),
       ],
       x: event.x,
       y: event.y,
@@ -407,7 +427,10 @@ export class AppComponent {
 
   protected openSheetMenu(event: { path: string; name: string; x: number; y: number }): void {
     this.menu.set({
-      entries: [{ id: 'sheet/rename', label: 'Rename…' }],
+      entries: [
+        { id: 'sheet/rename', label: 'Rename…' },
+        { id: 'sheet/delete', label: 'Delete Sheet…' },
+      ],
       x: event.x,
       y: event.y,
       target: { kind: 'sheet', path: event.path, name: event.name },
@@ -465,6 +488,25 @@ export class AppComponent {
           action: (value) => void this.store.renameSheet(target.path, value),
         });
         return;
+      case 'sheet/delete':
+        this.confirmation.set({
+          title: `Move “${target.name}” to the trash?`,
+          // Unsaved work does not go to the trash with the file: it was never
+          // in it. The author has to hear that before, not after.
+          warning:
+            this.store.openSheet()?.relativePath === target.path && this.store.dirty()
+              ? 'It has unsaved changes, and those are not in the trash afterwards.'
+              : null,
+          action: () => void this.store.deleteEntry(target.path),
+        });
+        return;
+      case 'group/delete':
+        this.confirmation.set({
+          title: `Move “${target.name}” to the trash?`,
+          warning: this.groupContents(target.path),
+          action: () => void this.store.deleteEntry(target.path),
+        });
+        return;
       default:
         return;
     }
@@ -474,6 +516,34 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  protected confirmDeletion(): void {
+    const open = this.confirmation();
+    this.confirmation.set(null);
+    open?.action();
+  }
+
+  /** What goes along with a group, in words, or null when it is empty. */
+  private groupContents(path: string): string | null {
+    const library = this.store.library();
+    const group = library === null ? null : findGroup(library, path);
+    if (group === null) {
+      return null;
+    }
+    const sheets = sheetsOf(group).length;
+    const groups = [...walkLibrary(group)].filter(
+      (entry) => entry.kind === 'group' && entry !== group,
+    ).length;
+    if (sheets === 0 && groups === 0) {
+      return null;
+    }
+
+    const parts = [
+      sheets === 1 ? '1 sheet' : `${String(sheets)} sheets`,
+      ...(groups === 0 ? [] : [groups === 1 ? '1 subgroup' : `${String(groups)} subgroups`]),
+    ];
+    return `Everything in it goes too: ${parts.join(' and ')}.`;
   }
 
   private groupName(path: string): string {

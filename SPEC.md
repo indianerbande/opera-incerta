@@ -633,6 +633,45 @@ the UUID stays in the file and the sheet becomes uncategorized.
 
 Category names are **user data** and are never localized (§14.2).
 
+### 6.7 Deleting into the trash
+
+**Status: Accepted.**
+
+Sheets and groups are deleted from their context menu, and deleting means
+**moving to the desktop trash** — the operating system's own, the one place the
+author already knows how to restore from. The application never removes a file
+itself:
+
+- if no trash is available, the operation is **refused**; it never falls back
+  to an irreversible delete;
+- a group goes as a whole directory, with everything in it, so it comes back as
+  a whole directory too;
+- the trash first, the record second. `structure.json` forgets the entry — its
+  name in the parent's order, its own entry and every entry beneath it — only
+  after the move succeeded. Failing the other way round would leave a hole in
+  the order and the file still on disk.
+
+Under Git the manuscript has a second, independent net: a deleted file is in
+the history. That is the reason not to invent a third one inside
+`.opera-incerta/`, where deleted content would sit in the project, get
+committed, and be one more place to look.
+
+**The confirmation is always shown**, and it says what the author cannot see:
+
+- the name of what goes;
+- for a group, how much goes with it;
+- for the open sheet with unsaved changes, that those are **not** in the trash
+  afterwards, because they were never in the file.
+
+**Return does not delete.** It cancels, like the default button of a system
+alert, and so does Escape; the destructive button has to be aimed at with the
+pointer. The rule is bound outright rather than left to wherever the focus
+happens to be. There is no keyboard shortcut for deleting.
+
+**Afterwards the author is left somewhere, not nowhere**: the sheet after the
+deleted one opens, else the one before it; a deleted group hands the selection
+to its parent. Nothing that no longer exists stays selected.
+
 ## 7. Storage model
 
 **Status: Accepted.**

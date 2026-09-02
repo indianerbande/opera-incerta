@@ -82,11 +82,11 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Page categories in the interface** (`SPEC.md` §6.6, §17.12) — the core
   computes the badge text colour and tolerates unknown ids; defining,
   assigning, and showing categories is not built, and neither is deleting one.
-- **Deleting sheets and groups** — the library can be created, renamed and
-  reordered, but nothing in the application removes an entry. It needs its own
-  decision first: a trash the author can undo, an irreversible delete with a
-  prompt, or deliberately none at all, leaving removal to the file manager and
-  Git.
+- **Restoring from the trash inside the application** — deleting moves an entry
+  to the desktop trash (`SPEC.md` §6.7), which is where restoring happens
+  today: in the file manager, by putting it back. An in-application list of
+  what was deleted would need its own storage decision, and the desktop trash
+  plus Git already cover the case.
 - **The settings panel and localization** (`SPEC.md` §13, §14). The record
   exists and persists the workbench layout; what is missing is the category
   panel that lets the author change the rest of it, and the English/German

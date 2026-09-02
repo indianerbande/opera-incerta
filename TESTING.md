@@ -294,6 +294,15 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- deleting into the trash (`SPEC.md` §6.7): a sheet and a group leave the
+  project and **arrive** in the trash — the group with its sheet inside —
+  `structure.json` forgets them, and the selection lands on what is left.
+  Both negative cases are checked by proving the dialog **closed**: a
+  confirmation that ignores a key would otherwise pass a check that only asks
+  whether the file is still there. Under the smoke the trash is a directory of
+  its own, so a check does not leave rubbish in the author's own trash on every
+  run; that the destination is the desktop trash in the application is one line
+  of wiring, and a unit test proves the session itself never removes a file;
 - reordering by a **real pointer drag** (`SPEC.md` §6.4): a sheet dragged past
   the row below it and a group dragged past its sibling both change the order
   shown *and* the order recorded in `structure.json`, and neither drag opens or

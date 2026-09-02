@@ -6,6 +6,58 @@ documents").
 
 ---
 
+## 2026-09-02 — deleting into the desktop trash
+
+**What exists.** A sheet or a group is deleted from its context menu, and
+deleting means moving to the **desktop trash** (`SPEC.md` §6.7). The
+application never removes a file itself: without a trash the operation is
+refused rather than falling back to something irreversible. This follows the
+functional template, which uses `FileManager.trashItem` and never `removeItem`.
+
+**Why the system trash and not one of our own.** It is the place the author
+already knows how to restore from, and under Git the manuscript has a second,
+independent net — a deleted file is in the history. A trash inside
+`.opera-incerta/` would be a third place, sitting in the project, getting
+committed, and needing its own retention rules.
+
+**The trash first, the record second.** `structure.json` forgets the entry —
+its name in the parent's order, its own entry and everything beneath it — only
+after the move succeeded. The other order would leave a hole in the order and
+the file still on disk.
+
+**The confirmation says what the author cannot see**: the name, how much goes
+along with a group, and — for the open sheet with unsaved changes — that those
+are not in the trash afterwards, because they were never in the file. Return
+cancels rather than deletes, like the default button of a system alert, and it
+is bound outright instead of relying on where the focus landed: a rule about
+not deleting things should not depend on that.
+
+**Afterwards the author is left somewhere**: the sheet after the deleted one,
+else the one before it; a deleted group hands the selection to its parent, and
+the columns never show a place that is gone.
+
+**The lesson of this round is about a check, not about the code.** The first
+version of the smoke pressed Return on the confirmation and asserted the file
+was still there. It passed — while the dialog was still open, because the
+harness sends no character event and the focused button was never activated.
+The check proved nothing: a confirmation that ignores every key would have
+passed it just as well. It now asserts that the dialog **closed** as well, and
+that is what caught it. A negative check has to say what *did* happen, not only
+what did not.
+
+**Verification.** `pnpm run check` green: **525 tests**. The smoke's sixteenth
+check deletes a sheet and a group through the real context menus, and reads
+both ends off the filesystem: gone from the project, **arrived** in the trash
+with the group's sheet inside it, and struck from `structure.json`. Under the
+smoke the trash is a directory of its own, so a run leaves nothing in the
+author's own trash; that the destination is the desktop trash in the
+application is one line of wiring, and a unit test proves the session removes
+nothing itself — given a trash that does nothing, the file stays exactly where
+it was. A screenshot of the confirmation shows the name, the warning, the
+restore hint, and Cancel holding the keyboard.
+
+---
+
 ## 2026-09-02 — reordering by drag, and the unsaved work it nearly cost
 
 **What exists.** Sheets can be dragged into a new order in the sheet list, and

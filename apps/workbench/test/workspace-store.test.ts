@@ -580,3 +580,142 @@ describe('unsaved work during a library edit', () => {
     expect(store.editorDocument()?.text).toBe('# Preface\n');
   });
 });
+
+describe('deleting', () => {
+  /** The project without the whole of `part-1`. */
+  const withoutPart: ProjectSnapshot = {
+    ...snapshot,
+    library: {
+      ...library,
+      children: library.children.filter((child) => child.relativePath !== 'part-1'),
+    },
+  };
+
+  /** Two sheets in the root, so a deletion has a neighbour to fall back on. */
+  const twoSheets: ProjectSnapshot = {
+    ...snapshot,
+    library: {
+      ...library,
+      children: [
+        ...library.children,
+        {
+          kind: 'sheet',
+          name: 'afterword.md',
+          relativePath: 'afterword.md',
+          displayName: 'Afterword',
+          preview: [],
+        },
+      ],
+    },
+    handles: { ...snapshot.handles, 'afterword.md': 'd'.repeat(32) },
+  };
+
+  /** The same, once `preface.md` has gone to the trash. */
+  const withoutPreface: ProjectSnapshot = {
+    ...twoSheets,
+    library: {
+      ...(twoSheets.library as GroupEntry),
+      children: (twoSheets.library as GroupEntry).children.filter(
+        (child) => child.relativePath !== 'preface.md',
+      ),
+    },
+  };
+
+  it('opens the sheet after the deleted one', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        openProject: async () => ({ ok: true, value: twoSheets }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPreface, createdPath: null } }),
+        readSheet: async () => ({ ok: true, value: 'Afterword\n' }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.deleteEntry('preface.md');
+
+    // Deleting what you were reading should leave you somewhere, not nowhere.
+    expect(store.openSheet()?.relativePath).toBe('afterword.md');
+  });
+
+  it('falls back to the sheet before it when there is no next one', async () => {
+    const afterwordGone: ProjectSnapshot = {
+      ...twoSheets,
+      library: {
+        ...library,
+        children: library.children.filter((child) => child.relativePath !== 'afterword.md'),
+      },
+    };
+    const store = new WorkspaceStore(
+      fakeBridge({
+        openProject: async () => ({ ok: true, value: twoSheets }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: afterwordGone, createdPath: null } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('afterword.md');
+    await store.deleteEntry('afterword.md');
+
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+  });
+
+  it('leaves the editor empty when the group has nothing left', async () => {
+    const emptyRoot: ProjectSnapshot = {
+      ...snapshot,
+      library: {
+        ...library,
+        children: library.children.filter((child) => child.relativePath !== 'preface.md'),
+      },
+    };
+    const store = new WorkspaceStore(
+      fakeBridge({
+        deleteEntry: async () => ({ ok: true, value: { snapshot: emptyRoot, createdPath: null } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.deleteEntry('preface.md');
+
+    expect(store.openSheet()).toBeNull();
+  });
+
+  it('keeps the open sheet when some other entry is deleted', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        openProject: async () => ({ ok: true, value: twoSheets }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: twoSheets, createdPath: null } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.deleteEntry('part-1/scene.md');
+
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+  });
+
+  it('moves the selection up when the selected group is deleted', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPart, createdPath: null } }),
+      }),
+    );
+    await store.openProject();
+    store.selectGroup('part-1/pre');
+    await store.deleteEntry('part-1');
+
+    // The columns must not show a place that is gone.
+    expect(store.selectedGroupPath()).toBe('.');
+  });
+
+  it('reports a refusal and changes nothing', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        deleteEntry: async () => ({ ok: false, code: 'trash/unavailable', message: 'no trash' }),
+      }),
+    );
+    await store.openProject();
+    await store.deleteEntry('preface.md');
+
+    expect(store.failure()).toBe('trash/unavailable');
+    expect(store.library()?.children.map((child) => child.name)).toEqual(['preface.md', 'part-1']);
+  });
+});

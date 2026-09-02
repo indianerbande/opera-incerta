@@ -47,6 +47,7 @@ export const CHANNELS = {
   renameSheet: 'opera-incerta:sheet/rename',
   renameGroup: 'opera-incerta:group/rename',
   reorderEntry: 'opera-incerta:library/reorder',
+  deleteEntry: 'opera-incerta:library/delete',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
 } as const;
@@ -210,6 +211,22 @@ export function isLibraryEditRequest(value: unknown): value is LibraryEditReques
     typeof candidate.name === 'string' &&
     candidate.name.trim() !== ''
   );
+}
+
+/**
+ * One entry, named for an operation that needs nothing else. SPEC.md §6.7.
+ */
+export interface LibraryPathRequest {
+  readonly path: string;
+}
+
+export function isLibraryPathRequest(value: unknown): value is LibraryPathRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<LibraryPathRequest>;
+  // The project root is a path, and deleting it is not an operation.
+  return typeof candidate.path === 'string' && candidate.path !== '' && candidate.path !== '.';
 }
 
 /**
@@ -421,6 +438,8 @@ export interface OperaIncertaBridge {
   renameGroup(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Moves an entry among its siblings, recording the group's order. */
   reorderEntry(request: LibraryReorderRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Moves an entry to the desktop trash, from where the author can restore it. */
+  deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

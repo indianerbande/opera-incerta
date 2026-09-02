@@ -8,6 +8,7 @@ import {
   resolveChildOrder,
   withChildOrder,
   withDisplayName,
+  withoutChild,
   type StructureRecord,
 } from '../src/index.js';
 
@@ -192,5 +193,46 @@ describe('reorderChild', () => {
 
   it('treats an unknown sibling as the end rather than losing the item', () => {
     expect(reorderChild(order, 'a.md', 'nowhere.md')).toEqual(['part-1', 'b.md', 'c.md', 'a.md']);
+  });
+});
+
+describe('withoutChild', () => {
+  const structure: StructureRecord = {
+    '.': { order: ['a.md', 'part-1', 'b.md'] },
+    'part-1': { displayName: 'Part One', order: ['scene.md', 'pre'] },
+    'part-1/pre': { displayName: 'Preparation', order: ['note.md'] },
+  };
+
+  it('strikes the name from its parent’s order', () => {
+    expect(withoutChild(structure, '.', 'a.md')['.']?.order).toEqual(['part-1', 'b.md']);
+  });
+
+  it('takes a group’s whole subtree of entries with it', () => {
+    const next = withoutChild(structure, '.', 'part-1');
+
+    // Those keys are paths, and the paths are gone.
+    expect(Object.keys(next)).toEqual(['.']);
+    expect(next['.']?.order).toEqual(['a.md', 'b.md']);
+  });
+
+  it('removes a nested group without touching its siblings', () => {
+    const next = withoutChild(structure, 'part-1', 'pre');
+
+    expect(next['part-1/pre']).toBeUndefined();
+    expect(next['part-1']?.order).toEqual(['scene.md']);
+    expect(next['part-1']?.displayName).toBe('Part One');
+  });
+
+  it('invents no order for a group that had none', () => {
+    const bare: StructureRecord = { 'part-1': { displayName: 'Part One' } };
+    expect(withoutChild(bare, 'part-1', 'scene.md')['part-1']?.order).toBeUndefined();
+  });
+
+  it('is harmless for a name that was never recorded', () => {
+    expect(withoutChild(structure, '.', 'ghost.md')['.']?.order).toEqual([
+      'a.md',
+      'part-1',
+      'b.md',
+    ]);
   });
 });

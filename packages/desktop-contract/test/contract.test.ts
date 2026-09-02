@@ -5,6 +5,7 @@ import {
   MAX_DOCUMENT_BYTES,
   isChannelName,
   isDocumentHandle,
+  isLibraryPathRequest,
   isLibraryReorderRequest,
   isWriteSheetRequest,
 } from '../src/index.js';
@@ -82,5 +83,19 @@ describe('isLibraryReorderRequest', () => {
     expect(isLibraryReorderRequest({ path: 'a.md' })).toBe(false);
     expect(isLibraryReorderRequest({ path: 'a.md', before: 3 })).toBe(false);
     expect(isLibraryReorderRequest(null)).toBe(false);
+  });
+});
+
+describe('isLibraryPathRequest', () => {
+  it('accepts an entry path', () => {
+    expect(isLibraryPathRequest({ path: 'part-1/scene.md' })).toBe(true);
+  });
+
+  it('rejects the project root, an empty path, and a missing one', () => {
+    // Deleting the root is not an operation, so it never reaches a handler.
+    expect(isLibraryPathRequest({ path: '.' })).toBe(false);
+    expect(isLibraryPathRequest({ path: '' })).toBe(false);
+    expect(isLibraryPathRequest({})).toBe(false);
+    expect(isLibraryPathRequest(null)).toBe(false);
   });
 });

@@ -9,7 +9,6 @@
 import { computed, signal } from '@angular/core';
 import {
   ancestorPaths,
-  withSheetDisplayName,
   findGroup,
   findSheet,
   markdownToDisplay,
@@ -19,6 +18,7 @@ import {
   sheetsInGroup,
   textStatistics,
   visibleOutline,
+  withSheetDisplayName,
   type EditorDocument,
   type GroupEntry,
   type OutlineEntry,
@@ -394,6 +394,27 @@ export class WorkspaceStore {
     );
   }
 
+  /**
+   * Moves an entry to the trash. SPEC.md §6.7.
+   *
+   * The neighbour to fall back on is worked out **before** the entry goes,
+   * while it still has neighbours: the sheet after it, else the one before it.
+   * Deleting what you were reading should leave you somewhere, not nowhere.
+   */
+  async deleteEntry(relativePath: string): Promise<void> {
+    const siblings = this.visibleSheets();
+    const index = siblings.findIndex((sheet) => sheet.relativePath === relativePath);
+    const neighbour =
+      index === -1
+        ? null
+        : (siblings[index + 1]?.relativePath ?? siblings[index - 1]?.relativePath ?? null);
+
+    await this.#libraryEdit(
+      async (bridge) => bridge.deleteEntry({ path: relativePath }),
+      neighbour,
+    );
+  }
+
   dismissFailure(): void {
     this.#failure.set(null);
   }
@@ -412,6 +433,7 @@ export class WorkspaceStore {
    */
   async #libraryEdit(
     operation: (bridge: OperaIncertaBridge) => Promise<BridgeResult<LibraryEditResult>>,
+    fallbackSheet: string | null = null,
   ): Promise<void> {
     const previousGroup = this.#selectedGroupPath();
     const previousSheet = this.#openSheet()?.relativePath ?? null;
@@ -427,6 +449,7 @@ export class WorkspaceStore {
       const created = result.createdPath;
       this.#adopt(result.snapshot);
 
+      const library = result.snapshot.library as GroupEntry;
       const ancestors = created === null ? [] : ancestorPaths(created);
       const reveal =
         created === null
@@ -435,12 +458,17 @@ export class WorkspaceStore {
             ? (ancestors[ancestors.length - 1] ?? '.')
             : created;
       this.#expand(ancestors);
-      this.#selectedGroupPath.set(reveal);
+      // The selection has to land on something that still exists: a deleted
+      // group takes the selection with it otherwise, and the columns would
+      // show a place that is gone.
+      this.#selectedGroupPath.set(nearestGroup(library, reveal));
 
       // A created sheet is selected and opened; otherwise the previously open
       // one stays open — creating a *group* must not close the editor
       // (SPEC.md §6.5).
-      const toOpen = created !== null && created.endsWith('.md') ? created : previousSheet;
+      const wanted = created !== null && created.endsWith('.md') ? created : previousSheet;
+      const toOpen =
+        wanted !== null && findSheet(library, wanted) !== null ? wanted : fallbackSheet;
       if (toOpen !== null) {
         await this.selectSheet(toOpen);
         if (unsaved !== null && toOpen === previousSheet) {
@@ -516,4 +544,19 @@ function sameMetadata(left: SheetMetadata, right: SheetMetadata): boolean {
     }
   }
   return true;
+}
+
+/**
+ * The nearest group that still exists, walking up from a path.
+ *
+ * After a deletion the remembered selection may name a group that is gone; its
+ * parent is the honest place to land, and the root always exists.
+ */
+function nearestGroup(library: GroupEntry, relativePath: string): string {
+  for (const candidate of [relativePath, ...[...ancestorPaths(relativePath)].reverse()]) {
+    if (findGroup(library, candidate) !== null) {
+      return candidate;
+    }
+  }
+  return '.';
 }
