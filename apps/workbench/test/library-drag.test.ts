@@ -62,7 +62,7 @@ describe('reordering among siblings', () => {
     const drag = press(sheets[2] as DragRow);
     drag.moveTo(at(0.2), over(sheets[1] as DragRow, sheetNames));
 
-    expect(drag.drop()).toEqual({ kind: 'reorder', path: 'c.md', before: 'b.md' });
+    expect(drag.drop()).toEqual({ path: 'c.md', into: '.', before: 'b.md' });
     expect(drag.line()).toEqual({ kind: 'sheet', parent: '.', index: 1 });
     expect(drag.into()).toBeNull();
   });
@@ -71,7 +71,7 @@ describe('reordering among siblings', () => {
     const drag = press(sheets[0] as DragRow);
     drag.moveTo(at(0.8), over(sheets[2] as DragRow, sheetNames));
 
-    expect(drag.drop()).toEqual({ kind: 'reorder', path: 'a.md', before: null });
+    expect(drag.drop()).toEqual({ path: 'a.md', into: '.', before: null });
   });
 
   it('shows the line but asks for nothing where the row already is', () => {
@@ -91,7 +91,7 @@ describe('moving into a group', () => {
     const drag = press(sheets[0] as DragRow);
     drag.moveTo(at(0.5), over(partOne, groupNames));
 
-    expect(drag.drop()).toEqual({ kind: 'move', path: 'a.md', into: 'part-1' });
+    expect(drag.drop()).toEqual({ path: 'a.md', into: 'part-1', before: null });
     expect(drag.into()).toBe('part-1');
     expect(drag.line()).toBeNull();
   });
@@ -102,19 +102,32 @@ describe('moving into a group', () => {
 
     // Same parent, so this is an ordinary reorder among the root's children —
     // and the line belongs in the tree, where the pointer is.
-    expect(drag.drop()).toEqual({ kind: 'reorder', path: 'a.md', before: 'part-1' });
+    expect(drag.drop()).toEqual({ path: 'a.md', into: '.', before: 'part-1' });
     expect(drag.line()).toEqual({ kind: 'group', parent: '.', index: 0 });
     expect(drag.into()).toBeNull();
   });
 
-  it('treats a drop between the rows of another group as a move into it', () => {
+  it('places between the rows of another group, in one drop', () => {
     const nested: DragRow = { kind: 'sheet', path: 'part-1/x.md', parent: 'part-1', index: 0 };
     const drag = press(sheets[0] as DragRow);
     drag.moveTo(at(0.1), over(nested, ['x.md']));
 
-    // Travelling and placing at once would be two operations in one gesture.
-    expect(drag.drop()).toEqual({ kind: 'move', path: 'a.md', into: 'part-1' });
+    // The group it travels to *and* the place within it, said at once.
+    expect(drag.drop()).toEqual({ path: 'a.md', into: 'part-1', before: 'x.md' });
     expect(drag.into()).toBe('part-1');
+    expect(drag.line()).toEqual({ kind: 'sheet', parent: 'part-1', index: 0 });
+  });
+
+  it('places at the end of another group when dropped past its last row', () => {
+    const drag = press(sheets[0] as DragRow);
+    drag.moveTo(350, {
+      row: { kind: 'sheet', path: '', parent: 'part-1', index: 2 },
+      box: { top: 300, bottom: 400 },
+      siblings: ['x.md', 'y.md'],
+      past: true,
+    });
+
+    expect(drag.drop()).toEqual({ path: 'a.md', into: 'part-1', before: null });
   });
 
   it('asks for nothing when the group is the one it is already in', () => {
@@ -143,7 +156,7 @@ describe('moving into a group', () => {
     const drag = press(partOne);
     drag.moveTo(at(0.5), over(partTwo, groupNames));
 
-    expect(drag.drop()).toEqual({ kind: 'move', path: 'part-1', into: 'part-2' });
+    expect(drag.drop()).toEqual({ path: 'part-1', into: 'part-2', before: null });
   });
 
   it('never takes a sheet row as a destination', () => {
@@ -151,7 +164,7 @@ describe('moving into a group', () => {
     drag.moveTo(at(0.5), over(sheets[1] as DragRow, sheetNames));
 
     // A sheet holds nothing, so the middle of one is still between the rows.
-    expect(drag.drop()).toEqual({ kind: 'reorder', path: 'part-1', before: 'c.md' });
+    expect(drag.drop()).toEqual({ path: 'part-1', into: '.', before: 'c.md' });
   });
 });
 
@@ -168,7 +181,7 @@ describe('letting go', () => {
   it('forgets everything on release and on cancel', () => {
     const drag = press(sheets[0] as DragRow);
     drag.moveTo(at(0.5), over(partOne, groupNames));
-    expect(drag.release()).toEqual({ kind: 'move', path: 'a.md', into: 'part-1' });
+    expect(drag.release()).toEqual({ path: 'a.md', into: 'part-1', before: null });
 
     expect(drag.source()).toBeNull();
     expect(drag.drop()).toBeNull();
@@ -200,7 +213,7 @@ describe('the empty space past the last row', () => {
     drag.moveTo(350, pastSheets());
 
     // What the space below a list looks like it means.
-    expect(drag.drop()).toEqual({ kind: 'reorder', path: 'a.md', before: null });
+    expect(drag.drop()).toEqual({ path: 'a.md', into: '.', before: null });
     expect(drag.line()).toEqual({ kind: 'sheet', parent: '.', index: 3 });
   });
 
@@ -221,7 +234,7 @@ describe('the empty space past the last row', () => {
     });
 
     // There is no group there to go into: it is the space after the last one.
-    expect(drag.drop()).toEqual({ kind: 'reorder', path: 'a.md', before: null });
+    expect(drag.drop()).toEqual({ path: 'a.md', into: '.', before: null });
     expect(drag.into()).toBeNull();
   });
 });
@@ -236,7 +249,7 @@ describe('the project root as a destination', () => {
       drag.moveTo(at(share), over(root, []));
 
       // It has no siblings to be placed among, so there is no "between" there.
-      expect(drag.drop()).toEqual({ kind: 'move', path: 'part-1/x.md', into: '.' });
+      expect(drag.drop()).toEqual({ path: 'part-1/x.md', into: '.', before: null });
       expect(drag.into()).toBe('.');
     }
   });

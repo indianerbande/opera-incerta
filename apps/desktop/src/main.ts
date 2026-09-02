@@ -39,9 +39,8 @@ import {
   isGitPathsRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
-  isLibraryMoveRequest,
   isLibraryPathRequest,
-  isLibraryReorderRequest,
+  isLibraryPlaceRequest,
   isRecentProjectRequest,
   isWriteSheetRequest,
   type BridgeResult,
@@ -538,11 +537,10 @@ privileged(CHANNELS.renameGroup, isLibraryEditRequest, async (request) =>
   }),
 );
 
-privileged(CHANNELS.reorderEntry, isLibraryReorderRequest, async (request) =>
-  libraryEdit(async () => {
-    await session.reorderEntry(request.path, request.before);
-    return null;
-  }),
+privileged(CHANNELS.placeEntry, isLibraryPlaceRequest, async (request) =>
+  // Where it ended up is what the interface reveals: a collision may have
+  // given the arrival a different name (SPEC.md §6.8).
+  libraryEdit(async () => session.placeEntry(request.path, request.into, request.before)),
 );
 
 privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
@@ -550,12 +548,6 @@ privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
     await session.deleteEntry(request.path);
     return null;
   }),
-);
-
-privileged(CHANNELS.moveEntry, isLibraryMoveRequest, async (request) =>
-  // Where it ended up is what the interface reveals: a collision may have
-  // given the arrival a different name (SPEC.md §6.8).
-  libraryEdit(async () => session.moveEntry(request.path, request.into)),
 );
 
 const git = createGitService();
@@ -1772,9 +1764,30 @@ async function checkMovingBetweenGroups(window: BrowserWindow, projectPath: stri
     throw new Error(`moving the group around the open sheet closed it: ${JSON.stringify(afterwards)}`);
   }
 
+  // A group placed *between* the children of another group: the travelling and
+  // the position said in one drop (SPEC.md §6.8).
+  await rightClickNodeContaining(window, 'Smoke Project');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'Part Four');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  const four = await rowPoint(window, 'wi-explorer-node .row', 'Part Four');
+  const three = await rowPoint(window, 'wi-explorer-node .row', 'Part Three');
+  await dragTo(window, four, { x: three.x, y: three.y - Math.round(three.height * 0.4) });
+
+  if (!existsSync(join(projectPath, 'part-two', 'part-four'))) {
+    throw new Error('the group did not travel into the other group');
+  }
+  const placed = orderOf(projectPath, 'part-two');
+  if (placed[0] !== 'part-four' || placed[1] !== 'part-three') {
+    throw new Error(`the group travelled but was not placed: ${JSON.stringify(placed)}`);
+  }
+
   console.log(
-    'smoke ok: dragged a sheet into a group and that group into another — files, record and ' +
-      'the open editor all followed',
+    'smoke ok: dragged a sheet into a group, that group into another, and a third in front of ' +
+      'it — one drop said both where and which place, and the open editor followed',
   );
 }
 

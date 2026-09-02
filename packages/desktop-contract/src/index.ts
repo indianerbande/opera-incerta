@@ -12,7 +12,7 @@
  */
 
 /** Contract version. A breaking change increments it and both sides check it. */
-export const CONTRACT_VERSION = 1;
+export const CONTRACT_VERSION = 2;
 
 /** The global the preload script exposes on the renderer's `window`. */
 export const BRIDGE_GLOBAL = 'operaIncerta';
@@ -46,9 +46,8 @@ export const CHANNELS = {
   createGroup: 'opera-incerta:group/create',
   renameSheet: 'opera-incerta:sheet/rename',
   renameGroup: 'opera-incerta:group/rename',
-  reorderEntry: 'opera-incerta:library/reorder',
+  placeEntry: 'opera-incerta:library/place',
   deleteEntry: 'opera-incerta:library/delete',
-  moveEntry: 'opera-incerta:library/move',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
 } as const;
@@ -231,52 +230,36 @@ export function isLibraryPathRequest(value: unknown): value is LibraryPathReques
 }
 
 /**
- * Moving one entry into another group. SPEC.md §6.8.
+ * Putting one entry in a place. SPEC.md §6.4, §6.8.
  *
- * `path` is the entry, `into` the group that receives it — the project root is
- * `"."`, which is a legitimate destination even though it is never a
- * legitimate thing to move.
+ * One request for what used to be two operations, because they are one:
+ * reordering is placing inside the group an entry is already in, and moving is
+ * placing it in another. Splitting them meant a drag into another group could
+ * not say *where*, and doing both in two calls would let a failure leave half
+ * of it done.
+ *
+ * `into` is the group that ends up holding it — the project root is `"."`.
+ * `before` is the sibling it lands in front of, by file or directory **name**,
+ * or `null` for last. A name rather than an index, because an index would mean
+ * something different the moment the group changed underneath.
  */
-export interface LibraryMoveRequest {
+export interface LibraryPlaceRequest {
   readonly path: string;
   readonly into: string;
+  readonly before: string | null;
 }
 
-export function isLibraryMoveRequest(value: unknown): value is LibraryMoveRequest {
+export function isLibraryPlaceRequest(value: unknown): value is LibraryPlaceRequest {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
-  const candidate = value as Partial<LibraryMoveRequest>;
+  const candidate = value as Partial<LibraryPlaceRequest>;
   return (
     typeof candidate.path === 'string' &&
     candidate.path !== '' &&
     candidate.path !== '.' &&
     typeof candidate.into === 'string' &&
-    candidate.into !== ''
-  );
-}
-
-/**
- * Moving one entry among its siblings. SPEC.md §6.4.
- *
- * `path` is the entry being moved; `before` is the sibling it lands in front
- * of, by file or directory **name**, or `null` for last. A name rather than an
- * index, because an index would mean something different the moment the group
- * changed underneath.
- */
-export interface LibraryReorderRequest {
-  readonly path: string;
-  readonly before: string | null;
-}
-
-export function isLibraryReorderRequest(value: unknown): value is LibraryReorderRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<LibraryReorderRequest>;
-  return (
-    typeof candidate.path === 'string' &&
-    candidate.path !== '' &&
+    candidate.into !== '' &&
     (candidate.before === null || (typeof candidate.before === 'string' && candidate.before !== ''))
   );
 }
@@ -465,12 +448,10 @@ export interface OperaIncertaBridge {
   renameSheet(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Renames a group by its display name; the directory never changes. */
   renameGroup(request: LibraryEditRequest): Promise<BridgeResult<LibraryEditResult>>;
-  /** Moves an entry among its siblings, recording the group's order. */
-  reorderEntry(request: LibraryReorderRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Puts an entry in a place: a group, and a position within it. */
+  placeEntry(request: LibraryPlaceRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Moves an entry to the desktop trash, from where the author can restore it. */
   deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
-  /** Moves an entry into another group, on disk and in the record. */
-  moveEntry(request: LibraryMoveRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

@@ -5,9 +5,8 @@ import {
   MAX_DOCUMENT_BYTES,
   isChannelName,
   isDocumentHandle,
-  isLibraryMoveRequest,
   isLibraryPathRequest,
-  isLibraryReorderRequest,
+  isLibraryPlaceRequest,
   isWriteSheetRequest,
 } from '../src/index.js';
 
@@ -70,23 +69,6 @@ describe('isWriteSheetRequest', () => {
   });
 });
 
-describe('isLibraryReorderRequest', () => {
-  it('accepts a sibling name and accepts the end', () => {
-    expect(isLibraryReorderRequest({ path: 'part-1/scene.md', before: 'other.md' })).toBe(true);
-    expect(isLibraryReorderRequest({ path: 'part-1', before: null })).toBe(true);
-  });
-
-  it('rejects an empty path, an empty sibling, and a missing one', () => {
-    // `undefined` must not pass as "the end": a typo would silently move the
-    // entry to the bottom of its group.
-    expect(isLibraryReorderRequest({ path: '', before: null })).toBe(false);
-    expect(isLibraryReorderRequest({ path: 'a.md', before: '' })).toBe(false);
-    expect(isLibraryReorderRequest({ path: 'a.md' })).toBe(false);
-    expect(isLibraryReorderRequest({ path: 'a.md', before: 3 })).toBe(false);
-    expect(isLibraryReorderRequest(null)).toBe(false);
-  });
-});
-
 describe('isLibraryPathRequest', () => {
   it('accepts an entry path', () => {
     expect(isLibraryPathRequest({ path: 'part-1/scene.md' })).toBe(true);
@@ -101,16 +83,20 @@ describe('isLibraryPathRequest', () => {
   });
 });
 
-describe('isLibraryMoveRequest', () => {
-  it('accepts an entry and a destination, the root included', () => {
-    expect(isLibraryMoveRequest({ path: 'part-1/scene.md', into: 'part-2' })).toBe(true);
-    expect(isLibraryMoveRequest({ path: 'part-1/scene.md', into: '.' })).toBe(true);
+describe('isLibraryPlaceRequest', () => {
+  it('accepts a group and a position within it, the end included', () => {
+    expect(isLibraryPlaceRequest({ path: 'a.md', into: 'part-1', before: 'scene.md' })).toBe(true);
+    expect(isLibraryPlaceRequest({ path: 'a.md', into: 'part-1', before: null })).toBe(true);
+    expect(isLibraryPlaceRequest({ path: 'part-1', into: '.', before: null })).toBe(true);
   });
 
-  it('rejects moving the root, and a missing or empty destination', () => {
-    expect(isLibraryMoveRequest({ path: '.', into: 'part-2' })).toBe(false);
-    expect(isLibraryMoveRequest({ path: 'a.md', into: '' })).toBe(false);
-    expect(isLibraryMoveRequest({ path: 'a.md' })).toBe(false);
-    expect(isLibraryMoveRequest(null)).toBe(false);
+  it('rejects placing the root, an empty group, and a missing position', () => {
+    expect(isLibraryPlaceRequest({ path: '.', into: 'part-1', before: null })).toBe(false);
+    expect(isLibraryPlaceRequest({ path: 'a.md', into: '', before: null })).toBe(false);
+    // `undefined` must not pass as "last": a typo would move the entry to the
+    // bottom of its group.
+    expect(isLibraryPlaceRequest({ path: 'a.md', into: 'part-1' })).toBe(false);
+    expect(isLibraryPlaceRequest({ path: 'a.md', into: 'part-1', before: 3 })).toBe(false);
+    expect(isLibraryPlaceRequest(null)).toBe(false);
   });
 });

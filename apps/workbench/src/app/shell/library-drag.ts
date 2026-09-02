@@ -49,9 +49,18 @@ export interface OverRow {
   readonly past?: boolean;
 }
 
-export type Drop =
-  | { readonly kind: 'reorder'; readonly path: string; readonly before: string | null }
-  | { readonly kind: 'move'; readonly path: string; readonly into: string };
+/**
+ * Where an entry is to be put: a group, and a position within it.
+ *
+ * One shape for both, because reordering is placing an entry in the group it
+ * is already in. `before` is the sibling it lands in front of, or null for
+ * last.
+ */
+export interface Drop {
+  readonly path: string;
+  readonly into: string;
+  readonly before: string | null;
+}
 
 /**
  * Where the insertion line belongs, when there is one.
@@ -152,9 +161,9 @@ export class LibraryDrag {
     }
 
     // A row with no parent — the project root — has no siblings to be placed
-    // among, so the whole of it means "into this one".
+    // among, so the whole of it means "into this one", at its end.
     if (over.past !== true && over.row.parent === '') {
-      this.#aimAt(this.#moveInto(source, over.row.path), null, over.row.path);
+      this.#aimAt(this.#placeInto(source, over.row.path), null, over.row.path);
       return;
     }
 
@@ -162,53 +171,55 @@ export class LibraryDrag {
     const insideGroup =
       over.past !== true && over.row.kind === 'group' && share > EDGE_BAND && share < 1 - EDGE_BAND;
     if (insideGroup) {
-      this.#aimAt(this.#moveInto(source, over.row.path), null, over.row.path);
+      this.#aimAt(this.#placeInto(source, over.row.path), null, over.row.path);
       return;
     }
 
     const slot =
       over.past === true ? over.row.index : share < 0.5 ? over.row.index : over.row.index + 1;
-    if (over.row.parent !== source.parent) {
-      // Between the rows of a *different* group: the entry has to travel there
-      // first, and it lands at the end of it. Placing it at the slot as well
-      // would be two operations wearing one gesture.
-      this.#aimAt(this.#moveInto(source, over.row.parent), null, over.row.parent);
-      return;
-    }
+    const before = over.siblings[slot] ?? null;
+    const line = { kind: over.row.kind, parent: over.row.parent, index: slot } as const;
 
-    const line = { kind: over.row.kind, parent: source.parent, index: slot } as const;
     // Only a row from the *same* list can be the place the entry already
     // occupies. The sheet list and the tree show different children of one
     // group, so an index from one says nothing about the other.
-    if (over.row.kind === source.kind && (slot === source.index || slot === source.index + 1)) {
+    const unchanged =
+      over.row.parent === source.parent &&
+      over.row.kind === source.kind &&
+      (slot === source.index || slot === source.index + 1);
+    if (unchanged) {
       this.#aimAt(null, line, null);
       return;
     }
-    this.#aimAt(
-      { kind: 'reorder', path: source.path, before: over.siblings[slot] ?? null },
-      line,
-      null,
-    );
+    this.#aimAt(this.#placeAt(source, over.row.parent, before), line, over.row.parent);
   }
 
-  /** A move into a group, unless that would be a move to nowhere. */
-  #moveInto(source: DragRow, group: string): Drop | null {
-    if (group === source.parent || group === source.path) {
+  /**
+   * Dropped on a group's row: into it, at its end. No position was asked for,
+   * so dropping an entry on the group it already lives in does nothing.
+   */
+  #placeInto(source: DragRow, group: string): Drop | null {
+    return group === source.parent ? null : this.#placeAt(source, group, null);
+  }
+
+  /**
+   * Dropped between rows: into that group, in front of that sibling — or at
+   * its end, which the empty space below a list means.
+   */
+  #placeAt(source: DragRow, group: string, before: string | null): Drop | null {
+    if (group === source.path || group.startsWith(`${source.path}/`)) {
+      // Into itself, or into its own descendant: the group and everything in
+      // it would end up unreachable.
       return null;
     }
-    // Into its own descendant: the group and everything in it would end up
-    // inside itself.
-    if (group.startsWith(`${source.path}/`)) {
-      return null;
-    }
-    return { kind: 'move', path: source.path, into: group };
+    return { path: source.path, into: group, before };
   }
 
   #aimAt(drop: Drop | null, line: InsertionLine | null, into: string | null): void {
     this.drop.set(drop);
     this.line.set(line);
-    // Nothing is highlighted as a destination unless dropping there would do
-    // something: a highlight that leads nowhere is a promise not kept.
-    this.into.set(drop?.kind === 'move' ? into : null);
+    // A group is highlighted only when the entry would end up somewhere else
+    // than it is: a highlight that leads nowhere is a promise not kept.
+    this.into.set(drop !== null && into !== null && into !== this.source()?.parent ? into : null);
   }
 }

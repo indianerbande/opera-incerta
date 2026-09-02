@@ -347,7 +347,10 @@ export class WorkspaceStore {
 
   /** Creates a sheet in a group and opens it. SPEC.md §6.5. */
   async createSheet(groupPath: string, title: string): Promise<void> {
-    await this.#libraryEdit(async (bridge) => bridge.createSheet({ path: groupPath, name: title }));
+    await this.#libraryEdit(
+      async (bridge) => bridge.createSheet({ path: groupPath, name: title }),
+      { opensReveal: true },
+    );
   }
 
   async createGroup(parentPath: string, displayName: string): Promise<void> {
@@ -382,29 +385,22 @@ export class WorkspaceStore {
   }
 
   /**
-   * Moves an entry in front of one of its siblings, or to the end of the
-   * group. SPEC.md §6.4.
+   * Puts an entry in a place: a group, and a position within it.
+   * SPEC.md §6.4, §6.8.
    *
-   * The interface names the sibling, never a position: by the time the main
-   * process has re-read the group, an index could point at something else.
-   */
-  async reorderEntry(relativePath: string, before: string | null): Promise<void> {
-    await this.#libraryEdit(async (bridge) =>
-      bridge.reorderEntry({ path: relativePath, before }),
-    );
-  }
-
-  /**
-   * Moves an entry into another group. SPEC.md §6.8.
+   * The interface names the sibling to land in front of, never a position: by
+   * the time the main process has re-read the group, an index could point at
+   * something else.
    *
-   * The moved sheet is followed rather than closed: its path changes, but it
-   * is the same document, and what the author had unsaved in it belongs to it
+   * A moved sheet is followed rather than closed. Its path changes, but it is
+   * the same document, and what the author had unsaved in it belongs to it
    * wherever it goes.
    */
-  async moveEntry(relativePath: string, into: string): Promise<void> {
-    await this.#libraryEdit(async (bridge) => bridge.moveEntry({ path: relativePath, into }), {
-      movedFrom: relativePath,
-    });
+  async placeEntry(relativePath: string, into: string, before: string | null): Promise<void> {
+    await this.#libraryEdit(
+      async (bridge) => bridge.placeEntry({ path: relativePath, into, before }),
+      { movedFrom: relativePath },
+    );
   }
 
   /**
@@ -450,6 +446,11 @@ export class WorkspaceStore {
       readonly fallbackSheet?: string | null;
       /** The path an entry left: the same document, now somewhere else. */
       readonly movedFrom?: string | null;
+      /**
+       * Whether the revealed entry is also opened. A created sheet is; a
+       * placed one is not — the author was moving it, not choosing it.
+       */
+      readonly opensReveal?: boolean;
     } = {},
   ): Promise<void> {
     const previousGroup = this.#selectedGroupPath();
@@ -468,12 +469,19 @@ export class WorkspaceStore {
 
       const library = result.snapshot.library as GroupEntry;
       const ancestors = created === null ? [] : ancestorPaths(created);
+      const placed = (options.movedFrom ?? null) !== null;
       const reveal =
         created === null
           ? previousGroup
           : created.endsWith('.md')
-            ? (ancestors[ancestors.length - 1] ?? '.')
-            : created;
+            ? // A sheet is shown where it now is; otherwise it would vanish
+              // from the column with no explanation.
+              (ancestors[ancestors.length - 1] ?? '.')
+            : placed
+              ? // A group that was merely moved does not take the selection
+                // with it: the author is still looking at what they were.
+                previousGroup
+              : created;
       this.#expand(ancestors);
       // The selection has to land on something that still exists: a deleted
       // group takes the selection with it otherwise, and the columns would
@@ -486,8 +494,11 @@ export class WorkspaceStore {
       // A move can take the open sheet with it — as itself, or inside a group
       // that moved around it.
       const followed = followMove(previousSheet, options.movedFrom ?? null, created);
-      const wanted =
-        followed ?? (created !== null && created.endsWith('.md') ? created : previousSheet);
+      const opens =
+        options.opensReveal === true && created !== null && created.endsWith('.md')
+          ? created
+          : previousSheet;
+      const wanted = followed ?? opens;
       const toOpen =
         wanted !== null && findSheet(library, wanted) !== null
           ? wanted

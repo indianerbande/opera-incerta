@@ -367,7 +367,7 @@ describe('reordering', () => {
     const session = new ProjectSession();
     await session.open(root);
     // Alphabetically: appendix.md, chapter.md, part-1.
-    await session.reorderEntry('part-1', 'appendix.md');
+    await session.placeEntry('part-1', '.', 'appendix.md');
 
     // A partial order would leave the rest to be appended alphabetically,
     // scrambling the arrangement just made (SPEC.md §6.4).
@@ -377,7 +377,7 @@ describe('reordering', () => {
   it('moves an entry to the end when no sibling follows', async () => {
     const session = new ProjectSession();
     await session.open(root);
-    await session.reorderEntry('appendix.md', null);
+    await session.placeEntry('appendix.md', '.', null);
 
     expect(await recordedOrder('.')).toEqual(['chapter.md', 'part-1', 'appendix.md']);
   });
@@ -387,7 +387,7 @@ describe('reordering', () => {
     await session.open(root);
     expect(await recordedOrder('.')).toBeUndefined();
 
-    await session.reorderEntry('chapter.md', null);
+    await session.placeEntry('chapter.md', '.', null);
     expect(await recordedOrder('.')).toEqual(['appendix.md', 'part-1', 'chapter.md']);
   });
 
@@ -395,7 +395,7 @@ describe('reordering', () => {
     await writeFile(join(root, 'part-1', 'other.md'), 'Other\n', 'utf8');
     const session = new ProjectSession();
     await session.open(root);
-    await session.reorderEntry('part-1/scene.md', 'other.md');
+    await session.placeEntry('part-1/scene.md', 'part-1', 'other.md');
 
     expect(await recordedOrder('part-1')).toEqual(['scene.md', 'other.md']);
     expect(await recordedOrder('.')).toBeUndefined();
@@ -404,7 +404,7 @@ describe('reordering', () => {
   it('shows the new order the next time the project is read', async () => {
     const session = new ProjectSession();
     await session.open(root);
-    await session.reorderEntry('part-1', 'appendix.md');
+    await session.placeEntry('part-1', '.', 'appendix.md');
     const snapshot = await session.reopen();
 
     expect(libraryOf(snapshot as never).children.map((child) => child.name)).toEqual([
@@ -418,10 +418,10 @@ describe('reordering', () => {
     const session = new ProjectSession();
     await session.open(root);
 
-    await expect(session.reorderEntry('ghost.md', null)).rejects.toMatchObject({
+    await expect(session.placeEntry('ghost.md', '.', null)).rejects.toMatchObject({
       code: 'entry/unknown',
     });
-    await expect(session.reorderEntry('nowhere/ghost.md', null)).rejects.toMatchObject({
+    await expect(session.placeEntry('nowhere/ghost.md', 'nowhere', null)).rejects.toMatchObject({
       code: 'group/unknown',
     });
   });
@@ -535,7 +535,7 @@ describe('moving between groups', () => {
     const session = new ProjectSession(filesystem);
     await session.open(root);
 
-    expect(await session.moveEntry('chapter.md', 'part-1')).toBe('part-1/chapter.md');
+    expect(await session.placeEntry('chapter.md', 'part-1', null)).toBe('part-1/chapter.md');
     expect(await readFile(join(root, 'part-1', 'chapter.md'), 'utf8')).toContain('Chapter One');
     expect(existsSync(join(root, 'chapter.md'))).toBe(false);
 
@@ -549,7 +549,7 @@ describe('moving between groups', () => {
     const session = new ProjectSession();
     await session.open(root);
 
-    expect(await session.moveEntry('chapter.md', 'part-1')).toBe('part-1/chapter-2.md');
+    expect(await session.placeEntry('chapter.md', 'part-1', null)).toBe('part-1/chapter-2.md');
     // The sheet that was already there is untouched.
     expect(await readFile(join(root, 'part-1', 'chapter.md'), 'utf8')).toBe(
       'A different chapter\n',
@@ -566,7 +566,7 @@ describe('moving between groups', () => {
     const session = new ProjectSession(filesystem);
     await session.open(root);
 
-    expect(await session.moveEntry('part-1', 'part-2')).toBe('part-2/part-1');
+    expect(await session.placeEntry('part-1', 'part-2', null)).toBe('part-2/part-1');
     expect(existsSync(join(root, 'part-2', 'part-1', 'scene.md'))).toBe(true);
 
     const structure = await structureRecord();
@@ -577,7 +577,7 @@ describe('moving between groups', () => {
   it('shows the moved sheet in its new group the next time the project is read', async () => {
     const session = new ProjectSession();
     await session.open(root);
-    await session.moveEntry('chapter.md', 'part-1');
+    await session.placeEntry('chapter.md', 'part-1', null);
     const snapshot = await session.reopen();
 
     expect(Object.keys((snapshot as never as { handles: object }).handles).sort()).toEqual([
@@ -590,7 +590,7 @@ describe('moving between groups', () => {
     const session = new ProjectSession();
     await session.open(root);
 
-    expect(await session.moveEntry('part-1/scene.md', 'part-1')).toBe('part-1/scene.md');
+    expect(await session.placeEntry('part-1/scene.md', 'part-1', null)).toBe('part-1/scene.md');
     expect(existsSync(join(root, 'part-1', 'scene.md'))).toBe(true);
   });
 
@@ -599,10 +599,10 @@ describe('moving between groups', () => {
     const session = new ProjectSession();
     await session.open(root);
 
-    await expect(session.moveEntry('part-1', 'part-1')).rejects.toMatchObject({
+    await expect(session.placeEntry('part-1', 'part-1', null)).rejects.toMatchObject({
       code: 'group/into-itself',
     });
-    await expect(session.moveEntry('part-1', 'part-1/pre')).rejects.toMatchObject({
+    await expect(session.placeEntry('part-1', 'part-1/pre', null)).rejects.toMatchObject({
       code: 'group/into-itself',
     });
     expect(existsSync(join(root, 'part-1', 'scene.md'))).toBe(true);
@@ -612,12 +612,64 @@ describe('moving between groups', () => {
     const session = new ProjectSession();
     await session.open(root);
 
-    await expect(session.moveEntry('.', 'part-1')).rejects.toMatchObject({ code: 'project/root' });
-    await expect(session.moveEntry('chapter.md', 'part-1/scene.md')).rejects.toMatchObject({
+    await expect(session.placeEntry('.', 'part-1', null)).rejects.toMatchObject({ code: 'project/root' });
+    await expect(session.placeEntry('chapter.md', 'part-1/scene.md', null)).rejects.toMatchObject({
       code: 'group/unknown',
     });
-    await expect(session.moveEntry('chapter.md', '../escape')).rejects.toMatchObject({
+    await expect(session.placeEntry('chapter.md', '../escape', null)).rejects.toMatchObject({
       code: 'entry/outside-project',
     });
+  });
+});
+
+describe('placing while moving', () => {
+  async function orderOf(groupPath: string): Promise<string[] | undefined> {
+    const structure = JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8').catch(() => '{}'),
+    ) as Record<string, { order?: string[] } | undefined>;
+    return structure[groupPath]?.order;
+  }
+
+  beforeEach(async () => {
+    await writeFile(join(root, 'part-1', 'alpha.md'), 'Alpha\n', 'utf8');
+    await writeFile(join(root, 'part-1', 'omega.md'), 'Omega\n', 'utf8');
+  });
+
+  it('moves and positions in one operation', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    expect(await session.placeEntry('chapter.md', 'part-1', 'omega.md')).toBe('part-1/chapter.md');
+    expect(await orderOf('part-1')).toEqual([
+      'alpha.md',
+      'chapter.md',
+      'omega.md',
+      'scene.md',
+    ]);
+  });
+
+  it('records the order even where there was none, so "last" really is last', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.placeEntry('chapter.md', 'part-1', null);
+
+    // Alphabetically `chapter.md` would sit second; the author dropped it last.
+    expect(await orderOf('part-1')).toEqual([
+      'alpha.md',
+      'omega.md',
+      'scene.md',
+      'chapter.md',
+    ]);
+  });
+
+  it('leaves the group it came from without a hole', async () => {
+    const filesystem = createProjectFilesystem();
+    await filesystem.writeStructure(root, { '.': { order: ['chapter.md', 'part-1'] } });
+    const session = new ProjectSession(filesystem);
+    await session.open(root);
+    await session.placeEntry('chapter.md', 'part-1', 'alpha.md');
+
+    expect(await orderOf('.')).toEqual(['part-1']);
+    expect((await orderOf('part-1'))?.[0]).toBe('chapter.md');
   });
 });

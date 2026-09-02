@@ -6,6 +6,49 @@ documents").
 
 ---
 
+## 2026-09-02 — placing: moving and ordering became one operation
+
+**What exists.** A drag now says both things at once — which group an entry
+ends up in, and where in it. Dropping between the children of *another* group
+moves it there **and** puts it in that place (`SPEC.md` §6.8).
+
+**Two operations became one, and that is the whole point.** `reorderEntry` and
+`moveEntry` were separate: a drag into another group could not say where, and
+doing both in two calls would let a failure leave an entry moved but unplaced.
+They are one thing — reordering is placing an entry in the group it is already
+in — so they are now one channel, one session method, one store method, one
+drop shape. The contract version went to 2, which is what it is for.
+
+**A claim the unification made true.** §6.8 already said an entry dropped into
+another group "lands at the end". It did not: the destination's order was only
+written where one already existed, so the arrival sorted alphabetically —
+possibly into the middle. The destination's order is now written in full,
+because that is what makes "at the end" mean the end.
+
+**Two regressions the checks caught immediately**, both from the reveal path
+now carrying a placed entry rather than only a created one:
+
+- a placed sheet was **opened**. Revealing is not opening: the author was
+  moving it, not choosing it. Only a created sheet opens itself.
+- a placed group **took the selection with it**, so the sheet list switched to
+  a group the author had not asked to see. A created group is selected
+  outright; a moved one only gets the tree opened down to it.
+
+Both showed up as the same symptom in the smoke — a sheet list that no longer
+held what the next check looked for — which is worth noting: the checks that
+found them were about something else entirely, three and four steps later.
+
+**Verification.** `pnpm run check` green: **563 tests**. The smoke's
+seventeenth check now drags across the columns three times: a sheet into a
+group, that group into another, and a fourth group in front of an existing
+child — reading the file from its new place, `structure.json` for the re-keyed
+entry, the absence of the old one, *and* the recorded position, and the editor
+for the same document it held before. Falsified by dropping the position on a
+cross-group placement: the group then travels but arrives unplaced, and the
+check says so.
+
+---
+
 ## 2026-09-02 — moving between groups, and one owner for the whole drag
 
 **What exists.** A sheet is dragged from the sheet list onto a group in the

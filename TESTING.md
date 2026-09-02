@@ -294,11 +294,12 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
-- moving between groups, by a real pointer drag from one library column into
-  the other (`SPEC.md` §6.8): a sheet dragged from the sheet list onto a group
-  in the tree, and that group then dragged into a third — after each, the file
-  is read from its new place on disk, `structure.json` is checked for the
-  re-keyed entry *and* for the absence of the old one, and the editor is
+- placing, by a real pointer drag from one library column into the other
+  (`SPEC.md` §6.8): a sheet dragged from the sheet list onto a group in the
+  tree, that group then dragged into a third, and a fourth dropped **between**
+  the children of another group — after each, the file is read from its new
+  place on disk, `structure.json` is checked for the re-keyed entry, for the
+  absence of the old one *and* for the recorded position, and the editor is
   checked to be holding the same document it held before. A screenshot taken
   while the pointer is still down shows the destination highlighted and the
   dragged row dimmed;

@@ -536,11 +536,10 @@ all name the sheet the way the author just named it — a rename that nothing
 visibly answers looks like a rename that failed. The dirty marker in the header
 is what says it is not saved yet.
 
-**Reordering**, by dragging a row in the sheet list or a group in the tree:
+**Reordering** is dragging a row to a new place among its siblings. It is one
+half of **placing** (§6.8): the half where the group does not change. The rules
+it contributes:
 
-- An entry moves **among its siblings only**. Dragging a sheet into another
-  group would be a file move, with consequences a reorder does not have; it is
-  a separate operation and is not built.
 - The interface names the sibling the entry lands **in front of**, or nothing
   for last — never a position. By the time the main process has re-read the
   group, an index could point at something else.
@@ -552,11 +551,7 @@ is what says it is not saved yet.
   subgroups between them where they are, which is what the author sees and
   means.
 - A drop that changes nothing writes nothing, and dragging an entry never also
-  opens or selects it.
-- The gesture is built on **pointer** events, not the drag-and-drop API: a
-  synthetic pointer can drive it, and a gesture no check can drive is a gesture
-  nothing proves (`TESTING.md` §1.4). A press becomes a drag only after the
-  pointer has travelled a few pixels, so an ordinary click stays a click.
+  opens it.
 
 A drop is where a group without a recorded order first gets one — the same
 moment a rename does, and for the same reason (above).
@@ -672,45 +667,59 @@ happens to be. There is no keyboard shortcut for deleting.
 deleted one opens, else the one before it; a deleted group hands the selection
 to its parent. Nothing that no longer exists stays selected.
 
-### 6.8 Moving between groups
+### 6.8 Placing: moving and ordering as one
 
 **Status: Accepted.**
 
-An entry is moved by dragging it **onto a group**: a sheet from the sheet list
-onto a node in the tree, or a group onto another group. Unlike a reorder (§6.4)
-this changes the path, and everything that hangs off a path has to travel with
-it.
+Dragging an entry says two things at once — **which group** it ends up in and
+**where in it** — and both are carried out as a single operation. They were
+briefly two, and that was wrong twice over: a drag into another group could not
+say where at all, and two calls would let a failure leave an entry moved but
+unplaced. Reordering (§6.4) is the case where the group does not change.
 
-- **The middle half of a group's row means the group itself**; the quarter at
-  each edge means between the rows, which is a reorder. The project root's row
-  has no siblings to be placed among, so all of it means "into the project".
-  The empty space below a list means the end of that list.
-- Dropped between the rows of a group it does not belong to, an entry **moves
-  into that group** and lands at the end. Travelling and taking a position at
-  once would be two operations wearing one gesture.
-- **A group is never moved into itself or into anything inside it**, at any
-  depth: the group and everything in it would end up unreachable.
+**Aiming.** The middle half of a group's row means the group itself, at its
+end; the quarter at each edge means between the rows. The project root's row
+has no siblings to be placed among, so all of it means "into the project". The
+empty space below a list means the end of that list.
+
+**The rules a change of group brings with it:**
+
+- **A group is never placed inside itself or inside anything within it**, at
+  any depth: the group and everything in it would end up unreachable.
 - **A name already taken in the destination gives the arrival a suffix.**
-  Overwriting is out of the question, and refusing the move over a technicality
-  would block something the author plainly wants. This is the one case where a
-  file name changes after it was set, and it is invisible: the title, which is
-  the name the author sees, is untouched.
+  Overwriting is out of the question, and refusing over a technicality would
+  block something the author plainly wants. This is the one case where a file
+  name changes after it was set, and it is invisible: the title, which is the
+  name the author sees, is untouched.
 - **The record travels with the entry.** A moved group's own key in
   `structure.json` — and every key beneath it — is re-keyed to the new path, or
-  the group would arrive without its display name and without the orders of
-  everything inside it. It leaves the source order and joins the target order,
-  each only where such an order already exists (§6.4).
+  it would arrive without its display name and without the orders of everything
+  inside it. It leaves the source order where one exists, and the destination's
+  order is written in full, because that is what makes "at the end" mean the
+  end rather than wherever the alphabet puts it.
 - The file first, the record second, as everywhere else.
 - **The open sheet is followed, not closed**, whether it was the thing dragged
   or sat inside a group that moved around it. It is the same document at a new
   path, and what was unsaved in it belongs to it wherever it goes.
-- Nothing is highlighted as a destination unless dropping there would do
-  something. A highlight that leads nowhere is a promise not kept.
 
-The whole gesture is owned by the shell rather than by either library column:
-a drag that starts in one and ends in the other belongs to neither. The columns
-describe their rows in the DOM — what they are, where they sit, what they are
-called — and the shell measures and decides.
+**What the columns show afterwards.** A placed *sheet* is revealed where it now
+is — otherwise it would vanish from the column with no explanation — but it is
+not opened: the author was moving it, not choosing it. A placed *group* does not
+take the selection with it; the tree merely opens down to where it went. Only a
+newly **created** entry is selected outright (§6.5).
+
+Nothing is highlighted as a destination unless dropping there would do
+something. A highlight that leads nowhere is a promise not kept.
+
+**The gesture** is built on **pointer** events, not the drag-and-drop API: a
+synthetic pointer can drive it, and a gesture no check can drive is a gesture
+nothing proves (`TESTING.md` §1.4). A press becomes a drag only after the
+pointer has travelled a few pixels, so an ordinary click stays a click.
+
+It is owned by the shell rather than by either library column: a drag that
+starts in one and ends in the other belongs to neither. The columns describe
+their rows in the DOM — what they are, where they sit, what they are called —
+and the shell measures and decides.
 
 ## 7. Storage model
 

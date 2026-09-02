@@ -263,51 +263,25 @@ export class ProjectSession {
 
   /** Appends a child to a group's recorded order, when it has one. */
   /**
-   * Moves one entry in front of a sibling, or to the end. SPEC.md §6.4.
+   * Puts one entry in a place: a group, and a position within it.
+   * SPEC.md §6.4, §6.8.
    *
-   * The order is read back from a fresh scan rather than from the caller: the
-   * renderer says *what* to move and *where*, never what the group contains.
-   * The whole resolved order is then recorded, because a partial one would
-   * leave the rest to be appended alphabetically — scrambling the arrangement
-   * the author just made. This is also the moment a group without a recorded
-   * order gets one, which is exactly what §6.4 says it is for.
-   */
-  async reorderEntry(relativePath: string, before: string | null): Promise<void> {
-    const projectPath = this.#requireOpen().path;
-    const segments = relativePath.split('/');
-    const name = segments[segments.length - 1] ?? '';
-    const groupPath = segments.length === 1 ? '.' : segments.slice(0, -1).join('/');
-
-    const snapshot = await this.reopen();
-    const group = snapshot === null ? null : findGroup(snapshot.library as GroupEntry, groupPath);
-    if (group === null) {
-      throw new ProjectSessionError('group/unknown');
-    }
-
-    const resolved = group.children.map((child) => child.name);
-    if (!resolved.includes(name)) {
-      throw new ProjectSessionError('entry/unknown');
-    }
-
-    const structure = await this.#filesystem.readStructure(projectPath);
-    await this.#filesystem.writeStructure(
-      projectPath,
-      withChildOrder(structure, groupPath, reorderChild(resolved, name, before)),
-    );
-  }
-
-  /**
-   * Moves one entry into another group, on disk and in the record.
-   * SPEC.md §6.8.
+   * One operation, because it is one thing. Reordering is placing an entry in
+   * the group it is already in; moving is placing it in another. As two calls
+   * a failure between them would leave an entry moved but unplaced, and as two
+   * operations a drag into another group could not say *where* at all.
    *
-   * Returns where it ended up, because that is not always where the caller
-   * would have guessed: a name already taken in the target gives the arrival a
+   * Returns where it ended up, which is not always where the caller would have
+   * guessed: a name already taken in the destination gives the arrival a
    * suffix rather than overwriting what is there.
    *
-   * The file first, the record second, as everywhere else: a record that
-   * describes a move which did not happen is worse than no record.
+   * The file first, the record second, as everywhere else.
    */
-  async moveEntry(relativePath: string, groupPath: string): Promise<string> {
+  async placeEntry(
+    relativePath: string,
+    groupPath: string,
+    before: string | null,
+  ): Promise<string> {
     const projectPath = this.#requireOpen().path;
     if (relativePath === '.' || relativePath === '') {
       throw new ProjectSessionError('project/root');
@@ -331,19 +305,43 @@ export class ProjectSession {
     const segments = relativePath.split('/');
     const name = segments[segments.length - 1] ?? '';
     const fromGroup = segments.length === 1 ? '.' : segments.slice(0, -1).join('/');
-    if (fromGroup === groupPath) {
-      // Already where it is being dropped: nothing to move, nothing to record.
-      return relativePath;
+
+    let arrival = name;
+    if (fromGroup !== groupPath) {
+      arrival = arrivalName(name, await this.#filesystem.listDirectory(target));
+      await rename(source, join(target, arrival));
+
+      // The record follows the file at once, so that the scan below reads a
+      // project whose two halves agree.
+      const moved = await this.#filesystem.readStructure(projectPath);
+      await this.#filesystem.writeStructure(
+        projectPath,
+        moveChild(moved, { path: fromGroup, name }, { path: groupPath, name: arrival }),
+      );
     }
 
-    const arrival = arrivalName(name, await this.#filesystem.listDirectory(target));
-    await rename(source, join(target, arrival));
+    // The order comes from a fresh scan rather than from the caller: the
+    // renderer says *what* to place and *where*, never what a group contains.
+    const snapshot = await this.reopen();
+    const group = snapshot === null ? null : findGroup(snapshot.library as GroupEntry, groupPath);
+    if (group === null) {
+      throw new ProjectSessionError('group/unknown');
+    }
+    const resolved = group.children.map((child) => child.name);
+    if (!resolved.includes(arrival)) {
+      throw new ProjectSessionError('entry/unknown');
+    }
 
+    // The whole resolved order is recorded, because a partial one would leave
+    // the rest to be appended alphabetically — scrambling the arrangement just
+    // made. This is also the moment a group without a recorded order gets one,
+    // which is exactly what §6.4 says it is for.
     const structure = await this.#filesystem.readStructure(projectPath);
     await this.#filesystem.writeStructure(
       projectPath,
-      moveChild(structure, { path: fromGroup, name }, { path: groupPath, name: arrival }),
+      withChildOrder(structure, groupPath, reorderChild(resolved, arrival, before)),
     );
+
     return groupPath === '.' ? arrival : `${groupPath}/${arrival}`;
   }
 

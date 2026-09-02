@@ -420,11 +420,7 @@ export class AppComponent {
     if (drop === null) {
       return;
     }
-    if (drop.kind === 'reorder') {
-      void this.store.reorderEntry(drop.path, drop.before);
-      return;
-    }
-    void this.store.moveEntry(drop.path, drop.into);
+    void this.store.placeEntry(drop.path, drop.into, drop.before);
   }
 
   /** The library row under a point, with what the drag needs to know about it. */

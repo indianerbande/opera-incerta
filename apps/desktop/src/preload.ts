@@ -41,9 +41,8 @@ const bridge = {
   createGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.createGroup, request),
   renameSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameSheet, request),
   renameGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameGroup, request),
-  reorderEntry: (request: unknown) => ipcRenderer.invoke(CHANNELS.reorderEntry, request),
+  placeEntry: (request: unknown) => ipcRenderer.invoke(CHANNELS.placeEntry, request),
   deleteEntry: (request: unknown) => ipcRenderer.invoke(CHANNELS.deleteEntry, request),
-  moveEntry: (request: unknown) => ipcRenderer.invoke(CHANNELS.moveEntry, request),
   readPreferences: () => ipcRenderer.invoke(CHANNELS.readPreferences),
   writePreferences: (record: unknown) => ipcRenderer.invoke(CHANNELS.writePreferences, record),
 

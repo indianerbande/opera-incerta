@@ -495,30 +495,30 @@ describe('reordering', () => {
     let asked: unknown = null;
     const store = new WorkspaceStore(
       fakeBridge({
-        reorderEntry: async (request) => {
+        placeEntry: async (request) => {
           asked = request;
           return { ok: true, value: { snapshot, revealPath: null } };
         },
       }),
     );
     await store.openProject();
-    await store.reorderEntry('part-1/scene.md', 'pre');
+    await store.placeEntry('part-1/scene.md', 'part-1', 'pre');
 
     // An index would mean something else by the time the group is re-read.
-    expect(asked).toEqual({ path: 'part-1/scene.md', before: 'pre' });
+    expect(asked).toEqual({ path: 'part-1/scene.md', into: 'part-1', before: 'pre' });
   });
 
   it('takes the new order from the refreshed project, without patching its own', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        reorderEntry: async () => ({ ok: true, value: { snapshot: reordered, revealPath: null } }),
+        placeEntry: async () => ({ ok: true, value: { snapshot: reordered, revealPath: null } }),
       }),
     );
     await store.openProject();
     store.selectGroup('part-1');
     await store.selectSheet('preface.md');
     store.selectGroup('part-1');
-    await store.reorderEntry('part-1/scene.md', null);
+    await store.placeEntry('part-1/scene.md', 'part-1', null);
 
     expect(store.selectedGroup()?.children.map((child) => child.name)).toEqual([
       'pre',
@@ -532,11 +532,11 @@ describe('reordering', () => {
   it('reports a refusal instead of leaving the tree in a half-moved state', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        reorderEntry: async () => ({ ok: false, code: 'entry/unknown', message: 'gone' }),
+        placeEntry: async () => ({ ok: false, code: 'entry/unknown', message: 'gone' }),
       }),
     );
     await store.openProject();
-    await store.reorderEntry('ghost.md', null);
+    await store.placeEntry('ghost.md', '.', null);
 
     expect(store.failure()).toBe('entry/unknown');
     expect(store.library()?.children.map((child) => child.name)).toEqual(['preface.md', 'part-1']);
@@ -753,7 +753,7 @@ describe('moving into another group', () => {
 
   function movingBridge(): ReturnType<typeof fakeBridge> {
     return fakeBridge({
-      moveEntry: async () => ({
+      placeEntry: async () => ({
         ok: true,
         value: { snapshot: moved, revealPath: 'part-1/preface.md' },
       }),
@@ -764,23 +764,23 @@ describe('moving into another group', () => {
     let asked: unknown = null;
     const store = new WorkspaceStore(
       fakeBridge({
-        moveEntry: async (request) => {
+        placeEntry: async (request) => {
           asked = request;
           return { ok: true, value: { snapshot: moved, revealPath: 'part-1/preface.md' } };
         },
       }),
     );
     await store.openProject();
-    await store.moveEntry('preface.md', 'part-1');
+    await store.placeEntry('preface.md', 'part-1', null);
 
-    expect(asked).toEqual({ path: 'preface.md', into: 'part-1' });
+    expect(asked).toEqual({ path: 'preface.md', into: 'part-1', before: null });
   });
 
   it('reveals the sheet where it ended up, not where it was sent', async () => {
     const store = new WorkspaceStore(movingBridge());
     await store.openProject();
     await store.selectSheet('preface.md');
-    await store.moveEntry('preface.md', 'part-1');
+    await store.placeEntry('preface.md', 'part-1', null);
 
     // A collision can change the name on arrival, so the path comes back from
     // the main process rather than being guessed here.
@@ -795,7 +795,7 @@ describe('moving into another group', () => {
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nStill unsaved when it moved.\n');
 
-    await store.moveEntry('preface.md', 'part-1');
+    await store.placeEntry('preface.md', 'part-1', null);
 
     expect(store.dirty()).toBe(true);
     await store.save();
@@ -805,11 +805,11 @@ describe('moving into another group', () => {
   it('reports a refusal and moves nothing', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        moveEntry: async () => ({ ok: false, code: 'group/into-itself', message: 'no' }),
+        placeEntry: async () => ({ ok: false, code: 'group/into-itself', message: 'no' }),
       }),
     );
     await store.openProject();
-    await store.moveEntry('part-1', 'part-1/pre');
+    await store.placeEntry('part-1', 'part-1/pre', null);
 
     expect(store.failure()).toBe('group/into-itself');
     expect(store.library()?.children.map((child) => child.name)).toEqual(['preface.md', 'part-1']);
@@ -854,19 +854,54 @@ describe('moving a group the open sheet is in', () => {
 
   it('keeps the sheet open at the path it travelled to', async () => {
     const bridge = fakeBridge({
-      moveEntry: async () => ({ ok: true, value: { snapshot: nested, revealPath: 'part-2/part-1' } }),
+      placeEntry: async () => ({ ok: true, value: { snapshot: nested, revealPath: 'part-2/part-1' } }),
     });
     const store = new WorkspaceStore(bridge);
     await store.openProject();
     await store.selectSheet('part-1/scene.md');
     store.noteText('# A Scene\n\nCarried along.\n');
 
-    await store.moveEntry('part-1', 'part-2');
+    await store.placeEntry('part-1', 'part-2', null);
 
     // The sheet was not the thing dragged, but its path changed all the same.
     expect(store.openSheet()?.relativePath).toBe('part-2/part-1/scene.md');
     expect(store.dirty()).toBe(true);
     await store.save();
     expect(bridge.writes.at(-1)?.text).toContain('Carried along.');
+  });
+});
+
+describe('placing does not open', () => {
+  it('leaves the editor on the sheet it was on', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        // A placement reveals where the entry went; revealing is not opening.
+        placeEntry: async () => ({ ok: true, value: { snapshot, revealPath: 'part-1/scene.md' } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.placeEntry('part-1/scene.md', 'part-1', null);
+
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+  });
+});
+
+describe('placing a group', () => {
+  it('does not take the selection with it', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        placeEntry: async () => ({ ok: true, value: { snapshot, revealPath: 'part-1/pre' } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.placeEntry('part-1/pre', 'part-1', null);
+
+    // The author is still looking at the group they were looking at.
+    expect(store.selectedGroupPath()).toBe('.');
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+    // But the tree is opened down to where it went.
+    expect(store.isExpanded('part-1')).toBe(true);
   });
 });
