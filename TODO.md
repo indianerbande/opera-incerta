@@ -79,6 +79,14 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   `reloadProject` still re-reads the open sheet from disk. What should happen
   is the comparison rule of `SPEC.md` §10.6, which is where the conflict prompt
   belongs; until then, refreshing with unsaved changes loses them.
+- **Page categories in the interface** (`SPEC.md` §6.6, §17.12) — the core
+  computes the badge text colour and tolerates unknown ids; defining,
+  assigning, and showing categories is not built, and neither is deleting one.
+- **Deleting sheets and groups** — the library can be created, renamed and
+  reordered, but nothing in the application removes an entry. It needs its own
+  decision first: a trash the author can undo, an irreversible delete with a
+  prompt, or deliberately none at all, leaving removal to the file manager and
+  Git.
 - **The settings panel and localization** (`SPEC.md` §13, §14). The record
   exists and persists the workbench layout; what is missing is the category
   panel that lets the author change the rest of it, and the English/German
@@ -93,5 +101,3 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   packaging round (`CONVENTIONS.md` C-P5).
 - **Import, export, AI provider, snapshots** — each needs its own decision
   round (`SPEC.md` §15, §19).
-- **Repository initialization** — this checkout is still not a Git repository,
-  and nothing has been committed.
