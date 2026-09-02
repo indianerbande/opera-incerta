@@ -21,4 +21,3 @@ what any other editor would write.
 ```markdown
 # A fenced block is shown exactly as written.
 ```
-

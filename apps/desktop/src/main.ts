@@ -314,6 +314,11 @@ async function checkHeadingGestures(window: BrowserWindow): Promise<void> {
   window.webContents.sendInputEvent({ type: 'mouseUp', x: placed.x, y: placed.y, clickCount: 1 });
   await new Promise((resolve) => setTimeout(resolve, 120));
 
+  // Start a fresh line at the very end, the way an author would before
+  // writing. The fixture's last line closes a fenced block, where a dot
+  // command deliberately does nothing.
+  await pressKey(window, 'End', ['cmd']);
+  await pressKey(window, 'Return');
   await typeText(window, '.h3 Typed heading');
 
   const afterTyping = (await window.webContents.executeJavaScript(
