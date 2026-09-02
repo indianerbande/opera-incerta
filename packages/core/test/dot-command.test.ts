@@ -22,8 +22,11 @@ describe('dotCommandAt', () => {
     }
   });
 
-  it('recognizes a command that is the whole line', () => {
-    expect(dotCommandAt('.h1')).toEqual({ level: 1, length: 3 });
+  it('waits for the separator, so the command is complete before it fires', () => {
+    // Firing on `.h1` alone converts one keystroke too early, and the space
+    // the author types next lands inside the heading prefix.
+    expect(dotCommandAt('.h1')).toBeNull();
+    expect(dotCommandAt('.h1 ')).toEqual({ level: 1, length: 4 });
   });
 
   it('includes the separating space, so the heading does not start with one', () => {
@@ -63,11 +66,18 @@ describe('applyDotCommand', () => {
     expect(displayToMarkdown([applied as DisplayLine])).toBe('# The First Scene');
   });
 
-  it('leaves an empty heading when the command is alone on the line', () => {
-    const applied = applyDotCommand(line('.h3'));
+  it('leaves an empty heading when only the separator follows', () => {
+    const applied = applyDotCommand(line('.h3 '));
 
     expect(applied?.text).toBe('');
     expect(displayToMarkdown([applied as DisplayLine])).toBe('### ');
+  });
+
+  it('produces exactly one space between the hashes and the text', () => {
+    // The regression: a doubled space here is Markdown the author never typed.
+    const applied = applyDotCommand(line('.h2 Chapter'));
+
+    expect(displayToMarkdown([applied as DisplayLine])).toBe('## Chapter');
   });
 
   it('changes the level of a line that is already a heading', () => {

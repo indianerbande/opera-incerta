@@ -102,3 +102,27 @@ export function displayModel(markdown: string, focusedLine: number | null): Disp
   hidden.sort((left, right) => left.from - right.from);
   return { headings, hidden, verbatimLines };
 }
+
+/**
+ * Where the visible text of a line begins.
+ *
+ * For a heading this is past the hidden `#` prefix; for any other line it is
+ * the line start. Cursor motion, `Home`, backspace, and the clipboard all need
+ * this same answer, and deriving it four times is how they would drift apart.
+ */
+export function visibleLineStart(model: DisplayModel, lineFrom: number): number {
+  const prefix = model.hidden.find(
+    (range) => range.kind === 'heading' && range.from === lineFrom,
+  );
+  return prefix === undefined ? lineFrom : prefix.to;
+}
+
+/**
+ * The hidden heading prefix of a line, or null when it has none.
+ * The clipboard prepends it so that copying a heading yields Markdown.
+ */
+export function headingPrefixRange(model: DisplayModel, lineFrom: number): HiddenRange | null {
+  return (
+    model.hidden.find((range) => range.kind === 'heading' && range.from === lineFrom) ?? null
+  );
+}

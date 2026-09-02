@@ -933,8 +933,11 @@ attribute into the following paragraph is a defect (`CONVENTIONS.md` C-U4).
   A line that is already a heading shows its text without the `# ` prefix, so
   typing `.h2` in front of it changes the level — which is what the author sees
   themselves doing;
-- a single space or tab after the digit belongs to the command and is consumed
-  with it, or the heading would begin with a stray space;
+- **a space or tab after the digit is required**, and is consumed with the
+  command. Firing on `.h3` alone converts one keystroke early, and the space
+  the author types next lands inside the prefix — `###  Chapter`, Markdown
+  nobody wrote. Waiting for the separator also makes the command visible until
+  it triggers;
 - anything else after the digit ends the command: `.h1x` is ordinary text;
 - it never fires inside a fenced code block; and
 - **it is applied to typing only, never while loading a file.** A document
@@ -949,6 +952,29 @@ takes back the whole thing and no intermediate state is ever shown.
 and the six levels, with a checkmark on the active one. Choosing an entry
 applies it and closes the menu; Escape and a click outside dismiss it without
 a change. A line without a level has no marker, and therefore no menu.
+
+**The hidden prefix is one unit for the cursor.** It MUST NOT be possible to
+place the caret inside it — not with an arrow key, not with `Home`, not with a
+click, and not by extending a selection. Otherwise the author types at a
+position they cannot see. Consequently:
+
+- `Home` and the platform's line-start shortcut go to the first **visible**
+  character, and a shift-variant selects to it;
+- **Backspace at the visible start of a heading removes the level**, leaving
+  the text as an ordinary paragraph. A second press then merges with the line
+  above, exactly as in a word processor. Deleting the prefix character by
+  character would otherwise leave `##Chapter`, which no Markdown reader treats
+  as a heading — a broken state produced by a keystroke whose target was
+  invisible. The removal runs the same operation as the gutter menu, so both
+  gestures undo as one thing; and
+- **copying a heading yields Markdown.** A selection cannot begin inside the
+  prefix, so it begins after it; the prefix is put back when the text reaches
+  the clipboard, and pasting into another Markdown tool preserves the heading.
+
+Return in the middle of a heading is deliberately left alone: the second half
+becomes an ordinary paragraph, because the prefix stays on the first line. That
+is what the file says, and any special handling would mean the editor invents
+Markdown the author did not write.
 
 The gutter is also an **input surface**: clicking a label opens a menu to
 choose another level (with the active one marked) or to remove the heading

@@ -6,6 +6,53 @@ documents").
 
 ---
 
+## 2026-09-02 — the cursor rules around hidden heading syntax
+
+**Decision, then implementation.** The open question was whether the hidden
+`# ` prefix should become an atomic range or whether Backspace should remove
+the level. The two are not alternatives: atomicity is the foundation — without
+it the caret reaches invisible text through arrow keys, `Home`, a click, or a
+selection, and Backspace is only the loudest symptom — and the deletion
+semantics are the separate question that atomicity then makes answerable.
+
+**What was built.**
+
+- Heading syntax is an atomic range: the caret cannot enter it by any route.
+- `Home` and `Cmd/Ctrl+Left` go to the first visible character; the shift
+  variants select to it.
+- Backspace at the visible start removes the heading level and keeps the text;
+  a second press merges with the line above, as in a word processor. It runs
+  the same operation as the gutter menu, so both gestures undo as one thing.
+- Copying a heading yields Markdown: the selection cannot start inside the
+  prefix, so the prefix is put back on the way to the clipboard.
+
+**Verification.** `pnpm run check` green: **354 tests**. `pnpm run
+spike:editor` 7/7. The smoke drives all of it through real key events and the
+real system clipboard: line-start shortcut, select to end, copy, and the
+clipboard must read `##### Typed heading`; then Backspace removes the level and
+a second Backspace merges.
+
+**The smoke found a defect nobody would have reported.** The clipboard held
+`#####  Typed heading` — two spaces. Tracing it back: the dot command fired on
+`.h3` at the end of the line, one keystroke before the author typed the
+separating space, and that space then landed inside the heading prefix. Every
+heading created by typing carried a doubled space into the file. It renders
+identically, so no reader would ever notice; the file would simply have
+contained Markdown the author never wrote.
+
+The fix is that the separator is now **required**: the command must be complete
+before it fires. That also makes it easier to predict — `.h3` sits there
+visibly until the space triggers it.
+
+**Deliberately left alone.** Return in the middle of a heading still leaves the
+second half an ordinary paragraph, because the prefix stays on the first line.
+That is what the file says, and special handling would mean the editor inventing
+Markdown. Cut at the visible start is genuinely unfinished and recorded as
+`TODO.md` §1.4: copying puts the prefix back, but cut removes only the
+selection and leaves an empty `##### ` behind.
+
+---
+
 ## 2026-09-02 — dot commands and the gutter menu
 
 **What exists.** Both ways of setting a heading level from `SPEC.md` §10.2:

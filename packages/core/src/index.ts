@@ -28,7 +28,7 @@ export type { DotCommand } from './dot-command.js';
 export { delimiterRanges, inlineSpans } from './inline.js';
 export type { InlineKind, InlineSpan } from './inline.js';
 
-export { displayModel } from './display-model.js';
+export { displayModel, headingPrefixRange, visibleLineStart } from './display-model.js';
 export type { DisplayModel, HeadingSpan, HiddenRange } from './display-model.js';
 
 export {

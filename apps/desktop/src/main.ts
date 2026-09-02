@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BrowserWindow, app, ipcMain, net, protocol } from 'electron';
+import { BrowserWindow, app, clipboard, ipcMain, net, protocol } from 'electron';
 import { BRIDGE_GLOBAL, CHANNELS, CONTRACT_VERSION } from '@opera-incerta/desktop-contract';
 import {
   RENDERER_ENTRY_URL,
@@ -263,6 +263,123 @@ async function checkHeadingGestures(window: BrowserWindow): Promise<void> {
   }
 
   console.log('smoke ok: dot command applied, gutter menu opened and changed the level');
+  await checkHeadingCursorRules(window);
+}
+
+/** Presses one key, optionally with modifiers. */
+async function pressKey(
+  window: BrowserWindow,
+  keyCode: string,
+  modifiers: readonly string[] = [],
+): Promise<void> {
+  window.webContents.sendInputEvent({
+    type: 'keyDown',
+    keyCode,
+    modifiers: [...modifiers] as never,
+  });
+  window.webContents.sendInputEvent({
+    type: 'keyUp',
+    keyCode,
+    modifiers: [...modifiers] as never,
+  });
+  await new Promise((resolve) => setTimeout(resolve, 120));
+}
+
+/** Text of the line containing `needle`, and whether it is a heading. */
+async function lineState(
+  window: BrowserWindow,
+  needle: string,
+): Promise<{ text: string; heading: boolean; count: number } | null> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')];
+       const found = lines.filter((line) => line.textContent.includes(${JSON.stringify(needle)}));
+       const line = found[0];
+       return line === undefined
+         ? null
+         : {
+             text: line.textContent,
+             heading: line.className.includes('cm-heading'),
+             count: found.length,
+           };
+     })()`,
+  )) as { text: string; heading: boolean; count: number } | null;
+}
+
+/**
+ * The cursor rules around hidden heading syntax. SPEC.md §10.2.
+ *
+ * Everything here is driven through real keys and the real clipboard, because
+ * what is in question is the behavior a hand at the keyboard produces.
+ */
+async function checkHeadingCursorRules(window: BrowserWindow): Promise<void> {
+  const lineStartKey = process.platform === 'darwin' ? 'Left' : 'Home';
+  const lineStartModifiers = process.platform === 'darwin' ? ['cmd'] : [];
+  const lineEndKey = process.platform === 'darwin' ? 'Right' : 'End';
+
+  // Put the cursor inside the heading the earlier gestures produced.
+  const target = (await window.webContents.executeJavaScript(
+    `(() => {
+       const line = [...document.querySelectorAll('.cm-line')]
+         .find((candidate) => candidate.textContent.includes('Typed heading'));
+       if (line === undefined) { return null; }
+       const rect = line.getBoundingClientRect();
+       return { x: Math.round(rect.left + rect.width / 2), y: Math.round(rect.top + rect.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (target === null) {
+    throw new Error('the typed heading is gone');
+  }
+
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: target.x, y: target.y, clickCount: 1 });
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: target.x, y: target.y, clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 120));
+
+  // Home, then select to the end, then copy: the clipboard must hold Markdown,
+  // which also proves the cursor landed on the first *visible* character.
+  await pressKey(window, lineStartKey, lineStartModifiers);
+  await pressKey(window, lineEndKey, [...lineStartModifiers, 'shift']);
+  clipboard.clear();
+  window.webContents.copy();
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  // Electron 44's clipboard mirrors the asynchronous W3C API.
+  const copied = await clipboard.readText();
+  if (copied !== '##### Typed heading') {
+    throw new Error(`the clipboard should hold Markdown, held ${JSON.stringify(copied)}`);
+  }
+
+  // Backspace at the visible start removes the level, keeping the text.
+  await pressKey(window, lineStartKey, lineStartModifiers);
+  await pressKey(window, 'Backspace');
+
+  const afterFirst = await lineState(window, 'Typed heading');
+  if (afterFirst === null) {
+    throw new Error('the line vanished on the first backspace');
+  }
+  if (afterFirst.heading) {
+    throw new Error('the first backspace did not remove the heading level');
+  }
+  if (afterFirst.text !== 'Typed heading') {
+    throw new Error(`the text changed unexpectedly: ${JSON.stringify(afterFirst.text)}`);
+  }
+
+  // A second backspace merges with the line above, as in any editor.
+  await pressKey(window, lineStartKey, lineStartModifiers);
+  await pressKey(window, 'Backspace');
+
+  const afterSecond = await lineState(window, 'Typed heading');
+  if (afterSecond === null) {
+    throw new Error('the line vanished on the second backspace');
+  }
+  if (afterSecond.text === 'Typed heading') {
+    throw new Error('the second backspace did not merge with the line above');
+  }
+
+  console.log(
+    'smoke ok: heading syntax is atomic — clipboard kept Markdown, ' +
+      'backspace removed the level and then merged',
+  );
 }
 
 /**

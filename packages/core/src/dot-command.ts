@@ -19,13 +19,21 @@ export interface DotCommand {
   readonly length: number;
 }
 
-const DOT_COMMAND = /^\.h([1-6])(?:[ \t]|$)/;
+const DOT_COMMAND = /^\.h([1-6])[ \t]/;
 
 /**
  * Recognizes a dot command at the start of `visibleText`.
  *
- * A single space after the command belongs to it: the author typed it as a
- * separator, and leaving it behind would indent every heading by one space.
+ * **The separator is required**, and is consumed with the command.
+ *
+ * An earlier version also fired on `.h3` at the end of a line, before the
+ * author had typed the space. The conversion then happened one keystroke too
+ * early, and the space that followed landed in the heading prefix: typing
+ * `.h3 Chapter` produced `###  Chapter` with a doubled space — Markdown the
+ * author never wrote. Waiting for the separator makes the command complete
+ * before it fires, which is also easier to predict: `.h3` sits there visibly
+ * until the space triggers it.
+ *
  * Anything else after the digit ends the command, so `.h1x` is ordinary text.
  */
 export function dotCommandAt(visibleText: string): DotCommand | null {

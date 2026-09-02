@@ -194,3 +194,39 @@ describe('displayModel', () => {
     expect(displayModel('# Heading\ntext', null).verbatimLines.size).toBe(0);
   });
 });
+
+describe('visibleLineStart', () => {
+  it('skips the hidden prefix of a heading', async () => {
+    const { displayModel, visibleLineStart } = await import('../src/index.js');
+    const text = '## Chapter';
+    const model = displayModel(text, null);
+
+    expect(visibleLineStart(model, 0)).toBe(3);
+    expect(text.slice(visibleLineStart(model, 0))).toBe('Chapter');
+  });
+
+  it('returns the line start for a plain line', async () => {
+    const { displayModel, visibleLineStart } = await import('../src/index.js');
+    const model = displayModel('plain text', null);
+
+    expect(visibleLineStart(model, 0)).toBe(0);
+  });
+
+  it('works for a line further into the document', async () => {
+    const { displayModel, visibleLineStart } = await import('../src/index.js');
+    const text = ['plain', '### Third'].join('\n');
+    const model = displayModel(text, null);
+    const lineFrom = text.indexOf('### Third');
+
+    expect(text.slice(visibleLineStart(model, lineFrom))).toBe('Third');
+  });
+
+  it('reports the prefix range for the clipboard', async () => {
+    const { displayModel, headingPrefixRange } = await import('../src/index.js');
+    const text = '## Chapter';
+    const range = headingPrefixRange(displayModel(text, null), 0);
+
+    expect(range).toEqual({ from: 0, to: 3, kind: 'heading' });
+    expect(headingPrefixRange(displayModel('plain', null), 0)).toBeNull();
+  });
+});

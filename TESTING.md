@@ -255,10 +255,15 @@ Tests MUST cover:
   preload surface limited to the versioned bridge;
 - path-traversal rejection and containment for every document handle;
 - opaque document handles and the configured source-size limit;
-- the two heading gestures of `SPEC.md` §10.2, driven by real input events
-  rather than by calling the adapter: typing `.h3 ` converts the line and
-  removes the command text, and clicking a gutter marker opens a menu whose
-  active level is marked, whose choice applies, and which closes afterwards;
+- the heading gestures of `SPEC.md` §10.2, driven by real input events rather
+  than by calling the adapter: typing `.h3 ` converts the line and removes the
+  command text; clicking a gutter marker opens a menu whose active level is
+  marked, whose choice applies, and which closes afterwards;
+- the cursor rules around hidden heading syntax, through real keys and the real
+  clipboard: the line-start shortcut lands on the first visible character,
+  copying a heading yields Markdown with its prefix, the first Backspace there
+  removes the level while keeping the text, and a second merges with the line
+  above;
 - native open, save, save-as, cancellation, failure reporting, dirty titles,
   and unsaved-close protection;
 - empty startup, context-sensitive close behavior returning to an empty

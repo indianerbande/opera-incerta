@@ -23,11 +23,15 @@ import {
 import { history, historyKeymap } from '@codemirror/commands';
 import { defaultKeymap } from '@codemirror/commands';
 import { redo as cmRedo, undo as cmUndo } from '@codemirror/commands';
+import type { Command } from '@codemirror/view';
+import { RangeSetBuilder } from '@codemirror/state';
 import {
   applyDotCommand,
   displayModel,
   displayToMarkdown,
+  headingPrefixRange,
   markdownToDisplay,
+  visibleLineStart,
   withHeadingLevel,
   type DisplayModel,
   type EditorAdapter,
@@ -224,11 +228,125 @@ const dotCommandFilter = EditorState.transactionFilter.of((transaction) => {
   ];
 });
 
+/**
+ * Heading syntax is one unit for the cursor. SPEC.md §10.2.
+ *
+ * Without this the caret can sit between `##` and its space — invisible, and
+ * whatever is typed next lands where the author cannot see it. It is not only
+ * a backspace concern: arrow keys, `Home`, shift-selection, and a click just
+ * left of the first letter all end up there.
+ */
+const atomicHeadingSyntax = EditorView.atomicRanges.of((view) => {
+  const builder = new RangeSetBuilder();
+  for (const range of view.state.field(displayModelField).hidden) {
+    if (range.kind === 'heading') {
+      builder.add(range.from, range.to, Decoration.mark({}));
+    }
+  }
+  return builder.finish();
+});
+
+/** The visible start of the line holding the cursor. */
+function visibleStartOfCursorLine(view: EditorView): { line: number; start: number } {
+  const line = view.state.doc.lineAt(view.state.selection.main.head);
+  const model = view.state.field(displayModelField);
+  return { line: line.number, start: visibleLineStart(model, line.from) };
+}
+
+/**
+ * Backspace at the visible start of a heading removes the level rather than
+ * deleting hidden characters.
+ *
+ * The word-processor behavior: the first press takes off the paragraph
+ * formatting, a second merges with the line above. Deleting the prefix
+ * character by character would otherwise leave `##Chapter`, which is no longer
+ * a heading to any Markdown reader — a state produced by a keystroke whose
+ * target the author could not see.
+ *
+ * It runs the same operation as the gutter menu, so both gestures undo as one
+ * thing.
+ */
+const removeHeadingOnBackspace: Command = (view) => {
+  const selection = view.state.selection.main;
+  if (!selection.empty) {
+    return false;
+  }
+
+  const { line, start } = visibleStartOfCursorLine(view);
+  if (selection.head !== start) {
+    return false;
+  }
+
+  const heading = view.state
+    .field(displayModelField)
+    .headings.find((candidate) => candidate.line === line);
+  if (heading === undefined) {
+    return false;
+  }
+
+  applyHeadingLevel(view, line, null);
+  return true;
+};
+
+/** `Home` goes to the first character the author can see. */
+const cursorToVisibleLineStart: Command = (view) => {
+  const { start } = visibleStartOfCursorLine(view);
+  if (view.state.selection.main.head === start) {
+    return false;
+  }
+  view.dispatch({ selection: { anchor: start }, scrollIntoView: true });
+  return true;
+};
+
+/** `Shift-Home` selects to the first visible character. */
+const selectToVisibleLineStart: Command = (view) => {
+  const { start } = visibleStartOfCursorLine(view);
+  view.dispatch({
+    selection: { anchor: view.state.selection.main.anchor, head: start },
+    scrollIntoView: true,
+  });
+  return true;
+};
+
+/**
+ * Copying a heading yields Markdown.
+ *
+ * The atomic range keeps a selection from starting inside the prefix, which
+ * also means it starts *after* it — so a copied heading would arrive as bare
+ * text and lose its level when pasted into any other Markdown tool. The prefix
+ * is put back here.
+ */
+const clipboardKeepsMarkdown = EditorView.clipboardOutputFilter.of((text, state) => {
+  const selection = state.selection.main;
+  if (selection.empty) {
+    return text;
+  }
+
+  const line = state.doc.lineAt(selection.from);
+  const model = displayModel(state.doc.toString(), null);
+  if (selection.from !== visibleLineStart(model, line.from)) {
+    return text;
+  }
+
+  const prefix = headingPrefixRange(model, line.from);
+  return prefix === null ? text : state.doc.sliceString(prefix.from, prefix.to) + text;
+});
+
 function extensions(onChange: () => void): readonly Extension[] {
   return [
     displayModelField,
     dotCommandFilter,
+    atomicHeadingSyntax,
+    clipboardKeepsMarkdown,
     history(),
+    // Before the defaults, so these three win where they apply and fall
+    // through to normal editing everywhere else.
+    keymap.of([
+      { key: 'Backspace', run: removeHeadingOnBackspace },
+      { key: 'Home', run: cursorToVisibleLineStart },
+      { key: 'Mod-ArrowLeft', run: cursorToVisibleLineStart },
+      { key: 'Shift-Home', run: selectToVisibleLineStart },
+    ]),
     keymap.of([...defaultKeymap, ...historyKeymap]),
     editorTheme,
     displayPlugin,
@@ -240,6 +358,31 @@ function extensions(onChange: () => void): readonly Extension[] {
       }
     }),
   ];
+}
+
+/**
+ * Rewrites one line's heading level through the core's rule, so the editor and
+ * the file agree about what a level change means. Shared by the gutter menu,
+ * the adapter's method, and the backspace command.
+ */
+function applyHeadingLevel(view: EditorView, line: number, level: HeadingLevel | null): void {
+  if (line < 1 || line > view.state.doc.lines) {
+    return;
+  }
+  const target = view.state.doc.line(line);
+  const [current] = markdownToDisplay(target.text);
+  if (current === undefined) {
+    return;
+  }
+
+  const rewritten = displayToMarkdown([withHeadingLevel(current, level)]);
+  if (rewritten === target.text) {
+    return;
+  }
+  view.dispatch({
+    changes: { from: target.from, to: target.to, insert: rewritten },
+    selection: { anchor: target.from + rewritten.length },
+  });
 }
 
 /**
@@ -315,22 +458,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
    * and the file agree about what a level change means.
    */
   setHeadingLevel(line: number, level: HeadingLevel | null): void {
-    if (line < 1 || line > this.#view.state.doc.lines) {
-      return;
-    }
-    const target = this.#view.state.doc.line(line);
-    const [current] = markdownToDisplay(target.text);
-    if (current === undefined) {
-      return;
-    }
-
-    const rewritten = displayToMarkdown([withHeadingLevel(current, level)]);
-    if (rewritten === target.text) {
-      return;
-    }
-    this.#view.dispatch({
-      changes: { from: target.from, to: target.to, insert: rewritten },
-    });
+    applyHeadingLevel(this.#view, line, level);
   }
 
   undo(): void {

@@ -11,7 +11,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 **State 2026-09-02:** the portable rule set, the project and Git adapters, the
 library scan, the owned renderer protocol, the production boundary check, and
 the editor with both heading gestures. `pnpm run check` green: 6 projects,
-**349 tests**. `pnpm run desktop:smoke` and `pnpm run spike:editor` green.
+**354 tests**. `pnpm run desktop:smoke` and `pnpm run spike:editor` green.
 
 ---
 
@@ -31,11 +31,11 @@ the editor with both heading gestures. `pnpm run check` green: 6 projects,
 3. **Filesystem watching** — the coordination rules exist and are tested
    (`RefreshCoordinator`, `ExclusiveTask` in the core); the watcher that drives
    them does not, because the mechanism is an open dependency question (§2.2).
-4. **Cursor behavior around hidden heading syntax** — the `# ` prefix is
-   hidden, so pressing Backspace at the visual start of a heading line deletes
-   into syntax the author cannot see. Decide whether the range becomes atomic,
-   whether Backspace removes the heading level instead, or something else, and
-   then extend the contract suite with it.
+4. **Cut, at the visible start of a heading** — copying puts the prefix back,
+   so the clipboard holds Markdown. Cut takes the same text but removes only
+   the selection, leaving an empty `##### ` behind. Extending the deletion the
+   way the copy is extended is the obvious answer; it needs its own round and
+   its own evidence.
 
 ## 2. To decide before code exists
 
