@@ -448,6 +448,13 @@ Continuous validation MUST eventually include:
 - verification that bundled fonts and icons have documented redistribution
   rights, with hash-pinned bytes.
 
+`pnpm run check:assets` implements the last of these for the packaged icons: it
+verifies each file's SHA-256 against a pinned value, requires the licence and
+the source notice beside them, and rejects an SVG containing a script, an
+external reference, or a data URI — an asset that can reach out is not a
+decorative asset. `check:desktop-production` additionally requires the icons
+and both notices in the built renderer.
+
 A release pipeline MUST additionally inventory the installer payload and verify
 platform signatures and notarization where applicable.
 

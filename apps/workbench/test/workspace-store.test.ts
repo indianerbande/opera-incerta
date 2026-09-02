@@ -91,6 +91,11 @@ function fakeBridge(overrides: Partial<OperaIncertaBridge> = {}): OperaIncertaBr
       value: snapshot,
     }),
     closeProject: async () => ({ ok: true, value: null }),
+    gitStatus: async () => ({ ok: true, value: { root: null, entries: [] } }),
+    gitStage: async () => ({ ok: true, value: null }),
+    gitUnstage: async () => ({ ok: true, value: null }),
+    gitCommit: async () => ({ ok: true, value: null }),
+    gitPush: async () => ({ ok: true, value: null }),
     readSheet: async (request) => {
       const text = files.get(request.handle.id);
       return text === undefined

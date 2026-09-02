@@ -123,6 +123,27 @@ if (indexHtml !== null) {
   );
 }
 
+// --- packaged assets ----------------------------------------------------
+for (const icon of [
+  'account_tree.svg',
+  'folder_open.svg',
+  'history.svg',
+  'info.svg',
+  'neurology.svg',
+  'toc.svg',
+]) {
+  check(
+    existsSync(join(repositoryRoot, 'build/workbench/browser/icons', icon)),
+    `the built renderer is missing its icon: ${icon}`,
+  );
+}
+for (const notice of ['LICENSE', 'SOURCE.md']) {
+  check(
+    existsSync(join(repositoryRoot, 'build/workbench/browser/third-party/material-symbols', notice)),
+    `the built renderer ships icons without their ${notice}`,
+  );
+}
+
 // --- report -------------------------------------------------------------
 if (failures.length > 0) {
   console.error('desktop production check failed:');

@@ -297,6 +297,8 @@ succeeded in this checkout. The following have:
 - `pnpm run test` runs the suites of all six workspace projects;
 - `pnpm run check` runs the complete current gate (build, type-check, test,
   desktop production boundary);
+- `pnpm run check:assets` verifies the pinned icon bytes, their licence and
+  notice, and that no packaged SVG can reach out or execute;
 - `pnpm run check:desktop-production` verifies the built desktop artifacts:
   pinned dependencies, the sandboxed window options, the absence of `loadFile`,
   a preload limited to one global and to declared channels, and the renderer

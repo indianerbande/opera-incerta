@@ -6,6 +6,56 @@ documents").
 
 ---
 
+## 2026-09-02 — the remaining panes, and Material Symbols
+
+**What exists.** Every pane of `SPEC.md` §8: the inspector, the outline, source
+control, and both activity bars switching between them.
+
+- **Inspector** — progress figures and the owned metadata fields. This is the
+  only place they are edited, which is why the block beside the text is
+  read-only. Editing a keyword marks the sheet dirty exactly as editing a
+  paragraph does; the codec writes both back together.
+- **Outline** — the headings with their levels, click to jump, and the
+  H3-to-H6 toggle. The visibility rule is the core's pure function, not
+  template logic.
+- **Source control** — the established commit layout over the Git adapter,
+  reached through five new bridge channels. Reads and writes have separate
+  guards: one shared flag would let a background refresh swallow a click.
+- **Activity bars** — a shared component. No entry toggles a region: that
+  would name a position among names for contents. Activating the visible view
+  collapses the sidebar, which is the region's rule.
+
+**Material Symbols.** Six icons, packaged as unmodified Apache-2.0 SVGs with
+their licence and a notice recording upstream, version, date, and which symbol
+serves which entry. Drawn as CSS masks so one file works in light and dark, and
+decorative throughout: every button carries its own accessible name.
+`pnpm run check:assets` pins their bytes and rejects an SVG that could reach
+out or execute — falsified before being trusted, with a changed byte and a
+missing notice each failing it.
+
+**Verification.** `pnpm run check` green: **421 tests** plus the desktop and
+asset checks. The smoke now runs nine checks, ending with the panes: the
+inspector shows the sheet's topic and its progress, editing a field marks the
+sheet dirty, the outline lists the heading, activating the visible view
+collapses the sidebar, and source control states plainly that the temporary
+copy is not inside a repository.
+
+**Two findings.**
+
+1. **A failed write reported nothing.** After a Git action the panel re-reads,
+   and a successful read cleared the failure the write had just set — in the
+   same tick. The author would have seen a click do nothing. The write's
+   outcome is now restored after the refresh, and the refresh still happens,
+   because a failed push leaves a made commit behind and the panel must show
+   that.
+2. **A renderer error was invisible to the smoke.** It reported only "script
+   failed to execute" and left the cause to guesswork; the actual fault was an
+   escape sequence that became a real newline inside an injected script. The
+   smoke now forwards renderer console errors, which turned a guessing game
+   into one line of output.
+
+---
+
 ## 2026-09-02 — documents, explorer, and sheet list: it can be written in
 
 **What exists.** Opening a project, walking its tree, choosing a sheet, editing

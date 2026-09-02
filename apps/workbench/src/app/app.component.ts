@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, signal, viewChild } from '@angular/core';
 import { COLUMN_IDEAL_WIDTH, type PreviewDensity } from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
@@ -6,8 +6,18 @@ import {
   DensitySwitchComponent,
   SheetListComponent,
 } from './library/sheet-list.component.js';
+import { SourceControlComponent } from './library/source-control.component.js';
+import { ActivityBarComponent } from './shell/activity-bar.component.js';
+import {
+  LayoutState,
+  NAVIGATOR_ITEMS,
+  SECONDARY_ITEMS,
+} from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
+import { InspectorComponent } from './sidebar/inspector.component.js';
+import { OutlineComponent } from './sidebar/outline.component.js';
 import { resolveBridge } from './workspace/bridge.js';
+import { SourceControlStore } from './workspace/source-control-store.js';
 import { WorkspaceStore } from './workspace/workspace-store.js';
 import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
 
@@ -21,11 +31,15 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   selector: 'wi-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ActivityBarComponent,
     DensitySwitchComponent,
     EditorComponent,
     ExplorerNodeComponent,
+    InspectorComponent,
+    OutlineComponent,
     PanelHeaderComponent,
     SheetListComponent,
+    SourceControlComponent,
   ],
   host: {
     '(document:keydown.control.s)': 'save($event)',
@@ -33,30 +47,54 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   },
   template: `
     <div class="workbench">
-      <aside class="activity-bar" [style.width.px]="activityBarWidth"></aside>
+      <wi-activity-bar
+        class="activity-bar"
+        [style.width.px]="activityBarWidth"
+        [items]="navigatorItems"
+        [activeId]="layout.navigatorView()"
+        (activate)="layout.showNavigator($event)"
+      />
 
       <section class="navigator" [style.width.px]="navigatorWidth()">
         <wi-panel-header [verbatimTitle]="store.project()?.displayName ?? null">
           @if (store.project() === null) {
             <button type="button" (click)="store.openProject()">Open project…</button>
+          } @else if (layout.navigatorView() === 'sourceControl') {
+            <button type="button" (click)="sourceControl.refresh()" title="Refresh">↻</button>
           } @else {
             <button type="button" (click)="store.reloadProject()" title="Reload from disk">↻</button>
           }
         </wi-panel-header>
 
-        <div class="tree">
-          @if (store.library(); as library) {
-            <wi-explorer-node
-              [group]="library"
-              [selectedPath]="store.selectedGroupPath()"
-              [expandedPaths]="store.expanded()"
-              (select)="store.selectGroup($event)"
-              (toggle)="store.toggleExpanded($event)"
-            />
-          } @else {
-            <p class="hint">No project open.</p>
-          }
-        </div>
+        @if (layout.navigatorView() === 'explorer') {
+          <div class="tree">
+            @if (store.library(); as library) {
+              <wi-explorer-node
+                [group]="library"
+                [selectedPath]="store.selectedGroupPath()"
+                [expandedPaths]="store.expanded()"
+                (select)="store.selectGroup($event)"
+                (toggle)="store.toggleExpanded($event)"
+              />
+            } @else {
+              <p class="hint">No project open.</p>
+            }
+          </div>
+        } @else {
+          <wi-source-control
+            [entries]="sourceControl.entries()"
+            [selectAll]="sourceControl.selectAll()"
+            [message]="sourceControl.message()"
+            [canCommit]="sourceControl.canCommit()"
+            [root]="sourceControl.repositoryRoot()"
+            [loaded]="sourceControl.loaded()"
+            (toggle)="sourceControl.toggle($event)"
+            (toggleAll)="sourceControl.toggleAll()"
+            (messageChange)="sourceControl.setMessage($event)"
+            (commit)="sourceControl.commit()"
+            (commitAndPush)="sourceControl.commitAndPush()"
+          />
+        }
       </section>
 
       <section class="sheet-list" [style.width.px]="sheetListWidth()">
@@ -91,18 +129,56 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         </wi-panel-header>
 
         @if (store.editorDocument(); as document) {
-          <wi-editor [document]="document" (textChange)="store.noteText($event)" />
+          <wi-editor #editor [document]="document" (textChange)="store.noteText($event)" />
         } @else {
           <p class="hint">Select a sheet to start writing.</p>
         }
       </section>
 
-      <section class="secondary-sidebar" [style.width.px]="secondarySidebarWidth()">
-        <wi-panel-header title="Inspector" />
-        <p class="hint">Not built yet.</p>
-      </section>
+      @if (layout.secondaryVisible()) {
+        <section class="secondary-sidebar" [style.width.px]="secondarySidebarWidth()">
+          <wi-panel-header [title]="secondaryTitle()">
+            @if (layout.secondaryView() === 'outline') {
+              <button
+                type="button"
+                [attr.aria-pressed]="store.showDeeperOutline()"
+                title="Show H3 to H6"
+                (click)="store.toggleDeeperOutline()"
+              >
+                H3–H6
+              </button>
+            }
+          </wi-panel-header>
 
-      <aside class="activity-bar" [style.width.px]="activityBarWidth"></aside>
+          @switch (layout.secondaryView()) {
+            @case ('inspector') {
+              <wi-inspector
+                [metadata]="store.metadata()"
+                [statistics]="store.statistics()"
+                [available]="store.openSheet() !== null"
+                (change)="store.updateMetadata($event)"
+              />
+            }
+            @case ('outline') {
+              <wi-outline
+                [entries]="store.visibleOutlineEntries()"
+                (reveal)="revealLine($event)"
+              />
+            }
+            @default {
+              <p class="hint">Not built yet.</p>
+            }
+          }
+        </section>
+      }
+
+      <wi-activity-bar
+        class="activity-bar"
+        [style.width.px]="activityBarWidth"
+        [items]="secondaryItems"
+        [activeId]="layout.activeSecondaryId()"
+        (activate)="layout.showSecondary($event)"
+      />
     </div>
 
     @if (store.failure(); as failure) {
@@ -192,7 +268,25 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   `,
 })
 export class AppComponent {
-  protected readonly store = new WorkspaceStore(resolveBridge());
+  readonly #bridge = resolveBridge();
+  protected readonly store = new WorkspaceStore(this.#bridge);
+  protected readonly sourceControl = new SourceControlStore(this.#bridge);
+  protected readonly layout = new LayoutState();
+
+  protected readonly navigatorItems = NAVIGATOR_ITEMS;
+  protected readonly secondaryItems = SECONDARY_ITEMS;
+
+  private readonly editor = viewChild<EditorComponent>('editor');
+
+  constructor() {
+    // Source control reads when its view is shown, and after a save: both are
+    // moments when what git reports has just changed.
+    effect(() => {
+      if (this.layout.navigatorView() === 'sourceControl' && this.store.project() !== null) {
+        void this.sourceControl.refresh();
+      }
+    });
+  }
 
   protected readonly activityBarWidth = ACTIVITY_BAR_WIDTH;
   protected readonly navigatorWidth = signal(COLUMN_IDEAL_WIDTH.navigator);
@@ -218,5 +312,19 @@ export class AppComponent {
   protected save(event: Event): void {
     event.preventDefault();
     void this.store.save();
+  }
+
+  /** Outline navigation, routed to the editor. */
+  protected revealLine(line: number): void {
+    this.editor()?.revealLine(line);
+  }
+
+  protected secondaryTitle(): string {
+    return {
+      inspector: 'Inspector',
+      outline: 'Outline',
+      ai: 'AI assistant',
+      snapshots: 'Snapshots',
+    }[this.layout.secondaryView()];
   }
 }

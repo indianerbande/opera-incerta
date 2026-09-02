@@ -16,6 +16,11 @@ const bridge = {
   closeProject: () => ipcRenderer.invoke(CHANNELS.closeProject),
   readSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.readSheet, request),
   writeSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.writeSheet, request),
+  gitStatus: () => ipcRenderer.invoke(CHANNELS.gitStatus),
+  gitStage: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitStage, request),
+  gitUnstage: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitUnstage, request),
+  gitCommit: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitCommit, request),
+  gitPush: () => ipcRenderer.invoke(CHANNELS.gitPush),
 } as const;
 
 contextBridge.exposeInMainWorld(BRIDGE_GLOBAL, bridge);

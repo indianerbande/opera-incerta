@@ -18,7 +18,8 @@
   },
   "scripts": {
     "build": "pnpm --recursive --sort --if-present run build",
-    "check": "pnpm run build && pnpm run typecheck:tests && pnpm run test && pnpm run check:desktop-production",
+    "check": "pnpm run build && pnpm run typecheck:tests && pnpm run test && pnpm run check:desktop-production && pnpm run check:assets",
+    "check:assets": "node scripts/check-assets.mjs",
     "check:desktop-production": "node scripts/check-desktop-production.mjs",
     "desktop:build": "pnpm --filter @opera-incerta/workbench... run build && pnpm --filter @opera-incerta/desktop... run build",
     "desktop:make": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run make",

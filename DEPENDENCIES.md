@@ -224,7 +224,28 @@ Source control uses the locally installed `git` executable through
 
 ## Asset status
 
-No fonts, icons, or other binary assets have been added yet. When they are, each
-one needs a documented origin, license, and redistribution right, and packaged
-binary assets are hash-pinned and verified byte-identical in the built
-application (`CONVENTIONS.md` C-L4, `TESTING.md` §7).
+### Material Symbols Outlined — six icons
+
+- **Capability:** the activity bar symbols of `SPEC.md` §8.4.
+- **Why external:** drawing six icons by hand would produce worse ones and buy
+  nothing; these are a maintained, widely recognised set.
+- **License:** Apache-2.0. `apps/workbench/src/assets/material-symbols/LICENSE`
+  is an unchanged copy of the upstream licence, and `SOURCE.md` beside it
+  records the upstream project, the package version the files came from, the
+  retrieval date, and which symbol serves which entry.
+- **Impact:** six SVG files, 3.5 kB in total, copied into the built renderer
+  along with their licence and notice. No dependency is installed for them: the
+  files are in the repository, so the build needs nothing at runtime.
+- **Offline behavior:** local files.
+- **Boundary:** decorative presentation only. They are drawn as CSS masks so
+  they take the button colour, never appear in a manuscript or an export, and
+  every button carries its own accessible name — replacing them changes how the
+  workbench looks and nothing else.
+- **Evidence:** `pnpm run check:assets` verifies each file's SHA-256, requires
+  the licence and the notice, and rejects an SVG containing a script, a
+  reference, or a data URI. `check:desktop-production` additionally requires
+  all eight files in the built renderer. The check was falsified before being
+  trusted: a single changed byte and a missing notice each fail it.
+
+No fonts have been added yet. When they are, the same applies
+(`CONVENTIONS.md` C-L4, `TESTING.md` §7).

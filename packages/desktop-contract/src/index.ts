@@ -29,6 +29,11 @@ export const CHANNELS = {
   closeProject: 'opera-incerta:project/close',
   readSheet: 'opera-incerta:sheet/read',
   writeSheet: 'opera-incerta:sheet/write',
+  gitStatus: 'opera-incerta:git/status',
+  gitStage: 'opera-incerta:git/stage',
+  gitUnstage: 'opera-incerta:git/unstage',
+  gitCommit: 'opera-incerta:git/commit',
+  gitPush: 'opera-incerta:git/push',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
@@ -172,6 +177,44 @@ export interface BridgeSuccess<TValue> {
 export type BridgeResult<TValue> = BridgeSuccess<TValue> | BridgeFailure;
 
 /**
+ * What source control reports. `root` is null when the project is not inside a
+ * repository, which is a normal state rather than a failure (SPEC.md §12).
+ */
+export interface GitReport {
+  readonly root: string | null;
+  readonly entries: readonly unknown[];
+}
+
+/** A request naming paths, relative to the repository root. */
+export interface GitPathsRequest {
+  readonly paths: readonly string[];
+}
+
+export function isGitPathsRequest(value: unknown): value is GitPathsRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<GitPathsRequest>;
+  return (
+    Array.isArray(candidate.paths) &&
+    candidate.paths.every((path) => typeof path === 'string' && path !== '')
+  );
+}
+
+/** A commit request. An empty message is refused before Git ever sees it. */
+export interface GitCommitRequest {
+  readonly message: string;
+}
+
+export function isGitCommitRequest(value: unknown): value is GitCommitRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<GitCommitRequest>;
+  return typeof candidate.message === 'string' && candidate.message.trim() !== '';
+}
+
+/**
  * The complete surface the preload exposes on `window[BRIDGE_GLOBAL]`.
  *
  * Declared here so that the main process, the preload, and the renderer agree
@@ -187,4 +230,9 @@ export interface OperaIncertaBridge {
   closeProject(): Promise<BridgeResult<null>>;
   readSheet(request: DocumentRequest): Promise<BridgeResult<string>>;
   writeSheet(request: WriteSheetRequest): Promise<BridgeResult<null>>;
+  gitStatus(): Promise<BridgeResult<GitReport>>;
+  gitStage(request: GitPathsRequest): Promise<BridgeResult<null>>;
+  gitUnstage(request: GitPathsRequest): Promise<BridgeResult<null>>;
+  gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
+  gitPush(): Promise<BridgeResult<null>>;
 }

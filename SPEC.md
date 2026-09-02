@@ -715,9 +715,17 @@ translation key (§14.2).
 
 Both bars are narrow icon-only columns (44 px wide, vertically stacked, top
 aligned), implemented as one reusable component driven by a list of items
-(icon, label, active flag, action). Icons are locally packaged, hash-pinned SVG
-assets with a documented license; they are decorative presentation inside
-accessibly named buttons.
+(icon, label, active flag, action).
+
+Icons are **Material Symbols Outlined**, packaged locally as unmodified SVG
+files under the Apache License 2.0, with their licence and a source notice
+shipped beside them. Their bytes are pinned and verified, so a replaced file
+fails a check rather than passing unnoticed (`CONVENTIONS.md` C-L4).
+
+They are drawn as CSS masks and take the button's colour, which is what makes
+one file work in both light and dark themes without a second asset. They are
+**decorative**: every button carries its own accessible name, and the icon
+conveys nothing the name does not.
 
 **Left bar** switches what the Navigator shows: Explorer (default), Source
 control.

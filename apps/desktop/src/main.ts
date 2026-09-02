@@ -15,10 +15,13 @@ import {
   CHANNELS,
   CONTRACT_VERSION,
   isDocumentHandle,
+  isGitCommitRequest,
+  isGitPathsRequest,
   isWriteSheetRequest,
   type BridgeResult,
 } from '@opera-incerta/desktop-contract';
-import { ProjectSession } from './project-session.js';
+import { createGitService } from '@opera-incerta/git-node';
+import { ProjectSession, ProjectSessionError } from './project-session.js';
 import {
   RENDERER_ENTRY_URL,
   RENDERER_SCHEME,
@@ -175,6 +178,57 @@ privileged(
 
 privileged(CHANNELS.writeSheet, isWriteSheetRequest, async (request) => {
   await session.writeSheet(request.handle.id, request.text);
+  return null;
+});
+
+const git = createGitService();
+
+/**
+ * The repository root of the open project.
+ *
+ * Porcelain paths are relative to this root, not to the project directory, and
+ * can point outside the project — so every Git command runs against it
+ * (SPEC.md §12).
+ */
+async function repositoryRoot(): Promise<string> {
+  const projectPath = session.openPath;
+  if (projectPath === null) {
+    throw new ProjectSessionError('project/none-open');
+  }
+  const root = await git.repositoryRoot(projectPath);
+  if (root === null) {
+    throw new ProjectSessionError('git/no-repository');
+  }
+  return root;
+}
+
+privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
+  const projectPath = session.openPath;
+  if (projectPath === null) {
+    throw new ProjectSessionError('project/none-open');
+  }
+  const root = await git.repositoryRoot(projectPath);
+  // A project outside a repository is a normal state, not a failure.
+  return root === null ? { root: null, entries: [] } : { root, entries: await git.status(root) };
+});
+
+privileged(CHANNELS.gitStage, isGitPathsRequest, async (request) => {
+  await git.stage(await repositoryRoot(), request.paths);
+  return null;
+});
+
+privileged(CHANNELS.gitUnstage, isGitPathsRequest, async (request) => {
+  await git.unstage(await repositoryRoot(), request.paths);
+  return null;
+});
+
+privileged(CHANNELS.gitCommit, isGitCommitRequest, async (request) => {
+  await git.commit(await repositoryRoot(), request.message);
+  return null;
+});
+
+privileged(CHANNELS.gitPush, acceptsNothing, async () => {
+  await git.push(await repositoryRoot());
   return null;
 });
 
@@ -743,6 +797,129 @@ async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
   }
 
   console.log('smoke ok: switching group and sheet loaded the other document');
+  await checkPanes(window);
+}
+
+/** The remaining panes and the activity bars. SPEC.md §8.4, §11, §12. */
+async function checkPanes(window: BrowserWindow): Promise<void> {
+  // The inspector shows the metadata of the open sheet and its progress.
+  const inspector = (await window.webContents.executeJavaScript(
+    `(() => {
+       const fields = [...document.querySelectorAll('wi-inspector label')].map((label) => ({
+         name: (label.firstChild?.textContent ?? '').trim(),
+         value: label.querySelector('input, textarea')?.value ?? null,
+       }));
+       const progress = document.querySelector('wi-inspector .progress')?.textContent ?? '';
+       return { fields, progress };
+     })()`,
+  )) as { fields: Array<{ name: string; value: string | null }>; progress: string };
+
+  const topic = inspector.fields.find((field) => field.name === 'Topic');
+  if (topic?.value !== 'harbour') {
+    throw new Error(`the inspector does not show the topic: ${JSON.stringify(inspector.fields)}`);
+  }
+  if (!/\d+ words/.test(inspector.progress)) {
+    throw new Error(`the inspector shows no progress: ${JSON.stringify(inspector.progress)}`);
+  }
+
+  // Editing a field marks the sheet dirty, exactly as editing the body does.
+  const dirtied = (await window.webContents.executeJavaScript(
+    `(() => {
+       const label = [...document.querySelectorAll('wi-inspector label')]
+         .find((candidate) => candidate.textContent.trim().startsWith('Status'));
+       const input = label?.querySelector('input');
+       if (input === undefined || input === null) { return 'no field'; }
+       input.value = 'review';
+       input.dispatchEvent(new Event('change', { bubbles: true }));
+       return 'ok';
+     })()`,
+  )) as string;
+  if (dirtied !== 'ok') {
+    throw new Error(`could not edit a metadata field: ${dirtied}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  const marker = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')]
+       .map((element) => element.textContent.trim())
+       .find((text) => text.startsWith('A Scene')) ?? null`,
+  )) as string | null;
+  if (marker === null || !marker.endsWith('•')) {
+    throw new Error(`editing metadata did not mark the sheet dirty: ${JSON.stringify(marker)}`);
+  }
+
+  // The outline lists the headings of the open sheet.
+  await activateSidebar(window, 'Outline');
+  const outline = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-outline .entry')].map((entry) => entry.textContent.trim())`,
+  )) as string[];
+  if (!outline.some((entry) => entry.includes('The Second Bell'))) {
+    throw new Error(`the outline is missing its heading: ${JSON.stringify(outline)}`);
+  }
+
+  // Activating the visible view again collapses the sidebar (SPEC.md §8.4).
+  await activateSidebar(window, 'Outline');
+  const collapsed = (await window.webContents.executeJavaScript(
+    "document.querySelector('.secondary-sidebar') === null",
+  )) as boolean;
+  if (!collapsed) {
+    throw new Error('activating the visible view did not collapse the sidebar');
+  }
+  await activateSidebar(window, 'Inspector');
+
+  // Source control reads the repository the project sits in.
+  const switched = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-activity-bar button')]
+         .find((candidate) => candidate.getAttribute('aria-label') === 'Source control');
+       if (button === undefined) { return 'no button'; }
+       button.click();
+       return 'ok';
+     })()`,
+  )) as string;
+  if (switched !== 'ok') {
+    throw new Error(`could not switch the navigator: ${switched}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const sourceControl = (await window.webContents.executeJavaScript(
+    `(() => {
+       const panel = document.querySelector('wi-source-control');
+       if (panel === null) { return null; }
+       return {
+         text: panel.textContent.trim().slice(0, 80),
+         hasChangeList: panel.querySelector('.changes') !== null,
+       };
+     })()`,
+  )) as { text: string; hasChangeList: boolean } | null;
+
+  if (sourceControl === null) {
+    throw new Error('the source control panel did not render');
+  }
+  // The smoke project is a copy in a temporary directory, so it is not inside
+  // a repository — which the panel must state rather than fail on.
+  if (sourceControl.hasChangeList || !sourceControl.text.includes('not inside a Git repository')) {
+    throw new Error(`unexpected source control state: ${JSON.stringify(sourceControl)}`);
+  }
+
+  console.log('smoke ok: inspector, outline, sidebar collapse, and source control all work');
+}
+
+/** Clicks an entry of the trailing activity bar by its accessible name. */
+async function activateSidebar(window: BrowserWindow, label: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-activity-bar button')]
+         .find((candidate) => candidate.getAttribute('aria-label') === ${JSON.stringify(label)});
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no activity bar entry named ${label}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 250));
 }
 
 /**
@@ -750,6 +927,14 @@ async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
  * renderer rendered, and the versioned bridge answers through IPC.
  */
 async function runSmokeCheck(window: BrowserWindow): Promise<void> {
+  // A renderer-side error is otherwise invisible from here: the smoke would
+  // report only "script failed to execute" and leave the cause to guesswork.
+  window.webContents.on('console-message', (details) => {
+    if (details.level === 'error' || details.level === 'warning') {
+      console.error(`renderer ${details.level}: ${details.message}`);
+    }
+  });
+
   try {
     const shell = (await window.webContents.executeJavaScript(
       `(() => {

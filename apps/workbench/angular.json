@@ -17,20 +17,40 @@
             "browser": "src/main.ts",
             "polyfills": [],
             "tsConfig": "tsconfig.app.json",
-            "assets": [],
-            "styles": ["src/styles.css"],
+            "assets": [
+              {
+                "glob": "*.svg",
+                "input": "src/assets/material-symbols",
+                "output": "icons"
+              },
+              {
+                "glob": "{LICENSE,SOURCE.md}",
+                "input": "src/assets/material-symbols",
+                "output": "third-party/material-symbols"
+              }
+            ],
+            "styles": [
+              "src/styles.css"
+            ],
             "outputHashing": "none"
           },
           "configurations": {
             "production": {
               "optimization": {
                 "scripts": true,
-                "styles": { "minify": true, "inlineCritical": false },
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
                 "fonts": false
               },
               "sourceMap": false,
               "budgets": [
-                { "type": "initial", "maximumWarning": "1MB", "maximumError": "2MB" }
+                {
+                  "type": "initial",
+                  "maximumWarning": "1MB",
+                  "maximumError": "2MB"
+                }
               ]
             },
             "development": {
@@ -43,8 +63,12 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": { "buildTarget": "opera-incerta-workbench:build:production" },
-            "development": { "buildTarget": "opera-incerta-workbench:build:development" }
+            "production": {
+              "buildTarget": "opera-incerta-workbench:build:production"
+            },
+            "development": {
+              "buildTarget": "opera-incerta-workbench:build:development"
+            }
           },
           "defaultConfiguration": "development"
         }
@@ -53,6 +77,8 @@
   },
   "cli": {
     "analytics": false,
-    "cache": { "enabled": false }
+    "cache": {
+      "enabled": false
+    }
   }
 }

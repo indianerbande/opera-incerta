@@ -1,0 +1,109 @@
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+
+/**
+ * One entry of an activity bar. SPEC.md §8.4.
+ *
+ * The icon is drawn as a CSS mask so it takes the button's colour in both
+ * light and dark themes, and the SVG file stays byte-identical to the one that
+ * was licensed — see `src/assets/material-symbols/SOURCE.md`.
+ *
+ * The icon is decorative. The accessible name is what the button *is*, which
+ * is why every entry carries one.
+ */
+export interface ActivityItem {
+  readonly id: string;
+  /** Class selecting the mask, defined in this component's styles. */
+  readonly icon: string;
+  readonly label: string;
+}
+
+/**
+ * A narrow icon-only column that switches what a region shows.
+ *
+ * The bar selects views; it does not collapse itself. That is why no entry
+ * here means "toggle the sidebar" — a symbol for a position among symbols for
+ * contents would be misleading (SPEC.md §8.4). Clicking the already active
+ * entry of the trailing bar does collapse its region, which is the established
+ * behavior, but it is the region's rule rather than an entry of its own.
+ */
+@Component({
+  selector: 'wi-activity-bar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    @for (item of items(); track item.id) {
+      <button
+        type="button"
+        class="item"
+        [class.active]="item.id === activeId()"
+        [attr.aria-label]="item.label"
+        [attr.aria-pressed]="item.id === activeId()"
+        [title]="item.label"
+        (click)="activate.emit(item.id)"
+      >
+        <span class="icon" [class]="item.icon" aria-hidden="true"></span>
+      </button>
+    }
+  `,
+  styles: `
+    :host {
+      display: flex;
+      flex: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding-block-start: 4px;
+    }
+    .item {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: none;
+      color: rgba(128, 128, 128, 0.95);
+      cursor: default;
+    }
+    .icon {
+      width: 20px;
+      height: 20px;
+      background-color: currentColor;
+      mask-repeat: no-repeat;
+      mask-position: center;
+      mask-size: contain;
+    }
+    .icon-explorer {
+      mask-image: url('/icons/folder_open.svg');
+    }
+    .icon-source-control {
+      mask-image: url('/icons/account_tree.svg');
+    }
+    .icon-inspector {
+      mask-image: url('/icons/info.svg');
+    }
+    .icon-outline {
+      mask-image: url('/icons/toc.svg');
+    }
+    .icon-ai {
+      mask-image: url('/icons/neurology.svg');
+    }
+    .icon-snapshots {
+      mask-image: url('/icons/history.svg');
+    }
+    .item:hover {
+      background: rgba(128, 128, 128, 0.14);
+    }
+    .item.active {
+      border-color: rgba(128, 128, 128, 0.4);
+      background: rgba(128, 128, 128, 0.2);
+      color: inherit;
+    }
+  `,
+})
+export class ActivityBarComponent {
+  readonly items = input.required<readonly ActivityItem[]>();
+  /** The active view of the region this bar drives, or null when collapsed. */
+  readonly activeId = input.required<string | null>();
+
+  readonly activate = output<string>();
+}

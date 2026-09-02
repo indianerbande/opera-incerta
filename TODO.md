@@ -8,11 +8,11 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-02:** Opera Incerta can be written in. Opening a project,
-navigating the tree, choosing a sheet, editing it, and saving it all work end
-to end. `pnpm run check` green: 6 projects, **397 tests**.
-`pnpm run desktop:smoke` green across eight checks, `pnpm run spike:editor`
-7/7.
+**State 2026-09-02:** every pane of `SPEC.md` §8 exists — explorer, sheet
+list, editor, inspector, outline, source control, both activity bars.
+`pnpm run check` green: 6 projects, **421 tests**, plus the desktop and asset
+checks. `pnpm run desktop:smoke` green across nine checks,
+`pnpm run spike:editor` 7/7.
 
 ---
 
@@ -57,10 +57,13 @@ is replaceable; the report in `AGENTS.md` decides it.
 
 Everything here waits on a decision from §2, on a user interface, or on both.
 
-- **The remaining panes** — inspector, outline, source control, and the
-  activity bars that switch between them (`SPEC.md` §8.4, §11). The rules they
-  display are implemented and tested; the explorer, sheet list, editor, and
-  shared panel header now exist.
+- **The AI assistant and snapshots panes** — both are activity bar entries
+  that say "not built yet". The AI panel is a docking point for the provider
+  interface (`SPEC.md` §15); snapshots need their storage and diff decisions
+  first (`SPEC.md` §11).
+- **Persisting the workbench layout** — which view each region shows, and
+  whether the sidebar is open, are lost on restart. They belong in the
+  installation-local settings record (`SPEC.md` §13), which is its own round.
 - **The front matter area** (`SPEC.md` §10.4) — the editor correctly never
   shows front matter, and the codec protects it. What is missing is the area
   that *displays* it: the owned block read-only, the foreign block with its

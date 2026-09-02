@@ -11,14 +11,21 @@ import {
   ancestorPaths,
   findGroup,
   findSheet,
+  markdownToDisplay,
+  outlineOf,
   parseSheet,
   serializeSheet,
   sheetsInGroup,
+  textStatistics,
+  visibleOutline,
   type EditorDocument,
   type GroupEntry,
+  type OutlineEntry,
   type Sheet,
   type SheetDiagnostic,
   type SheetEntry,
+  type SheetMetadata,
+  type TextStatistics,
 } from '@opera-incerta/core';
 import type { OperaIncertaBridge, ProjectSnapshot } from '@opera-incerta/desktop-contract';
 import { unwrap, unwrapSnapshot } from './bridge.js';
@@ -56,6 +63,8 @@ export class WorkspaceStore {
   readonly #selectedGroupPath = signal<string>('.');
   readonly #openSheet = signal<OpenSheet | null>(null);
   readonly #currentText = signal<string>('');
+  readonly #currentMetadata = signal<SheetMetadata>({});
+  readonly #showDeeperOutline = signal(false);
   readonly #expanded = signal<ReadonlySet<string>>(new Set(['.']));
   readonly #failure = signal<string | null>(null);
   readonly #busy = signal(false);
@@ -95,11 +104,40 @@ export class WorkspaceStore {
     return open === null ? null : { id: open.handleId, text: open.savedBody };
   });
 
-  /** Unsaved changes. Drives the dirty marker and the close guard. */
+  /**
+   * Unsaved changes — in the body **or** in the metadata.
+   *
+   * The inspector edits the same file as the editor, so a changed keyword is
+   * as unsaved as a changed paragraph.
+   */
   readonly dirty = computed(() => {
     const open = this.#openSheet();
-    return open !== null && this.#currentText() !== open.savedBody;
+    if (open === null) {
+      return false;
+    }
+    return (
+      this.#currentText() !== open.savedBody ||
+      !sameMetadata(this.#currentMetadata(), open.sheet.metadata)
+    );
   });
+
+  /** The metadata the inspector shows and edits. */
+  readonly metadata = this.#currentMetadata.asReadonly();
+
+  /** Progress figures for the inspector, over the body only (SPEC.md §11). */
+  readonly statistics = computed<TextStatistics>(() => textStatistics(this.#currentText()));
+
+  /** The outline of the open document. */
+  readonly outline = computed<readonly OutlineEntry[]>(() =>
+    outlineOf(markdownToDisplay(this.#currentText())),
+  );
+
+  /** The outline entries the sidebar shows, honouring the depth toggle. */
+  readonly visibleOutlineEntries = computed<readonly OutlineEntry[]>(() =>
+    visibleOutline(this.outline(), this.#showDeeperOutline()),
+  );
+
+  readonly showDeeperOutline = this.#showDeeperOutline.asReadonly();
 
   /** Problems reported for the open sheet, if any. */
   readonly diagnostics = computed<readonly SheetDiagnostic[]>(
@@ -145,6 +183,7 @@ export class WorkspaceStore {
       this.#handles.set({});
       this.#openSheet.set(null);
       this.#currentText.set('');
+      this.#currentMetadata.set({});
       this.#selectedGroupPath.set('.');
       this.#expanded.set(new Set(['.']));
     });
@@ -193,6 +232,7 @@ export class WorkspaceStore {
         writable: parsed.writable,
       });
       this.#currentText.set(parsed.sheet.body);
+      this.#currentMetadata.set(parsed.sheet.metadata);
       this.#expand(ancestorPaths(relativePath));
     });
   }
@@ -200,6 +240,25 @@ export class WorkspaceStore {
   /** Records what the editor currently holds, without writing anything. */
   noteText(text: string): void {
     this.#currentText.set(text);
+  }
+
+  /** Changes one or more metadata fields. Marks the sheet dirty, saves nothing. */
+  updateMetadata(change: Partial<SheetMetadata>): void {
+    const next: Record<string, unknown> = { ...this.#currentMetadata() };
+    for (const [key, value] of Object.entries(change)) {
+      if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
+        // An emptied field is an absent field: writing `topic: ""` would put a
+        // meaningless key into the author's file.
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+    }
+    this.#currentMetadata.set(next as SheetMetadata);
+  }
+
+  toggleDeeperOutline(): void {
+    this.#showDeeperOutline.set(!this.#showDeeperOutline());
   }
 
   /**
@@ -219,9 +278,10 @@ export class WorkspaceStore {
     }
 
     const body = this.#currentText();
+    const metadata = this.#currentMetadata();
     // The codec reassembles the file, which is what keeps foreign front matter
-    // intact through an edit the author made to the body alone.
-    const text = serializeSheet({ ...open.sheet, body });
+    // intact through an edit the author made to the body or the inspector.
+    const text = serializeSheet({ ...open.sheet, metadata, body });
 
     await this.#withBridge(async (bridge) => {
       unwrap(
@@ -230,7 +290,11 @@ export class WorkspaceStore {
           text,
         }),
       );
-      this.#openSheet.set({ ...open, savedBody: body });
+      this.#openSheet.set({
+        ...open,
+        sheet: { ...open.sheet, metadata, body },
+        savedBody: body,
+      });
     });
   }
 
@@ -245,6 +309,7 @@ export class WorkspaceStore {
     this.#selectedGroupPath.set('.');
     this.#openSheet.set(null);
     this.#currentText.set('');
+    this.#currentMetadata.set({});
     this.#expanded.set(new Set(['.']));
   }
 
@@ -283,4 +348,23 @@ export class WorkspaceStore {
       this.#busy.set(false);
     }
   }
+}
+
+/** Field-by-field comparison; two metadata records with the same values are equal. */
+function sameMetadata(left: SheetMetadata, right: SheetMetadata): boolean {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const key of keys) {
+    const a = left[key as keyof SheetMetadata];
+    const b = right[key as keyof SheetMetadata];
+    if (Array.isArray(a) && Array.isArray(b)) {
+      if (a.length !== b.length || a.some((value, index) => value !== b[index])) {
+        return false;
+      }
+      continue;
+    }
+    if (a !== b) {
+      return false;
+    }
+  }
+  return true;
 }
