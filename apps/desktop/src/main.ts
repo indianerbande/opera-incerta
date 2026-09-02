@@ -380,6 +380,59 @@ async function checkHeadingCursorRules(window: BrowserWindow): Promise<void> {
     'smoke ok: heading syntax is atomic — clipboard kept Markdown, ' +
       'backspace removed the level and then merged',
   );
+
+  await checkCutTakesPrefix(window, lineStartKey, lineStartModifiers, lineEndKey);
+}
+
+/**
+ * Cutting a heading must take its prefix with it, or the text arrives
+ * elsewhere as a heading while an empty `## ` stays behind. SPEC.md §10.2.
+ */
+async function checkCutTakesPrefix(
+  window: BrowserWindow,
+  lineStartKey: string,
+  lineStartModifiers: readonly string[],
+  lineEndKey: string,
+): Promise<void> {
+  // A fresh heading at the end of the document.
+  await pressKey(window, lineEndKey, ['cmd']);
+  await pressKey(window, 'Return');
+  await typeText(window, '.h2 Cut me');
+
+  const created = await lineState(window, 'Cut me');
+  if (created === null || !created.heading) {
+    throw new Error(`could not create a heading to cut: ${JSON.stringify(created)}`);
+  }
+
+  await pressKey(window, lineStartKey, lineStartModifiers);
+  await pressKey(window, lineEndKey, [...lineStartModifiers, 'shift']);
+  clipboard.clear();
+  window.webContents.cut();
+  await new Promise((resolve) => setTimeout(resolve, 250));
+
+  const cutText = await clipboard.readText();
+  if (cutText !== '## Cut me') {
+    throw new Error(`cut should place Markdown on the clipboard, placed ${JSON.stringify(cutText)}`);
+  }
+
+  const remainder = (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')];
+       const last = lines[lines.length - 1];
+       return last === undefined
+         ? null
+         : { text: last.textContent, heading: last.className.includes('cm-heading') };
+     })()`,
+  )) as { text: string; heading: boolean } | null;
+
+  if (remainder === null) {
+    throw new Error('the document lost its last line');
+  }
+  if (remainder.heading || remainder.text !== '') {
+    throw new Error(`cut left something behind: ${JSON.stringify(remainder)}`);
+  }
+
+  console.log('smoke ok: cut took the heading prefix with it, leaving an empty line');
 }
 
 /**

@@ -31,11 +31,6 @@ the editor with both heading gestures. `pnpm run check` green: 6 projects,
 3. **Filesystem watching** — the coordination rules exist and are tested
    (`RefreshCoordinator`, `ExclusiveTask` in the core); the watcher that drives
    them does not, because the mechanism is an open dependency question (§2.2).
-4. **Cut, at the visible start of a heading** — copying puts the prefix back,
-   so the clipboard holds Markdown. Cut takes the same text but removes only
-   the selection, leaving an empty `##### ` behind. Extending the deletion the
-   way the copy is extended is the obvious answer; it needs its own round and
-   its own evidence.
 
 ## 2. To decide before code exists
 

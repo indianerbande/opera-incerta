@@ -261,9 +261,10 @@ Tests MUST cover:
   marked, whose choice applies, and which closes afterwards;
 - the cursor rules around hidden heading syntax, through real keys and the real
   clipboard: the line-start shortcut lands on the first visible character,
-  copying a heading yields Markdown with its prefix, the first Backspace there
-  removes the level while keeping the text, and a second merges with the line
-  above;
+  copying a heading yields Markdown with its prefix, cutting one removes the
+  prefix along with the text and leaves an ordinary empty line, the first
+  Backspace at that position removes the level while keeping the text, and a
+  second merges with the line above;
 - native open, save, save-as, cancellation, failure reporting, dirty titles,
   and unsaved-close protection;
 - empty startup, context-sensitive close behavior returning to an empty

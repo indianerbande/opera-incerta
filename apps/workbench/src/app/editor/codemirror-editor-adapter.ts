@@ -332,12 +332,54 @@ const clipboardKeepsMarkdown = EditorView.clipboardOutputFilter.of((text, state)
   return prefix === null ? text : state.doc.sliceString(prefix.from, prefix.to) + text;
 });
 
+/**
+ * Cutting a heading takes its prefix with it. SPEC.md §10.2.
+ *
+ * The clipboard already receives Markdown, so without this the two halves of
+ * one gesture disagree: the text arrives elsewhere as a heading while an empty
+ * `##### ` stays behind.
+ *
+ * Deliberately limited to cutting. Deleting a selection inside a heading
+ * leaves the level alone, because the intent differs: cut means "this moves
+ * elsewhere", so the formatting travels with it, while delete means "this text
+ * goes", and an author clearing a title to retype it wants the heading to
+ * survive. Backspace at the visible start remains the deliberate way to remove
+ * a level.
+ */
+const cutTakesHeadingPrefix = EditorState.transactionFilter.of((transaction) => {
+  if (!transaction.docChanged || !transaction.isUserEvent('delete.cut')) {
+    return transaction;
+  }
+
+  const before = transaction.startState;
+  const selection = before.selection.main;
+  if (selection.empty) {
+    return transaction;
+  }
+
+  const line = before.doc.lineAt(selection.from);
+  const model = before.field(displayModelField);
+  if (selection.from !== visibleLineStart(model, line.from)) {
+    return transaction;
+  }
+
+  const prefix = headingPrefixRange(model, line.from);
+  if (prefix === null) {
+    return transaction;
+  }
+
+  // Sequential: the prefix sits before the removed range, so its offsets are
+  // unchanged by the cut itself.
+  return [transaction, { changes: { from: prefix.from, to: prefix.to }, sequential: true }];
+});
+
 function extensions(onChange: () => void): readonly Extension[] {
   return [
     displayModelField,
     dotCommandFilter,
     atomicHeadingSyntax,
     clipboardKeepsMarkdown,
+    cutTakesHeadingPrefix,
     history(),
     // Before the defaults, so these three win where they apply and fall
     // through to normal editing everywhere else.

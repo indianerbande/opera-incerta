@@ -6,6 +6,35 @@ documents").
 
 ---
 
+## 2026-09-02 — cutting a heading takes its prefix
+
+**What changed.** A cut whose selection starts at the visible beginning of a
+heading now removes the hidden prefix along with the text, leaving an ordinary
+empty line.
+
+**Why it was wrong before.** The clipboard half of the gesture already carried
+Markdown, so the two halves of one action disagreed: the text arrived elsewhere
+as a heading while an empty `## ` stayed behind — invisible, since the prefix
+is hidden, so the author saw a blank line that was secretly still a heading.
+
+**Deleting stays different, on purpose.** Clearing a heading's text with Delete
+or Backspace leaves the level alone. Cut means "this moves elsewhere", so the
+formatting travels with it; delete means "this text goes", and an author
+clearing a title to retype it wants the heading to survive. Backspace at the
+visible start remains the deliberate way to remove a level. The rule is now
+written down rather than left to whichever behavior happened to fall out.
+
+**Verification.** `pnpm run check` green at **354 tests**, `spike:editor` 7/7,
+and the smoke types a fresh `.h2 Cut me`, selects the visible line, cuts, and
+requires both halves: `## Cut me` on the system clipboard and an empty
+non-heading line behind.
+
+**Falsified before trusted.** With the filter commented out, the smoke failed
+with `cut left something behind: {"text":"","heading":true}` — exactly the
+invisible empty heading described above — and passed again once restored.
+
+---
+
 ## 2026-09-02 — the cursor rules around hidden heading syntax
 
 **Decision, then implementation.** The open question was whether the hidden

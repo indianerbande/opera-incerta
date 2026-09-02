@@ -969,7 +969,19 @@ position they cannot see. Consequently:
   gestures undo as one thing; and
 - **copying a heading yields Markdown.** A selection cannot begin inside the
   prefix, so it begins after it; the prefix is put back when the text reaches
-  the clipboard, and pasting into another Markdown tool preserves the heading.
+  the clipboard, and pasting into another Markdown tool preserves the heading;
+  and
+- **cutting takes the prefix with it**, leaving an empty ordinary line. The
+  clipboard half of the gesture already carries the heading, so removing only
+  the visible text would leave the two halves disagreeing: the text arrives
+  elsewhere as a heading while an empty `## ` stays behind.
+
+**Deleting a selection is deliberately different from cutting.** Clearing the
+text of a heading with Delete or Backspace leaves the level in place, because
+the intent differs: cut means "this moves elsewhere", so the formatting travels
+with it, while delete means "this text goes", and an author clearing a title to
+retype it wants the heading to survive. Backspace at the visible start remains
+the deliberate way to remove a level.
 
 Return in the middle of a heading is deliberately left alone: the second half
 becomes an ordinary paragraph, because the prefix stays on the first line. That
