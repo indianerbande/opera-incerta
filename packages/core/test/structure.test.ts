@@ -132,6 +132,59 @@ describe('editing the record', () => {
 
     expect(moved['chapter-1']?.order).toEqual(['scene.md', 'intro.md']);
   });
+
+  it('carries a moved group’s own keys with it', () => {
+    const nested: StructureRecord = {
+      '.': { order: ['chapter-1', 'chapter-2'] },
+      'chapter-1': { order: ['pre'] },
+      'chapter-1/pre': { displayName: 'Preparation', order: ['note.md'] },
+      'chapter-2': { order: [] },
+    };
+    const moved = moveChild(
+      nested,
+      { path: 'chapter-1', name: 'pre' },
+      { path: 'chapter-2', name: 'pre' },
+    );
+
+    // Those keys are paths: without this the group loses its name and order.
+    expect(moved['chapter-1/pre']).toBeUndefined();
+    expect(moved['chapter-2/pre']).toEqual({ displayName: 'Preparation', order: ['note.md'] });
+    expect(moved['chapter-1']?.order).toEqual([]);
+    expect(moved['chapter-2']?.order).toEqual(['pre']);
+  });
+
+  it('re-keys everything beneath a moved group, not only the group itself', () => {
+    const deep: StructureRecord = {
+      'a/b': { displayName: 'B' },
+      'a/b/c': { displayName: 'C' },
+      'a/b/c/d': { displayName: 'D' },
+    };
+    const moved = moveChild(deep, { path: 'a', name: 'b' }, { path: '.', name: 'b' });
+
+    expect(Object.keys(moved).sort()).toEqual(['b', 'b/c', 'b/c/d']);
+    expect(moved['b/c/d']?.displayName).toBe('D');
+  });
+
+  it('invents no order for a target that had none', () => {
+    const bare: StructureRecord = { '.': { order: ['a.md', 'part'] } };
+    const moved = moveChild(bare, { path: '.', name: 'a.md' }, { path: 'part', name: 'a.md' });
+
+    // An order of exactly the arrival would put it first in its new group.
+    expect(moved['part']).toBeUndefined();
+    expect(moved['.']?.order).toEqual(['part']);
+  });
+
+  it('touches no order at all when neither group has one', () => {
+    expect(moveChild({}, { path: '.', name: 'a.md' }, { path: 'part', name: 'a.md' })).toEqual({});
+  });
+
+  it('takes the arrival name, which a collision may have changed', () => {
+    const record: StructureRecord = { '.': { order: ['a.md'] }, part: { order: ['a.md'] } };
+    const moved = moveChild(record, { path: '.', name: 'a.md' }, { path: 'part', name: 'a-2.md' });
+
+    expect(moved['.']?.order).toEqual([]);
+    expect(moved['part']?.order).toEqual(['a.md', 'a-2.md']);
+  });
 });
 
 describe('readStructureRecord', () => {

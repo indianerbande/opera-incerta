@@ -6,6 +6,60 @@ documents").
 
 ---
 
+## 2026-09-02 — moving between groups, and one owner for the whole drag
+
+**What exists.** A sheet is dragged from the sheet list onto a group in the
+tree; a group is dragged onto another group (`SPEC.md` §6.8). The middle half
+of a group's row means the group itself, the quarter at each edge means between
+the rows — so a reorder and a move are the same gesture aimed differently, and
+hitting either does not demand precision.
+
+**The drag changed owner, and that was the substance of this round.** Each
+column used to own its own drag. That arrangement cannot express a drop in the
+*other* column at all: a dragged row's siblings are not its ancestors, so the
+pointer events during the drag never reach the column it started in. The shell
+now owns the gesture — it is the one element containing both columns — and each
+row merely *describes* itself in the DOM: what it is, where it sits, what it is
+called. `elementFromPoint` does the rest. The decision logic stayed pure and
+unit-tested; only the measuring touches the DOM.
+
+**What travels with a path.** A moved group's own key in `structure.json`, and
+every key beneath it, is re-keyed — otherwise the group arrives without its
+display name and without the orders of everything inside it. The old
+`moveChild` did none of that and would also have recorded an order of exactly
+one name in a group that had none, which puts the arrival *first* in its new
+group: the opposite of arriving. Both are now fixed and tested.
+
+**The open sheet is followed, not closed** — whether it was the thing dragged
+or sat inside a group that moved around it. It is the same document at a new
+path, and what was unsaved in it belongs to it wherever it goes. The second
+case is the one worth naming: the sheet was never the thing dragged, and its
+path changed anyway.
+
+**A name already taken gives the arrival a suffix.** Overwriting is out of the
+question and refusing would block something the author plainly wants. It is the
+one case where a file name changes after it was set, and it is invisible: the
+title is untouched.
+
+**Two defects the checks found, both mine, both geometric.** The first: an
+index from the sheet list was compared against an index from the tree, which
+are two different lists over the same group — a sheet dropped on the first
+group row read as "already there". The second: the space *below* a list was not
+a target at all, so a drop just past the last row did nothing. It now means the
+end of that list, which is what that space looks like it means.
+
+**Verification.** `pnpm run check` green: **559 tests**. The smoke's
+seventeenth check drags a sheet out of one column and into the other with real
+pointer events, then drags the group it landed in into a third — reading the
+file from its new place on disk, `structure.json` for the re-keyed entry *and*
+for the absence of the old one, and the editor for the same document it held
+before. Falsified by widening the edge band so the middle of a row no longer
+means the group: the move then fails. The screenshot taken while the pointer is
+still down shows the destination outlined, the dragged row dimmed, and no
+insertion line — because this drop is an into and not a between.
+
+---
+
 ## 2026-09-02 — deleting into the desktop trash
 
 **What exists.** A sheet or a group is deleted from its context menu, and

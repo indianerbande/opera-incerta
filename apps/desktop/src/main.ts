@@ -39,6 +39,7 @@ import {
   isGitPathsRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
+  isLibraryMoveRequest,
   isLibraryPathRequest,
   isLibraryReorderRequest,
   isRecentProjectRequest,
@@ -506,13 +507,13 @@ privileged(CHANNELS.writeSheet, isWriteSheetRequest, async (request) => {
  */
 async function libraryEdit(
   operation: () => Promise<string | null>,
-): Promise<{ snapshot: ProjectSnapshot; createdPath: string | null }> {
-  const createdPath = await operation();
+): Promise<{ snapshot: ProjectSnapshot; revealPath: string | null }> {
+  const revealPath = await operation();
   const snapshot = await session.reopen();
   if (snapshot === null) {
     throw new ProjectSessionError('project/none-open');
   }
-  return { snapshot, createdPath };
+  return { snapshot, revealPath };
 }
 
 privileged(CHANNELS.createSheet, isLibraryEditRequest, async (request) =>
@@ -549,6 +550,12 @@ privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
     await session.deleteEntry(request.path);
     return null;
   }),
+);
+
+privileged(CHANNELS.moveEntry, isLibraryMoveRequest, async (request) =>
+  // Where it ended up is what the interface reveals: a collision may have
+  // given the arrival a different name (SPEC.md §6.8).
+  libraryEdit(async () => session.moveEntry(request.path, request.into)),
 );
 
 const git = createGitService();
@@ -1553,7 +1560,13 @@ async function checkReordering(window: BrowserWindow, projectPath: string): Prom
   const first = await rowPoint(window, 'wi-sheet-list li', 'Renamed In Place');
   const second = await rowPoint(window, 'wi-sheet-list li', 'Renamed While Open');
   // Past the middle of the row below, which is where the insertion line moves.
-  await dragVertically(window, first, second.y + Math.round(second.height / 2) + 2, 'smoke-drag.png');
+  // Into the lower band of the row below, which means "after that row".
+  await dragTo(
+    window,
+    first,
+    { x: first.x, y: second.y + Math.round(second.height * 0.4) },
+    'smoke-drag.png',
+  );
 
   const sheetOrder = orderOf(projectPath, '.');
   if (sheetOrder.indexOf('a-brand-new-scene.md') > sheetOrder.indexOf('opening.md')) {
@@ -1581,7 +1594,8 @@ async function checkReordering(window: BrowserWindow, projectPath: string): Prom
   // The same gesture in the tree, where a group moves among its siblings.
   const second_ = await rowPoint(window, 'wi-explorer-node .row', 'The Second Part');
   const partOne = await rowPoint(window, 'wi-explorer-node .row', 'Part One');
-  await dragVertically(window, second_, partOne.y - Math.round(partOne.height / 2) - 2);
+  // Into the upper band of Part One, which means "before that row".
+  await dragTo(window, second_, { x: second_.x, y: partOne.y - Math.round(partOne.height * 0.4) });
 
   const groupOrder = orderOf(projectPath, '.');
   if (groupOrder.indexOf('part-two') > groupOrder.indexOf('part-1')) {
@@ -1691,6 +1705,77 @@ async function checkDeletion(window: BrowserWindow, projectPath: string): Promis
     'smoke ok: a sheet and a group moved to the trash with their contents, the record forgot ' +
       'them, and neither Return nor Escape deleted anything',
   );
+
+  await checkMovingBetweenGroups(window, projectPath);
+}
+
+/**
+ * Checks that an entry can be dragged into another group — the sheet list into
+ * the tree, and the tree into itself. SPEC.md §6.8.
+ */
+async function checkMovingBetweenGroups(window: BrowserWindow, projectPath: string): Promise<void> {
+  // A second group to move things into.
+  await rightClickNodeContaining(window, 'Smoke Project');
+  await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
+  await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'Part Three');
+  await new Promise((resolve) => setTimeout(resolve, 700));
+
+  // Creating one selects it, and its sheet list is empty; the sheet to be
+  // moved is in the root.
+  await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  // The open sheet, from the sheet list into a group in the tree.
+  const sheet = await rowPoint(window, 'wi-sheet-list .row', 'Renamed While Open');
+  const partThree = await rowPoint(window, 'wi-explorer-node .row', 'Part Three');
+  await dragTo(window, sheet, { x: partThree.x, y: partThree.y }, 'smoke-move.png');
+
+  if (existsSync(join(projectPath, 'a-brand-new-scene.md'))) {
+    throw new Error('the sheet is still in the group it was dragged out of');
+  }
+  if (!existsSync(join(projectPath, 'part-three', 'a-brand-new-scene.md'))) {
+    throw new Error('the sheet did not arrive in the group it was dropped on');
+  }
+  if (orderOf(projectPath, '.').includes('a-brand-new-scene.md')) {
+    throw new Error('the record still holds the sheet in its old group');
+  }
+  // The editor holds the same document, at its new path.
+  const headers = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (!headers.some((title) => title.startsWith('Renamed While Open'))) {
+    throw new Error(`moving the open sheet closed it: ${JSON.stringify(headers)}`);
+  }
+
+  // A group into another group, with everything in it.
+  const source = await rowPoint(window, 'wi-explorer-node .row', 'Part Three');
+  const target = await rowPoint(window, 'wi-explorer-node .row', 'The Second Part');
+  await dragTo(window, source, { x: target.x, y: target.y });
+
+  if (!existsSync(join(projectPath, 'part-two', 'part-three', 'a-brand-new-scene.md'))) {
+    throw new Error('the group did not arrive with its sheet inside');
+  }
+  if (displayNameOf(projectPath, 'part-two/part-three') !== 'Part Three') {
+    throw new Error('the moved group lost its display name: its entry was not carried along');
+  }
+  if (displayNameOf(projectPath, 'part-three') !== null) {
+    throw new Error('the record still has an entry at the old path');
+  }
+
+  // Still the same document, two moves later.
+  const afterwards = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (!afterwards.some((title) => title.startsWith('Renamed While Open'))) {
+    throw new Error(`moving the group around the open sheet closed it: ${JSON.stringify(afterwards)}`);
+  }
+
+  console.log(
+    'smoke ok: dragged a sheet into a group and that group into another — files, record and ' +
+      'the open editor all followed',
+  );
 }
 
 /** Opens the confirmation for one entry through its context menu. */
@@ -1754,24 +1839,28 @@ async function rowPoint(
 }
 
 /**
- * Presses on a row, moves to a height in steps, and releases — as a hand does.
+ * Presses on a row, travels to a point in steps, and releases — as a hand does.
+ * The path is followed in both directions, because a drag may cross from one
+ * library column into the other.
  *
  * `evidence` names a screenshot taken while the pointer is still down, because
- * the insertion line only exists during the drag and a check that never looks
- * at it cannot say the author sees anything (`TESTING.md` §1.9).
+ * the insertion line and the destination highlight only exist during the drag,
+ * and a check that never looks at them cannot say the author sees anything
+ * (`TESTING.md` §1.9).
  */
-async function dragVertically(
+async function dragTo(
   window: BrowserWindow,
   from: { x: number; y: number },
-  toY: number,
+  to: { x: number; y: number },
   evidence?: string,
 ): Promise<void> {
   window.webContents.sendInputEvent({ type: 'mouseDown', x: from.x, y: from.y, clickCount: 1 });
 
   const steps = 6;
   for (let step = 1; step <= steps; step += 1) {
-    const y = Math.round(from.y + ((toY - from.y) * step) / steps);
-    window.webContents.sendInputEvent({ type: 'mouseMove', x: from.x, y });
+    const x = Math.round(from.x + ((to.x - from.x) * step) / steps);
+    const y = Math.round(from.y + ((to.y - from.y) * step) / steps);
+    window.webContents.sendInputEvent({ type: 'mouseMove', x, y });
     await new Promise((resolve) => setTimeout(resolve, 40));
   }
 
@@ -1784,8 +1873,8 @@ async function dragVertically(
     console.log(`smoke evidence: ${path}`);
   }
 
-  window.webContents.sendInputEvent({ type: 'mouseUp', x: from.x, y: toY, clickCount: 1 });
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: to.x, y: to.y, clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 700));
 }
 
 /** The display name `structure.json` records for a group, if any. */

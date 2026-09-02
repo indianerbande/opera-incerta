@@ -1,14 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  computed,
-  inject,
-  input,
-  output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { subgroupsOf, type GroupEntry } from '@opera-incerta/core';
-import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
+import type { LibraryDrag } from '../shell/library-drag.js';
 
 /**
  * The project tree. SPEC.md §9.1.
@@ -21,11 +13,11 @@ import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
  * this view and source control, and component-local state would be destroyed
  * on every switch (CONVENTIONS.md C-U2).
  *
- * Each node owns the drag of **its own children** (SPEC.md §6.4), not of
- * itself. A dragged node's siblings are not its ancestors, so pointer events
- * during the drag would never reach it; they do reach the one node that
- * contains all of them. That also makes the rule that a group only ever moves
- * among its siblings a property of the structure rather than a check.
+ * Dragging is not handled here either. Each row only *describes* itself in the
+ * DOM — what it is, where it sits, what it is called — and the shell, which
+ * contains both library columns, does the measuring and deciding
+ * (`shell/library-drag.ts`). A drag that can end in the other column cannot
+ * belong to one of them.
  */
 @Component({
   selector: 'wi-explorer-node',
@@ -33,7 +25,15 @@ import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
   template: `
     <div
       class="row"
+      data-drop="group"
+      [attr.data-path]="group().relativePath"
+      [attr.data-parent]="parentPath()"
+      [attr.data-name]="group().name"
       [class.selected]="selectedPath() === group().relativePath"
+      [class.dragging]="drag().source()?.path === group().relativePath"
+      [class.drop-into]="drag().into() === group().relativePath"
+      [class.drop-above]="lineAt() === index()"
+      [class.drop-below]="lineAt() !== null && lineAt() === siblingCount() && last()"
       (contextmenu)="onContextMenu($event)"
     >
       <button
@@ -45,7 +45,7 @@ import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
       >
         {{ expanded() ? '▾' : '▸' }}
       </button>
-      <button type="button" class="name" (click)="select.emit(group().relativePath)">
+      <button type="button" class="name" (click)="onSelect()">
         {{ group().displayName }}
       </button>
     </div>
@@ -57,37 +57,23 @@ import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
             [group]="child"
             [selectedPath]="selectedPath()"
             [expandedPaths]="expandedPaths()"
-            [class.dragging]="drag.index() === $index"
-            [class.drop-above]="drag.slot() === $index"
-            [class.drop-below]="drag.slot() === subgroups().length && $last"
-            (select)="onChildSelect($event)"
+            [drag]="drag()"
+            [parentPath]="group().relativePath"
+            [index]="$index"
+            [siblingCount]="subgroups().length"
+            [last]="$last"
+            (select)="select.emit($event)"
             (toggle)="toggle.emit($event)"
             (contextMenu)="contextMenu.emit($event)"
-            (reorder)="reorder.emit($event)"
           />
         }
       </div>
     }
   `,
-  host: {
-    '(pointerdown)': 'onPointerDown($event)',
-    '(pointermove)': 'onPointerMove($event)',
-    '(pointerup)': 'onPointerUp()',
-    '(pointercancel)': 'drag.cancel()',
-  },
   styles: `
     :host {
       display: block;
       touch-action: none;
-    }
-    wi-explorer-node.dragging {
-      opacity: 0.45;
-    }
-    wi-explorer-node.drop-above {
-      box-shadow: inset 0 2px 0 0 rgba(128, 128, 128, 0.95);
-    }
-    wi-explorer-node.drop-below {
-      box-shadow: inset 0 -2px 0 0 rgba(128, 128, 128, 0.95);
     }
     .row {
       display: flex;
@@ -100,6 +86,19 @@ import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
     }
     .row:hover {
       background: rgba(128, 128, 128, 0.12);
+    }
+    .row.dragging {
+      opacity: 0.45;
+    }
+    .row.drop-into {
+      outline: 2px solid rgba(128, 128, 128, 0.9);
+      outline-offset: -2px;
+    }
+    .row.drop-above {
+      box-shadow: inset 0 2px 0 0 rgba(128, 128, 128, 0.95);
+    }
+    .row.drop-below {
+      box-shadow: inset 0 -2px 0 0 rgba(128, 128, 128, 0.95);
     }
     button {
       border: 0;
@@ -133,88 +132,34 @@ export class ExplorerNodeComponent {
   readonly group = input.required<GroupEntry>();
   readonly selectedPath = input.required<string>();
   readonly expandedPaths = input.required<ReadonlySet<string>>();
+  readonly drag = input.required<LibraryDrag>();
+
+  /** Where this node sits among its siblings. The root has no parent. */
+  readonly parentPath = input('');
+  readonly index = input(-1);
+  readonly siblingCount = input(0);
+  readonly last = input(false);
 
   readonly select = output<string>();
   readonly toggle = output<string>();
   readonly contextMenu = output<{ path: string; x: number; y: number }>();
-  readonly reorder = output<{ path: string; before: string | null }>();
 
-  protected readonly drag = new ReorderDrag();
-  readonly #host = inject(ElementRef<HTMLElement>);
-  #dropped = false;
+  protected readonly subgroups = computed(() => subgroupsOf(this.group()));
+  protected readonly expanded = computed(() => this.expandedPaths().has(this.group().relativePath));
 
-  protected onPointerDown(event: PointerEvent): void {
-    const index = this.#childIndex(event.target);
-    if (index !== null && event.button === 0) {
-      this.drag.press(index, event.clientY);
-    }
-  }
+  /** The insertion line's slot, when it belongs to this node's own list. */
+  protected readonly lineAt = computed(() => {
+    const line = this.drag().line();
+    return line !== null && line.kind === 'group' && line.parent === this.parentPath()
+      ? line.index
+      : null;
+  });
 
-  protected onPointerMove(event: PointerEvent): void {
-    if (this.drag.move(event.clientY, this.#rowBoxes())) {
-      event.preventDefault();
-    }
-  }
-
-  protected onPointerUp(): void {
-    const children = this.subgroups();
-    const drop = this.drag.release(children.map((child) => child.name));
-    if (drop === null) {
+  protected onSelect(): void {
+    if (this.drag().consumeClick()) {
       return;
     }
-    // The click that follows must not also select the group: the author was
-    // moving it, not choosing it.
-    this.#dropped = true;
-    const moved = children[drop.index];
-    if (moved !== undefined) {
-      this.reorder.emit({ path: moved.relativePath, before: drop.before });
-    }
-  }
-
-  /** A child's selection, unless that child was just dropped somewhere. */
-  protected onChildSelect(relativePath: string): void {
-    if (this.#dropped) {
-      this.#dropped = false;
-      return;
-    }
-    this.select.emit(relativePath);
-  }
-
-  /**
-   * The index of the direct child an event started in.
-   *
-   * `null` for anything deeper: that node's own parent handles it, so exactly
-   * one level of the tree answers a press.
-   */
-  #childIndex(target: EventTarget | null): number | null {
-    const container = this.#childrenElement();
-    if (container === null || !(target instanceof Element)) {
-      return null;
-    }
-    const node = target.closest('wi-explorer-node');
-    if (node === null || node.parentElement !== container) {
-      return null;
-    }
-    return [...container.children].indexOf(node);
-  }
-
-  /**
-   * Each child's own row, not its whole subtree: an expanded group is as tall
-   * as everything under it, and its midpoint would sit nowhere near its name.
-   */
-  #rowBoxes(): readonly RowBox[] {
-    const container = this.#childrenElement();
-    if (container === null) {
-      return [];
-    }
-    return [...container.children].map((node) => {
-      const bounds = (node.querySelector(':scope > .row') ?? node).getBoundingClientRect();
-      return { top: bounds.top, bottom: bounds.bottom };
-    });
-  }
-
-  #childrenElement(): Element | null {
-    return (this.#host.nativeElement as HTMLElement).querySelector(':scope > .children');
+    this.select.emit(this.group().relativePath);
   }
 
   protected onContextMenu(event: MouseEvent): void {
@@ -225,7 +170,4 @@ export class ExplorerNodeComponent {
       y: event.clientY,
     });
   }
-
-  protected readonly subgroups = computed(() => subgroupsOf(this.group()));
-  protected readonly expanded = computed(() => this.expandedPaths().has(this.group().relativePath));
 }

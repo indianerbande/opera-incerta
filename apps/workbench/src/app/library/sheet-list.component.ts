@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import {
   PREVIEW_DENSITIES,
   previewFontSize,
@@ -6,7 +6,7 @@ import {
   type PreviewDensity,
   type SheetEntry,
 } from '@opera-incerta/core';
-import { ReorderDrag, type RowBox } from '../shell/reorder-drag.js';
+import type { LibraryDrag } from '../shell/library-drag.js';
 
 const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
 
@@ -19,31 +19,29 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
  * the core, deliberately independent of the real editor sizes: differences
  * must stay visible without the smallest step becoming unreadable.
  *
- * Rows can be dragged into a new order (SPEC.md §6.4). The list reports the
- * sibling a row was dropped in front of; what that means for the group's
- * recorded order is decided in the main process, over a freshly read group.
+ * Rows can be dragged into a new order (SPEC.md §6.4) or onto a group in the
+ * tree to move there (§6.8). The dragging itself is not handled here: a row
+ * only *describes* itself in the DOM, and the shell — which contains both
+ * library columns — measures and decides (`shell/library-drag.ts`).
  */
 @Component({
   selector: 'wi-sheet-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '(pointerdown)': 'onPointerDown($event)',
-    '(pointermove)': 'onPointerMove($event)',
-    '(pointerup)': 'onPointerUp()',
-    '(pointercancel)': 'drag.cancel()',
-  },
   template: `
-    <ul class="list">
+    <ul class="list" data-drop-list="sheet" [attr.data-parent]="groupPath()">
       @for (sheet of sheets(); track sheet.relativePath) {
         <li
-          [attr.data-index]="$index"
-          [class.dragging]="drag.index() === $index"
-          [class.drop-above]="drag.slot() === $index"
-          [class.drop-below]="drag.slot() === sheets().length && $last"
+          [class.dragging]="drag().source()?.path === sheet.relativePath"
+          [class.drop-above]="lineAt() === $index"
+          [class.drop-below]="lineAt() === sheets().length && $last"
         >
           <button
             type="button"
             class="row"
+            data-drop="sheet"
+            [attr.data-path]="sheet.relativePath"
+            [attr.data-parent]="groupPath()"
+            [attr.data-name]="sheet.name"
             [class.selected]="sheet.relativePath === selectedPath()"
             (click)="onSelect(sheet.relativePath)"
             (contextmenu)="onContextMenu($event, sheet)"
@@ -126,64 +124,26 @@ export class SheetListComponent {
   readonly selectedPath = input<string | null>(null);
   readonly density = input.required<PreviewDensity>();
   readonly showBlankLines = input(false);
+  readonly drag = input.required<LibraryDrag>();
+  /** The group these sheets belong to; part of what a row says about itself. */
+  readonly groupPath = input.required<string>();
 
   readonly select = output<string>();
   readonly contextMenu = output<{ path: string; name: string; x: number; y: number }>();
-  readonly reorder = output<{ path: string; before: string | null }>();
 
-  protected readonly drag = new ReorderDrag();
-  readonly #host = inject(ElementRef<HTMLElement>);
-  #dropped = false;
-
-  protected onPointerDown(event: PointerEvent): void {
-    const index = this.#rowIndex(event.target);
-    if (index !== null && event.button === 0) {
-      this.drag.press(index, event.clientY);
-    }
-  }
-
-  protected onPointerMove(event: PointerEvent): void {
-    if (this.drag.move(event.clientY, this.#rowBoxes())) {
-      // Otherwise the pointer selects the row's text while it is being moved.
-      event.preventDefault();
-    }
-  }
-
-  protected onPointerUp(): void {
-    const drop = this.drag.release(this.sheets().map((sheet) => sheet.name));
-    if (drop === null) {
-      return;
-    }
-    // The click that follows this release must not also open the sheet: the
-    // author was moving it, not choosing it.
-    this.#dropped = true;
-    const moved = this.sheets()[drop.index];
-    if (moved !== undefined) {
-      this.reorder.emit({ path: moved.relativePath, before: drop.before });
-    }
-  }
+  /** The insertion line's slot, when it belongs to this list. */
+  protected readonly lineAt = computed(() => {
+    const line = this.drag().line();
+    return line !== null && line.kind === 'sheet' && line.parent === this.groupPath()
+      ? line.index
+      : null;
+  });
 
   protected onSelect(relativePath: string): void {
-    if (this.#dropped) {
-      this.#dropped = false;
+    if (this.drag().consumeClick()) {
       return;
     }
     this.select.emit(relativePath);
-  }
-
-  /** The row index an event started in, or null when it started elsewhere. */
-  #rowIndex(target: EventTarget | null): number | null {
-    const row = target instanceof Element ? target.closest('li[data-index]') : null;
-    const index = row?.getAttribute('data-index');
-    return index === undefined || index === null ? null : Number(index);
-  }
-
-  #rowBoxes(): readonly RowBox[] {
-    const element = this.#host.nativeElement as HTMLElement;
-    return [...element.querySelectorAll('li[data-index]')].map((row) => {
-      const bounds = row.getBoundingClientRect();
-      return { top: bounds.top, bottom: bounds.bottom };
-    });
   }
 
   protected onContextMenu(event: MouseEvent, sheet: SheetEntry): void {

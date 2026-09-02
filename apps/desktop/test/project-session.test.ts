@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -511,6 +512,111 @@ describe('deleting into the trash', () => {
 
     await expect(session.deleteEntry('.')).rejects.toMatchObject({ code: 'project/root' });
     await expect(session.deleteEntry('../escape')).rejects.toMatchObject({
+      code: 'entry/outside-project',
+    });
+  });
+});
+
+describe('moving between groups', () => {
+  async function structureRecord(): Promise<
+    Record<string, { order?: string[]; displayName?: string } | undefined>
+  > {
+    return JSON.parse(
+      await readFile(join(root, PROJECT_DIRECTORY, 'structure.json'), 'utf8').catch(() => '{}'),
+    ) as Record<string, { order?: string[]; displayName?: string } | undefined>;
+  }
+
+  it('moves a sheet into another group, on disk and in the record', async () => {
+    const filesystem = createProjectFilesystem();
+    await filesystem.writeStructure(root, {
+      '.': { order: ['chapter.md', 'part-1'] },
+      'part-1': { order: ['scene.md'] },
+    });
+    const session = new ProjectSession(filesystem);
+    await session.open(root);
+
+    expect(await session.moveEntry('chapter.md', 'part-1')).toBe('part-1/chapter.md');
+    expect(await readFile(join(root, 'part-1', 'chapter.md'), 'utf8')).toContain('Chapter One');
+    expect(existsSync(join(root, 'chapter.md'))).toBe(false);
+
+    const structure = await structureRecord();
+    expect(structure['.']?.order).toEqual(['part-1']);
+    expect(structure['part-1']?.order).toEqual(['scene.md', 'chapter.md']);
+  });
+
+  it('suffixes the arrival rather than overwriting what is there', async () => {
+    await writeFile(join(root, 'part-1', 'chapter.md'), 'A different chapter\n', 'utf8');
+    const session = new ProjectSession();
+    await session.open(root);
+
+    expect(await session.moveEntry('chapter.md', 'part-1')).toBe('part-1/chapter-2.md');
+    // The sheet that was already there is untouched.
+    expect(await readFile(join(root, 'part-1', 'chapter.md'), 'utf8')).toBe(
+      'A different chapter\n',
+    );
+    expect(await readFile(join(root, 'part-1', 'chapter-2.md'), 'utf8')).toContain('Chapter One');
+  });
+
+  it('carries a moved group’s entries with it', async () => {
+    await mkdir(join(root, 'part-2'), { recursive: true });
+    const filesystem = createProjectFilesystem();
+    await filesystem.writeStructure(root, {
+      'part-1': { displayName: 'Part One', order: ['scene.md'] },
+    });
+    const session = new ProjectSession(filesystem);
+    await session.open(root);
+
+    expect(await session.moveEntry('part-1', 'part-2')).toBe('part-2/part-1');
+    expect(existsSync(join(root, 'part-2', 'part-1', 'scene.md'))).toBe(true);
+
+    const structure = await structureRecord();
+    expect(structure['part-1']).toBeUndefined();
+    expect(structure['part-2/part-1']).toEqual({ displayName: 'Part One', order: ['scene.md'] });
+  });
+
+  it('shows the moved sheet in its new group the next time the project is read', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    await session.moveEntry('chapter.md', 'part-1');
+    const snapshot = await session.reopen();
+
+    expect(Object.keys((snapshot as never as { handles: object }).handles).sort()).toEqual([
+      'part-1/chapter.md',
+      'part-1/scene.md',
+    ]);
+  });
+
+  it('does nothing when the entry is dropped in the group it is already in', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    expect(await session.moveEntry('part-1/scene.md', 'part-1')).toBe('part-1/scene.md');
+    expect(existsSync(join(root, 'part-1', 'scene.md'))).toBe(true);
+  });
+
+  it('refuses a group into itself or into its own child', async () => {
+    await mkdir(join(root, 'part-1', 'pre'), { recursive: true });
+    const session = new ProjectSession();
+    await session.open(root);
+
+    await expect(session.moveEntry('part-1', 'part-1')).rejects.toMatchObject({
+      code: 'group/into-itself',
+    });
+    await expect(session.moveEntry('part-1', 'part-1/pre')).rejects.toMatchObject({
+      code: 'group/into-itself',
+    });
+    expect(existsSync(join(root, 'part-1', 'scene.md'))).toBe(true);
+  });
+
+  it('refuses the project root, a destination that is not a group, and one outside', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    await expect(session.moveEntry('.', 'part-1')).rejects.toMatchObject({ code: 'project/root' });
+    await expect(session.moveEntry('chapter.md', 'part-1/scene.md')).rejects.toMatchObject({
+      code: 'group/unknown',
+    });
+    await expect(session.moveEntry('chapter.md', '../escape')).rejects.toMatchObject({
       code: 'entry/outside-project',
     });
   });

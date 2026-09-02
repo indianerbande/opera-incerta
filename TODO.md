@@ -65,12 +65,10 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   shows front matter, and the codec protects it. What is missing is the area
   that *displays* it: the owned block read-only, the foreign block with its
   visibility and writability switches.
-- **Moving an entry between groups** — reordering among siblings is built
-  (`SPEC.md` §6.4). Moving a sheet into another group is a file move: the path
-  changes, so handles, the open document, both groups' `order`, and Git all
-  have a stake in it. `moveChild` in the core already rewrites both orders in
-  one step; what is undecided is the gesture and what happens to an open sheet
-  that moves.
+- **Placing an entry while moving it** — a drop between the rows of another
+  group moves the entry there and lands it at the end (`SPEC.md` §6.8); the
+  position is then a second drag. Doing both at once needs one operation that
+  moves and orders together, so that a failure cannot leave half of it done.
 - **Reordering without a pointer** — the drag has no keyboard equivalent. A
   command that moves the selected entry up or down within its group would also
   give the operation a menu item and a shortcut (`SPEC.md` §8.5).

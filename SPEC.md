@@ -672,6 +672,46 @@ happens to be. There is no keyboard shortcut for deleting.
 deleted one opens, else the one before it; a deleted group hands the selection
 to its parent. Nothing that no longer exists stays selected.
 
+### 6.8 Moving between groups
+
+**Status: Accepted.**
+
+An entry is moved by dragging it **onto a group**: a sheet from the sheet list
+onto a node in the tree, or a group onto another group. Unlike a reorder (§6.4)
+this changes the path, and everything that hangs off a path has to travel with
+it.
+
+- **The middle half of a group's row means the group itself**; the quarter at
+  each edge means between the rows, which is a reorder. The project root's row
+  has no siblings to be placed among, so all of it means "into the project".
+  The empty space below a list means the end of that list.
+- Dropped between the rows of a group it does not belong to, an entry **moves
+  into that group** and lands at the end. Travelling and taking a position at
+  once would be two operations wearing one gesture.
+- **A group is never moved into itself or into anything inside it**, at any
+  depth: the group and everything in it would end up unreachable.
+- **A name already taken in the destination gives the arrival a suffix.**
+  Overwriting is out of the question, and refusing the move over a technicality
+  would block something the author plainly wants. This is the one case where a
+  file name changes after it was set, and it is invisible: the title, which is
+  the name the author sees, is untouched.
+- **The record travels with the entry.** A moved group's own key in
+  `structure.json` — and every key beneath it — is re-keyed to the new path, or
+  the group would arrive without its display name and without the orders of
+  everything inside it. It leaves the source order and joins the target order,
+  each only where such an order already exists (§6.4).
+- The file first, the record second, as everywhere else.
+- **The open sheet is followed, not closed**, whether it was the thing dragged
+  or sat inside a group that moved around it. It is the same document at a new
+  path, and what was unsaved in it belongs to it wherever it goes.
+- Nothing is highlighted as a destination unless dropping there would do
+  something. A highlight that leads nowhere is a promise not kept.
+
+The whole gesture is owned by the shell rather than by either library column:
+a drag that starts in one and ends in the other belongs to neither. The columns
+describe their rows in the DOM — what they are, where they sit, what they are
+called — and the shell measures and decides.
+
 ## 7. Storage model
 
 **Status: Accepted.**

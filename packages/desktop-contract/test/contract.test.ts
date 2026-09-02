@@ -5,6 +5,7 @@ import {
   MAX_DOCUMENT_BYTES,
   isChannelName,
   isDocumentHandle,
+  isLibraryMoveRequest,
   isLibraryPathRequest,
   isLibraryReorderRequest,
   isWriteSheetRequest,
@@ -97,5 +98,19 @@ describe('isLibraryPathRequest', () => {
     expect(isLibraryPathRequest({ path: '' })).toBe(false);
     expect(isLibraryPathRequest({})).toBe(false);
     expect(isLibraryPathRequest(null)).toBe(false);
+  });
+});
+
+describe('isLibraryMoveRequest', () => {
+  it('accepts an entry and a destination, the root included', () => {
+    expect(isLibraryMoveRequest({ path: 'part-1/scene.md', into: 'part-2' })).toBe(true);
+    expect(isLibraryMoveRequest({ path: 'part-1/scene.md', into: '.' })).toBe(true);
+  });
+
+  it('rejects moving the root, and a missing or empty destination', () => {
+    expect(isLibraryMoveRequest({ path: '.', into: 'part-2' })).toBe(false);
+    expect(isLibraryMoveRequest({ path: 'a.md', into: '' })).toBe(false);
+    expect(isLibraryMoveRequest({ path: 'a.md' })).toBe(false);
+    expect(isLibraryMoveRequest(null)).toBe(false);
   });
 });

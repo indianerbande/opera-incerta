@@ -65,6 +65,26 @@ export function withCollisionSuffix(base: string, taken: Iterable<string>): stri
 }
 
 /**
+ * The name an entry keeps when it arrives in a group that may already hold one
+ * like it. SPEC.md §6.8.
+ *
+ * A move must never overwrite, and refusing it over a technicality would block
+ * something the author plainly wants — so the arrival takes a suffix. This is
+ * the one case where a file name changes after it was set, and it is invisible
+ * to the author: the title, which is the name they see, is untouched.
+ */
+export function arrivalName(name: string, existing: Iterable<string>): string {
+  const isSheet = name.toLowerCase().endsWith('.md');
+  const base = isSheet ? name.slice(0, -3) : name;
+  const bases: string[] = [];
+  for (const candidate of existing) {
+    bases.push(candidate.toLowerCase().endsWith('.md') ? candidate.slice(0, -3) : candidate);
+  }
+  const unique = withCollisionSuffix(base, bases);
+  return isSheet ? `${unique}.md` : unique;
+}
+
+/**
  * Builds the file name for a new sheet from its title, avoiding collisions
  * with the `.md` files already present in the target directory.
  * SPEC.md §6.5.

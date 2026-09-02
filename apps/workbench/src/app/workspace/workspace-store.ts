@@ -395,6 +395,19 @@ export class WorkspaceStore {
   }
 
   /**
+   * Moves an entry into another group. SPEC.md §6.8.
+   *
+   * The moved sheet is followed rather than closed: its path changes, but it
+   * is the same document, and what the author had unsaved in it belongs to it
+   * wherever it goes.
+   */
+  async moveEntry(relativePath: string, into: string): Promise<void> {
+    await this.#libraryEdit(async (bridge) => bridge.moveEntry({ path: relativePath, into }), {
+      movedFrom: relativePath,
+    });
+  }
+
+  /**
    * Moves an entry to the trash. SPEC.md §6.7.
    *
    * The neighbour to fall back on is worked out **before** the entry goes,
@@ -409,10 +422,9 @@ export class WorkspaceStore {
         ? null
         : (siblings[index + 1]?.relativePath ?? siblings[index - 1]?.relativePath ?? null);
 
-    await this.#libraryEdit(
-      async (bridge) => bridge.deleteEntry({ path: relativePath }),
-      neighbour,
-    );
+    await this.#libraryEdit(async (bridge) => bridge.deleteEntry({ path: relativePath }), {
+      fallbackSheet: neighbour,
+    });
   }
 
   dismissFailure(): void {
@@ -433,7 +445,12 @@ export class WorkspaceStore {
    */
   async #libraryEdit(
     operation: (bridge: OperaIncertaBridge) => Promise<BridgeResult<LibraryEditResult>>,
-    fallbackSheet: string | null = null,
+    options: {
+      /** Opened when what was open is gone — a deletion. */
+      readonly fallbackSheet?: string | null;
+      /** The path an entry left: the same document, now somewhere else. */
+      readonly movedFrom?: string | null;
+    } = {},
   ): Promise<void> {
     const previousGroup = this.#selectedGroupPath();
     const previousSheet = this.#openSheet()?.relativePath ?? null;
@@ -446,7 +463,7 @@ export class WorkspaceStore {
 
     await this.#withBridge(async (bridge) => {
       const result = unwrap(await operation(bridge));
-      const created = result.createdPath;
+      const created = result.revealPath;
       this.#adopt(result.snapshot);
 
       const library = result.snapshot.library as GroupEntry;
@@ -466,12 +483,21 @@ export class WorkspaceStore {
       // A created sheet is selected and opened; otherwise the previously open
       // one stays open — creating a *group* must not close the editor
       // (SPEC.md §6.5).
-      const wanted = created !== null && created.endsWith('.md') ? created : previousSheet;
+      // A move can take the open sheet with it — as itself, or inside a group
+      // that moved around it.
+      const followed = followMove(previousSheet, options.movedFrom ?? null, created);
+      const wanted =
+        followed ?? (created !== null && created.endsWith('.md') ? created : previousSheet);
       const toOpen =
-        wanted !== null && findSheet(library, wanted) !== null ? wanted : fallbackSheet;
+        wanted !== null && findSheet(library, wanted) !== null
+          ? wanted
+          : (options.fallbackSheet ?? null);
       if (toOpen !== null) {
         await this.selectSheet(toOpen);
-        if (unsaved !== null && toOpen === previousSheet) {
+        // The same document, either because it never moved or because this is
+        // where it went.
+        const sameDocument = toOpen === previousSheet || toOpen === followed;
+        if (unsaved !== null && sameDocument) {
           this.#currentText.set(unsaved.text);
           this.#currentMetadata.set(unsaved.metadata);
         }
@@ -544,6 +570,22 @@ function sameMetadata(left: SheetMetadata, right: SheetMetadata): boolean {
     }
   }
   return true;
+}
+
+/**
+ * Where a path ended up after a move, or null when the move did not touch it.
+ *
+ * A group that moves takes everything under it along, so the open sheet may
+ * have a new path without having been the thing that was dragged.
+ */
+function followMove(open: string | null, movedFrom: string | null, movedTo: string | null): string | null {
+  if (open === null || movedFrom === null || movedTo === null) {
+    return null;
+  }
+  if (open === movedFrom) {
+    return movedTo;
+  }
+  return open.startsWith(`${movedFrom}/`) ? `${movedTo}${open.slice(movedFrom.length)}` : null;
 }
 
 /**

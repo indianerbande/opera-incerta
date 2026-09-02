@@ -173,20 +173,59 @@ export function withoutChild(
 }
 
 /**
- * Moves an item from one group to another, rewriting both orders in one step
- * so the two files can never disagree. The item lands at the end of the target
- * order (SPEC.md §18, phase 3).
+ * Moves an entry from one group to another, rewriting the record in one step so
+ * that no two parts of it can disagree. SPEC.md §6.8.
+ *
+ * Three things happen at once, and each of them is a way the record could
+ * otherwise go wrong:
+ *
+ * - the entry's **own keys travel with it**. Those keys are paths — a moved
+ *   group would otherwise lose its display name and every order beneath it;
+ * - it leaves the source order, but only if the source *has* one;
+ * - it joins the target order, again only if the target has one. Recording an
+ *   order of exactly the arrival would put it *first* in its new group, which
+ *   is the opposite of arriving — with no order, it simply sorts alphabetically
+ *   like everything else there (§6.4).
+ *
+ * The name may change on arrival, when the target already holds that file name,
+ * so source and target are named separately.
  */
 export function moveChild(
   structure: StructureRecord,
   from: { readonly path: string; readonly name: string },
   to: { readonly path: string; readonly name: string },
 ): StructureRecord {
-  const sourceOrder = (structure[from.path]?.order ?? []).filter((name) => name !== from.name);
-  const targetOrder = (structure[to.path]?.order ?? []).filter((name) => name !== to.name);
+  const fromPath = from.path === '.' ? from.name : `${from.path}/${from.name}`;
+  const toPath = to.path === '.' ? to.name : `${to.path}/${to.name}`;
 
-  const withSource = withChildOrder(structure, from.path, sourceOrder);
-  return withChildOrder(withSource, to.path, [...targetOrder, to.name]);
+  const rekeyed: Record<string, StructureEntry> = {};
+  for (const [path, entry] of Object.entries(structure)) {
+    if (path === fromPath) {
+      rekeyed[toPath] = entry;
+    } else if (path.startsWith(`${fromPath}/`)) {
+      rekeyed[`${toPath}${path.slice(fromPath.length)}`] = entry;
+    } else {
+      rekeyed[path] = entry;
+    }
+  }
+
+  const sourceOrder = rekeyed[from.path]?.order;
+  const withSource =
+    sourceOrder === undefined
+      ? rekeyed
+      : withChildOrder(
+          rekeyed,
+          from.path,
+          sourceOrder.filter((name) => name !== from.name),
+        );
+
+  const targetOrder = withSource[to.path]?.order;
+  return targetOrder === undefined
+    ? withSource
+    : withChildOrder(withSource, to.path, [
+        ...targetOrder.filter((name) => name !== to.name),
+        to.name,
+      ]);
 }
 
 /**

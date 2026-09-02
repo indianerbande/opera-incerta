@@ -48,6 +48,7 @@ export function baseBridge(): OperaIncertaBridge {
     renameGroup: async () => notScripted(),
     reorderEntry: async () => notScripted(),
     deleteEntry: async () => notScripted(),
+    moveEntry: async () => notScripted(),
     readPreferences: async () => ({ ok: true, value: null }),
     writePreferences: async () => ({ ok: true, value: null }),
   };

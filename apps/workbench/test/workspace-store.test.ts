@@ -385,7 +385,7 @@ describe('creating and renaming', () => {
       fakeBridge({
         createSheet: async () => ({
           ok: true,
-          value: { snapshot: snapshotWith(newSheet), createdPath: newSheet.relativePath },
+          value: { snapshot: snapshotWith(newSheet), revealPath: newSheet.relativePath },
         }),
         readSheet: async () => ({ ok: true, value: '---\nopera-incerta:\n  title: A Late Arrival\n---\n' }),
       }),
@@ -405,7 +405,7 @@ describe('creating and renaming', () => {
       fakeBridge({
         createGroup: async () => ({
           ok: true,
-          value: { snapshot: snapshotWith(newGroup), createdPath: newGroup.relativePath },
+          value: { snapshot: snapshotWith(newGroup), revealPath: newGroup.relativePath },
         }),
       }),
     );
@@ -421,7 +421,7 @@ describe('creating and renaming', () => {
   it('keeps the selection when a rename creates nothing', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        renameSheet: async () => ({ ok: true, value: { snapshot, createdPath: null } }),
+        renameSheet: async () => ({ ok: true, value: { snapshot, revealPath: null } }),
       }),
     );
     await store.openProject();
@@ -439,7 +439,7 @@ describe('creating and renaming', () => {
       fakeBridge({
         renameSheet: async () => {
           asked += 1;
-          return { ok: true, value: { snapshot, createdPath: null } };
+          return { ok: true, value: { snapshot, revealPath: null } };
         },
       }),
     );
@@ -497,7 +497,7 @@ describe('reordering', () => {
       fakeBridge({
         reorderEntry: async (request) => {
           asked = request;
-          return { ok: true, value: { snapshot, createdPath: null } };
+          return { ok: true, value: { snapshot, revealPath: null } };
         },
       }),
     );
@@ -511,7 +511,7 @@ describe('reordering', () => {
   it('takes the new order from the refreshed project, without patching its own', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        reorderEntry: async () => ({ ok: true, value: { snapshot: reordered, createdPath: null } }),
+        reorderEntry: async () => ({ ok: true, value: { snapshot: reordered, revealPath: null } }),
       }),
     );
     await store.openProject();
@@ -546,7 +546,7 @@ describe('reordering', () => {
 describe('unsaved work during a library edit', () => {
   it('survives an edit to another entry', async () => {
     const bridge = fakeBridge({
-      createGroup: async () => ({ ok: true, value: { snapshot, createdPath: 'part-2' } }),
+      createGroup: async () => ({ ok: true, value: { snapshot, revealPath: 'part-2' } }),
     });
     const store = new WorkspaceStore(bridge);
     await store.openProject();
@@ -569,7 +569,7 @@ describe('unsaved work during a library edit', () => {
   it('does not resurrect anything for a sheet that was clean', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        createGroup: async () => ({ ok: true, value: { snapshot, createdPath: 'part-2' } }),
+        createGroup: async () => ({ ok: true, value: { snapshot, revealPath: 'part-2' } }),
       }),
     );
     await store.openProject();
@@ -625,7 +625,7 @@ describe('deleting', () => {
     const store = new WorkspaceStore(
       fakeBridge({
         openProject: async () => ({ ok: true, value: twoSheets }),
-        deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPreface, createdPath: null } }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPreface, revealPath: null } }),
         readSheet: async () => ({ ok: true, value: 'Afterword\n' }),
       }),
     );
@@ -648,7 +648,7 @@ describe('deleting', () => {
     const store = new WorkspaceStore(
       fakeBridge({
         openProject: async () => ({ ok: true, value: twoSheets }),
-        deleteEntry: async () => ({ ok: true, value: { snapshot: afterwordGone, createdPath: null } }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: afterwordGone, revealPath: null } }),
       }),
     );
     await store.openProject();
@@ -668,7 +668,7 @@ describe('deleting', () => {
     };
     const store = new WorkspaceStore(
       fakeBridge({
-        deleteEntry: async () => ({ ok: true, value: { snapshot: emptyRoot, createdPath: null } }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: emptyRoot, revealPath: null } }),
       }),
     );
     await store.openProject();
@@ -682,7 +682,7 @@ describe('deleting', () => {
     const store = new WorkspaceStore(
       fakeBridge({
         openProject: async () => ({ ok: true, value: twoSheets }),
-        deleteEntry: async () => ({ ok: true, value: { snapshot: twoSheets, createdPath: null } }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: twoSheets, revealPath: null } }),
       }),
     );
     await store.openProject();
@@ -695,7 +695,7 @@ describe('deleting', () => {
   it('moves the selection up when the selected group is deleted', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPart, createdPath: null } }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPart, revealPath: null } }),
       }),
     );
     await store.openProject();
@@ -717,5 +717,156 @@ describe('deleting', () => {
 
     expect(store.failure()).toBe('trash/unavailable');
     expect(store.library()?.children.map((child) => child.name)).toEqual(['preface.md', 'part-1']);
+  });
+});
+
+describe('moving into another group', () => {
+  /** The project with `preface.md` living inside `part-1`. */
+  const moved: ProjectSnapshot = {
+    ...snapshot,
+    library: {
+      ...library,
+      children: library.children
+        .filter((child) => child.relativePath !== 'preface.md')
+        .map((child) =>
+          child.relativePath === 'part-1'
+            ? {
+                ...(child as GroupEntry),
+                children: [
+                  ...(child as GroupEntry).children,
+                  {
+                    kind: 'sheet' as const,
+                    name: 'preface.md',
+                    relativePath: 'part-1/preface.md',
+                    displayName: 'Preface',
+                    preview: [],
+                  },
+                ],
+              }
+            : child,
+        ),
+    },
+    // Handles are minted fresh on every read; the file behind this one is the
+    // same, so the fake answers for it under its new path.
+    handles: { 'part-1/preface.md': 'a'.repeat(32), 'part-1/scene.md': 'b'.repeat(32) },
+  };
+
+  function movingBridge(): ReturnType<typeof fakeBridge> {
+    return fakeBridge({
+      moveEntry: async () => ({
+        ok: true,
+        value: { snapshot: moved, revealPath: 'part-1/preface.md' },
+      }),
+    });
+  }
+
+  it('names the entry and the group it goes into', async () => {
+    let asked: unknown = null;
+    const store = new WorkspaceStore(
+      fakeBridge({
+        moveEntry: async (request) => {
+          asked = request;
+          return { ok: true, value: { snapshot: moved, revealPath: 'part-1/preface.md' } };
+        },
+      }),
+    );
+    await store.openProject();
+    await store.moveEntry('preface.md', 'part-1');
+
+    expect(asked).toEqual({ path: 'preface.md', into: 'part-1' });
+  });
+
+  it('reveals the sheet where it ended up, not where it was sent', async () => {
+    const store = new WorkspaceStore(movingBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    await store.moveEntry('preface.md', 'part-1');
+
+    // A collision can change the name on arrival, so the path comes back from
+    // the main process rather than being guessed here.
+    expect(store.openSheet()?.relativePath).toBe('part-1/preface.md');
+    expect(store.selectedGroupPath()).toBe('part-1');
+  });
+
+  it('carries what was unsaved in the moved sheet along with it', async () => {
+    const bridge = movingBridge();
+    const store = new WorkspaceStore(bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nStill unsaved when it moved.\n');
+
+    await store.moveEntry('preface.md', 'part-1');
+
+    expect(store.dirty()).toBe(true);
+    await store.save();
+    expect(bridge.writes.at(-1)?.text).toContain('Still unsaved when it moved.');
+  });
+
+  it('reports a refusal and moves nothing', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        moveEntry: async () => ({ ok: false, code: 'group/into-itself', message: 'no' }),
+      }),
+    );
+    await store.openProject();
+    await store.moveEntry('part-1', 'part-1/pre');
+
+    expect(store.failure()).toBe('group/into-itself');
+    expect(store.library()?.children.map((child) => child.name)).toEqual(['preface.md', 'part-1']);
+  });
+});
+
+describe('moving a group the open sheet is in', () => {
+  /** `part-1` and everything in it, now inside `part-2`. */
+  const nested: ProjectSnapshot = {
+    ...snapshot,
+    library: {
+      ...library,
+      children: [
+        library.children[0] as SheetEntry,
+        {
+          kind: 'group',
+          name: 'part-2',
+          relativePath: 'part-2',
+          displayName: 'Part 2',
+          children: [
+            {
+              kind: 'group',
+              name: 'part-1',
+              relativePath: 'part-2/part-1',
+              displayName: 'Part 1',
+              children: [
+                {
+                  kind: 'sheet',
+                  name: 'scene.md',
+                  relativePath: 'part-2/part-1/scene.md',
+                  displayName: 'A Scene',
+                  preview: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    handles: { 'preface.md': 'a'.repeat(32), 'part-2/part-1/scene.md': 'b'.repeat(32) },
+  };
+
+  it('keeps the sheet open at the path it travelled to', async () => {
+    const bridge = fakeBridge({
+      moveEntry: async () => ({ ok: true, value: { snapshot: nested, revealPath: 'part-2/part-1' } }),
+    });
+    const store = new WorkspaceStore(bridge);
+    await store.openProject();
+    await store.selectSheet('part-1/scene.md');
+    store.noteText('# A Scene\n\nCarried along.\n');
+
+    await store.moveEntry('part-1', 'part-2');
+
+    // The sheet was not the thing dragged, but its path changed all the same.
+    expect(store.openSheet()?.relativePath).toBe('part-2/part-1/scene.md');
+    expect(store.dirty()).toBe(true);
+    await store.save();
+    expect(bridge.writes.at(-1)?.text).toContain('Carried along.');
   });
 });

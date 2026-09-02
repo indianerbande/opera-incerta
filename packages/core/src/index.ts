@@ -110,6 +110,7 @@ export {
   SHEET_SLUG_FALLBACK,
   slugify,
   withCollisionSuffix,
+  arrivalName,
   sheetFileName,
   projectDirectoryName,
 } from './slug.js';

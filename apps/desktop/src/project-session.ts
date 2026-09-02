@@ -7,7 +7,7 @@
  * a forged handle therefore fails a lookup rather than reaching a file.
  */
 import { randomUUID } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MAX_DOCUMENT_BYTES, type ProjectSnapshot } from '@opera-incerta/desktop-contract';
 import {
@@ -15,7 +15,9 @@ import {
   projectDirectoryName,
   serializeSheet,
   sheetFileName,
+  arrivalName,
   findGroup,
+  moveChild,
   reorderChild,
   sheetsOf,
   withChildOrder,
@@ -292,6 +294,57 @@ export class ProjectSession {
       projectPath,
       withChildOrder(structure, groupPath, reorderChild(resolved, name, before)),
     );
+  }
+
+  /**
+   * Moves one entry into another group, on disk and in the record.
+   * SPEC.md §6.8.
+   *
+   * Returns where it ended up, because that is not always where the caller
+   * would have guessed: a name already taken in the target gives the arrival a
+   * suffix rather than overwriting what is there.
+   *
+   * The file first, the record second, as everywhere else: a record that
+   * describes a move which did not happen is worse than no record.
+   */
+  async moveEntry(relativePath: string, groupPath: string): Promise<string> {
+    const projectPath = this.#requireOpen().path;
+    if (relativePath === '.' || relativePath === '') {
+      throw new ProjectSessionError('project/root');
+    }
+
+    const source = absolutePathOf(projectPath, relativePath);
+    const target = absolutePathOf(projectPath, groupPath);
+    if (!(await isInside(projectPath, source)) || !(await isInside(projectPath, target))) {
+      throw new ProjectSessionError('entry/outside-project');
+    }
+    // A group cannot be put inside itself, and the check has to cover every
+    // depth: a directory moved into its own child would take the child along
+    // and both would be unreachable.
+    if (groupPath === relativePath || groupPath.startsWith(`${relativePath}/`)) {
+      throw new ProjectSessionError('group/into-itself');
+    }
+    if (!(await stat(target).catch(() => null))?.isDirectory()) {
+      throw new ProjectSessionError('group/unknown');
+    }
+
+    const segments = relativePath.split('/');
+    const name = segments[segments.length - 1] ?? '';
+    const fromGroup = segments.length === 1 ? '.' : segments.slice(0, -1).join('/');
+    if (fromGroup === groupPath) {
+      // Already where it is being dropped: nothing to move, nothing to record.
+      return relativePath;
+    }
+
+    const arrival = arrivalName(name, await this.#filesystem.listDirectory(target));
+    await rename(source, join(target, arrival));
+
+    const structure = await this.#filesystem.readStructure(projectPath);
+    await this.#filesystem.writeStructure(
+      projectPath,
+      moveChild(structure, { path: fromGroup, name }, { path: groupPath, name: arrival }),
+    );
+    return groupPath === '.' ? arrival : `${groupPath}/${arrival}`;
   }
 
   /**

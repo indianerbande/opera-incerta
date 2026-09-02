@@ -48,6 +48,7 @@ export const CHANNELS = {
   renameGroup: 'opera-incerta:group/rename',
   reorderEntry: 'opera-incerta:library/reorder',
   deleteEntry: 'opera-incerta:library/delete',
+  moveEntry: 'opera-incerta:library/move',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
 } as const;
@@ -230,6 +231,32 @@ export function isLibraryPathRequest(value: unknown): value is LibraryPathReques
 }
 
 /**
+ * Moving one entry into another group. SPEC.md §6.8.
+ *
+ * `path` is the entry, `into` the group that receives it — the project root is
+ * `"."`, which is a legitimate destination even though it is never a
+ * legitimate thing to move.
+ */
+export interface LibraryMoveRequest {
+  readonly path: string;
+  readonly into: string;
+}
+
+export function isLibraryMoveRequest(value: unknown): value is LibraryMoveRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<LibraryMoveRequest>;
+  return (
+    typeof candidate.path === 'string' &&
+    candidate.path !== '' &&
+    candidate.path !== '.' &&
+    typeof candidate.into === 'string' &&
+    candidate.into !== ''
+  );
+}
+
+/**
  * Moving one entry among its siblings. SPEC.md §6.4.
  *
  * `path` is the entry being moved; `before` is the sibling it lands in front
@@ -255,12 +282,14 @@ export function isLibraryReorderRequest(value: unknown): value is LibraryReorder
 }
 
 /**
- * What a library edit produced: the refreshed project, and the entry that was
- * created — so the interface can select it without guessing its path.
+ * What a library edit produced: the refreshed project, and the entry the
+ * interface should reveal — what was created, or where something ended up
+ * after a move. Either way the interface must not have to guess the path,
+ * because a collision may have changed the name on arrival.
  */
 export interface LibraryEditResult {
   readonly snapshot: ProjectSnapshot;
-  readonly createdPath: string | null;
+  readonly revealPath: string | null;
 }
 
 /** A chosen location, with a short form for display. */
@@ -440,6 +469,8 @@ export interface OperaIncertaBridge {
   reorderEntry(request: LibraryReorderRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Moves an entry to the desktop trash, from where the author can restore it. */
   deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /** Moves an entry into another group, on disk and in the record. */
+  moveEntry(request: LibraryMoveRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

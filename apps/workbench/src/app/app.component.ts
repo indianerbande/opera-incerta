@@ -22,6 +22,7 @@ import {
   type ContextMenuEntry,
 } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
+import { LibraryDrag, type OverRow } from './shell/library-drag.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
 import {
   LayoutState,
@@ -61,7 +62,14 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     ConfirmPromptComponent,
     TextPromptComponent,
   ],
-
+  // The whole library drag lives here, because this is the one element that
+  // contains both columns it can run between (SPEC.md §6.8).
+  host: {
+    '(pointerdown)': 'onPointerDown($event)',
+    '(pointermove)': 'onPointerMove($event)',
+    '(pointerup)': 'onPointerUp()',
+    '(pointercancel)': 'libraryDrag.cancel()',
+  },
   template: `
     <div class="workbench">
       <wi-activity-bar
@@ -82,16 +90,16 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         </wi-panel-header>
 
         @if (layout.navigatorView() === 'explorer') {
-          <div class="tree">
+          <div class="tree" data-drop-list="group" data-parent=".">
             @if (store.library(); as library) {
               <wi-explorer-node
                 [group]="library"
                 [selectedPath]="store.selectedGroupPath()"
                 [expandedPaths]="store.expanded()"
+                [drag]="libraryDrag"
                 (select)="store.selectGroup($event)"
                 (toggle)="store.toggleExpanded($event)"
                 (contextMenu)="openGroupMenu($event)"
-                (reorder)="store.reorderEntry($event.path, $event.before)"
               />
             } @else {
               <p class="hint">No project open.</p>
@@ -139,9 +147,10 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           [selectedPath]="store.openSheet()?.relativePath ?? null"
           [density]="layout.sheetListDensity()"
           [showBlankLines]="layout.showBlankLines()"
+          [drag]="libraryDrag"
+          [groupPath]="store.selectedGroupPath()"
           (select)="store.selectSheet($event)"
           (contextMenu)="openSheetMenu($event)"
-          (reorder)="store.reorderEntry($event.path, $event.before)"
         />
       </section>
 
@@ -379,6 +388,93 @@ export class AppComponent {
       return null;
     }
     return this.store.dirty() ? `${title} •` : title;
+  }
+
+  /**
+   * Dragging in the library. SPEC.md §6.4, §6.8.
+   *
+   * The columns describe their rows in the DOM and draw what this says; the
+   * measuring happens here, where both of them are in reach. `elementFromPoint`
+   * is what makes a drop in the *other* column possible at all.
+   */
+  protected readonly libraryDrag = new LibraryDrag();
+
+  protected onPointerDown(event: PointerEvent): void {
+    const over = this.#rowAt(event.clientX, event.clientY);
+    // The root has no siblings and no group above it, so it is a destination
+    // but never a passenger.
+    if (event.button === 0 && over !== null && over.row.parent !== '') {
+      this.libraryDrag.press(over.row, event.clientY);
+    }
+  }
+
+  protected onPointerMove(event: PointerEvent): void {
+    if (this.libraryDrag.moveTo(event.clientY, this.#rowAt(event.clientX, event.clientY))) {
+      // Otherwise the pointer selects text while a row is being moved.
+      event.preventDefault();
+    }
+  }
+
+  protected onPointerUp(): void {
+    const drop = this.libraryDrag.release();
+    if (drop === null) {
+      return;
+    }
+    if (drop.kind === 'reorder') {
+      void this.store.reorderEntry(drop.path, drop.before);
+      return;
+    }
+    void this.store.moveEntry(drop.path, drop.into);
+  }
+
+  /** The library row under a point, with what the drag needs to know about it. */
+  #rowAt(x: number, y: number): OverRow | null {
+    const under = document.elementFromPoint(x, y);
+    const element = under?.closest('[data-drop]') ?? null;
+    if (element === null) {
+      // Not on a row: the empty space of a list is the end of that list.
+      const list = under?.closest('[data-drop-list]') ?? null;
+      if (list === null) {
+        return null;
+      }
+      const kind = list.getAttribute('data-drop-list') === 'group' ? 'group' : 'sheet';
+      const parent = list.getAttribute('data-parent') ?? '';
+      const peers = this.#peers(kind, parent);
+      return {
+        row: { kind, path: '', parent, index: peers.length },
+        box: list.getBoundingClientRect(),
+        siblings: peers.map((peer) => peer.getAttribute('data-name') ?? ''),
+        past: true,
+      };
+    }
+
+    const kind = element.getAttribute('data-drop') === 'group' ? 'group' : 'sheet';
+    const parent = element.getAttribute('data-parent') ?? '';
+    const peers = this.#peers(kind, parent);
+    const bounds = element.getBoundingClientRect();
+
+    return {
+      row: {
+        kind,
+        path: element.getAttribute('data-path') ?? '',
+        parent,
+        index: peers.indexOf(element),
+      },
+      box: { top: bounds.top, bottom: bounds.bottom },
+      siblings: peers.map((peer) => peer.getAttribute('data-name') ?? ''),
+    };
+  }
+
+  /**
+   * The rows of one list, in the order shown.
+   *
+   * Filtered rather than selected by attribute value: a path may contain
+   * anything a directory name may contain, quotes included.
+   */
+  #peers(kind: 'sheet' | 'group', parent: string): readonly Element[] {
+    return [...document.querySelectorAll(`[data-drop="${kind}"]`)].filter(
+      (peer) => (peer.getAttribute('data-parent') ?? '') === parent,
+    );
   }
 
   /** The open context menu, and what it acts on. */

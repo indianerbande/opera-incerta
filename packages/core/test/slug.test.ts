@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   SLUG_MAX_LENGTH,
+  arrivalName,
   projectDirectoryName,
   sheetFileName,
   slugify,
@@ -81,5 +82,28 @@ describe('projectDirectoryName', () => {
 
   it('falls back when the display name yields no slug', () => {
     expect(projectDirectoryName('…', [])).toBe('project');
+  });
+});
+
+describe('arrivalName', () => {
+  it('keeps the name when nothing there is called that', () => {
+    expect(arrivalName('scene.md', ['other.md', 'notes'])).toBe('scene.md');
+    expect(arrivalName('pre', ['post'])).toBe('pre');
+  });
+
+  it('suffixes rather than overwriting', () => {
+    expect(arrivalName('scene.md', ['scene.md'])).toBe('scene-2.md');
+    expect(arrivalName('scene.md', ['scene.md', 'scene-2.md'])).toBe('scene-3.md');
+    expect(arrivalName('pre', ['pre', 'pre-2'])).toBe('pre-3');
+  });
+
+  it('compares without regard to case, as the file systems do', () => {
+    expect(arrivalName('Scene.md', ['scene.md'])).toBe('Scene-2.md');
+  });
+
+  it('keeps a directory a directory and a sheet a sheet', () => {
+    // A group arriving next to a sheet of the same base still gets out of its
+    // way: `scene` beside `scene.md` is a confusion worth avoiding.
+    expect(arrivalName('scene', ['scene.md'])).toBe('scene-2');
   });
 });
