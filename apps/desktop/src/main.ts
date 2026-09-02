@@ -10,7 +10,7 @@ import { mkdir, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BrowserWindow, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
+import { BrowserWindow, Menu, app, clipboard, dialog, ipcMain, net, protocol } from 'electron';
 import {
   BRIDGE_GLOBAL,
   CHANNELS,
@@ -26,6 +26,7 @@ import {
 import { projectDirectoryName } from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
 import { createProjectFilesystem } from '@opera-incerta/project-node';
+import { MENU_ACCELERATORS, installApplicationMenu, menuItemId } from './application-menu.js';
 import { ProjectSession, ProjectSessionError } from './project-session.js';
 import { RecentProjectsFile } from './recent-projects-file.js';
 import {
@@ -191,10 +192,55 @@ function createProjectWindow(): BrowserWindow {
     // one place (SPEC.md §8.5).
     session.close();
     createWelcomeWindow();
+    refreshMenu();
   });
 
   harden(window);
   return window;
+}
+
+/**
+ * Rebuilds the menu for the current state.
+ *
+ * Called whenever a project opens or closes, because "Close Project" and
+ * "Save" are only possible with one open, and a menu that offers a command
+ * which would do nothing teaches the author to distrust it.
+ */
+function refreshMenu(): void {
+  installApplicationMenu({
+    projectWindow: () =>
+      projectWindow !== null && !projectWindow.isDestroyed() ? projectWindow : null,
+    run: (command) => {
+      switch (command) {
+        case 'project/new':
+          void runMenuOpen(CHANNELS.createProject);
+          return;
+        case 'project/open':
+          void runMenuOpen(CHANNELS.openProject);
+          return;
+        case 'project/close':
+          // Through the window's own close, so it is the same path as the red
+          // button and the shortcut (SPEC.md §8.5).
+          projectWindow?.close();
+          return;
+        default:
+          return;
+      }
+    },
+  });
+}
+
+/**
+ * Runs an open-or-create from the menu.
+ *
+ * The launcher is where opening lives, so the menu drives the same handler the
+ * launcher's buttons do rather than a second implementation.
+ */
+async function runMenuOpen(channel: string): Promise<void> {
+  const window = welcomeWindow ?? createWelcomeWindow();
+  window.webContents.send(CHANNELS.menuCommand, channel === CHANNELS.createProject
+    ? 'project/new'
+    : 'project/open');
 }
 
 /**
@@ -208,6 +254,7 @@ function presentProject(): void {
   if (welcomeWindow !== null && !welcomeWindow.isDestroyed()) {
     welcomeWindow.close();
   }
+  refreshMenu();
 }
 
 ipcMain.handle(CHANNELS.contractVersion, () => CONTRACT_VERSION);
@@ -450,6 +497,7 @@ void app.whenReady().then(() => {
 
   // The launcher is the start window; the workbench appears when a project
   // does (SPEC.md §8.5).
+  refreshMenu();
   createWelcomeWindow();
 
   // macOS keeps the application active without windows and brings the
@@ -670,6 +718,23 @@ async function checkHeadingGestures(window: BrowserWindow): Promise<void> {
   await checkHeadingCursorRules(window);
 }
 
+/**
+ * Triggers a menu item by its command, and checks it is offered at all.
+ *
+ * A disabled item does nothing when clicked, which would look exactly like a
+ * broken command — so the enabled state is asserted rather than assumed.
+ */
+function clickMenuItem(command: keyof typeof MENU_ACCELERATORS): void {
+  const item = Menu.getApplicationMenu()?.getMenuItemById(menuItemId(command));
+  if (item === undefined || item === null) {
+    throw new Error(`no menu item for ${command}`);
+  }
+  if (!item.enabled) {
+    throw new Error(`the menu item for ${command} is disabled`);
+  }
+  item.click();
+}
+
 /** Presses one key, optionally with modifiers. */
 async function pressKey(
   window: BrowserWindow,
@@ -885,9 +950,11 @@ async function checkDocumentFlow(window: BrowserWindow): Promise<void> {
     throw new Error('no save action while the document is dirty');
   }
 
-  // Save through the keyboard, the way an author would.
-  await pressKey(window, 'S', [process.platform === 'darwin' ? 'cmd' : 'control']);
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // Saving goes through the File menu, which owns Cmd+S. A synthetic key
+  // event reaches the page directly and bypasses the accelerator, so the menu
+  // item itself is triggered — which is also the path an author takes.
+  clickMenuItem('sheet/save');
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   const onDisk = readFileSync(join(smokeProjectPath, 'opening.md'), 'utf8');
   if (!onDisk.includes(marker)) {
@@ -915,7 +982,7 @@ async function checkDocumentFlow(window: BrowserWindow): Promise<void> {
     throw new Error('the save action is still offered after saving');
   }
 
-  console.log('smoke ok: edited, saved with the keyboard, and the change is on disk');
+  console.log('smoke ok: edited, saved through the File menu, and the change is on disk');
   await checkSheetSwitch(window);
 }
 
@@ -1088,14 +1155,54 @@ async function checkPanes(window: BrowserWindow): Promise<void> {
   }
 
   console.log('smoke ok: inspector, outline, sidebar collapse, and source control all work');
+  checkMenuState();
+}
+
+/** The menu offers what is possible, and only that. SPEC.md §8.5. */
+function checkMenuState(): void {
+  const menu = Menu.getApplicationMenu();
+  if (menu === null) {
+    throw new Error('no application menu is installed');
+  }
+
+  for (const command of Object.keys(MENU_ACCELERATORS) as Array<keyof typeof MENU_ACCELERATORS>) {
+    const item = menu.getMenuItemById(menuItemId(command));
+    if (item === null || item === undefined) {
+      throw new Error(`the menu is missing ${command}`);
+    }
+    if (item.accelerator !== MENU_ACCELERATORS[command]) {
+      throw new Error(
+        `${command} has accelerator ${String(item.accelerator)}, expected ${MENU_ACCELERATORS[command]}`,
+      );
+    }
+    // With a project open, every command applies.
+    if (!item.enabled) {
+      throw new Error(`${command} is disabled while a project is open`);
+    }
+  }
+
+  // The editing roles must survive a custom menu, or copy and paste stop
+  // working inside the editor.
+  const edit = menu.items.find((item) => item.label.replace('&', '') === 'Edit');
+  // Electron reports roles lower-cased, whatever case the template used.
+  const roles = (edit?.submenu?.items ?? []).map((item) => String(item.role).toLowerCase());
+  for (const role of ['undo', 'redo', 'cut', 'copy', 'paste', 'selectall']) {
+    if (!roles.includes(role)) {
+      throw new Error(`the Edit menu lost its ${role} role`);
+    }
+  }
+
+  console.log('smoke ok: the menu offers every command with its shortcut, and keeps the edit roles');
 }
 
 /**
  * Closing the project returns to the launcher, with the project now in the
  * recent list. SPEC.md §8.5, §8.6.
  */
-async function checkReturnToLauncher(projectView: BrowserWindow): Promise<void> {
-  projectView.close();
+async function checkReturnToLauncher(_projectView: BrowserWindow): Promise<void> {
+  // Through the File menu, so the specified path — menu, window close, reset,
+  // launcher — is the one under test (SPEC.md §8.5).
+  clickMenuItem('project/close');
 
   let launcher: BrowserWindow | null = null;
   for (let attempt = 0; attempt < 100 && launcher === null; attempt += 1) {

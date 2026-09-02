@@ -7,7 +7,7 @@
  * channel this file does not name.
  */
 import { contextBridge, ipcRenderer } from 'electron';
-import { BRIDGE_GLOBAL, CHANNELS } from '@opera-incerta/desktop-contract';
+import { BRIDGE_GLOBAL, CHANNELS, isMenuCommand } from '@opera-incerta/desktop-contract';
 
 const bridge = {
   contractVersion: () => ipcRenderer.invoke(CHANNELS.contractVersion),
@@ -29,6 +29,24 @@ const bridge = {
   gitUnstage: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitUnstage, request),
   gitCommit: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitCommit, request),
   gitPush: () => ipcRenderer.invoke(CHANNELS.gitPush),
+
+  /**
+   * The one inbound channel.
+   *
+   * The event object never crosses: the renderer receives a validated command
+   * string, so the page cannot reach the IPC layer through what it is handed.
+   */
+  onMenuCommand: (listener: (command: string) => void) => {
+    const forward = (_event: unknown, command: unknown): void => {
+      if (isMenuCommand(command)) {
+        listener(command);
+      }
+    };
+    ipcRenderer.on(CHANNELS.menuCommand, forward);
+    return () => {
+      ipcRenderer.removeListener(CHANNELS.menuCommand, forward);
+    };
+  },
 } as const;
 
 contextBridge.exposeInMainWorld(BRIDGE_GLOBAL, bridge);

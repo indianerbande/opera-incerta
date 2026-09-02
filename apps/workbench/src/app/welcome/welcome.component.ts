@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import type { OperaIncertaBridge, RecentProjectEntry } from '@opera-incerta/desktop-contract';
 import { resolveBridge, unwrap } from '../workspace/bridge.js';
 
@@ -186,6 +186,18 @@ export class WelcomeComponent {
 
   constructor() {
     void this.refresh();
+
+    // The File menu's Open and New reach the launcher, which is where opening
+    // lives — the menu drives the same actions as its buttons rather than a
+    // second implementation (SPEC.md §8.5).
+    const stopListening = this.#bridge?.onMenuCommand((command) => {
+      if (command === 'project/open') {
+        void this.open();
+      } else if (command === 'project/new') {
+        void this.create();
+      }
+    });
+    inject(DestroyRef).onDestroy(() => stopListening?.());
   }
 
   protected async refresh(): Promise<void> {

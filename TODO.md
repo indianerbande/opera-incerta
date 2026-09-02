@@ -10,8 +10,8 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 
 **State 2026-09-02:** the two-window model is complete — the launcher with its
 recent projects, and the workbench with every pane of `SPEC.md` §8.
-`pnpm run check` green: 6 projects, **430 tests**, plus the desktop and asset
-checks. `pnpm run desktop:smoke` green across ten checks,
+`pnpm run check` green: 6 projects, **438 tests**, plus the desktop and asset
+checks. `pnpm run desktop:smoke` green across eleven checks,
 `pnpm run spike:editor` 7/7.
 
 ---
@@ -74,9 +74,6 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Sheet and group creation, renaming, reordering** — the rules exist in the
   core (slug generation, `structure.json` writing); the context menus do not
   (`SPEC.md` §6.4, §6.5).
-- **Native menus and their shortcuts** — `Cmd/Ctrl+O`, `Cmd/Ctrl+Shift+N`, and
-  "Close project" are specified (`SPEC.md` §8.5) but exist only as buttons in
-  the launcher. The menu is also where the platform expects them.
 - **Naming a project when creating one** — the name is currently taken from the
   chosen directory. `SPEC.md` §8.6 asks for a name and a parent separately,
   which needs a small dialog of its own rather than a directory chooser.

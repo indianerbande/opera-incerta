@@ -777,6 +777,33 @@ trigger a second quit. The main process MUST set a terminating flag *before*
 windows begin closing, and the window handlers MUST check it and stay passive
 during shutdown.
 
+**Native menu.** The application installs its own menu with these commands:
+
+| Command | Shortcut | Available |
+| --- | --- | --- |
+| New Project… | `Cmd/Ctrl+Shift+N` | always |
+| Open Project… | `Cmd/Ctrl+O` | always |
+| Save | `Cmd/Ctrl+S` | with a project open |
+| Close Project | `Cmd/Ctrl+Shift+W` | with a project open |
+
+Two rules govern it:
+
+- **The editing roles MUST survive.** Installing an application menu replaces
+  the platform default, and with it Undo, Redo, Cut, Copy, Paste, and Select
+  All. They are re-declared as platform **roles** rather than as commands of
+  our own, because a hand-wired copy command does not work inside a text field
+  while the role does. A menu that adds four commands and removes copy is a bad
+  trade.
+- **The menu owns its accelerators.** Once an item claims `Cmd+S`, the key
+  never reaches the page, so the renderer learns about the command through a
+  channel instead of a key handler. That channel carries the command only —
+  never an event object, which would hand the page a way back into IPC.
+
+An item whose command is impossible is disabled rather than silently doing
+nothing, so the menu is rebuilt whenever a project opens or closes. "Close
+Project" closes the window, which is the same path as the red button, rather
+than a second reset of its own.
+
 **One bundle, two windows.** Both windows load the same renderer and ask the
 main process which of the two they are. The role MUST NOT come from a query
 string or any other value the page itself could change. Only one component is

@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { COLUMN_IDEAL_WIDTH, type PreviewDensity } from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
@@ -41,10 +49,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     SheetListComponent,
     SourceControlComponent,
   ],
-  host: {
-    '(document:keydown.control.s)': 'save($event)',
-    '(document:keydown.meta.s)': 'save($event)',
-  },
+
   template: `
     <div class="workbench">
       <wi-activity-bar
@@ -280,6 +285,15 @@ export class AppComponent {
     // The window exists because a project was opened; it finds it waiting.
     void this.store.adoptOpenProject();
 
+    // Saving arrives from the menu, not from a key handler: the menu item owns
+    // Cmd+S, so the keystroke never reaches this page (SPEC.md §8.5).
+    const stopListening = this.#bridge?.onMenuCommand((command) => {
+      if (command === 'sheet/save') {
+        void this.store.save();
+      }
+    });
+    inject(DestroyRef).onDestroy(() => stopListening?.());
+
     // Source control reads when its view is shown, and after a save: both are
     // moments when what git reports has just changed.
     effect(() => {
@@ -308,11 +322,6 @@ export class AppComponent {
 
   protected toggleBlankLines(): void {
     this.showBlankLines.set(!this.showBlankLines());
-  }
-
-  protected save(event: Event): void {
-    event.preventDefault();
-    void this.store.save();
   }
 
   /** Outline navigation, routed to the editor. */

@@ -29,5 +29,6 @@ export function baseBridge(): OperaIncertaBridge {
     gitUnstage: async () => ({ ok: true, value: null }),
     gitCommit: async () => ({ ok: true, value: null }),
     gitPush: async () => ({ ok: true, value: null }),
+    onMenuCommand: () => () => {},
   };
 }

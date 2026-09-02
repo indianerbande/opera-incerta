@@ -40,6 +40,7 @@ export const CHANNELS = {
   gitUnstage: 'opera-incerta:git/unstage',
   gitCommit: 'opera-incerta:git/commit',
   gitPush: 'opera-incerta:git/push',
+  menuCommand: 'opera-incerta:menu/command',
 } as const;
 
 export type ChannelName = (typeof CHANNELS)[keyof typeof CHANNELS];
@@ -113,6 +114,26 @@ export interface ProjectSnapshot {
   readonly library: unknown;
   /** Relative sheet path to handle id. */
   readonly handles: Readonly<Record<string, string>>;
+}
+
+/**
+ * A command the native menu issued. SPEC.md §8.5.
+ *
+ * The menu owns its accelerators: once a menu item claims `Cmd+S`, the key
+ * never reaches the page, so the renderer must hear about it through this
+ * channel rather than through a key handler of its own.
+ */
+export const MENU_COMMANDS = [
+  'project/new',
+  'project/open',
+  'project/close',
+  'sheet/save',
+] as const;
+
+export type MenuCommand = (typeof MENU_COMMANDS)[number];
+
+export function isMenuCommand(value: unknown): value is MenuCommand {
+  return typeof value === 'string' && (MENU_COMMANDS as readonly string[]).includes(value);
 }
 
 /**
@@ -284,4 +305,11 @@ export interface OperaIncertaBridge {
   gitUnstage(request: GitPathsRequest): Promise<BridgeResult<null>>;
   gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
   gitPush(): Promise<BridgeResult<null>>;
+  /**
+   * Listens for native menu commands; the returned function stops listening.
+   *
+   * The listener receives the command only — never an event object, which
+   * would hand the page a way back into the IPC layer.
+   */
+  onMenuCommand(listener: (command: MenuCommand) => void): () => void;
 }

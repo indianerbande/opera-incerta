@@ -259,6 +259,11 @@ Tests MUST cover:
   than by calling the adapter: typing `.h3 ` converts the line and removes the
   command text; clicking a gutter marker opens a menu whose active level is
   marked, whose choice applies, and which closes afterwards;
+- the native menu of `SPEC.md` §8.5: every declared command has an item with
+  its specified accelerator, the items are enabled only when their command is
+  possible, saving and closing are exercised **through the menu item** rather
+  than through a synthetic keystroke — which bypasses accelerators — and the
+  Edit menu still carries every platform editing role;
 - the window choreography of `SPEC.md` §8.5: the application starts on the
   launcher, opening a project presents the workbench and dismisses the
   launcher, and closing the project brings the launcher back with that project

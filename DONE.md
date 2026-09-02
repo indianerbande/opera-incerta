@@ -6,6 +6,49 @@ documents").
 
 ---
 
+## 2026-09-02 — the native menu
+
+**What exists.** A File menu with New Project (`Cmd/Ctrl+Shift+N`), Open
+Project (`Cmd/Ctrl+O`), Save (`Cmd/Ctrl+S`), and Close Project
+(`Cmd/Ctrl+Shift+W`), alongside the platform's own application, Edit, and
+Window menus.
+
+**The part that is easy to get wrong.** Installing an application menu
+*replaces* the platform default, and with it Undo, Cut, Copy, Paste, and Select
+All. A menu that adds four commands and silently removes copy and paste is a
+bad trade, so the editing entries are re-declared — as platform **roles**, not
+as commands of our own, because a hand-wired copy does not work inside a text
+field while the role does. Both the unit test and the smoke assert every role
+is present.
+
+**Accelerators belong to the menu.** Once an item claims `Cmd+S`, the key never
+reaches the page. The renderer's own key handler was therefore removed, and the
+command arrives through a channel that carries the command string alone — never
+an event object, which would hand the page a way back into IPC.
+
+**Items are disabled when their command is impossible**, so the menu is rebuilt
+whenever a project opens or closes. Close Project closes the window rather than
+resetting state itself, which keeps it on the one path the red button and the
+shortcut already take.
+
+**Verification.** `pnpm run check` green: **438 tests**. The smoke runs eleven
+checks and now drives saving and closing **through the menu items themselves**,
+because a synthetic keystroke bypasses accelerators — which makes it the
+honest test anyway: it is the path an author takes.
+
+**Two findings.**
+
+1. **Electron reports roles lower-cased**, whatever case the template used, so
+   the check for `selectAll` failed on a role that was present. The comparison
+   is now case-insensitive. Worth recording because the failure looked exactly
+   like the defect it was watching for.
+2. **The shared test double paid for itself immediately.** Adding the menu
+   channel broke compilation in one place, with a message naming the missing
+   method — the same change a day earlier would have broken two files with two
+   confusing type errors.
+
+---
+
 ## 2026-09-02 — the welcome window and the two-window model
 
 **What exists.** The launcher of `SPEC.md` §8.5 and §8.6: recent projects with
