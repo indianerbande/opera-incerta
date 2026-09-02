@@ -42,6 +42,15 @@ class FakeEditorAdapter implements EditorAdapter {
     return this.#openId;
   }
 
+  replace(text: string): void {
+    const state = this.#current();
+    if (state !== undefined) {
+      state.undo.push(state.text);
+      state.text = text;
+      this.#notify();
+    }
+  }
+
   text(): string {
     return this.#current()?.text ?? '';
   }

@@ -80,7 +80,21 @@ export class EditorComponent {
 
     effect(() => {
       const document_ = this.document();
-      this.adapter()?.open(document_);
+      const adapter = this.adapter();
+      if (adapter === null) {
+        return;
+      }
+      // The same document with other text means its content was replaced from
+      // outside — the author took the version on disk (SPEC.md §10.6).
+      // Re-opening it would throw away the undo history of a document that
+      // never stopped being the same one.
+      if (adapter.openDocumentId() === document_.id) {
+        if (adapter.text() !== document_.text) {
+          adapter.replace(document_.text);
+        }
+        return;
+      }
+      adapter.open(document_);
     });
   }
 

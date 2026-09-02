@@ -294,6 +294,14 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- the comparison rule of `SPEC.md` §10.6 at the explicit re-read: with unsaved
+  work in the editor and the file changed underneath — written from the main
+  process, behind the application's back — the reload asks instead of
+  discarding, the author's text is still in the editor **while** it asks,
+  Escape keeps it, and nothing of it reaches the file. With nothing unsaved the
+  same change is taken silently. The negative half matters as much as the
+  positive: a prompt that appeared after the work was gone would pass a check
+  that only asks whether a prompt appeared;
 - placing, by a real pointer drag from one library column into the other
   (`SPEC.md` §6.8): a sheet dragged from the sheet list onto a group in the
   tree, that group then dragged into a third, and a fourth dropped **between**

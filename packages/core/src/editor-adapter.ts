@@ -51,6 +51,16 @@ export interface EditorAdapter {
   /** Identity of the open document, or null when none is open. */
   openDocumentId(): string | null;
 
+  /**
+   * Replaces the open document's text, keeping it the same document.
+   *
+   * Distinct from `open`, which seeds a document once and then leaves the
+   * buffer to the editor. This is for the case where the content was replaced
+   * from outside — the author took the version on disk after a conflict
+   * (SPEC.md §10.6) — and re-opening would be a lie about identity.
+   */
+  replace(text: string): void;
+
   /** The current text, in the form it would be written to disk. */
   text(): string;
 

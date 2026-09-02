@@ -68,11 +68,6 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Reordering without a pointer** — the drag has no keyboard equivalent. A
   command that moves the selected entry up or down within its group would also
   give the operation a menu item and a shortcut (`SPEC.md` §8.5).
-- **Re-reading a project discards unsaved work** — a library edit no longer
-  does (it carries the editing state across), but the explicit refresh in
-  `reloadProject` still re-reads the open sheet from disk. What should happen
-  is the comparison rule of `SPEC.md` §10.6, which is where the conflict prompt
-  belongs; until then, refreshing with unsaved changes loses them.
 - **Page categories in the interface** (`SPEC.md` §6.6, §17.12) — the core
   computes the badge text colour and tolerates unknown ids; defining,
   assigning, and showing categories is not built, and neither is deleting one.
@@ -88,9 +83,11 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Source control interface** — the adapter is complete; the panel, the
   tri-state select-all, "show diff", and the destructive "discard changes" with
   its confirmation prompt are user interface (`SPEC.md` §12, §18).
-- **Conflict handling in the editor** — the comparison rule is specified
-  (`SPEC.md` §10.6) and the coordination is built; the part that reads the file
-  and raises the prompt belongs to the editor.
+- **A watcher to trigger the conflict rule** — the rule itself is built and
+  runs on every re-read (`SPEC.md` §10.6): compare against the loaded baseline,
+  reload silently when nothing was typed, ask when something was. What is
+  missing is the mechanism that notices a change without being asked, and that
+  waits on the dependency decision in §2.2.
 - **`PLATFORMS.md` and the native build matrix** — written with the first
   packaging round (`CONVENTIONS.md` C-P5).
 - **Import, export, AI provider, snapshots** — each needs its own decision

@@ -1364,6 +1364,18 @@ loaded baseline. Only on a real difference does it either show the conflict
 prompt (when the buffer is modified) or silently reload (when it is not). If
 the disk state is identical, nothing happens (`CONVENTIONS.md` C-F2).
 
+**The rule applies to every re-read, not only to a watcher.** The explicit
+"reload from disk" is the same situation with a different trigger, and it
+follows the same three outcomes. What the watcher will add is the trigger, not
+the rule. A library edit is *not* such a situation: it does not touch the open
+sheet's file, so a difference found there is carried over rather than asked
+about — the author's version is kept and no prompt appears.
+
+**The prompt asks; it does not announce a loss.** While it is open the author's
+version is what the editor holds and what a save would write. Taking the file
+is the explicit, destructive choice, and Return and Escape both keep the
+author's version (§6.7).
+
 **Separate guards for reading and writing.** The status refresh (reading) and
 user-triggered writes MUST have their own in-flight guards, not one shared
 "busy" flag. A shared flag makes a background refresh swallow a user action,

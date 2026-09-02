@@ -250,6 +250,17 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       />
     }
 
+    @if (store.conflict(); as path) {
+      <wi-confirm-prompt
+        title="This sheet changed on disk while you were editing it"
+        warning="Loading the file discards what you have not saved."
+        hint="Keeping yours changes nothing on disk; saving afterwards overwrites the file."
+        confirmLabel="Load the file"
+        (confirm)="store.resolveConflict('disk')"
+        (cancel)="store.resolveConflict('mine')"
+      />
+    }
+
     @if (confirmation(); as open) {
       <wi-confirm-prompt
         [title]="open.title"

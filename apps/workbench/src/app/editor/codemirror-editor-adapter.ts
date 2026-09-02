@@ -474,6 +474,15 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
     this.#view.setState(next);
   }
 
+  replace(text: string): void {
+    if (this.#destroyed) {
+      return;
+    }
+    this.#view.dispatch({
+      changes: { from: 0, to: this.#view.state.doc.length, insert: text },
+    });
+  }
+
   openDocumentId(): string | null {
     return this.#openId;
   }

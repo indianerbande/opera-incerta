@@ -38,6 +38,7 @@ export function runEditorAdapterContract(create: Create): readonly ContractCase[
   const cases: ContractCase[] = [];
 
   cases.push(caseOpenAndRead(create));
+  cases.push(caseReplaceKeepsIdentity(create));
   cases.push(caseFocusedLine(create));
   cases.push(caseRevealLine(create));
   cases.push(caseSetHeadingLevel(create));
@@ -71,6 +72,20 @@ function caseOpenAndRead(create: Create): ContractCase {
       'open then read returns the document unchanged',
       text === document_.text && adapter.openDocumentId() === 'a',
       `id=${String(adapter.openDocumentId())} length=${text.length}`,
+    );
+  });
+}
+
+function caseReplaceKeepsIdentity(create: Create): ContractCase {
+  return withAdapter(create, (adapter) => {
+    adapter.open(documentA());
+    adapter.replace('Taken from disk.\nSecond line.');
+    // Same document, other content: re-opening would be a lie about identity,
+    // and the undo history belongs to the document, not to the content.
+    return check(
+      'replace changes the text and keeps the document',
+      adapter.text() === 'Taken from disk.\nSecond line.' && adapter.openDocumentId() === 'a',
+      `id=${String(adapter.openDocumentId())} text=${JSON.stringify(adapter.text())}`,
     );
   });
 }

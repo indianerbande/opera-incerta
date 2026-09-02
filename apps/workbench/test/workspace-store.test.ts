@@ -905,3 +905,107 @@ describe('placing a group', () => {
     expect(store.isExpanded('part-1')).toBe(true);
   });
 });
+
+describe('re-reading a project with unsaved work', () => {
+  const onDisk = '---\nopera-incerta:\n  title: Preface\n---\n# Preface\n';
+  const changed = '---\nopera-incerta:\n  title: Preface\n---\n# Changed elsewhere\n';
+
+  /** A bridge whose file for `preface.md` can be changed *after* it was read. */
+  function mutableDisk(): { readonly bridge: OperaIncertaBridge; change: (text: string) => void } {
+    let text = onDisk;
+    return {
+      bridge: fakeBridge({
+        readSheet: async (request) =>
+          request.handle.id === 'a'.repeat(32)
+            ? { ok: true, value: text }
+            : { ok: true, value: 'Other\n' },
+      }),
+      change: (next: string) => {
+        text = next;
+      },
+    };
+  }
+
+  it('keeps what was typed when the file did not change', async () => {
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(disk.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nTyped, not saved.\n');
+
+    await store.reloadProject();
+
+    expect(store.dirty()).toBe(true);
+    expect(store.conflict()).toBeNull();
+  });
+
+  it('takes the file when nothing was typed', async () => {
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(disk.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    expect(store.editorDocument()?.text).toBe('# Preface\n');
+
+    disk.change(changed);
+    await store.reloadProject();
+
+    // A silent reload is what an unmodified buffer deserves (SPEC.md §10.6).
+    expect(store.conflict()).toBeNull();
+    expect(store.dirty()).toBe(false);
+    expect(store.editorDocument()?.text).toBe('# Changed elsewhere\n');
+  });
+
+  it('asks when both changed, and keeps the author’s version meanwhile', async () => {
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(disk.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nTyped, not saved.\n');
+
+    disk.change(changed);
+    await store.reloadProject();
+
+    expect(store.conflict()).toBe('preface.md');
+    // The prompt asks; it does not announce a loss that already happened.
+    expect(store.dirty()).toBe(true);
+
+    store.resolveConflict('mine');
+    expect(store.conflict()).toBeNull();
+    expect(store.dirty()).toBe(true);
+  });
+
+  it('takes the file when the author says so', async () => {
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(disk.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nTyped, not saved.\n');
+    disk.change(changed);
+    await store.reloadProject();
+
+    store.resolveConflict('disk');
+
+    expect(store.conflict()).toBeNull();
+    expect(store.dirty()).toBe(false);
+    expect(store.editorDocument()?.text).toBe('# Changed elsewhere\n');
+  });
+
+  it('does not raise a conflict for a library edit, which touches no file', async () => {
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(
+      fakeBridge({
+        readSheet: disk.bridge.readSheet,
+        createGroup: async () => ({ ok: true, value: { snapshot, revealPath: 'part-2' } }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('Typed.\n');
+    disk.change(changed);
+    await store.createGroup('.', 'Part 2');
+
+    // That operation was not about this file, so it does not ask about it.
+    expect(store.conflict()).toBeNull();
+    expect(store.dirty()).toBe(true);
+  });
+});

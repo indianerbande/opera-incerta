@@ -73,6 +73,8 @@ export class WorkspaceStore {
   readonly #showDeeperOutline = signal(false);
   readonly #expanded = signal<ReadonlySet<string>>(new Set(['.']));
   readonly #failure = signal<string | null>(null);
+  readonly #conflict = signal<string | null>(null);
+  readonly #editorDocument = signal<EditorDocument | null>(null);
   readonly #busy = signal(false);
 
   constructor(bridge: OperaIncertaBridge | null) {
@@ -82,6 +84,8 @@ export class WorkspaceStore {
   readonly project = this.#project.asReadonly();
   readonly openSheet = this.#openSheet.asReadonly();
   readonly failure = this.#failure.asReadonly();
+  /** The sheet whose file changed under unsaved work. SPEC.md §10.6. */
+  readonly conflict = this.#conflict.asReadonly();
   readonly busy = this.#busy.asReadonly();
   readonly expanded = this.#expanded.asReadonly();
   readonly selectedGroupPath = this.#selectedGroupPath.asReadonly();
@@ -129,11 +133,15 @@ export class WorkspaceStore {
     return group === null ? [] : sheetsInGroup(group);
   });
 
-  /** The document the editor shows — the body, never the front matter. */
-  readonly editorDocument = computed<EditorDocument | null>(() => {
-    const open = this.#openSheet();
-    return open === null ? null : { id: open.handleId, text: open.savedBody };
-  });
+  /**
+   * The document the editor shows — the body, never the front matter.
+   *
+   * Set deliberately rather than derived: the editor seeds itself from this
+   * once and owns the buffer afterwards, so it must change exactly when the
+   * text on screen has to, and at no other time. Deriving it from what the
+   * author is typing would hand the text back on every keystroke.
+   */
+  readonly editorDocument = this.#editorDocument.asReadonly();
 
   /**
    * Unsaved changes — in the body **or** in the metadata.
@@ -205,18 +213,31 @@ export class WorkspaceStore {
     });
   }
 
-  /** Re-reads the project from disk, keeping the selection where possible. */
+  /**
+   * Re-reads the project from disk, keeping the selection where possible.
+   *
+   * Re-reading replaces the open sheet with what is on disk, and what the
+   * author typed is not on disk. The comparison rule of `SPEC.md` §10.6
+   * decides what happens: nothing when the file is unchanged, a silent reload
+   * when it changed and nothing was typed, and the conflict prompt when both
+   * are true. The author's version is kept meanwhile — the prompt asks, it does
+   * not announce a loss.
+   */
   async reloadProject(): Promise<void> {
     await this.#withBridge(async (bridge) => {
       const snapshot = unwrapSnapshot(await bridge.reopenProject());
-      if (snapshot !== null) {
-        const previousSheet = this.#openSheet()?.relativePath ?? null;
-        const previousGroup = this.#selectedGroupPath();
-        this.#adopt(snapshot);
-        this.#selectedGroupPath.set(previousGroup);
-        if (previousSheet !== null) {
-          await this.selectSheet(previousSheet);
-        }
+      if (snapshot === null) {
+        return;
+      }
+      const previousSheet = this.#openSheet()?.relativePath ?? null;
+      const previousGroup = this.#selectedGroupPath();
+      const before = this.#editingState();
+
+      this.#adopt(snapshot);
+      this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, previousGroup));
+      if (previousSheet !== null) {
+        await this.selectSheet(previousSheet);
+        this.#restoreEditing(before, previousSheet, true);
       }
     });
   }
@@ -228,6 +249,7 @@ export class WorkspaceStore {
       this.#library.set(null);
       this.#handles.set({});
       this.#openSheet.set(null);
+      this.#editorDocument.set(null);
       this.#currentText.set('');
       this.#currentMetadata.set({});
       this.#selectedGroupPath.set('.');
@@ -279,6 +301,7 @@ export class WorkspaceStore {
       });
       this.#currentText.set(parsed.sheet.body);
       this.#currentMetadata.set(parsed.sheet.metadata);
+      this.#editorDocument.set({ id: handleId, text: parsed.sheet.body });
       this.#expand(ancestorPaths(relativePath));
     });
   }
@@ -423,6 +446,77 @@ export class WorkspaceStore {
     });
   }
 
+  /**
+   * What the author had in the editor, saved baseline and all — enough to put
+   * it back after a re-read, and to tell an external change from our own.
+   */
+  #editingState(): EditingState | null {
+    const open = this.#openSheet();
+    if (open === null) {
+      return null;
+    }
+    return {
+      path: open.relativePath,
+      savedBody: open.savedBody,
+      savedMetadata: open.sheet.metadata,
+      text: this.#currentText(),
+      metadata: this.#currentMetadata(),
+      dirty: this.dirty(),
+    };
+  }
+
+  /**
+   * Puts the editing state back over a freshly read sheet, applying the
+   * comparison rule of `SPEC.md` §10.6.
+   *
+   * `mayConflict` says whether a difference on disk is worth asking about. A
+   * library edit does not touch the open sheet's file, so a difference there
+   * is not what that operation was about; an explicit re-read is exactly when
+   * the author wants to be told.
+   */
+  #restoreEditing(before: EditingState | null, path: string, mayConflict: boolean): void {
+    const open = this.#openSheet();
+    // The caller has established that this is the same document; its path may
+    // have changed on the way, which is exactly what a move does.
+    if (before === null || open === null) {
+      return;
+    }
+
+    // The file itself, compared against the baseline that was loaded — not
+    // against what the author typed. Only a real difference counts (§10.6).
+    const changedOnDisk =
+      open.savedBody !== before.savedBody || !sameMetadata(open.sheet.metadata, before.savedMetadata);
+
+    if (!before.dirty) {
+      // Nothing was typed: whatever is on disk is simply the truth now.
+      return;
+    }
+
+    this.#currentText.set(before.text);
+    this.#currentMetadata.set(before.metadata);
+    // The editor was seeded from the file a moment ago; what belongs on screen
+    // is the author's version.
+    this.#editorDocument.set({ id: open.handleId, text: before.text });
+    if (changedOnDisk && mayConflict) {
+      this.#conflict.set(path);
+    }
+  }
+
+  /**
+   * Resolves the conflict prompt. `'disk'` takes the file, `'mine'` keeps what
+   * the author has — which is what is already in the editor, so it only closes
+   * the prompt.
+   */
+  resolveConflict(take: 'disk' | 'mine'): void {
+    const open = this.#openSheet();
+    if (take === 'disk' && open !== null) {
+      this.#currentText.set(open.savedBody);
+      this.#currentMetadata.set(open.sheet.metadata);
+      this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
+    }
+    this.#conflict.set(null);
+  }
+
   dismissFailure(): void {
     this.#failure.set(null);
   }
@@ -458,9 +552,7 @@ export class WorkspaceStore {
     // Adopting a refreshed project re-reads the open sheet from disk. What the
     // author has typed but not saved is not on disk, and renaming a *different*
     // sheet is no reason to lose it.
-    const unsaved = this.dirty()
-      ? { text: this.#currentText(), metadata: this.#currentMetadata() }
-      : null;
+    const before = this.#editingState();
 
     await this.#withBridge(async (bridge) => {
       const result = unwrap(await operation(bridge));
@@ -508,9 +600,8 @@ export class WorkspaceStore {
         // The same document, either because it never moved or because this is
         // where it went.
         const sameDocument = toOpen === previousSheet || toOpen === followed;
-        if (unsaved !== null && sameDocument) {
-          this.#currentText.set(unsaved.text);
-          this.#currentMetadata.set(unsaved.metadata);
+        if (sameDocument) {
+          this.#restoreEditing(before, toOpen, false);
         }
       }
     });
@@ -522,6 +613,7 @@ export class WorkspaceStore {
     this.#handles.set(snapshot.handles);
     this.#selectedGroupPath.set('.');
     this.#openSheet.set(null);
+    this.#editorDocument.set(null);
     this.#currentText.set('');
     this.#currentMetadata.set({});
     this.#expanded.set(new Set(['.']));
@@ -581,6 +673,16 @@ function sameMetadata(left: SheetMetadata, right: SheetMetadata): boolean {
     }
   }
   return true;
+}
+
+/** The editor's state at a moment: the baseline it was read from, and the work on top. */
+interface EditingState {
+  readonly path: string;
+  readonly savedBody: string;
+  readonly savedMetadata: SheetMetadata;
+  readonly text: string;
+  readonly metadata: SheetMetadata;
+  readonly dirty: boolean;
 }
 
 /**

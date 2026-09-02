@@ -1789,6 +1789,114 @@ async function checkMovingBetweenGroups(window: BrowserWindow, projectPath: stri
     'smoke ok: dragged a sheet into a group, that group into another, and a third in front of ' +
       'it — one drop said both where and which place, and the open editor followed',
   );
+
+  await checkExternalChange(window, projectPath);
+}
+
+/**
+ * Checks the comparison rule of `SPEC.md` §10.6 where it can already be
+ * reached: the explicit re-read.
+ */
+async function checkExternalChange(window: BrowserWindow, projectPath: string): Promise<void> {
+  // The open sheet, after the two moves above.
+  const sheetPath = join(projectPath, 'part-two', 'part-three', 'a-brand-new-scene.md');
+  const original = readFileSync(sheetPath, 'utf8');
+
+  await placeCursorInEditor(window);
+  await typeText(window, 'Typed but never saved.');
+  await new Promise((resolve) => setTimeout(resolve, 200));
+
+  // Someone else writes the file while the author has unsaved work in it.
+  writeFileSync(sheetPath, `${original}\nWritten by someone else.\n`, 'utf8');
+  await reloadFromDisk(window);
+
+  if (!(await isVisible(window, 'wi-confirm-prompt'))) {
+    throw new Error('a file that changed under unsaved work raised no prompt');
+  }
+  // Asked, not announced: the author's version is still there while it asks.
+  if (!(await editorContains(window, 'Typed but never saved.'))) {
+    throw new Error('the prompt appeared after the work was already gone');
+  }
+
+  await pressKey(window, 'Escape');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (await isVisible(window, 'wi-confirm-prompt')) {
+    throw new Error('Escape left the conflict prompt open');
+  }
+  if (!(await editorContains(window, 'Typed but never saved.'))) {
+    throw new Error('keeping the author’s version lost it anyway');
+  }
+  if (readFileSync(sheetPath, 'utf8').includes('Typed but never saved.')) {
+    throw new Error('keeping the author’s version wrote it to disk');
+  }
+
+  // With nothing unsaved, the same change is simply taken. Saving first is
+  // what makes the buffer clean.
+  clickMenuItem('sheet/save');
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  writeFileSync(sheetPath, `${original}\nWritten again, with nothing unsaved.\n`, 'utf8');
+  await reloadFromDisk(window);
+
+  if (await isVisible(window, 'wi-confirm-prompt')) {
+    throw new Error('an unmodified buffer was asked about instead of reloaded');
+  }
+  if (!(await editorContains(window, 'Written again, with nothing unsaved.'))) {
+    throw new Error('an unmodified buffer did not take the change from disk');
+  }
+
+  console.log(
+    'smoke ok: a file changed under unsaved work asks before anything is lost, and is taken ' +
+      'silently when nothing was typed',
+  );
+}
+
+/** Clicks into the last editor line, where an author would carry on typing. */
+async function placeCursorInEditor(window: BrowserWindow): Promise<void> {
+  const point = (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')];
+       const last = lines[lines.length - 1];
+       if (last === undefined) { return null; }
+       const rect = last.getBoundingClientRect();
+       return { x: Math.round(rect.left + 4), y: Math.round(rect.top + rect.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (point === null) {
+    throw new Error('the editor has no lines to click into');
+  }
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: point.x, y: point.y, clickCount: 1 });
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, clickCount: 1 });
+  await pressKey(window, 'End', ['cmd']);
+}
+
+/** Presses the navigator's reload button, as the author would. */
+async function reloadFromDisk(window: BrowserWindow): Promise<void> {
+  const pressed = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-panel-header button')]
+         .find((candidate) => candidate.getAttribute('title') === 'Reload from disk');
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!pressed) {
+    throw new Error('no reload button in the navigator');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 800));
+}
+
+async function isVisible(window: BrowserWindow, selector: string): Promise<boolean> {
+  return (await window.webContents.executeJavaScript(
+    `document.querySelector(${JSON.stringify(selector)}) !== null`,
+  )) as boolean;
+}
+
+async function editorContains(window: BrowserWindow, text: string): Promise<boolean> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('.cm-line')]
+       .map((line) => line.textContent).join('\\n').includes(${JSON.stringify(text)})`,
+  )) as boolean;
 }
 
 /** Opens the confirmation for one entry through its context menu. */
