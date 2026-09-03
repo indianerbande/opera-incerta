@@ -66,6 +66,80 @@ has to be consulted to build, verify or change the product.
    suite; the rest of the review's adapter findings are done. Small, and a
    memory question only for a very long session.
 
+8. **Git calls are not serialized, and a missing git looks like a failed
+   command** (`packages/git-node/src/process-git.ts`). Every bridge handler
+   runs concurrently, so a status refresh racing a commit reaches the author
+   as an `index.lock` error; and `systemGitRunner` turns the `ENOENT` of a
+   machine without git into exit code 1 with empty stderr, which
+   `repositoryRoot` then swallows into "not inside a repository". A per-root
+   queue in the service, and a `git/not-installed` code that the panel can
+   word, are the whole step. Related, smaller: `hasCommit` and `#hasCommit`
+   duplicate; `defaultRemote` splits `git remote -v` on a space and breaks
+   on a path with one; `tracking` runs two commands where
+   `--porcelain=v2 --branch` gives everything in the status read already.
+9. **The smoke sleeps** — ninety `setTimeout` waits across
+   `apps/desktop/src/smoke/checks/`, thirty-six of them in source control.
+   Each is a place a slower machine fails; the README names them as the first
+   suspect for §1.6. Replace them with conditions (`waitForSelector`,
+   `settleWatch`) file by file, and keep a sleep only where nothing observable
+   marks completion, with a comment saying what it waits for.
+10. **One error shape and typed contract payloads.** `ProjectError`,
+    `ProjectSessionError`, `GitError`, and the renderer's `BridgeFailure`
+    are four classes of the same shape; `GitError.code` is always
+    `git/command-failed`, so the renderer cannot tell "not fast-forwardable"
+    from "authentication failed" except by reading stderr; and `privileged`
+    forwards whatever `.code` an error carries, so Node's `ENOENT` and
+    `EACCES` reach the renderer with absolute paths in the message. In the
+    same round: the contract transports `library`, `categories`, and
+    `entries` as `unknown` and the renderer casts at six places, while
+    `GitBranch`, `GitRemote`, and `GitTracking` are declared twice — the
+    contract may depend on the portable core and use its types; the
+    hand-written request guards should share one small combinator set and
+    gain the response guards they lack; and `preload.ts` should be typed
+    against the contract with `satisfies OperaIncertaBridge`, so a method
+    added to the interface but not to the preload fails to compile.
+11. **The project adapter's port and its error handling**
+    (`packages/project-node`, `apps/desktop/src/project-session.ts`). The
+    `ProjectFilesystem` port exists "so tests run against an in-memory
+    double", and no double exists — session and shell reach past it to
+    `node:fs`. Either the port gains `rename`, `mkdir`, `stat` and one
+    in-memory implementation, or it goes and `node-filesystem.ts` exports
+    functions. In the same place: `library.ts` reads every non-Markdown file
+    to decide whether it is a directory, though `readdir` already said;
+    `readStructure` and `readCategories` turn every error into an empty
+    record and the next edit writes `{}` over the author's arrangement, so
+    only `ENOENT` may degrade and `writeJson` needs the atomic write
+    `writeSheet` has; `placeEntry` reopens the project twice per drag and
+    re-mints every handle, while the comment on `reopen` says handles are
+    kept; and `inspectFolder` reads `project.json` fully to test existence.
+12. **Core rules the review found wrong or loose**, one tidy-up round:
+    - `hasConflictMarkers` is true for a bare `<<<<<<< HEAD` line while
+      `parseConflicts` reports no conflict, so the store locks a sheet the
+      resolver has nothing to resolve in (`conflict.ts`);
+    - `parseGitStatus` consumes the rename's second field only for an index
+      rename, so a worktree rename (` R`, git ≥ 2.18) yields an invented
+      entry (`git-status.ts`);
+    - emphasis has no flanking rule: `2 * 3 * 4` hides the asterisks and
+      italicises ` 3 ` (`inline.ts`);
+    - a shorter closing fence ends a longer one, and four-space indented code
+      is not marked verbatim (`heading.ts`);
+    - `OutlineEntry.line` is zero-based while every other line number is
+      one-based, paid for with `+ 1` in the outline component;
+    - `previewLines` takes strings while the library carries `PreviewLine`,
+      and the sheet list matches levels back by text;
+    - `editor-adapter-contract.ts` is a test framework exported from the
+      production core; `HeadingMarkerActivation` carries viewport
+      coordinates through the core boundary; the layout and preference
+      constants describe one frontend's chrome;
+    - `textStatistics` counts Markdown syntax as words; `slugify` deletes
+      every accented letter but the German umlauts, and a test enshrines
+      `caf-nave`; `readCategories` accepts a colour without `#`;
+    - `RefreshCoordinator` drops a request coalesced into a run that then
+      fails, and its comment describes a case that does not occur;
+      `ExclusiveTask.run` uses `null` for "refused", ambiguous for a `T`
+      that includes it;
+    - `block-height.ts` is a dead duplicate of `front-matter-view.ts`.
+
 ## 2. To decide before code exists
 
 ### 2.1 Markdown parser dependency
