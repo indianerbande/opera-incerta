@@ -11,11 +11,11 @@ documents").
 **What changed.** This repository no longer refers to the two projects it drew
 on: a native macOS writing application for *what* the product does, and a
 TypeScript monorepo of the same shape for *how* it is built. Both were the
-author's own work, both were about to be deleted, and every document here cited
+author's own work, both were passing out of reach, and every document here cited
 them — `CONVENTIONS.md` alone carried 126 source citations, one per measure.
 
-**What was done about it, in order.** First the gap check, because after the
-deletion a gap can no longer be closed: the functional specification was read
+**What was done about it, in order.** First the gap check, because once the
+sources are out of reach a gap can no longer be closed against them: the functional specification was read
 end to end against `SPEC.md`, section by section, together with its open-work
 list and the engineering documents. Nearly everything was already here, and in
 several places in a better form than the original. Six things were not:
