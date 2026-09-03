@@ -206,7 +206,12 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         }
 
         @if (store.editorDocument(); as document) {
-          <wi-editor #editor [document]="document" (textChange)="store.noteText($event)" />
+          <wi-editor
+            #editor
+            [document]="document"
+            [retired]="store.retiredHandles()"
+            (textChange)="store.noteText($event)"
+          />
         } @else {
           <p class="hint">Select a sheet to start writing.</p>
         }

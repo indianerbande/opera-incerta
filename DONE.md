@@ -6,6 +6,43 @@ documents").
 
 ---
 
+## 2026-09-03 — the editor forgets a document that is gone
+
+**What was open** (`TODO.md` §1.7 until this round). The CodeMirror adapter
+kept an `EditorState` — text, undo history, cursor, scroll position — per
+document id for as long as it lived, deleted sheets included. A memory
+question only for a very long session, and a boundary question before that:
+nothing could tell the adapter that a document was gone.
+
+**What changed.** `EditorAdapter.forget(documentId)` is part of the editor
+boundary: what is remembered for that id is released, opening the id again
+starts fresh, and forgetting an unknown id or the open document is not an
+error. The contract suite has a case for it, so both implementations — the
+CodeMirror adapter and the in-memory double — are held to it, and the editor
+spike runs it against the real component.
+
+Who says a document is gone: the workspace store, which sees on every
+re-read which handles the new snapshot no longer carries, and accumulates
+them as `retiredHandles`. The editor component takes that list as an input
+and forgets each id once. Handles are kept across re-reads since the port
+round, so an id goes only when its sheet was deleted or moved.
+
+**Verification.** `pnpm run check` green: **882 tests** — the contract
+case runs twice, against the double and against the real adapter in the
+spike (`pnpm run spike:editor` 7/7 with fourteen cases now), and the store
+test proves a deleted sheet's handle is retired and an untouched one is
+not. `pnpm run desktop:smoke` green across **thirty checks**. Falsified by
+having the CodeMirror adapter keep the state on `forget`: the contract case
+failed in the spike, and only there — the double was right — which is the
+suite doing what it exists for.
+
+**Lesson.** "A memory question only for a very long session" was true and
+was not the point. The point was that the boundary had no word for a
+document ending, and a boundary that cannot say "gone" leaves every
+implementation to keep everything forever.
+
+---
+
 ## 2026-09-03 — the core rules the review found loose, tightened
 
 **What was open** (`TODO.md` §1.8 until this round): eleven rules in the

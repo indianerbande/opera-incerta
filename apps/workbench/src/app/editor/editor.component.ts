@@ -55,6 +55,11 @@ import { HeadingMenuComponent } from './heading-menu.component.js';
 export class EditorComponent {
   /** The document to show. Switching keeps each document's own history. */
   readonly document = input.required<EditorDocument>();
+  /**
+   * Documents that are gone, by id, accumulated. Each is forgotten once; the
+   * adapter keeps no history for a sheet that was deleted or moved.
+   */
+  readonly retired = input<readonly string[]>([]);
 
   /** Emitted after every change, with the text as it would be written. */
   readonly textChange = output<string>();
@@ -96,7 +101,23 @@ export class EditorComponent {
       }
       adapter.open(document_);
     });
+
+    effect(() => {
+      const adapter = this.adapter();
+      const retired = this.retired();
+      if (adapter === null) {
+        return;
+      }
+      for (const id of retired) {
+        if (!this.#forgotten.has(id)) {
+          this.#forgotten.add(id);
+          adapter.forget(id);
+        }
+      }
+    });
   }
+
+  readonly #forgotten = new Set<string>();
 
   /** Outline navigation and diagnostics jump through here. */
   revealLine(line: number): void {

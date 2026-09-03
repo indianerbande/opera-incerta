@@ -50,6 +50,7 @@ export function runEditorAdapterContract(create: Create): readonly ContractCase[
   cases.push(caseRemoveHeading(create));
   cases.push(caseUndoRedo(create));
   cases.push(casePerDocumentUndo(create));
+  cases.push(caseForgetDropsHistory(create));
   cases.push(caseChangeListener(create));
   cases.push(caseUnsubscribe(create));
   cases.push(caseMarkerListenerRegistration(create));
@@ -127,6 +128,27 @@ function caseSetHeadingLevel(create: Create): ContractCase {
       'setting a heading level rewrites exactly that line',
       lines[2] === '## Another line.' && lines[1] === 'A **bold** line.',
       JSON.stringify(lines),
+    );
+  });
+}
+
+function caseForgetDropsHistory(create: Create): ContractCase {
+  return withAdapter(create, (adapter) => {
+    adapter.open(documentA());
+    adapter.setHeadingLevel(3, 2);
+    adapter.open(documentB());
+    adapter.forget('a');
+    // Opened again under the same id: the text given now, and no undo to a
+    // history that belongs to a document that is gone.
+    adapter.open(documentA());
+    const fresh = adapter.text() === documentA().text;
+    adapter.undo();
+    const nothingToUndo = adapter.text() === documentA().text;
+    adapter.forget('never-opened');
+    return check(
+      'forgetting a document drops its history, and an unknown id is not an error',
+      fresh && nothingToUndo,
+      `fresh=${fresh} nothingToUndo=${nothingToUndo}`,
     );
   });
 }

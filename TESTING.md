@@ -327,8 +327,9 @@ inside a real renderer against the CodeMirror implementation, as criterion 7 of
 `pnpm run spike:editor`. The suite MUST cover opening and reading a document,
 the focused line, revealing a line, applying and removing a heading level, a
 heading never spreading to the next line, undo and redo, an undo history that
-belongs to its document across switches, change notification and
-unsubscription, and an idempotent destroy.
+belongs to its document across switches, forgetting a document so that its id
+opens fresh afterwards, change notification and unsubscription, and an
+idempotent destroy.
 
 A suite that only one implementation can satisfy is describing that component
 rather than a boundary, which is what the double exists to reveal. The suite is

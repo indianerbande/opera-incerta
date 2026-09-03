@@ -116,6 +116,13 @@ class FakeEditorAdapter implements EditorAdapter {
     };
   }
 
+  forget(documentId: string): void {
+    this.#documents.delete(documentId);
+    if (this.#openId === documentId) {
+      this.#openId = null;
+    }
+  }
+
   /** Test seam: the double has no gutter, so activation is triggered by hand. */
   activateMarker(activation: HeadingMarkerActivation): void {
     for (const listener of this.#markerListeners) {

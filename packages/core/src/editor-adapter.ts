@@ -90,6 +90,14 @@ export interface EditorAdapter {
    */
   onHeadingMarkerActivate(listener: HeadingMarkerListener): () => void;
 
+  /**
+   * Drops what is remembered for a document that is gone — deleted, or moved
+   * to a new identity. Its undo history and cursor are released; opening the
+   * same id afterwards starts fresh. Forgetting an unknown id, or the open
+   * document, is not an error: nothing visible changes until the next open.
+   */
+  forget(documentId: string): void;
+
   /** Releases the component. Calling it twice is not an error. */
   destroy(): void;
 }

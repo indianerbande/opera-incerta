@@ -622,6 +622,26 @@ describe('deleting', () => {
     },
   };
 
+  it('retires the handle of a deleted sheet, and no other', async () => {
+    // Every handle but the deleted sheet's survives the re-read.
+    const { 'preface.md': deleted, ...survivors } = twoSheets.handles;
+    const afterDeletion: ProjectSnapshot = { ...withoutPreface, handles: survivors };
+    const store = new WorkspaceStore(
+      fakeBridge({
+        openProject: async () => ({ ok: true, value: twoSheets }),
+        deleteEntry: async () => ({ ok: true, value: { snapshot: afterDeletion, revealPath: null } }),
+        readSheet: async () => ({ ok: true, value: 'Afterword\n' }),
+      }),
+    );
+    await store.openProject();
+    expect(store.retiredHandles()).toEqual([]);
+
+    await store.deleteEntry('preface.md');
+
+    // The editor forgets what it remembered for that id; the others stay.
+    expect(store.retiredHandles()).toEqual([deleted]);
+  });
+
   it('opens the sheet after the deleted one', async () => {
     const store = new WorkspaceStore(
       fakeBridge({

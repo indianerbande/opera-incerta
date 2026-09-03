@@ -561,6 +561,15 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
     };
   }
 
+  forget(documentId: string): void {
+    // The open document's state lives in the view until the next open; what
+    // is dropped here is the remembered copy, so it is not put back then.
+    this.#states.delete(documentId);
+    if (this.#openId === documentId) {
+      this.#openId = null;
+    }
+  }
+
   destroy(): void {
     if (this.#destroyed) {
       return;

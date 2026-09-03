@@ -92,6 +92,12 @@ export class WorkspaceStore {
   readonly #editorDocument = signal<EditorDocument | null>(null);
   readonly #categories = signal<readonly PageCategory[]>([]);
   readonly #busy = signal(false);
+  /**
+   * Handles that a re-read no longer carries: the sheet was deleted or moved.
+   * The editor forgets what it remembered for them (SPEC.md §6). Accumulated
+   * for the life of the project, so the editor can catch up whenever it looks.
+   */
+  readonly #retiredHandles = signal<readonly string[]>([]);
 
   constructor(bridge: OperaIncertaBridge | null) {
     this.#bridge = bridge;
@@ -107,6 +113,7 @@ export class WorkspaceStore {
   readonly busy = this.#busy.asReadonly();
   readonly expanded = this.#expanded.asReadonly();
   readonly selectedGroupPath = this.#selectedGroupPath.asReadonly();
+  readonly retiredHandles = this.#retiredHandles.asReadonly();
 
   /** True when the shell is present; the harness runs without one. */
   get hasBridge(): boolean {
@@ -785,6 +792,11 @@ export class WorkspaceStore {
   #adopt(snapshot: ProjectSnapshot, keepOpen = false): void {
     this.#project.set({ id: snapshot.id, displayName: snapshot.displayName });
     this.#library.set(snapshot.library);
+    const surviving = new Set(Object.values(snapshot.handles));
+    const gone = Object.values(this.#handles()).filter((id) => !surviving.has(id));
+    if (gone.length > 0) {
+      this.#retiredHandles.set([...this.#retiredHandles(), ...gone]);
+    }
     this.#handles.set(snapshot.handles);
     this.#categories.set(readCategories(snapshot.categories));
     if (!keepOpen) {

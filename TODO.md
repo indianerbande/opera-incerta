@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **880 tests**, plus the desktop and asset checks.
+projects, **882 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -58,13 +58,6 @@ has to be consulted to build, verify or change the product.
    sleeps went (DONE.md, the same day) that check waits for the edit to reach
    the disk rather than for half a second, so the likeliest cause is gone;
    the entry stays until a few days of green runs have passed.
-
-7. **The CodeMirror adapter keeps an `EditorState` per document id for as
-   long as the adapter lives** (`codemirror-editor-adapter.ts`, `#states`),
-   deleted sheets included. Forgetting one needs a way to say so through the
-   editor boundary (`EditorAdapter` in the core), which changes the contract
-   suite; the rest of the review's adapter findings are done. Small, and a
-   memory question only for a very long session.
 
 ## 2. To decide before code exists
 
