@@ -21,7 +21,6 @@ import {
   serializeSheet,
   sheetsInGroup,
   textStatistics,
-  visibleOutline,
   withShownSheet,
   type EditorDocument,
   type GroupEntry,
@@ -76,7 +75,6 @@ export class WorkspaceStore {
   readonly #currentText = signal<string>('');
   readonly #currentMetadata = signal<SheetMetadata>({});
   readonly #currentForeign = signal<readonly string[]>([]);
-  readonly #showDeeperOutline = signal(false);
   readonly #expanded = signal<ReadonlySet<string>>(new Set(['.']));
   readonly #failure = signal<string | null>(null);
   readonly #conflict = signal<string | null>(null);
@@ -193,13 +191,6 @@ export class WorkspaceStore {
   readonly outline = computed<readonly OutlineEntry[]>(() =>
     outlineOf(markdownToDisplay(this.#currentText())),
   );
-
-  /** The outline entries the sidebar shows, honouring the depth toggle. */
-  readonly visibleOutlineEntries = computed<readonly OutlineEntry[]>(() =>
-    visibleOutline(this.outline(), this.#showDeeperOutline()),
-  );
-
-  readonly showDeeperOutline = this.#showDeeperOutline.asReadonly();
 
   /** Problems reported for the open sheet, if any. */
   readonly diagnostics = computed<readonly SheetDiagnostic[]>(
@@ -438,11 +429,6 @@ export class WorkspaceStore {
   /** Replaces the foreign block. Marks the sheet dirty, saves nothing. */
   updateForeignLines(lines: readonly string[]): void {
     this.#currentForeign.set([...lines]);
-  }
-
-  /** Set from the layout state, which owns the preference. */
-  setDeeperOutline(show: boolean): void {
-    this.#showDeeperOutline.set(show);
   }
 
   /**

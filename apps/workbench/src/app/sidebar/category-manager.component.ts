@@ -1,5 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-incerta/core';
+import { DialogComponent } from '../shell/dialog.component.js';
 
 /**
  * Defining the project's page categories. SPEC.md §6.6.
@@ -14,10 +22,13 @@ import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-inc
 @Component({
   selector: 'wi-category-manager',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'cancel.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="cancel.emit()"></div>
-    <div class="prompt" role="dialog" aria-modal="true" aria-label="Page categories">
+    <wi-dialog
+      label="Page categories"
+      width="min(460px, calc(100vw - 48px))"
+      (dismiss)="cancel.emit()"
+    >
       <h2>Page categories</h2>
 
       <ul class="list">
@@ -60,34 +71,9 @@ import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-inc
       @if (full()) {
         <p class="hint">A project holds at most {{ limit }} categories.</p>
       }
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .prompt {
-      position: fixed;
-      top: 40%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(460px, calc(100vw - 48px));
-      padding: 14px 16px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    h2 {
-      margin: 0;
-      font-size: 14px;
-    }
     .list {
       max-height: 40vh;
       margin: 0;
@@ -102,13 +88,13 @@ import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-inc
       padding: 2px 0;
     }
     li.empty {
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
     input[type='color'] {
       width: 26px;
       height: 22px;
       padding: 0;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
     }
@@ -116,7 +102,7 @@ import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-inc
       flex: 1 1 auto;
       min-width: 0;
       padding: 3px 6px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -128,30 +114,8 @@ import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-inc
       font-size: 11px;
       white-space: nowrap;
     }
-    .actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
     .spacer {
       flex: 1 1 auto;
-    }
-    .hint {
-      margin: 0;
-      color: rgba(128, 128, 128, 0.95);
-      font-size: 11px;
-    }
-    button {
-      padding: 3px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
-    }
-    button:disabled {
-      opacity: 0.5;
     }
   `,
 })
@@ -162,13 +126,9 @@ export class CategoryManagerComponent {
   readonly cancel = output<void>();
 
   protected readonly limit = MAX_CATEGORIES;
-  protected readonly draft = signal<readonly PageCategory[]>([]);
+  /** Edited as a copy: closing without saving leaves the project as it was. */
+  protected readonly draft = linkedSignal<readonly PageCategory[]>(() => [...this.categories()]);
   protected readonly full = computed(() => this.draft().length >= MAX_CATEGORIES);
-
-  constructor() {
-    // Edited as a copy: closing without saving leaves the project as it was.
-    queueMicrotask(() => this.draft.set([...this.categories()]));
-  }
 
   protected textColor(color: string): string {
     return categoryTextColor(color) ?? 'black';

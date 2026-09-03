@@ -1,10 +1,6 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
-import type {
-  ChosenLocation,
-  OperaIncertaBridge,
-  RecentProjectEntry,
-} from '@opera-incerta/desktop-contract';
-import { resolveBridge, toBridgeFailure, unwrap } from '../workspace/bridge.js';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { resolveBridge } from '../workspace/bridge.js';
+import { LauncherStore } from '../workspace/launcher-store.js';
 import { NewProjectDialogComponent } from './new-project-dialog.component.js';
 
 /**
@@ -28,17 +24,22 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
       </header>
 
       <div class="actions">
-        <button type="button" (click)="open()">Open project…</button>
-        <button type="button" (click)="create()">New project…</button>
+        <button type="button" (click)="launcher.open()">Open project…</button>
+        <button type="button" (click)="launcher.startCreating()">New project…</button>
       </div>
 
-      @if (recent().length > 0) {
+      @if (launcher.recent().length > 0) {
         <section class="recent">
           <h2>Recent projects</h2>
           <ul>
-            @for (project of recent(); track project.path) {
+            @for (project of launcher.recent(); track project.path) {
               <li class="entry" [class.unavailable]="!project.available">
-                <button type="button" class="open-entry" [title]="project.path" (click)="openRecent(project)">
+                <button
+                  type="button"
+                  class="open-entry"
+                  [title]="project.path"
+                  (click)="launcher.openRecent(project)"
+                >
                   <span class="name">{{ project.displayName }}</span>
                   <span class="path">{{ project.shortPath }}</span>
                   @if (!project.available) {
@@ -50,7 +51,7 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
                   class="forget"
                   [attr.aria-label]="'Remove ' + project.displayName + ' from the list'"
                   title="Remove from list"
-                  (click)="forget(project)"
+                  (click)="launcher.forget(project)"
                 >
                   ×
                 </button>
@@ -62,18 +63,18 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
         <p class="hint">No projects opened yet.</p>
       }
 
-      @if (failure(); as code) {
+      @if (launcher.failure(); as code) {
         <p class="failure" role="alert">{{ message(code) }}</p>
       }
     </div>
 
-    @if (creating()) {
+    @if (launcher.creating()) {
       <wi-new-project-dialog
-        [location]="location()"
-        [failure]="createFailure()"
-        (chooseLocation)="chooseLocation()"
-        (create)="createProject($event.displayName)"
-        (cancel)="closeDialog()"
+        [location]="launcher.location()"
+        [failure]="launcher.createFailure()"
+        (chooseLocation)="launcher.chooseLocation()"
+        (create)="launcher.createProject($event.displayName)"
+        (cancel)="launcher.closeDialog()"
       />
     }
   `,
@@ -195,126 +196,18 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
   `,
 })
 export class WelcomeComponent {
-  readonly #bridge: OperaIncertaBridge | null = resolveBridge();
-
-  protected readonly recent = signal<readonly RecentProjectEntry[]>([]);
-  protected readonly failure = signal<string | null>(null);
-  protected readonly creating = signal(false);
-  protected readonly location = signal<ChosenLocation | null>(null);
-  protected readonly createFailure = signal<string | null>(null);
+  protected readonly launcher = new LauncherStore(resolveBridge());
 
   constructor() {
-    void this.refresh();
-
-    // The File menu's Open and New reach the launcher, which is where opening
-    // lives — the menu drives the same actions as its buttons rather than a
-    // second implementation (SPEC.md §8.5).
-    const stopListening = this.#bridge?.onMenuCommand((command) => {
-      if (command === 'project/open') {
-        void this.open();
-      } else if (command === 'project/new') {
-        this.create();
-      }
-    });
-    inject(DestroyRef).onDestroy(() => stopListening?.());
+    void this.launcher.refresh();
+    const stopListening = this.launcher.listenForMenuCommands();
+    inject(DestroyRef).onDestroy(() => stopListening());
   }
 
-  protected async refresh(): Promise<void> {
-    await this.#run(async (bridge) => {
-      this.recent.set(unwrap(await bridge.recentProjects()));
-    });
-  }
-
-  protected async open(): Promise<void> {
-    await this.#run(async (bridge) => {
-      unwrap(await bridge.openProject());
-    });
-  }
-
-  /** Opens the dialog. Creating happens when the author confirms it. */
-  protected create(): void {
-    this.createFailure.set(null);
-    this.creating.set(true);
-  }
-
-  protected closeDialog(): void {
-    this.creating.set(false);
-    this.location.set(null);
-    this.createFailure.set(null);
-  }
-
-  protected async chooseLocation(): Promise<void> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      this.createFailure.set('bridge/absent');
-      return;
-    }
-    try {
-      const chosen = unwrap(await bridge.chooseProjectLocation());
-      if (chosen !== null) {
-        this.location.set(chosen);
-      }
-    } catch (error: unknown) {
-      this.createFailure.set(toBridgeFailure(error).code);
-    }
-  }
-
-  protected async createProject(displayName: string): Promise<void> {
-    const bridge = this.#bridge;
-    const parent = this.location();
-    if (bridge === null || parent === null) {
-      this.createFailure.set('bridge/absent');
-      return;
-    }
-
-    try {
-      unwrap(await bridge.createProject({ parentPath: parent.path, displayName }));
-      this.closeDialog();
-    } catch (error: unknown) {
-      // The dialog stays open with the failure, so the author keeps what they
-      // typed instead of starting over.
-      this.createFailure.set(toBridgeFailure(error).code);
-    }
-  }
-
-  /**
-   * Opening an entry whose directory is gone reports it and offers removal
-   * rather than failing hard (SPEC.md §8.6).
-   */
-  protected async openRecent(project: RecentProjectEntry): Promise<void> {
-    if (!project.available) {
-      this.failure.set('project/not-found');
-      return;
-    }
-    await this.#run(async (bridge) => {
-      unwrap(await bridge.openRecentProject({ path: project.path }));
-    });
-  }
-
-  protected async forget(project: RecentProjectEntry): Promise<void> {
-    await this.#run(async (bridge) => {
-      unwrap(await bridge.forgetRecentProject({ path: project.path }));
-      this.recent.set(unwrap(await bridge.recentProjects()));
-    });
-  }
-
+  /** The one message the launcher words itself; every other code is shown as it is. */
   protected message(code: string): string {
     return code === 'project/not-found'
       ? 'That project is no longer there. Remove it from the list, or restore the folder.'
       : `Could not open the project (${code}).`;
-  }
-
-  async #run(operation: (bridge: OperaIncertaBridge) => Promise<void>): Promise<void> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      this.failure.set('bridge/absent');
-      return;
-    }
-    try {
-      await operation(bridge);
-      this.failure.set(null);
-    } catch (error: unknown) {
-      this.failure.set(toBridgeFailure(error).code);
-    }
   }
 }

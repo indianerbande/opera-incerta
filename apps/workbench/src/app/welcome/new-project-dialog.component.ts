@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { slugify } from '@opera-incerta/core';
 import type { ChosenLocation } from '@opera-incerta/desktop-contract';
+import { DialogComponent } from '../shell/dialog.component.js';
 
 /**
  * Naming a new project and choosing where it goes. SPEC.md §6.1, §8.6.
@@ -17,10 +18,9 @@ import type { ChosenLocation } from '@opera-incerta/desktop-contract';
 @Component({
   selector: 'wi-new-project-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'cancel.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="cancel.emit()"></div>
-    <div class="dialog" role="dialog" aria-modal="true" aria-label="New project">
+    <wi-dialog label="New project" (dismiss)="cancel.emit()">
       <h2>New project</h2>
 
       <label>
@@ -60,33 +60,9 @@ import type { ChosenLocation } from '@opera-incerta/desktop-contract';
         <button type="button" (click)="cancel.emit()">Cancel</button>
         <button type="button" [disabled]="!ready()" (click)="submit()">Create</button>
       </div>
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.25);
-    }
-    .dialog {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: min(420px, calc(100vw - 48px));
-      padding: 16px 18px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      transform: translate(-50%, -50%);
-    }
-    h2 {
-      margin: 0;
-      font-size: 15px;
-    }
     label {
       display: flex;
       flex-direction: column;
@@ -95,7 +71,7 @@ import type { ChosenLocation } from '@opera-incerta/desktop-contract';
     }
     input {
       padding: 4px 6px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -109,13 +85,13 @@ import type { ChosenLocation } from '@opera-incerta/desktop-contract';
     .path {
       overflow: hidden;
       flex: 1 1 auto;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
       white-space: nowrap;
       text-overflow: ellipsis;
     }
     .preview {
       margin: 0;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
       font-size: 11px;
     }
     code {
@@ -123,25 +99,8 @@ import type { ChosenLocation } from '@opera-incerta/desktop-contract';
     }
     .failure {
       margin: 0;
-      color: rgba(150, 60, 60, 0.95);
+      color: var(--wi-danger);
       font-size: 12px;
-    }
-    .actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    button {
-      padding: 4px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
-    }
-    button:disabled {
-      opacity: 0.5;
     }
   `,
 })

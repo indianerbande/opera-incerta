@@ -9,7 +9,14 @@
  * The component was accepted after the spike in `spikes/editor-codemirror`,
  * whose measurements are recorded in `TESTING.md` §2.8.
  */
-import { EditorState, StateField, type Extension } from '@codemirror/state';
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  redo as cmRedo,
+  undo as cmUndo,
+} from '@codemirror/commands';
+import { EditorState, RangeSetBuilder, StateField, type Extension } from '@codemirror/state';
 import {
   Decoration,
   EditorView,
@@ -17,14 +24,10 @@ import {
   ViewPlugin,
   gutter,
   keymap,
+  type Command,
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
-import { history, historyKeymap } from '@codemirror/commands';
-import { defaultKeymap } from '@codemirror/commands';
-import { redo as cmRedo, undo as cmUndo } from '@codemirror/commands';
-import type { Command } from '@codemirror/view';
-import { RangeSetBuilder } from '@codemirror/state';
 import {
   applyDotCommand,
   displayModel,
@@ -98,7 +101,18 @@ const displayModelField = StateField.define<DisplayModel>({
       return value;
     }
     const { state } = transaction;
-    return displayModel(state.doc.toString(), state.doc.lineAt(state.selection.main.head).number);
+    const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+    // The model depends on the text and on which line holds the cursor. A
+    // selection change that stays on its line — most of them — changes
+    // neither, and re-parsing the whole document for it was the cost of
+    // every arrow key.
+    if (!transaction.docChanged) {
+      const before = transaction.startState;
+      if (before.doc.lineAt(before.selection.main.head).number === cursorLine) {
+        return value;
+      }
+    }
+    return displayModel(state.doc.toString(), cursorLine);
   },
 });
 
@@ -140,46 +154,50 @@ const displayPlugin = ViewPlugin.fromClass(
 );
 
 /**
- * Set while an adapter builds its extensions, so the gutter's event handler can
- * reach the adapter that owns the view. A gutter extension is created once per
- * state, and CodeMirror hands its handler the view rather than the adapter.
+ * The gutter with the heading labels, and the menu they open. SPEC.md §10.2.
+ *
+ * Built per adapter, like the change listener: the click handler needs the
+ * adapter that owns the view, and a closure is how a per-state extension
+ * reaches it. (A module-level map from view to adapter did the same job with
+ * bookkeeping on both ends.)
  */
-const activationSink = new WeakMap<EditorView, (activation: HeadingMarkerActivation) => void>();
+function markerGutter(onActivate: (activation: HeadingMarkerActivation) => void): Extension {
+  return gutter({
+    class: 'cm-marker-gutter',
+    domEventHandlers: {
+      mousedown(view, block, event) {
+        const line = view.state.doc.lineAt(block.from);
+        const heading = view.state
+          .field(displayModelField)
+          .headings.find((candidate) => candidate.line === line.number);
+        // A line without a level has no marker, and no menu (SPEC.md §10.2).
+        if (heading === undefined) {
+          return false;
+        }
 
-const markerGutter = gutter({
-  class: 'cm-marker-gutter',
-  domEventHandlers: {
-    mousedown(view, block, event) {
+        const pointer = event as MouseEvent;
+        onActivate({
+          line: line.number,
+          level: heading.level,
+          x: pointer.clientX,
+          y: pointer.clientY,
+        });
+        return true;
+      },
+    },
+    lineMarker(view, block) {
       const line = view.state.doc.lineAt(block.from);
       const heading = view.state
         .field(displayModelField)
         .headings.find((candidate) => candidate.line === line.number);
-      // A line without a level has no marker, and no menu (SPEC.md §10.2).
-      if (heading === undefined) {
-        return false;
-      }
-
-      const sink = activationSink.get(view);
-      if (sink === undefined) {
-        return false;
-      }
-      const pointer = event as MouseEvent;
-      sink({ line: line.number, level: heading.level, x: pointer.clientX, y: pointer.clientY });
-      return true;
+      return heading === undefined ? null : new HeadingGutterMarker(heading.level, line.number);
     },
-  },
-  lineMarker(view, block) {
-    const line = view.state.doc.lineAt(block.from);
-    const heading = view.state
-      .field(displayModelField)
-      .headings.find((candidate) => candidate.line === line.number);
-    return heading === undefined ? null : new HeadingGutterMarker(heading.level, line.number);
-  },
-  lineMarkerChange(update) {
-    return update.docChanged;
-  },
-  initialSpacer: () => new HeadingGutterMarker(6, 0),
-});
+    lineMarkerChange(update) {
+      return update.docChanged;
+    },
+    initialSpacer: () => new HeadingGutterMarker(6, 0),
+  });
+}
 
 /**
  * Turns a typed dot command into a heading level. SPEC.md §10.2.
@@ -373,7 +391,10 @@ const cutTakesHeadingPrefix = EditorState.transactionFilter.of((transaction) => 
   return [transaction, { changes: { from: prefix.from, to: prefix.to }, sequential: true }];
 });
 
-function extensions(onChange: () => void): readonly Extension[] {
+function extensions(
+  onChange: () => void,
+  onActivate: (activation: HeadingMarkerActivation) => void,
+): readonly Extension[] {
   return [
     displayModelField,
     dotCommandFilter,
@@ -392,7 +413,7 @@ function extensions(onChange: () => void): readonly Extension[] {
     keymap.of([...defaultKeymap, ...historyKeymap]),
     editorTheme,
     displayPlugin,
-    markerGutter,
+    markerGutter(onActivate),
     EditorView.lineWrapping,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
@@ -449,10 +470,16 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
 
   constructor(host: HTMLElement) {
     this.#view = new EditorView({
-      state: EditorState.create({ extensions: [...extensions(() => this.#notify())] }),
+      state: EditorState.create({ extensions: [...this.#extensions()] }),
       parent: host,
     });
-    activationSink.set(this.#view, (activation) => this.#activate(activation));
+  }
+
+  #extensions(): readonly Extension[] {
+    return extensions(
+      () => this.#notify(),
+      (activation) => this.#activate(activation),
+    );
   }
 
   open(document_: EditorDocument): void {
@@ -466,7 +493,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
       existing ??
       EditorState.create({
         doc: document_.text,
-        extensions: [...extensions(() => this.#notify())],
+        extensions: [...this.#extensions()],
       });
 
     this.#states.set(document_.id, next);
@@ -543,7 +570,6 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
     this.#markerListeners.clear();
     this.#states.clear();
     this.#openId = null;
-    activationSink.delete(this.#view);
     this.#view.destroy();
   }
 

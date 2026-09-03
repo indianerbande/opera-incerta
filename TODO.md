@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **800 tests**, plus the desktop and asset checks.
+projects, **817 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -59,44 +59,12 @@ has to be consulted to build, verify or change the product.
    suspicion to test first is a race between the menu save and the
    watcher-driven re-read.
 
-7. **Untangling the renderer, second round.** The first round (2026-09-03)
-   took the flows out of the shell into `LibraryActions` and
-   `SourceControlActions`, one overlay, one error translator, and one
-   re-adopt choreography in the workspace store. What the review found and
-   this round left, in the order to take them:
-   - **a shared dialog shell.** Backdrop, Escape handling, centring, the
-     button reset, and the `.hint` styling are copied into eight dialog
-     components (`text-prompt`, `confirm-prompt`, `text-editor`, `branches`,
-     `diff-view`, `conflict-resolver`, `category-manager`,
-     `new-project-dialog`), which is the failure C-U7 names. One `wi-dialog`
-     with a header slot and a handful of custom properties in `styles.css`
-     would delete about four hundred lines; the smoke selects by component
-     tag and inner class (`wi-confirm-prompt button`, `.warning`), so those
-     must survive;
-   - **one way to hand state to components.** `LibraryDrag` is passed whole
-     as an input and threaded through every `wi-explorer-node`, while
-     `SourceControlStore` is exploded into fourteen inputs and eighteen
-     outputs. `DESKTOP_BRIDGE` is an injection token nobody provides or
-     injects. Either provide the stores and the drag at the root and
-     `inject()` them, or keep inputs everywhere — not both;
-   - **`linkedSignal` instead of `queueMicrotask`** in `text-prompt`,
-     `text-editor`, `category-manager`, and `diff-view`, which copy an input
-     into a local signal a tick after construction;
-   - **the drag's DOM protocol.** `data-drop`, `data-drop-list`,
-     `data-parent`, `data-path`, `data-name` are a five-attribute contract
-     across three files with no shared constant, and `#peers` queries the
-     whole document on every pointer move. The siblings and the index come
-     from the library model; only the bounding box needs the DOM;
-   - **a `LauncherStore`** for the welcome window, which reimplements the
-     bridge-running pattern inside a component;
-   - **`LayoutState`**: writable signals where the stores expose read-only
-     ones; the three front-matter toggles do not persist until an unrelated
-     change does; `showDeeperOutline` is mirrored into the workspace store;
-     and the view names are validated against lists that duplicate the
-     union types;
-   - **the CodeMirror adapter**: a module-level `WeakMap` where a closure
-     parameter would do; the display model re-parsed on every selection
-     change; an `EditorState` kept forever per document id.
+7. **The CodeMirror adapter keeps an `EditorState` per document id for as
+   long as the adapter lives** (`codemirror-editor-adapter.ts`, `#states`),
+   deleted sheets included. Forgetting one needs a way to say so through the
+   editor boundary (`EditorAdapter` in the core), which changes the contract
+   suite; the rest of the review's adapter findings are done. Small, and a
+   memory question only for a very long session.
 
 ## 2. To decide before code exists
 

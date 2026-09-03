@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, linkedSignal, output } from '@angular/core';
+import { DialogComponent } from './dialog.component.js';
 
 /**
  * A small editor for one plain-text file that is not a sheet. SPEC.md §12.
@@ -10,10 +11,9 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 @Component({
   selector: 'wi-text-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'close.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="close.emit()"></div>
-    <div class="dialog" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+    <wi-dialog [label]="title()" width="min(520px, calc(100vw - 48px))" (dismiss)="close.emit()">
       <header>
         <h2>{{ title() }}</h2>
         <button type="button" (click)="close.emit()">Cancel</button>
@@ -27,65 +27,19 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
         (input)="draft.set(value($event))"
       ></textarea>
       <p class="hint">{{ hint() }}</p>
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .dialog {
-      position: fixed;
-      top: 45%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(520px, calc(100vw - 48px));
-      padding: 12px 14px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    h2 {
-      flex: 1 1 auto;
-      margin: 0;
-      font-size: 14px;
-    }
     textarea {
       height: 40vh;
       padding: 6px 8px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
       font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
       resize: none;
       white-space: pre;
-    }
-    .hint {
-      margin: 0;
-      color: rgba(128, 128, 128, 0.95);
-      font-size: 11px;
-    }
-    button {
-      flex: none;
-      padding: 3px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
     }
   `,
 })
@@ -97,13 +51,8 @@ export class TextEditorComponent {
   readonly save = output<string>();
   readonly close = output<void>();
 
-  protected readonly draft = signal('');
-
-  constructor() {
-    // `text` arrives before the first render; seeding it here shows the file
-    // as it is rather than an empty box.
-    queueMicrotask(() => this.draft.set(this.text()));
-  }
+  /** Seeded from the file, then the author's. */
+  protected readonly draft = linkedSignal(() => this.text());
 
   protected value(event: Event): string {
     return (event.target as HTMLTextAreaElement).value;

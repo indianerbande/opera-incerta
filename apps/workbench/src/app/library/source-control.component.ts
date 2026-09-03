@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { isConflicted } from '@opera-incerta/core';
-import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
-import type { GitTracking } from '@opera-incerta/desktop-contract';
+import type { GitFileStatus } from '@opera-incerta/core';
+import { SourceControlActions } from '../workspace/source-control-actions.js';
+import { SourceControlStore } from '../workspace/source-control-store.js';
 
 /**
  * The source control panel. SPEC.md §12.
@@ -10,39 +11,40 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
  * checkbox each, a message field, and the two commit actions. Checked means
  * staged.
  *
- * Not offered, deliberately: pull, fetch, upstream creation, branches, merge
- * resolution, amend, and discarding changes. The last is destructive and needs
- * a confirmation prompt of its own.
+ * Below that, what the branch tracks and the actions on it: fetch, pull,
+ * merge, publish, branches, amend, the ignore list, discarding. Everything
+ * that needs a question first goes through `SourceControlActions`, which
+ * puts up the dialog; the plain operations go to the store (SPEC.md §8.7).
  */
 @Component({
   selector: 'wi-source-control',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (root() === null) {
+    @if (store.repositoryRoot() === null) {
       <p class="hint">
-        {{ loaded() ? 'This project is not inside a Git repository.' : 'Reading…' }}
+        {{ store.loaded() ? 'This project is not inside a Git repository.' : 'Reading…' }}
       </p>
     } @else {
       <div class="panel">
-        @if (branch(); as name) {
+        @if (store.branch(); as name) {
           <div class="branch-row">
             <span class="branch-name" [title]="'On branch ' + name">{{ name }}</span>
-            <button type="button" (click)="showBranches.emit()">Branches…</button>
+            <button type="button" (click)="actions.openBranches()">Branches…</button>
           </div>
         }
 
-        @if (canPublish()) {
+        @if (store.canPublish()) {
           <div class="tracking">
             <div class="remote">
-              <span class="upstream">{{ branch() }} — not published</span>
+              <span class="upstream">{{ store.branch() }} — not published</span>
             </div>
             <div class="remote-actions">
-              <button type="button" (click)="publish.emit()">Publish branch…</button>
+              <button type="button" (click)="actions.askToPublish()">Publish branch…</button>
             </div>
           </div>
         }
 
-        @if (tracking(); as remote) {
+        @if (store.tracking(); as remote) {
           <div class="tracking">
             <div class="remote">
               <span class="upstream" [title]="'Tracking ' + remote.upstream">{{
@@ -61,46 +63,48 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
               </span>
             </div>
             <div class="remote-actions">
-              <button type="button" (click)="fetch.emit()">Fetch</button>
-              <button type="button" [disabled]="!canPull()" (click)="pull.emit()">Pull</button>
-              @if (canMerge()) {
-                <button type="button" (click)="merge.emit()">Merge…</button>
+              <button type="button" (click)="store.fetch()">Fetch</button>
+              <button type="button" [disabled]="!store.canPull()" (click)="store.pull()">
+                Pull
+              </button>
+              @if (store.canMerge()) {
+                <button type="button" (click)="actions.askToMerge()">Merge…</button>
               }
             </div>
           </div>
         }
 
-        @if (merging()) {
+        @if (store.merging()) {
           <div class="merging" role="status">
             <span>Merge in progress. Decide each conflict, then commit.</span>
-            <button type="button" (click)="abortMerge.emit()">Abort merge</button>
+            <button type="button" (click)="store.abortMerge()">Abort merge</button>
           </div>
         }
 
         <div class="ignore-row">
-          <button type="button" (click)="editIgnore.emit()">Ignored files…</button>
+          <button type="button" (click)="actions.openIgnore()">Ignored files…</button>
         </div>
 
         <div class="changes-header">
           <input
             type="checkbox"
-            [checked]="selectAll() === 'all'"
-            [indeterminate]="selectAll() === 'some'"
-            [disabled]="entries().length === 0"
+            [checked]="store.selectAll() === 'all'"
+            [indeterminate]="store.selectAll() === 'some'"
+            [disabled]="store.entries().length === 0"
             [attr.aria-label]="'Stage all changes'"
-            (change)="toggleAll.emit()"
+            (change)="store.toggleAll()"
           />
-          <span>Changes ({{ entries().length }})</span>
+          <span>Changes ({{ store.entries().length }})</span>
         </div>
 
         <ul class="changes">
-          @for (entry of entries(); track entry.path) {
+          @for (entry of store.entries(); track entry.path) {
             <li class="change">
               <input
                 type="checkbox"
                 [checked]="staged(entry)"
                 [attr.aria-label]="'Stage ' + entry.path"
-                (change)="toggle.emit(entry)"
+                (change)="store.toggle(entry)"
               />
               <span class="status" [title]="statusTitle(entry)">{{ statusCode(entry) }}</span>
               <span class="name">{{ fileName(entry.path) }}</span>
@@ -111,7 +115,7 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
                   class="ignore"
                   [attr.aria-label]="'Ignore ' + entry.path"
                   title="Add to .gitignore"
-                  (click)="ignore.emit(entry)"
+                  (click)="store.ignorePath(entry.path)"
                 >
                   ⊘
                 </button>
@@ -122,7 +126,7 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
                   class="resolve"
                   [attr.aria-label]="'Resolve ' + entry.path"
                   title="Resolve this conflict"
-                  (click)="resolve.emit(entry)"
+                  (click)="actions.openResolver(entry)"
                 >
                   Resolve…
                 </button>
@@ -132,7 +136,7 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
                 class="show-diff"
                 [attr.aria-label]="'Show changes to ' + entry.path"
                 title="Show changes"
-                (click)="showDiff.emit(entry)"
+                (click)="actions.showDiff(entry)"
               >
                 ⤢
               </button>
@@ -141,7 +145,7 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
                 class="discard"
                 [attr.aria-label]="'Discard changes to ' + entry.path"
                 title="Discard changes"
-                (click)="discard.emit(entry)"
+                (click)="actions.askToDiscard(entry)"
               >
                 ↺
               </button>
@@ -155,20 +159,24 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
           class="message"
           rows="3"
           placeholder="Commit message"
-          [value]="message()"
-          (input)="messageChange.emit(value($event))"
+          [value]="store.message()"
+          (input)="store.setMessage(value($event))"
         ></textarea>
 
-        @if (failure(); as reason) {
+        @if (store.failure(); as reason) {
           <p class="failure" role="alert">{{ reason }}</p>
         }
 
         <div class="actions">
-          @if (canAmend()) {
-            <button type="button" class="amend" (click)="amend.emit()">Amend last commit…</button>
+          @if (store.canAmend()) {
+            <button type="button" class="amend" (click)="actions.askToAmend()">
+              Amend last commit…
+            </button>
           }
-          <button type="button" [disabled]="!canCommit()" (click)="commit.emit()">Commit</button>
-          <button type="button" [disabled]="!canCommit()" (click)="commitAndPush.emit()">
+          <button type="button" [disabled]="!store.canCommit()" (click)="store.commit()">
+            Commit
+          </button>
+          <button type="button" [disabled]="!store.canCommit()" (click)="store.commitAndPush()">
             Commit and push
           </button>
         </div>
@@ -424,45 +432,8 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
   `,
 })
 export class SourceControlComponent {
-  readonly entries = input.required<readonly GitFileStatus[]>();
-  readonly selectAll = input.required<SelectAllState>();
-  readonly message = input.required<string>();
-  /** What the last Git action reported, if it failed. SPEC.md §12. */
-  readonly failure = input<string | null>(null);
-  /** What the branch tracks, or null when it tracks nothing. SPEC.md §12. */
-  readonly tracking = input<GitTracking | null>(null);
-  readonly canPull = input(false);
-  readonly canMerge = input(false);
-  readonly merging = input(false);
-  readonly canPublish = input(false);
-  readonly canAmend = input(false);
-  readonly branch = input<string | null>(null);
-
-  readonly canCommit = input.required<boolean>();
-  readonly root = input.required<string | null>();
-  readonly loaded = input.required<boolean>();
-
-  readonly toggle = output<GitFileStatus>();
-  /** Asks to throw a change away; the shell confirms it first. */
-  readonly discard = output<GitFileStatus>();
-  /** Asks to see what changed; the shell fetches and shows it. */
-  readonly showDiff = output<GitFileStatus>();
-  readonly fetch = output<void>();
-  readonly pull = output<void>();
-  readonly merge = output<void>();
-  readonly abortMerge = output<void>();
-  readonly publish = output<void>();
-  readonly showBranches = output<void>();
-  readonly amend = output<void>();
-  readonly editIgnore = output<void>();
-  /** Asks to add one untracked file to `.gitignore`. SPEC.md §12. */
-  readonly ignore = output<GitFileStatus>();
-  /** Asks to decide one file's conflicts; the shell shows the resolver. */
-  readonly resolve = output<GitFileStatus>();
-  readonly toggleAll = output<void>();
-  readonly messageChange = output<string>();
-  readonly commit = output<void>();
-  readonly commitAndPush = output<void>();
+  protected readonly store = inject(SourceControlStore);
+  protected readonly actions = inject(SourceControlActions);
 
   protected staged(entry: GitFileStatus): boolean {
     return entry.groups.includes('staged');

@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { subgroupsOf, type GroupEntry } from '@opera-incerta/core';
-import type { LibraryDrag } from '../shell/library-drag.js';
+import { LibraryDrag } from '../shell/library-drag.js';
+import { LibraryActions } from '../workspace/library-actions.js';
+import { WorkspaceStore } from '../workspace/workspace-store.js';
 
 /**
  * The project tree. SPEC.md §9.1.
@@ -13,11 +15,14 @@ import type { LibraryDrag } from '../shell/library-drag.js';
  * this view and source control, and component-local state would be destroyed
  * on every switch (CONVENTIONS.md C-U2).
  *
- * Dragging is not handled here either. Each row only *describes* itself in the
- * DOM — what it is, where it sits, what it is called — and the shell, which
- * contains both library columns, does the measuring and deciding
- * (`shell/library-drag.ts`). A drag that can end in the other column cannot
- * belong to one of them.
+ * Dragging is not handled here either. Each row only *names* itself in the
+ * DOM — its kind and its path — and the shell, which contains both library
+ * columns, does the measuring and deciding (`shell/library-drag.ts`). A drag
+ * that can end in the other column cannot belong to one of them.
+ *
+ * The store, the drag, and the actions are injected rather than passed:
+ * threading them through every level of a recursive tree was the reason the
+ * shell's template repeated them (SPEC.md §8.7).
  */
 @Component({
   selector: 'wi-explorer-node',
@@ -27,11 +32,9 @@ import type { LibraryDrag } from '../shell/library-drag.js';
       class="row"
       data-drop="group"
       [attr.data-path]="group().relativePath"
-      [attr.data-parent]="parentPath()"
-      [attr.data-name]="group().name"
-      [class.selected]="selectedPath() === group().relativePath"
-      [class.dragging]="drag().source()?.path === group().relativePath"
-      [class.drop-into]="drag().into() === group().relativePath"
+      [class.selected]="store.selectedGroupPath() === group().relativePath"
+      [class.dragging]="drag.source()?.path === group().relativePath"
+      [class.drop-into]="drag.into() === group().relativePath"
       [class.drop-above]="lineAt() === index()"
       [class.drop-below]="lineAt() !== null && lineAt() === siblingCount() && last()"
       (contextmenu)="onContextMenu($event)"
@@ -41,7 +44,7 @@ import type { LibraryDrag } from '../shell/library-drag.js';
         class="twisty"
         [class.hidden]="subgroups().length === 0"
         [attr.aria-label]="expanded() ? 'Collapse' : 'Expand'"
-        (click)="toggle.emit(group().relativePath)"
+        (click)="store.toggleExpanded(group().relativePath)"
       >
         {{ expanded() ? '▾' : '▸' }}
       </button>
@@ -55,16 +58,10 @@ import type { LibraryDrag } from '../shell/library-drag.js';
         @for (child of subgroups(); track child.relativePath) {
           <wi-explorer-node
             [group]="child"
-            [selectedPath]="selectedPath()"
-            [expandedPaths]="expandedPaths()"
-            [drag]="drag()"
             [parentPath]="group().relativePath"
             [index]="$index"
             [siblingCount]="subgroups().length"
             [last]="$last"
-            (select)="select.emit($event)"
-            (toggle)="toggle.emit($event)"
-            (contextMenu)="contextMenu.emit($event)"
           />
         }
       </div>
@@ -129,10 +126,11 @@ import type { LibraryDrag } from '../shell/library-drag.js';
   `,
 })
 export class ExplorerNodeComponent {
+  protected readonly store = inject(WorkspaceStore);
+  protected readonly drag = inject(LibraryDrag);
+  readonly #actions = inject(LibraryActions);
+
   readonly group = input.required<GroupEntry>();
-  readonly selectedPath = input.required<string>();
-  readonly expandedPaths = input.required<ReadonlySet<string>>();
-  readonly drag = input.required<LibraryDrag>();
 
   /** Where this node sits among its siblings. The root has no parent. */
   readonly parentPath = input('');
@@ -140,34 +138,28 @@ export class ExplorerNodeComponent {
   readonly siblingCount = input(0);
   readonly last = input(false);
 
-  readonly select = output<string>();
-  readonly toggle = output<string>();
-  readonly contextMenu = output<{ path: string; x: number; y: number }>();
-
   protected readonly subgroups = computed(() => subgroupsOf(this.group()));
-  protected readonly expanded = computed(() => this.expandedPaths().has(this.group().relativePath));
+  protected readonly expanded = computed(() =>
+    this.store.expanded().has(this.group().relativePath),
+  );
 
   /** The insertion line's slot, when it belongs to this node's own list. */
   protected readonly lineAt = computed(() => {
-    const line = this.drag().line();
+    const line = this.drag.line();
     return line !== null && line.kind === 'group' && line.parent === this.parentPath()
       ? line.index
       : null;
   });
 
   protected onSelect(): void {
-    if (this.drag().consumeClick()) {
+    if (this.drag.consumeClick()) {
       return;
     }
-    this.select.emit(this.group().relativePath);
+    this.store.selectGroup(this.group().relativePath);
   }
 
   protected onContextMenu(event: MouseEvent): void {
     event.preventDefault();
-    this.contextMenu.emit({
-      path: this.group().relativePath,
-      x: event.clientX,
-      y: event.clientY,
-    });
+    this.#actions.openGroupMenu(this.group().relativePath, { x: event.clientX, y: event.clientY });
   }
 }

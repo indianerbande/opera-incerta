@@ -7,6 +7,7 @@ import {
   output,
   viewChild,
 } from '@angular/core';
+import { DialogComponent } from './dialog.component.js';
 
 /**
  * Asking before something is taken away. SPEC.md §6.7.
@@ -25,13 +26,16 @@ import {
 @Component({
   selector: 'wi-confirm-prompt',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '(document:keydown.escape)': 'cancel.emit()',
-    '(document:keydown.enter)': 'cancel.emit()',
-  },
+  imports: [DialogComponent],
+  // Escape is the dialog's; Return is this component's rule, see above.
+  host: { '(document:keydown.enter)': 'cancel.emit()' },
   template: `
-    <div class="backdrop" (mousedown)="cancel.emit()"></div>
-    <div class="prompt" role="alertdialog" aria-modal="true" [attr.aria-label]="title()">
+    <wi-dialog
+      [label]="title()"
+      role="alertdialog"
+      width="min(380px, calc(100vw - 48px))"
+      (dismiss)="cancel.emit()"
+    >
       <h2>{{ title() }}</h2>
       @if (warning(); as note) {
         <p class="warning">{{ note }}</p>
@@ -41,64 +45,21 @@ import {
         <button type="button" class="cancel" #cancelButton (click)="cancel.emit()">Cancel</button>
         <button type="button" class="danger" (click)="confirm.emit()">{{ confirmLabel() }}</button>
       </div>
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .prompt {
-      position: fixed;
-      top: 40%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(380px, calc(100vw - 48px));
-      padding: 14px 16px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    h2 {
-      margin: 0;
-      font-size: 14px;
-    }
     p {
       margin: 0;
     }
     .warning {
       font-weight: 600;
     }
-    .hint {
-      color: rgba(128, 128, 128, 0.95);
-      font-size: 11px;
-    }
-    .actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    button {
-      padding: 3px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
-    }
     button.cancel:focus-visible {
       outline: 2px solid rgba(128, 128, 128, 0.9);
     }
     button.danger {
-      border-color: rgba(190, 60, 60, 0.7);
-      color: rgb(190, 60, 60);
+      border-color: var(--wi-danger-border);
+      color: var(--wi-danger);
     }
   `,
 })

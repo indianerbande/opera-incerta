@@ -260,7 +260,19 @@ Component and state tests MUST cover:
   switching on confirmation; publishing asks for an address only when no
   remote is recorded; amending fills the field from the last commit and
   quotes it; the diff, the resolver, and the ignore editor open on what was
-  read and open nothing when the read failed.
+  read and open nothing when the read failed;
+- the launcher's state without its component: the recent list read and
+  re-read after forgetting, an unavailable entry reported without asking the
+  bridge, a cancelled chooser changing nothing, a failed creation keeping the
+  dialog open with its code, and the menu driving the same actions as the
+  buttons;
+- a drag row described from the model: a sheet placed among the sheets of
+  its group by file name, a group among the subgroups of its parent with
+  sheets not counted, the root as a destination without a parent, an
+  unknown path as null, and the end of a list as one past its last row; and
+- the layout state persisting the front matter switches, and typing the
+  views it accepts so an unknown one is a compile error rather than a
+  silently ignored call.
 
 **The editor adapter has one contract suite for every implementation**
 (`CONVENTIONS.md` C-T11). It is written without a test framework so that the

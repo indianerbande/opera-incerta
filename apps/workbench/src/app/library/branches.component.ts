@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import type { GitBranch } from '@opera-incerta/desktop-contract';
+import { DialogComponent } from '../shell/dialog.component.js';
 
 /**
  * The branches of the project, and what can be done with them. SPEC.md §12.
@@ -16,10 +17,14 @@ import type { GitBranch } from '@opera-incerta/desktop-contract';
 @Component({
   selector: 'wi-branches',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'close.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="close.emit()"></div>
-    <div class="dialog" role="dialog" aria-modal="true" aria-label="Branches">
+    <wi-dialog
+      label="Branches"
+      width="min(440px, calc(100vw - 48px))"
+      maxHeight="60vh"
+      (dismiss)="close.emit()"
+    >
       <header>
         <h2>Branches</h2>
         <button type="button" (click)="create.emit()">New branch…</button>
@@ -43,46 +48,14 @@ import type { GitBranch } from '@opera-incerta/desktop-contract';
           <li class="empty">This repository has no branch yet.</li>
         }
       </ul>
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .dialog {
-      position: fixed;
-      top: 45%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(440px, calc(100vw - 48px));
-      max-height: 60vh;
-      padding: 12px 14px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    h2 {
-      flex: 1 1 auto;
-      margin: 0;
-      font-size: 14px;
-    }
     .list {
       overflow-y: auto;
       margin: 0;
       padding: 0;
-      border-top: 1px solid rgba(128, 128, 128, 0.25);
+      border-top: 1px solid var(--wi-separator);
       list-style: none;
     }
     li {
@@ -92,7 +65,7 @@ import type { GitBranch } from '@opera-incerta/desktop-contract';
       padding: 4px 0;
     }
     li.empty {
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
     .name {
       overflow: hidden;
@@ -105,21 +78,11 @@ import type { GitBranch } from '@opera-incerta/desktop-contract';
     }
     .here {
       flex: none;
-      color: rgba(128, 128, 128, 0.95);
-    }
-    button {
-      flex: none;
-      padding: 2px 8px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
+      color: var(--wi-muted);
     }
     button.delete {
-      border-color: rgba(190, 60, 60, 0.5);
-      color: rgb(150, 60, 60);
+      border-color: var(--wi-danger-border);
+      color: var(--wi-danger);
     }
   `,
 })

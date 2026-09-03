@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
   PREVIEW_DENSITIES,
   categoryTextColor,
@@ -9,7 +9,10 @@ import {
   type PreviewDensity,
   type SheetEntry,
 } from '@opera-incerta/core';
-import type { LibraryDrag } from '../shell/library-drag.js';
+import { LibraryDrag } from '../shell/library-drag.js';
+import { LayoutState } from '../shell/layout-state.js';
+import { LibraryActions } from '../workspace/library-actions.js';
+import { WorkspaceStore } from '../workspace/workspace-store.js';
 
 const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
 
@@ -24,8 +27,13 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
  *
  * Rows can be dragged into a new order (SPEC.md §6.4) or onto a group in the
  * tree to move there (§6.8). The dragging itself is not handled here: a row
- * only *describes* itself in the DOM, and the shell — which contains both
- * library columns — measures and decides (`shell/library-drag.ts`).
+ * only *names* itself in the DOM — its kind and its path — and the shell,
+ * which contains both library columns, measures and decides
+ * (`shell/library-drag.ts`).
+ *
+ * Reads the store and the layout directly (SPEC.md §8.7): what it shows is
+ * the selected group's sheets at the chosen density, and nothing about that
+ * is the shell's to pass along.
  */
 @Component({
   selector: 'wi-sheet-list',
@@ -34,7 +42,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
     <ul class="list" data-drop-list="sheet" [attr.data-parent]="groupPath()">
       @for (sheet of sheets(); track sheet.relativePath) {
         <li
-          [class.dragging]="drag().source()?.path === sheet.relativePath"
+          [class.dragging]="drag.source()?.path === sheet.relativePath"
           [class.drop-above]="lineAt() === $index"
           [class.drop-below]="lineAt() === sheets().length && $last"
         >
@@ -43,8 +51,6 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
             class="row"
             data-drop="sheet"
             [attr.data-path]="sheet.relativePath"
-            [attr.data-parent]="groupPath()"
-            [attr.data-name]="sheet.name"
             [class.selected]="sheet.relativePath === selectedPath()"
             (click)="onSelect(sheet.relativePath)"
             (contextmenu)="onContextMenu($event, sheet)"
@@ -150,17 +156,18 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
   `,
 })
 export class SheetListComponent {
-  readonly sheets = input.required<readonly SheetEntry[]>();
-  readonly selectedPath = input<string | null>(null);
-  readonly density = input.required<PreviewDensity>();
-  readonly showBlankLines = input(false);
-  readonly drag = input.required<LibraryDrag>();
-  /** The group these sheets belong to; part of what a row says about itself. */
-  readonly groupPath = input.required<string>();
-  readonly categories = input.required<readonly PageCategory[]>();
+  readonly #store = inject(WorkspaceStore);
+  readonly #layout = inject(LayoutState);
+  readonly #actions = inject(LibraryActions);
+  protected readonly drag = inject(LibraryDrag);
 
-  readonly select = output<string>();
-  readonly contextMenu = output<{ path: string; name: string; x: number; y: number }>();
+  protected readonly sheets = this.#store.visibleSheets;
+  protected readonly selectedPath = computed(() => this.#store.openSheet()?.relativePath ?? null);
+  protected readonly density = this.#layout.sheetListDensity;
+  protected readonly showBlankLines = this.#layout.showBlankLines;
+  /** The group these sheets belong to; the list's own name for its empty space. */
+  protected readonly groupPath = this.#store.selectedGroupPath;
+  protected readonly categories = this.#store.categories;
 
   /**
    * The category a row shows, or null. An id naming nothing shows nothing:
@@ -176,24 +183,22 @@ export class SheetListComponent {
 
   /** The insertion line's slot, when it belongs to this list. */
   protected readonly lineAt = computed(() => {
-    const line = this.drag().line();
+    const line = this.drag.line();
     return line !== null && line.kind === 'sheet' && line.parent === this.groupPath()
       ? line.index
       : null;
   });
 
   protected onSelect(relativePath: string): void {
-    if (this.drag().consumeClick()) {
+    if (this.drag.consumeClick()) {
       return;
     }
-    this.select.emit(relativePath);
+    void this.#store.selectSheet(relativePath);
   }
 
   protected onContextMenu(event: MouseEvent, sheet: SheetEntry): void {
     event.preventDefault();
-    this.contextMenu.emit({
-      path: sheet.relativePath,
-      name: sheet.displayName,
+    this.#actions.openSheetMenu(sheet.relativePath, sheet.displayName, {
       x: event.clientX,
       y: event.clientY,
     });

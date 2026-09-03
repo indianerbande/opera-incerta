@@ -3,11 +3,12 @@ import {
   Component,
   computed,
   input,
+  linkedSignal,
   output,
-  signal,
 } from '@angular/core';
 import { diffProse, readDiff } from '@opera-incerta/core';
 import type { GitVersions } from '@opera-incerta/desktop-contract';
+import { DialogComponent } from '../shell/dialog.component.js';
 
 /**
  * What changed in one file. SPEC.md §12.
@@ -29,10 +30,14 @@ import type { GitVersions } from '@opera-incerta/desktop-contract';
 @Component({
   selector: 'wi-diff-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'close.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="close.emit()"></div>
-    <div class="viewer" role="dialog" aria-modal="true" [attr.aria-label]="'Changes to ' + path()">
+    <wi-dialog
+      [label]="'Changes to ' + path()"
+      width="min(820px, calc(100vw - 64px))"
+      maxHeight="min(70vh, 640px)"
+      (dismiss)="close.emit()"
+    >
       <header>
         <h2>{{ path() }}</h2>
         @if (versions() !== null) {
@@ -85,59 +90,21 @@ import type { GitVersions } from '@opera-incerta/desktop-contract';
           >{{ line.text }}
 </span>}</pre>
       }
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .viewer {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(820px, calc(100vw - 64px));
-      max-height: min(70vh, 640px);
-      padding: 12px 14px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
     h2 {
       overflow: hidden;
-      flex: 1 1 auto;
-      margin: 0;
       font-size: 13px;
       white-space: nowrap;
       text-overflow: ellipsis;
-    }
-    button {
-      padding: 3px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
     }
     pre {
       overflow: auto;
       flex: 1 1 auto;
       margin: 0;
       padding: 6px 0;
-      border-top: 1px solid rgba(128, 128, 128, 0.25);
+      border-top: 1px solid var(--wi-separator);
       font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
       line-height: 1.45;
       white-space: pre;
@@ -171,7 +138,7 @@ import type { GitVersions } from '@opera-incerta/desktop-contract';
       border-color: transparent;
     }
     .mode.active {
-      border-color: rgba(128, 128, 128, 0.45);
+      border-color: var(--wi-border);
       background: rgba(128, 128, 128, 0.18);
     }
     .prose {
@@ -179,7 +146,7 @@ import type { GitVersions } from '@opera-incerta/desktop-contract';
       flex: 1 1 auto;
       margin: 0;
       padding: 8px 4px;
-      border-top: 1px solid rgba(128, 128, 128, 0.25);
+      border-top: 1px solid var(--wi-separator);
       font: 14px/1.6 Georgia, 'Times New Roman', serif;
       /* The manuscript's own line breaks are part of what changed. */
       white-space: pre-wrap;
@@ -193,10 +160,6 @@ import type { GitVersions } from '@opera-incerta/desktop-contract';
       background: rgba(180, 70, 70, 0.14);
       color: rgb(150, 60, 60);
       text-decoration: line-through;
-    }
-    .hint {
-      margin: 0;
-      color: rgba(128, 128, 128, 0.95);
     }
   `,
 })
@@ -213,7 +176,9 @@ export class DiffViewComponent {
    * Sheets open word by word, everything else in Git's line diff — which for a
    * structure file is the useful one.
    */
-  protected readonly mode = signal<'words' | 'lines'>('lines');
+  protected readonly mode = linkedSignal<'words' | 'lines'>(() =>
+    this.versions() !== null && this.path().toLowerCase().endsWith('.md') ? 'words' : 'lines',
+  );
 
   protected readonly lines = computed(() => readDiff(this.text()));
   protected readonly words = computed(() => {
@@ -223,11 +188,4 @@ export class DiffViewComponent {
       : diffProse(versions.committed ?? '', versions.current ?? '');
   });
 
-  constructor() {
-    queueMicrotask(() => {
-      if (this.versions() !== null && this.path().toLowerCase().endsWith('.md')) {
-        this.mode.set('words');
-      }
-    });
-  }
 }

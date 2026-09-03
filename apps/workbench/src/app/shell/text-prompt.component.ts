@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
+import { DialogComponent } from './dialog.component.js';
 
 /**
  * Asking for one line of text. SPEC.md §6.4, §6.5.
@@ -10,10 +18,9 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 @Component({
   selector: 'wi-text-prompt',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'cancel.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="cancel.emit()"></div>
-    <div class="prompt" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+    <wi-dialog [label]="title()" width="min(360px, calc(100vw - 48px))" (dismiss)="cancel.emit()">
       <h2>{{ title() }}</h2>
       <input
         type="text"
@@ -30,63 +37,16 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
         <button type="button" (click)="cancel.emit()">Cancel</button>
         <button type="button" [disabled]="!valid()" (click)="submit()">{{ confirmLabel() }}</button>
       </div>
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .prompt {
-      position: fixed;
-      top: 40%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(360px, calc(100vw - 48px));
-      padding: 14px 16px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    h2 {
-      margin: 0;
-      font-size: 14px;
-    }
     input {
       padding: 4px 6px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
       font: inherit;
-    }
-    .hint {
-      margin: 0;
-      color: rgba(128, 128, 128, 0.95);
-      font-size: 11px;
-    }
-    .actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    button {
-      padding: 3px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
-    }
-    button:disabled {
-      opacity: 0.5;
     }
   `,
 })
@@ -100,14 +60,9 @@ export class TextPromptComponent {
   readonly confirm = output<string>();
   readonly cancel = output<void>();
 
-  protected readonly text = signal('');
+  /** Seeded from `initial`, so a rename shows the current name; then the author's. */
+  protected readonly text = linkedSignal(() => this.initial());
   protected readonly valid = computed(() => this.text().trim() !== '');
-
-  constructor() {
-    // `initial` arrives before the first render, so seeding it here shows the
-    // current name in a rename rather than an empty field.
-    queueMicrotask(() => this.text.set(this.initial()));
-  }
 
   protected submit(): void {
     if (this.valid()) {

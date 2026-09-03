@@ -6,6 +6,84 @@ documents").
 
 ---
 
+## 2026-09-03 — the renderer, second round: one dialog, one way in, rows from the model
+
+**What was open.** The first round took the flows out of the shell; `TODO.md`
+§1.7 listed what the review had found beyond that, in the order to take it.
+This round took all of it but one line.
+
+**What changed.**
+
+- **One dialog shell.** `wi-dialog` draws the backdrop and the centred panel,
+  handles Escape, and carries the ARIA role and name; the eight dialogs
+  project their content into it. What the content shares — heading, header
+  row, actions row, buttons, hint — is styled once in `styles.css` under
+  `wi-dialog`, because projected content is outside a component's own
+  encapsulated styles, and the few colours every part agrees on are custom
+  properties there (`--wi-border`, `--wi-muted`, `--wi-danger`, …). The
+  eight copies of the chrome had drifted in top offset, padding, and shadow;
+  they are gone, and so are nineteen literal greys.
+- **State is provided once and injected where it is read**
+  (`workspace/providers.ts`). The stores, the layout, the drag, the overlay,
+  and the two action classes are provided at the shell; the tree, the sheet
+  list, and the source control panel inject what they read. The source
+  control panel's fourteen inputs and eighteen outputs are gone, and its tag
+  in the shell is `<wi-source-control />`. The drag state no longer travels
+  through every level of the tree. `DESKTOP_BRIDGE`, an injection token
+  nobody provided, is now the one place the bridge is resolved.
+- **A library row names itself by kind and path only.** `describeRow` and
+  `describeListEnd` in `library-drag.ts` read the rest — the index among the
+  siblings, their names, the group above — from the library model, and are
+  pure and tested. The five-attribute `data-` contract across three files is
+  two attributes, and the document is no longer queried on every pointer
+  move.
+- **`linkedSignal` instead of `queueMicrotask`** in the four dialogs that
+  seed a local copy from an input: synchronous on first paint, re-seeded
+  when the input changes, and no comment needed to explain a tick.
+- **`LauncherStore`** holds the welcome window's state and runs against the
+  fake bridge in twelve tests; the component is thirty lines and renders.
+- **`LayoutState`** exposes read-only signals like the stores; the three
+  front matter switches persist like every other preference (they persisted
+  only as a side effect of the next unrelated change); the activity bar is
+  generic over its region's view union, so an unknown view is a compile
+  error rather than a silently ignored call; the secondary sidebar's title
+  is the label of its active entry rather than a second list of the same
+  words; and the outline depth is read from the layout where it lives, no
+  longer mirrored into the workspace store.
+- **The CodeMirror adapter** builds its gutter per adapter with a closure
+  instead of a module-level map from view to adapter, skips re-parsing the
+  document for a selection change that stays on its line — which was every
+  arrow key — and has its imports in three statements rather than six.
+
+**What was left, and why.** The adapter keeps an `EditorState` per document
+id for as long as it lives, deleted sheets included. Forgetting one needs a
+word through the editor boundary in the core, which changes the contract
+suite; it is the one item still in `TODO.md` §1.7.
+
+**Verification.** `pnpm run check` green: **817 tests** — twelve for the
+launcher store, five for the model-described rows, one for the persisting
+switches, and every existing test unchanged and green; the layout test that
+passed `'nonsense'` to the navigator lost that half, because it no longer
+compiles. The Angular build type-checks every rewritten template. `pnpm run
+desktop:smoke` green across **thirty checks**, the same lines: the smoke
+selects dialogs by component tag and inner class, and both survived the
+shell. The screenshots were looked at: the delete confirmation, the conflict
+resolver, and the ignore editor sit centred with their chrome in place.
+
+Three falsifications: with an unavailable project opened anyway, exactly the
+launcher test for it failed; with a row's index one too high, the two
+row-placement tests failed and no other; with the front matter switch no
+longer stored, exactly the new persistence test failed.
+
+**Lesson.** Encapsulated styles are the reason a shared dialog cannot style
+its content, and the reason eight copies existed. The way out was not to
+weaken the encapsulation but to put the shared rules where projected content
+can be reached — the global sheet, namespaced under the shell's tag. And an
+injection token that nobody provides is a decision that was never made; the
+two ways of handing state around were the cost of not making it.
+
+---
+
 ## 2026-09-03 — the shell renders, the flows decide
 
 **What was found.** The architecture review's picture of the renderer: the

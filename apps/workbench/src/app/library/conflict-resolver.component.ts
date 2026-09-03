@@ -7,6 +7,7 @@ import {
   type ConflictChoice,
   type ConflictRegion,
 } from '@opera-incerta/core';
+import { DialogComponent } from '../shell/dialog.component.js';
 
 /**
  * Deciding a merge, one conflict at a time. SPEC.md §12.
@@ -27,10 +28,14 @@ import {
 @Component({
   selector: 'wi-conflict-resolver',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'close.emit()' },
+  imports: [DialogComponent],
   template: `
-    <div class="backdrop" (mousedown)="close.emit()"></div>
-    <div class="resolver" role="dialog" aria-modal="true" [attr.aria-label]="'Resolve ' + path()">
+    <wi-dialog
+      [label]="'Resolve ' + path()"
+      width="min(880px, calc(100vw - 64px))"
+      maxHeight="min(76vh, 700px)"
+      (dismiss)="close.emit()"
+    >
       <header>
         <h2>{{ path() }}</h2>
         <span class="count">{{ decided() }} of {{ total() }} decided</span>
@@ -77,65 +82,23 @@ import {
           </section>
         }
       </div>
-    </div>
+    </wi-dialog>
   `,
   styles: `
-    .backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.2);
-    }
-    .resolver {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: min(880px, calc(100vw - 64px));
-      max-height: min(76vh, 700px);
-      padding: 12px 14px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
-      border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
-      transform: translate(-50%, -50%);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
     h2 {
       overflow: hidden;
-      flex: 1 1 auto;
-      margin: 0;
       font-size: 13px;
       white-space: nowrap;
       text-overflow: ellipsis;
     }
     .count {
       flex: none;
-      color: rgba(128, 128, 128, 0.95);
-    }
-    button {
-      flex: none;
-      padding: 3px 10px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      font: inherit;
-      cursor: default;
-    }
-    button:disabled {
-      opacity: 0.5;
+      color: var(--wi-muted);
     }
     .regions {
       overflow: auto;
       flex: 1 1 auto;
-      border-top: 1px solid rgba(128, 128, 128, 0.25);
+      border-top: 1px solid var(--wi-separator);
     }
     .region {
       display: grid;
@@ -164,7 +127,7 @@ import {
       font-weight: 400;
       white-space: nowrap;
       text-overflow: ellipsis;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
     }
     .text {
       margin: 6px 0 0;

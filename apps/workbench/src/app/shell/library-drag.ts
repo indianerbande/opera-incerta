@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import { findGroup, sheetsInGroup, subgroupsOf, type GroupEntry } from '@opera-incerta/core';
 
 /**
  * Dragging an entry in the library: to a new place among its siblings
@@ -73,6 +74,65 @@ export interface InsertionLine {
   readonly kind: 'sheet' | 'group';
   readonly parent: string;
   readonly index: number;
+}
+
+/**
+ * What a row is, read from the library rather than from the DOM.
+ *
+ * A row in either column names only its kind and its path; where it sits,
+ * what its neighbours are called, and which group holds it all follow from
+ * the model. Reading them from `data-` attributes made a five-attribute
+ * contract between three files, and finding the neighbours meant querying the
+ * whole document on every pointer move. Only the row's box needs the DOM.
+ */
+export function describeRow(
+  library: GroupEntry,
+  kind: 'sheet' | 'group',
+  path: string,
+): { readonly row: DragRow; readonly siblings: readonly string[] } | null {
+  if (kind === 'group' && path === '.') {
+    // The root has no siblings and no group above it: a destination, never a
+    // passenger.
+    return { row: { kind, path, parent: '', index: 0 }, siblings: [] };
+  }
+  const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '.';
+  const peers = peersIn(library, kind, parent);
+  if (peers === null) {
+    return null;
+  }
+  const index = peers.findIndex((peer) => peer.relativePath === path);
+  if (index === -1) {
+    return null;
+  }
+  return { row: { kind, path, parent, index }, siblings: peers.map((peer) => peer.name) };
+}
+
+/** The empty space past the last row of a list: the end of that list. */
+export function describeListEnd(
+  library: GroupEntry,
+  kind: 'sheet' | 'group',
+  parent: string,
+): { readonly row: DragRow; readonly siblings: readonly string[] } | null {
+  const peers = peersIn(library, kind, parent);
+  if (peers === null) {
+    return null;
+  }
+  return {
+    row: { kind, path: '', parent, index: peers.length },
+    siblings: peers.map((peer) => peer.name),
+  };
+}
+
+function peersIn(
+  library: GroupEntry,
+  kind: 'sheet' | 'group',
+  parent: string,
+): readonly { readonly relativePath: string; readonly name: string }[] | null {
+  const group = findGroup(library, parent);
+  if (group === null) {
+    return null;
+  }
+  return kind === 'group' ? subgroupsOf(group) : sheetsInGroup(group);
 }
 
 /** How far a pointer must travel before a press becomes a drag. */

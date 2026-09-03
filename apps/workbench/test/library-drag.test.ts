@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import type { GroupEntry } from '@opera-incerta/core';
 import {
   DRAG_THRESHOLD,
   LibraryDrag,
+  describeListEnd,
+  describeRow,
   type DragRow,
   type OverRow,
 } from '../src/app/shell/library-drag.js';
@@ -259,5 +262,100 @@ describe('the project root as a destination', () => {
     drag.moveTo(at(0.5), over(root, []));
 
     expect(drag.drop()).toBeNull();
+  });
+});
+
+describe('describing a row from the model', () => {
+  const library: GroupEntry = {
+    kind: 'group',
+    name: '',
+    relativePath: '.',
+    displayName: 'Book',
+    children: [
+      { kind: 'sheet', name: 'a.md', relativePath: 'a.md', displayName: 'A', preview: [] },
+      { kind: 'sheet', name: 'b.md', relativePath: 'b.md', displayName: 'B', preview: [] },
+      {
+        kind: 'group',
+        name: 'part-1',
+        relativePath: 'part-1',
+        displayName: 'Part 1',
+        children: [
+          {
+            kind: 'sheet',
+            name: 'c.md',
+            relativePath: 'part-1/c.md',
+            displayName: 'C',
+            preview: [],
+          },
+          {
+            kind: 'group',
+            name: 'pre',
+            relativePath: 'part-1/pre',
+            displayName: 'pre',
+            children: [],
+          },
+          {
+            kind: 'group',
+            name: 'post',
+            relativePath: 'part-1/post',
+            displayName: 'post',
+            children: [],
+          },
+        ],
+      },
+      {
+        kind: 'group',
+        name: 'part-2',
+        relativePath: 'part-2',
+        displayName: 'Part 2',
+        children: [],
+      },
+    ],
+  };
+
+  it('places a sheet among the sheets of its group, by file name', () => {
+    expect(describeRow(library, 'sheet', 'b.md')).toEqual({
+      row: { kind: 'sheet', path: 'b.md', parent: '.', index: 1 },
+      siblings: ['a.md', 'b.md'],
+    });
+    expect(describeRow(library, 'sheet', 'part-1/c.md')).toEqual({
+      row: { kind: 'sheet', path: 'part-1/c.md', parent: 'part-1', index: 0 },
+      siblings: ['c.md'],
+    });
+  });
+
+  it('places a group among the subgroups of its parent, sheets not counted', () => {
+    expect(describeRow(library, 'group', 'part-1/post')).toEqual({
+      row: { kind: 'group', path: 'part-1/post', parent: 'part-1', index: 1 },
+      siblings: ['pre', 'post'],
+    });
+    expect(describeRow(library, 'group', 'part-2')).toEqual({
+      row: { kind: 'group', path: 'part-2', parent: '.', index: 1 },
+      siblings: ['part-1', 'part-2'],
+    });
+  });
+
+  it('describes the root as a destination without a parent', () => {
+    expect(describeRow(library, 'group', '.')).toEqual({
+      row: { kind: 'group', path: '.', parent: '', index: 0 },
+      siblings: [],
+    });
+  });
+
+  it('answers null for a path the library does not hold', () => {
+    expect(describeRow(library, 'sheet', 'nowhere.md')).toBeNull();
+    expect(describeRow(library, 'group', 'part-3/x')).toBeNull();
+  });
+
+  it('describes the end of a list as one past its last row', () => {
+    expect(describeListEnd(library, 'sheet', 'part-1')).toEqual({
+      row: { kind: 'sheet', path: '', parent: 'part-1', index: 1 },
+      siblings: ['c.md'],
+    });
+    expect(describeListEnd(library, 'group', '.')).toEqual({
+      row: { kind: 'group', path: '', parent: '.', index: 2 },
+      siblings: ['part-1', 'part-2'],
+    });
+    expect(describeListEnd(library, 'group', 'gone')).toBeNull();
   });
 });

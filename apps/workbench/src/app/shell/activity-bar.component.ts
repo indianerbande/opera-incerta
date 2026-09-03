@@ -10,8 +10,8 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
  * The icon is decorative. The accessible name is what the button *is*, which
  * is why every entry carries one.
  */
-export interface ActivityItem {
-  readonly id: string;
+export interface ActivityItem<TId extends string = string> {
+  readonly id: TId;
   /** Class selecting the mask, defined in this component's styles. */
   readonly icon: string;
   readonly label: string;
@@ -100,10 +100,11 @@ export interface ActivityItem {
     }
   `,
 })
-export class ActivityBarComponent {
-  readonly items = input.required<readonly ActivityItem[]>();
+export class ActivityBarComponent<TId extends string = string> {
+  readonly items = input.required<readonly ActivityItem<TId>[]>();
   /** The active view of the region this bar drives, or null when collapsed. */
-  readonly activeId = input.required<string | null>();
+  readonly activeId = input.required<TId | null>();
 
-  readonly activate = output<string>();
+  /** The id of the chosen entry — a member of the region's own view union. */
+  readonly activate = output<TId>();
 }

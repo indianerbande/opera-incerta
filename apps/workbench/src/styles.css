@@ -1,9 +1,70 @@
 :root {
   color-scheme: light dark;
+
+  /*
+   * The few colours every part of the workbench agrees on. Defined once so
+   * that a grey is one decision rather than nineteen literals (CONVENTIONS.md
+   * C-U7). Components read them with var(); nothing else is global.
+   */
+  --wi-border: rgba(128, 128, 128, 0.45);
+  --wi-separator: rgba(128, 128, 128, 0.25);
+  --wi-muted: rgba(128, 128, 128, 0.95);
+  --wi-danger: rgb(190, 60, 60);
+  --wi-danger-border: rgba(190, 60, 60, 0.7);
 }
 
 html,
 body {
   margin: 0;
   height: 100%;
+}
+
+/*
+ * What every dialog's content shares: its heading, its header row, its
+ * actions row, its buttons, its hint. The dialog itself (`wi-dialog`) draws
+ * the backdrop and the panel; these rules reach the content projected into
+ * it, which a component's own encapsulated styles cannot. One place for
+ * the chrome, so a dialog cannot misplace it (SPEC.md §8.7).
+ */
+wi-dialog h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+wi-dialog header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+wi-dialog header h2 {
+  flex: 1 1 auto;
+}
+
+wi-dialog .actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+wi-dialog button {
+  flex: none;
+  padding: 3px 10px;
+  border: 1px solid var(--wi-border);
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+wi-dialog button:disabled {
+  opacity: 0.5;
+}
+
+wi-dialog .hint {
+  margin: 0;
+  color: var(--wi-muted);
+  font-size: 11px;
 }

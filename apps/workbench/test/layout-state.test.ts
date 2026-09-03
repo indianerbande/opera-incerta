@@ -31,12 +31,9 @@ describe('regions', () => {
     expect(layout.secondaryVisible()).toBe(true);
   });
 
-  it('switches the navigator and ignores an unknown view', () => {
+  it('switches the navigator', () => {
     const layout = new LayoutState();
     layout.showNavigator('sourceControl');
-    expect(layout.navigatorView()).toBe('sourceControl');
-
-    layout.showNavigator('nonsense');
     expect(layout.navigatorView()).toBe('sourceControl');
   });
 
@@ -116,6 +113,23 @@ describe('column widths', () => {
 });
 
 describe('persistence', () => {
+  it('stores the front matter switches like every other preference', async () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    layout.toggleFrontMatter();
+    layout.toggleFrontMatterWritable();
+    layout.toggleOwnedFrontMatter();
+    await Promise.resolve();
+
+    // Three changes, three records, the last one carrying all three.
+    expect(bridge.written).toHaveLength(3);
+    expect(bridge.written[2]).toMatchObject({
+      showFrontMatter: !DEFAULT_PREFERENCES.showFrontMatter,
+      frontMatterWritable: !DEFAULT_PREFERENCES.frontMatterWritable,
+      showOwnedFrontMatter: !DEFAULT_PREFERENCES.showOwnedFrontMatter,
+    });
+  });
+
   it('stores the whole record on every change', async () => {
     const bridge = storingBridge();
     const layout = new LayoutState(bridge);

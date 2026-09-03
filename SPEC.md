@@ -1108,6 +1108,31 @@ the only way to reach it was to render the component. Nothing prevented two
 dialogs at once. The flows are the part of the renderer most worth testing
 and were the one part untested.
 
+**One dialog shell.** Every dialog projects its content into `wi-dialog`,
+which draws the backdrop and the centred panel, handles Escape, and carries
+the ARIA role and name. What the content shares beyond that — heading,
+header row, actions row, buttons, hint — is styled once, in the global
+stylesheet under `wi-dialog`, because projected content is outside a
+component's own styles. Eight dialogs used to carry their own copy of the
+chrome, and the copies had drifted in offset, padding, and shadow.
+
+**State is provided once and injected where it is read.** The stores, the
+layout, the drag, the overlay, and the two action classes are provided at
+the shell (`workspace/providers.ts`) and injected by the region that reads
+them. A region's tag in the shell's template says only what the region is.
+The alternative — every store value as an input, every action as an
+output — had put fourteen inputs and eighteen outputs on the source control
+panel and threaded the drag state through every level of the tree.
+
+**A library row names itself by kind and path only.** Where it sits among
+its siblings, what they are called, and which group holds it follow from
+the library model, not from `data-` attributes; only the row's box needs
+the DOM.
+
+**A dialog's local copy of an input is a `linkedSignal`.** It seeds from the
+input synchronously and re-seeds when the input changes, so a rename shows
+the current name on first paint without a microtask.
+
 ## 9. Library
 
 ### 9.1 Project explorer

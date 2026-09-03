@@ -2,11 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  computed,
   effect,
   inject,
-  signal,
   viewChild,
 } from '@angular/core';
+import { visibleOutline } from '@opera-incerta/core';
 
 import { EditorComponent } from './editor/editor.component.js';
 import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
@@ -19,7 +20,7 @@ import { SourceControlComponent } from './library/source-control.component.js';
 import { ActivityBarComponent } from './shell/activity-bar.component.js';
 import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
-import { LibraryDrag, type OverRow } from './shell/library-drag.js';
+import { LibraryDrag, describeListEnd, describeRow, type OverRow } from './shell/library-drag.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
 import {
   LayoutState,
@@ -35,9 +36,10 @@ import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
 import { OutlineComponent } from './sidebar/outline.component.js';
-import { type MenuEntry, type Overlay } from './shell/overlay.js';
-import { resolveBridge } from './workspace/bridge.js';
+import { type MenuEntry } from './shell/overlay.js';
+import { DESKTOP_BRIDGE } from './workspace/bridge.js';
 import { LibraryActions } from './workspace/library-actions.js';
+import { OVERLAY, WORKBENCH_PROVIDERS } from './workspace/providers.js';
 import { SourceControlActions } from './workspace/source-control-actions.js';
 import { SourceControlStore } from './workspace/source-control-store.js';
 import { WorkspaceStore } from './workspace/workspace-store.js';
@@ -55,6 +57,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
 @Component({
   selector: 'wi-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [...WORKBENCH_PROVIDERS],
   imports: [
     ActivityBarComponent,
     BranchesComponent,
@@ -106,53 +109,13 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         @if (layout.navigatorView() === 'explorer') {
           <div class="tree" data-drop-list="group" data-parent=".">
             @if (store.library(); as library) {
-              <wi-explorer-node
-                [group]="library"
-                [selectedPath]="store.selectedGroupPath()"
-                [expandedPaths]="store.expanded()"
-                [drag]="libraryDrag"
-                (select)="store.selectGroup($event)"
-                (toggle)="store.toggleExpanded($event)"
-                (contextMenu)="libraryActions.openGroupMenu($event.path, $event)"
-              />
+              <wi-explorer-node [group]="library" />
             } @else {
               <p class="hint">No project open.</p>
             }
           </div>
         } @else {
-          <wi-source-control
-            [entries]="sourceControl.entries()"
-            [selectAll]="sourceControl.selectAll()"
-            [message]="sourceControl.message()"
-            [failure]="sourceControl.failure()"
-            [tracking]="sourceControl.tracking()"
-            [canPull]="sourceControl.canPull()"
-            [canMerge]="sourceControl.canMerge()"
-            [merging]="sourceControl.merging()"
-            [canPublish]="sourceControl.canPublish()"
-            [canAmend]="sourceControl.canAmend()"
-            [branch]="sourceControl.branch()"
-            [canCommit]="sourceControl.canCommit()"
-            [root]="sourceControl.repositoryRoot()"
-            [loaded]="sourceControl.loaded()"
-            (toggle)="sourceControl.toggle($event)"
-            (discard)="gitActions.askToDiscard($event)"
-            (showDiff)="gitActions.showDiff($event)"
-            (fetch)="sourceControl.fetch()"
-            (pull)="sourceControl.pull()"
-            (merge)="gitActions.askToMerge()"
-            (abortMerge)="sourceControl.abortMerge()"
-            (publish)="gitActions.askToPublish()"
-            (showBranches)="gitActions.openBranches()"
-            (amend)="gitActions.askToAmend()"
-            (editIgnore)="gitActions.openIgnore()"
-            (ignore)="sourceControl.ignorePath($event.path)"
-            (resolve)="gitActions.openResolver($event)"
-            (toggleAll)="sourceControl.toggleAll()"
-            (messageChange)="sourceControl.setMessage($event)"
-            (commit)="sourceControl.commit()"
-            (commitAndPush)="sourceControl.commitAndPush()"
-          />
+          <wi-source-control />
         }
       </section>
 
@@ -176,17 +139,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             ¶
           </label>
         </wi-panel-header>
-        <wi-sheet-list
-          [sheets]="store.visibleSheets()"
-          [selectedPath]="store.openSheet()?.relativePath ?? null"
-          [density]="layout.sheetListDensity()"
-          [showBlankLines]="layout.showBlankLines()"
-          [drag]="libraryDrag"
-          [groupPath]="store.selectedGroupPath()"
-          [categories]="store.categories()"
-          (select)="store.selectSheet($event)"
-          (contextMenu)="libraryActions.openSheetMenu($event.path, $event.name, $event)"
-        />
+        <wi-sheet-list />
       </section>
 
       <wi-resize-divider
@@ -267,13 +220,13 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         />
 
         <section class="secondary-sidebar" [style.width.px]="layout.columnWidths().secondarySidebar">
-          <wi-panel-header [title]="secondaryTitle()">
+          <wi-panel-header [title]="layout.secondaryTitle()">
             @if (layout.secondaryView() === 'outline') {
               <button
                 type="button"
                 [attr.aria-pressed]="layout.showDeeperOutline()"
                 title="Show H3 to H6"
-                (click)="toggleDeeperOutline()"
+                (click)="layout.toggleDeeperOutline()"
               >
                 H3–H6
               </button>
@@ -293,7 +246,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             }
             @case ('outline') {
               <wi-outline
-                [entries]="store.visibleOutlineEntries()"
+                [entries]="visibleOutlineEntries()"
                 (reveal)="revealLine($event)"
               />
             }
@@ -496,19 +449,24 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   `,
 })
 export class AppComponent {
-  readonly #bridge = resolveBridge();
-  protected readonly store = new WorkspaceStore(this.#bridge);
-  protected readonly sourceControl = new SourceControlStore(this.#bridge);
-  protected readonly layout = new LayoutState(this.#bridge);
-
+  // Everything below is provided once, in `WORKBENCH_PROVIDERS`, and injected
+  // here and in every region that reads it (SPEC.md §8.7).
+  readonly #bridge = inject(DESKTOP_BRIDGE);
+  protected readonly store = inject(WorkspaceStore);
+  protected readonly sourceControl = inject(SourceControlStore);
+  protected readonly layout = inject(LayoutState);
   /** What lies over the workbench, if anything. SPEC.md §8.7. */
-  protected readonly overlay = signal<Overlay | null>(null);
-  protected readonly libraryActions = new LibraryActions(this.store, this.overlay);
-  protected readonly gitActions = new SourceControlActions(
-    this.store,
-    this.sourceControl,
-    this.overlay,
-  );
+  protected readonly overlay = inject(OVERLAY);
+  protected readonly libraryActions = inject(LibraryActions);
+  protected readonly gitActions = inject(SourceControlActions);
+  /**
+   * Dragging in the library. SPEC.md §6.4, §6.8.
+   *
+   * The columns name their rows in the DOM and draw what this says; the
+   * measuring happens here, where both of them are in reach. `elementFromPoint`
+   * is what makes a drop in the *other* column possible at all.
+   */
+  protected readonly libraryDrag = inject(LibraryDrag);
 
   protected readonly navigatorItems = NAVIGATOR_ITEMS;
   protected readonly secondaryItems = SECONDARY_ITEMS;
@@ -562,15 +520,6 @@ export class AppComponent {
     return this.store.dirty() ? `${title} •` : title;
   }
 
-  /**
-   * Dragging in the library. SPEC.md §6.4, §6.8.
-   *
-   * The columns describe their rows in the DOM and draw what this says; the
-   * measuring happens here, where both of them are in reach. `elementFromPoint`
-   * is what makes a drop in the *other* column possible at all.
-   */
-  protected readonly libraryDrag = new LibraryDrag();
-
   protected onPointerDown(event: PointerEvent): void {
     const over = this.#rowAt(event.clientX, event.clientY);
     // The root has no siblings and no group above it, so it is a destination
@@ -595,8 +544,18 @@ export class AppComponent {
     void this.store.placeEntry(drop.path, drop.into, drop.before);
   }
 
-  /** The library row under a point, with what the drag needs to know about it. */
+  /**
+   * The library row under a point, with what the drag needs to know about it.
+   *
+   * The DOM says which row and where its box is; the model says the rest —
+   * its place among its siblings, their names, the group above. A row names
+   * itself by kind and path only.
+   */
   #rowAt(x: number, y: number): OverRow | null {
+    const library = this.store.library();
+    if (library === null) {
+      return null;
+    }
     const under = document.elementFromPoint(x, y);
     const element = under?.closest('[data-drop]') ?? null;
     if (element === null) {
@@ -606,43 +565,17 @@ export class AppComponent {
         return null;
       }
       const kind = list.getAttribute('data-drop-list') === 'group' ? 'group' : 'sheet';
-      const parent = list.getAttribute('data-parent') ?? '';
-      const peers = this.#peers(kind, parent);
-      return {
-        row: { kind, path: '', parent, index: peers.length },
-        box: list.getBoundingClientRect(),
-        siblings: peers.map((peer) => peer.getAttribute('data-name') ?? ''),
-        past: true,
-      };
+      const end = describeListEnd(library, kind, list.getAttribute('data-parent') ?? '.');
+      return end === null ? null : { ...end, box: list.getBoundingClientRect(), past: true };
     }
 
     const kind = element.getAttribute('data-drop') === 'group' ? 'group' : 'sheet';
-    const parent = element.getAttribute('data-parent') ?? '';
-    const peers = this.#peers(kind, parent);
+    const described = describeRow(library, kind, element.getAttribute('data-path') ?? '');
+    if (described === null) {
+      return null;
+    }
     const bounds = element.getBoundingClientRect();
-
-    return {
-      row: {
-        kind,
-        path: element.getAttribute('data-path') ?? '',
-        parent,
-        index: peers.indexOf(element),
-      },
-      box: { top: bounds.top, bottom: bounds.bottom },
-      siblings: peers.map((peer) => peer.getAttribute('data-name') ?? ''),
-    };
-  }
-
-  /**
-   * The rows of one list, in the order shown.
-   *
-   * Filtered rather than selected by attribute value: a path may contain
-   * anything a directory name may contain, quotes included.
-   */
-  #peers(kind: 'sheet' | 'group', parent: string): readonly Element[] {
-    return [...document.querySelectorAll(`[data-drop="${kind}"]`)].filter(
-      (peer) => (peer.getAttribute('data-parent') ?? '') === parent,
-    );
+    return { ...described, box: { top: bounds.top, bottom: bounds.bottom } };
   }
 
   /** A chosen menu entry runs after the menu is gone, so it may put up the next overlay. */
@@ -667,23 +600,13 @@ export class AppComponent {
     }
   }
 
-  /** The toggle lives in the layout state; the outline reads it from there. */
-  protected toggleDeeperOutline(): void {
-    this.layout.toggleDeeperOutline();
-    this.store.setDeeperOutline(this.layout.showDeeperOutline());
-  }
+  /** The outline at the depth the layout preference asks for. SPEC.md §11. */
+  protected readonly visibleOutlineEntries = computed(() =>
+    visibleOutline(this.store.outline(), this.layout.showDeeperOutline()),
+  );
 
   /** Outline navigation, routed to the editor. */
   protected revealLine(line: number): void {
     this.editor()?.revealLine(line);
-  }
-
-  protected secondaryTitle(): string {
-    return {
-      inspector: 'Inspector',
-      outline: 'Outline',
-      ai: 'AI assistant',
-      snapshots: 'Snapshots',
-    }[this.layout.secondaryView()];
   }
 }
