@@ -136,7 +136,9 @@ export {
 export type {
   GitFileGroup,
   GitFileStatus,
-  GitTrackingState,
+  GitBranch,
+  GitRemote,
+  GitTracking,
   SelectAllState,
 } from './git-status.js';
 
@@ -180,3 +182,7 @@ export {
   textColorFor,
 } from './category.js';
 export type { BadgeTextColor, PageCategory, RgbColor } from './category.js';
+
+export { CodedError } from './coded-error.js';
+export { classifyGitFailure } from './git-failure.js';
+export type { GitFailureCode } from './git-failure.js';

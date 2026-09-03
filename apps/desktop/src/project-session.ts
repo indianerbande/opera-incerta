@@ -11,20 +11,21 @@ import { mkdir, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MAX_DOCUMENT_BYTES, type ProjectSnapshot } from '@opera-incerta/desktop-contract';
 import {
-  parseSheet,
-  projectDirectoryName,
-  serializeSheet,
-  sheetFileName,
+  CodedError,
+  type GroupEntry,
   arrivalName,
   findGroup,
   moveChild,
+  parseSheet,
+  projectDirectoryName,
   readCategories,
   reorderChild,
+  serializeSheet,
+  sheetFileName,
   sheetsOf,
   withChildOrder,
   withDisplayName,
   withoutChild,
-  type GroupEntry,
 } from '@opera-incerta/core';
 import {
   absolutePathOf,
@@ -34,13 +35,11 @@ import {
   type ProjectFilesystem,
 } from '@opera-incerta/project-node';
 
-export class ProjectSessionError extends Error {
-  readonly code: string;
-
+/** A refusal by the session, with a stable code and no words of its own. */
+export class ProjectSessionError extends CodedError {
   constructor(code: string) {
-    super(code);
+    super(code, code);
     this.name = 'ProjectSessionError';
-    this.code = code;
   }
 }
 
@@ -345,7 +344,7 @@ export class ProjectSession {
     // The order comes from a fresh scan rather than from the caller: the
     // renderer says *what* to place and *where*, never what a group contains.
     const snapshot = await this.reopen();
-    const group = snapshot === null ? null : findGroup(snapshot.library as GroupEntry, groupPath);
+    const group = snapshot === null ? null : findGroup(snapshot.library, groupPath);
     if (group === null) {
       throw new ProjectSessionError('group/unknown');
     }
@@ -433,7 +432,7 @@ export class ProjectSession {
 
 /** The library root of a snapshot, typed for the caller. */
 export function libraryOf(snapshot: ProjectSnapshot): GroupEntry {
-  return snapshot.library as GroupEntry;
+  return snapshot.library;
 }
 
 function byteLength(value: string): number {

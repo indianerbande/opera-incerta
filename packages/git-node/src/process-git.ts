@@ -7,8 +7,17 @@
  * the parsing lives in the portable core.
  */
 import { execFile } from 'node:child_process';
-import { parseGitStatus, parseTrackingHeader, type GitFileStatus } from '@opera-incerta/core';
-import type { GitBranch, GitRemote, GitService, GitTracking } from './index.js';
+import {
+  CodedError,
+  classifyGitFailure,
+  parseGitStatus,
+  parseTrackingHeader,
+  type GitBranch,
+  type GitFileStatus,
+  type GitRemote,
+  type GitTracking,
+} from '@opera-incerta/core';
+import type { GitService } from './index.js';
 
 export interface GitCommandResult {
   readonly stdout: string;
@@ -27,18 +36,26 @@ export interface GitCommandRunner {
  * The `message` **is** what Git wrote, because that is what reaches the author
  * (SPEC.md §12): "does not appear to be a git repository" tells them what to
  * do, while a summary of the exit code tells them nothing. The summary is the
- * fallback for a command that failed without saying anything.
+ * fallback for a command that failed without saying anything. The `code` is
+ * for the interface, read from the same words (`classifyGitFailure`): it can
+ * offer publishing for `git/no-upstream` and merging for
+ * `git/not-fast-forward`, where one code for everything left it nothing to
+ * act on.
  */
-export class GitError extends Error {
-  readonly code = 'git/command-failed';
+export class GitError extends CodedError {
   readonly args: readonly string[];
   readonly exitCode: number;
   readonly stderr: string;
 
   constructor(args: readonly string[], result: GitCommandResult) {
-    super(result.stderr.trim() === ''
-      ? `git ${args.join(' ')} failed with ${result.exitCode}`
-      : result.stderr.trim());
+    super(
+      // Both streams: a merge writes "CONFLICT" and "Automatic merge failed"
+      // to stdout, and only the rest to stderr.
+      classifyGitFailure(`${result.stderr}\n${result.stdout}`),
+      result.stderr.trim() === ''
+        ? `git ${args.join(' ')} failed with ${result.exitCode}`
+        : result.stderr.trim(),
+    );
     this.name = 'GitError';
     this.args = args;
     this.exitCode = result.exitCode;
@@ -55,11 +72,9 @@ export class GitError extends Error {
  * message is empty on purpose — there are no words of git's to pass on, and
  * the interface words the code itself.
  */
-export class GitUnavailableError extends Error {
-  readonly code = 'git/not-installed';
-
+export class GitUnavailableError extends CodedError {
   constructor() {
-    super('');
+    super('git/not-installed');
     this.name = 'GitUnavailableError';
   }
 }

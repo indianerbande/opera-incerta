@@ -50,7 +50,13 @@ function setUp(overrides: Partial<OperaIncertaBridge> = {}) {
         value: {
           id: 'new',
           displayName: request.displayName,
-          library: {},
+          library: {
+            kind: 'group',
+            name: '',
+            relativePath: '.',
+            displayName: request.displayName,
+            children: [],
+          },
           handles: {},
           categories: [],
         },

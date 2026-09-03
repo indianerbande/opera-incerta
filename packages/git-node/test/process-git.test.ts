@@ -244,7 +244,7 @@ describe('failure reporting', () => {
     );
 
     await expect(git.push('/repo')).rejects.toMatchObject({
-      code: 'git/command-failed',
+      code: 'git/no-upstream',
       exitCode: 128,
       stderr: 'fatal: No configured push destination.',
     });
@@ -332,7 +332,7 @@ describe('against a real repository', () => {
   it('fails a push without a remote, reporting git\'s message', async () => {
     const repositoryRoot = (await git.repositoryRoot(root)) ?? root;
     await expect(git.push(repositoryRoot)).rejects.toMatchObject({
-      code: 'git/command-failed',
+      code: 'git/no-upstream',
     });
   });
 
@@ -479,7 +479,7 @@ describe('against a real repository', () => {
       // The safe delete only: losing a chapter to a click is not a thing this
       // application does.
       await expect(git.deleteBranch(root, 'draft')).rejects.toMatchObject({
-        code: 'git/command-failed',
+        code: 'git/branch-not-merged',
       });
       expect((await git.branches(root)).map((branch) => branch.name)).toContain('draft');
     });
@@ -610,7 +610,7 @@ describe('against a real repository', () => {
       await git.commit(root, 'from here');
       await git.fetch(root);
 
-      await expect(git.merge(root)).rejects.toMatchObject({ code: 'git/command-failed' });
+      await expect(git.merge(root)).rejects.toMatchObject({ code: 'git/conflict' });
 
       // The merge is under way and unfinished: the file carries both versions.
       expect(await git.isMerging(root)).toBe(true);
@@ -669,7 +669,7 @@ describe('against a real repository', () => {
 
       // A merge could conflict, and resolving conflicts is not part of this
       // stage: git's refusal is the answer the author gets.
-      await expect(git.pull(root)).rejects.toMatchObject({ code: 'git/command-failed' });
+      await expect(git.pull(root)).rejects.toMatchObject({ code: 'git/not-fast-forward' });
       expect(existsSync(join(root, 'b.md'))).toBe(false);
     });
   });
@@ -684,11 +684,13 @@ describe('what a failure says', () => {
     });
 
     expect(error.message).toBe('fatal: No configured push destination.');
-    expect(error.code).toBe('git/command-failed');
+    // And the code names what the words say, so the interface can act on it.
+    expect(error.code).toBe('git/no-upstream');
   });
 
   it('falls back to a summary when Git said nothing at all', () => {
     const error = new GitError(['status'], { exitCode: 3, stdout: '', stderr: '  ' });
     expect(error.message).toBe('git status failed with 3');
+    expect(error.code).toBe('git/command-failed');
   });
 });

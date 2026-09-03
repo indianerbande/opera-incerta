@@ -9,11 +9,12 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import {
-  readCategories,
-  readStructureRecord,
+  CodedError,
   type PageCategory,
   type ProjectRecord,
   type StructureRecord,
+  readCategories,
+  readStructureRecord,
 } from '@opera-incerta/core';
 import {
   PROJECT_DIRECTORY,
@@ -174,15 +175,16 @@ class NodeProjectFilesystem implements ProjectFilesystem {
   }
 }
 
-/** A failure with a stable code and no display text (SPEC.md §14.3, §16). */
-export class ProjectError extends Error {
-  readonly code: string;
+/**
+ * A failure with a stable code and no display text (SPEC.md §14.3, §16).
+ * The path is for the log, never for the message: it would cross the bridge.
+ */
+export class ProjectError extends CodedError {
   readonly path: string;
 
   constructor(code: string, path: string) {
     super(code);
     this.name = 'ProjectError';
-    this.code = code;
     this.path = path;
   }
 }

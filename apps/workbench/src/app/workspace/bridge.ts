@@ -7,10 +7,12 @@
  * later.
  */
 import { InjectionToken } from '@angular/core';
+import { CodedError } from '@opera-incerta/core';
 import {
   BRIDGE_GLOBAL,
   isProjectSnapshot,
   type BridgeResult,
+  type Guard,
   type OperaIncertaBridge,
   type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
@@ -26,13 +28,10 @@ export function resolveBridge(): OperaIncertaBridge | null {
 }
 
 /** A failure the interface can report, with the code the main process sent. */
-export class BridgeFailure extends Error {
-  readonly code: string;
-
+export class BridgeFailure extends CodedError {
   constructor(code: string, message: string) {
-    super(message);
+    super(code, message);
     this.name = 'BridgeFailure';
-    this.code = code;
   }
 }
 
@@ -71,16 +70,24 @@ export function unwrap<T>(result: BridgeResult<T>): T {
   return result.value;
 }
 
+/**
+ * Unwraps a result and checks its shape before it enters the interface.
+ *
+ * `what` names the payload in the code a malformed one reports — a snapshot,
+ * a report, an edit result — so the failure says which channel changed shape.
+ */
+export function unwrapAs<T>(result: BridgeResult<T>, guard: Guard<T>, what: string): T {
+  const value = unwrap(result);
+  if (!guard(value)) {
+    throw new BridgeFailure(`bridge/malformed-${what}`, '');
+  }
+  return value;
+}
+
 /** Unwraps a snapshot and checks its shape before it enters the interface. */
 export function unwrapSnapshot(
   result: BridgeResult<ProjectSnapshot | null>,
 ): ProjectSnapshot | null {
   const value = unwrap(result);
-  if (value === null) {
-    return null;
-  }
-  if (!isProjectSnapshot(value)) {
-    throw new BridgeFailure('bridge/malformed-snapshot', 'the project snapshot is malformed');
-  }
-  return value;
+  return value === null ? null : unwrapAs({ ok: true, value }, isProjectSnapshot, 'snapshot');
 }

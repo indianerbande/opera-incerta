@@ -96,7 +96,11 @@ importers:
 
   packages/core: {}
 
-  packages/desktop-contract: {}
+  packages/desktop-contract:
+    dependencies:
+      '@opera-incerta/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/git-node:
     dependencies:

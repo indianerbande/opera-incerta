@@ -59,6 +59,7 @@ import {
   createProjectFilesystem,
 } from '@opera-incerta/project-node';
 import { installApplicationMenu } from './application-menu.js';
+import { failureResult } from './bridge-failure.js';
 import {
   ProjectSession,
   ProjectSessionError,
@@ -366,11 +367,7 @@ export function startShell(options: ShellOptions = {}): Shell {
       try {
         return { ok: true, value: await handle(request) };
       } catch (error: unknown) {
-        const code =
-          typeof error === 'object' && error !== null && 'code' in error
-            ? String((error as { code: unknown }).code)
-            : 'bridge/failed';
-        return { ok: false, code, message: error instanceof Error ? error.message : String(error) };
+        return failureResult(error, channel);
       }
     });
   }

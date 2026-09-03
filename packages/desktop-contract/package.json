@@ -15,5 +15,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --exclude 'dist/**'"
+  },
+  "dependencies": {
+    "@opera-incerta/core": "workspace:*"
   }
 }

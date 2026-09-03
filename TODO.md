@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **829 tests**, plus the desktop and asset checks.
+projects, **851 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -66,22 +66,7 @@ has to be consulted to build, verify or change the product.
    suite; the rest of the review's adapter findings are done. Small, and a
    memory question only for a very long session.
 
-8. **One error shape and typed contract payloads.** `ProjectError`,
-    `ProjectSessionError`, `GitError`, and the renderer's `BridgeFailure`
-    are four classes of the same shape; `GitError.code` is always
-    `git/command-failed`, so the renderer cannot tell "not fast-forwardable"
-    from "authentication failed" except by reading stderr; and `privileged`
-    forwards whatever `.code` an error carries, so Node's `ENOENT` and
-    `EACCES` reach the renderer with absolute paths in the message. In the
-    same round: the contract transports `library`, `categories`, and
-    `entries` as `unknown` and the renderer casts at six places, while
-    `GitBranch`, `GitRemote`, and `GitTracking` are declared twice — the
-    contract may depend on the portable core and use its types; the
-    hand-written request guards should share one small combinator set and
-    gain the response guards they lack; and `preload.ts` should be typed
-    against the contract with `satisfies OperaIncertaBridge`, so a method
-    added to the interface but not to the preload fails to compile.
-9. **The project adapter's port and its error handling**
+8. **The project adapter's port and its error handling**
     (`packages/project-node`, `apps/desktop/src/project-session.ts`). The
     `ProjectFilesystem` port exists "so tests run against an in-memory
     double", and no double exists — session and shell reach past it to
@@ -95,7 +80,7 @@ has to be consulted to build, verify or change the product.
     `writeSheet` has; `placeEntry` reopens the project twice per drag and
     re-mints every handle, while the comment on `reopen` says handles are
     kept; and `inspectFolder` reads `project.json` fully to test existence.
-10. **Core rules the review found wrong or loose**, one tidy-up round:
+9. **Core rules the review found wrong or loose**, one tidy-up round:
     - `hasConflictMarkers` is true for a bare `<<<<<<< HEAD` line while
       `parseConflicts` reports no conflict, so the store locks a sheet the
       resolver has nothing to resolve in (`conflict.ts`);

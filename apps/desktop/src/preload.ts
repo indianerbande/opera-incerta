@@ -7,8 +7,16 @@
  * channel this file does not name.
  */
 import { contextBridge, ipcRenderer } from 'electron';
-import { BRIDGE_GLOBAL, CHANNELS, isMenuCommand } from '@opera-incerta/desktop-contract';
+import {
+  BRIDGE_GLOBAL,
+  CHANNELS,
+  isMenuCommand,
+  type MenuCommand,
+  type OperaIncertaBridge,
+} from '@opera-incerta/desktop-contract';
 
+// `satisfies`: a method added to the contract and forgotten here fails to
+// compile, rather than failing in the renderer as "not a function".
 const bridge = {
   contractVersion: () => ipcRenderer.invoke(CHANNELS.contractVersion),
   windowRole: () => ipcRenderer.invoke(CHANNELS.windowRole),
@@ -48,12 +56,6 @@ const bridge = {
   gitDiff: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitDiff, request),
   gitVersions: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitVersions, request),
 
-  /**
-   * The one inbound channel.
-   *
-   * The event object never crosses: the renderer receives a validated command
-   * string, so the page cannot reach the IPC layer through what it is handed.
-   */
   createSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.createSheet, request),
   createGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.createGroup, request),
   renameSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameSheet, request),
@@ -87,7 +89,12 @@ const bridge = {
     };
   },
 
-  onMenuCommand: (listener: (command: string) => void) => {
+  /**
+   * The inbound channels. The event object never crosses: the renderer
+   * receives a validated command, so the page cannot reach the IPC layer
+   * through what it is handed.
+   */
+  onMenuCommand: (listener: (command: MenuCommand) => void) => {
     const forward = (_event: unknown, command: unknown): void => {
       if (isMenuCommand(command)) {
         listener(command);
@@ -98,6 +105,6 @@ const bridge = {
       ipcRenderer.removeListener(CHANNELS.menuCommand, forward);
     };
   },
-} as const;
+} satisfies OperaIncertaBridge;
 
 contextBridge.exposeInMainWorld(BRIDGE_GLOBAL, bridge);

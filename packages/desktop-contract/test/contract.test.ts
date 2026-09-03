@@ -5,6 +5,9 @@ import {
   MAX_DOCUMENT_BYTES,
   isChannelName,
   isDocumentHandle,
+  isGitReport,
+  isLibraryEditResult,
+  isProjectSnapshot,
   isGitPathsRequest,
   isGitResolveRequest,
   isLibraryEditRequest,
@@ -182,5 +185,48 @@ describe('every request that carries a path applies the one rule', () => {
     expect(isGitPathsRequest({ paths: [] })).toBe(true);
     expect(isGitPathsRequest({ paths: ['a.md', escape] })).toBe(false);
     expect(isGitPathsRequest({ paths: ['a.md', ''] })).toBe(false);
+  });
+});
+
+describe('what comes back is checked too', () => {
+  const library = { kind: 'group', name: '', relativePath: '.', displayName: 'B', children: [] };
+  const snapshot = { id: 'p', displayName: 'B', library, handles: {}, categories: [] };
+
+  it('accepts a snapshot with a group at its root, and refuses one without', () => {
+    expect(isProjectSnapshot(snapshot)).toBe(true);
+    expect(isProjectSnapshot({ ...snapshot, library: { kind: 'sheet' } })).toBe(false);
+    expect(isProjectSnapshot({ ...snapshot, library: null })).toBe(false);
+    expect(isProjectSnapshot({ ...snapshot, categories: 'none' })).toBe(false);
+  });
+
+  it('checks a library edit result down to its snapshot', () => {
+    expect(isLibraryEditResult({ snapshot, revealPath: null })).toBe(true);
+    expect(isLibraryEditResult({ snapshot, revealPath: 'a.md' })).toBe(true);
+    expect(isLibraryEditResult({ snapshot: {}, revealPath: null })).toBe(false);
+    expect(isLibraryEditResult({ snapshot })).toBe(false);
+  });
+
+  it('checks a git report field by field', () => {
+    const report = {
+      root: null,
+      entries: [],
+      tracking: null,
+      merging: false,
+      hasCommit: false,
+      branch: null,
+      remote: null,
+    };
+    expect(isGitReport(report)).toBe(true);
+    expect(
+      isGitReport({
+        ...report,
+        root: '/r',
+        tracking: { upstream: 'origin/main', ahead: 1, behind: 0 },
+        remote: { name: 'origin', url: 'x' },
+      }),
+    ).toBe(true);
+    expect(isGitReport({ ...report, merging: 'no' })).toBe(false);
+    expect(isGitReport({ ...report, tracking: { upstream: 'o' } })).toBe(false);
+    expect(isGitReport({ ...report, entries: 'many' })).toBe(false);
   });
 });

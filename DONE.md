@@ -6,6 +6,75 @@ documents").
 
 ---
 
+## 2026-09-03 — one shape for a failure, and a contract that names what it carries
+
+**What was open** (`TODO.md` §1.8 until this round). Four error classes of
+the same shape on four sides of the bridge, and the bridge duck-typing
+between them: anything with a `code` crossed with its message, which is how
+Node's `ENOENT` reached the renderer with an absolute path in it. `GitError`
+had one code for everything, so the renderer could not tell a missing
+upstream from a diverged history except by reading stderr. The contract
+transported the library, the categories, and the status entries as
+`unknown`, and the renderer cast at six places; three git types were
+declared twice; fourteen request guards were hand-written and uneven; and
+nothing typed the preload against the interface it exposes.
+
+**What changed.**
+
+- **`CodedError`** in the core: a code and a message that is either the
+  tool's own words or empty. `ProjectError` (with its path, for the log),
+  `ProjectSessionError`, `GitError` (with its exit code and stderr),
+  `GitUnavailableError`, and the renderer's `BridgeFailure` all extend it.
+  The bridge lets only a `CodedError` cross with its words; anything else is
+  logged in the main process and crosses as `bridge/failed` with none —
+  `failureResult`, in a file without Electron, so it is a unit test. The
+  test feeds it an `ENOENT` with `/Users/someone/secret.md` in its message
+  and asserts the path does not come out.
+- **Git's failures are named.** `classifyGitFailure` in the core reads
+  stderr and stdout — a merge writes `CONFLICT` to stdout, which the first
+  version missed — into ten codes: no upstream, not fast-forward, conflict,
+  authentication, branch not merged, nothing to commit, index locked, no
+  identity, not a repository, and `git/command-failed` for the rest. Every
+  real-repository test that pinned `git/command-failed` now pins the code
+  it should have had: the push without a remote is `git/no-upstream`, the
+  diverged pull `git/not-fast-forward`, the conflicted merge
+  `git/conflict`, the refused deletion `git/branch-not-merged`.
+- **The contract depends on the core and names what it carries.**
+  `library: GroupEntry`, `categories: readonly PageCategory[]`,
+  `entries: readonly GitFileStatus[]`; `GitBranch`, `GitRemote`, and
+  `GitTracking` live in the core once. The six casts are gone.
+- **Guards from combinators.** `shape`, `arrayOf`, `nullable`, `optional`,
+  `literal`, and five scalar guards; every request guard is a shape now,
+  three of the old functions remain (the path rule, the byte counter, the
+  channel check). Three response guards came with it — `isProjectSnapshot`
+  checks the root is a group, `isLibraryEditResult`, `isGitReport` field by
+  field — and the renderer's stores refuse what fails them through
+  `unwrapAs`, naming the payload in the code.
+- **The preload `satisfies OperaIncertaBridge`.** A method added to the
+  contract and forgotten there fails to compile; the menu listener's
+  parameter had to become `MenuCommand` for it to.
+
+**Verification.** `pnpm run check` green: **851 tests** — fifteen for the
+classifier and `CodedError`, four for `failureResult`, three response-guard
+suites in the contract; the git adapter's real-repository tests re-pinned
+to the named codes. `pnpm run desktop:smoke` green across **thirty checks**,
+twice: the panel still shows git's own words, because the words did not
+change, only the code beside them.
+
+Three falsifications: with the classifier reading "no configured push
+destination" as a diverged history, exactly the two no-upstream cases
+failed; with a stray error crossing with its words, exactly the
+path-stripping test failed; with the report guard no longer checking
+`merging`, exactly the field-by-field test failed.
+
+**Lesson.** A duck-typed boundary is a boundary that lets through whatever
+happens to quack. The one class cost twenty lines and made the bridge's
+rule a type check rather than a convention — and the test that puts a home
+directory into an error and watches it not come out is the one that says
+what the rule is for.
+
+---
+
 ## 2026-09-03 — the smoke waits for consequences, not for time
 
 **What was open** (`TODO.md` §1.8 until this round). Ninety `setTimeout`

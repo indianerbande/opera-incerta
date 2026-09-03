@@ -8,8 +8,70 @@
  * process — a compile-time type is not validation (CONVENTIONS.md C-S2).
  *
  * This package is portable on purpose: main process, preload, and renderer all
- * depend on it, and its guards are unit-tested without Electron.
+ * depend on it, and its guards are unit-tested without Electron. It depends on
+ * the portable core for the types it transports — the library tree, the
+ * categories, the git status — so that neither side casts what the other
+ * sent.
  */
+import type {
+  GitBranch,
+  GitFileStatus,
+  GitRemote,
+  GitTracking,
+  GroupEntry,
+  PageCategory,
+} from '@opera-incerta/core';
+
+export type { GitBranch, GitRemote, GitTracking } from '@opera-incerta/core';
+
+/**
+ * The guards below are built from a few combinators, so that every request
+ * type is validated the same way and a new one is a shape, not a hand-written
+ * function that may forget a field.
+ */
+export type Guard<T> = (value: unknown) => value is T;
+
+const isString: Guard<string> = (value): value is string => typeof value === 'string';
+const isNonBlank: Guard<string> = (value): value is string =>
+  typeof value === 'string' && value.trim() !== '';
+const isNotEmpty: Guard<string> = (value): value is string =>
+  typeof value === 'string' && value !== '';
+const isBoolean: Guard<boolean> = (value): value is boolean => typeof value === 'boolean';
+const isNumber: Guard<number> = (value): value is number => typeof value === 'number';
+const isRecord: Guard<Record<string, unknown>> = (value): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+function nullable<T>(guard: Guard<T>): Guard<T | null> {
+  return (value): value is T | null => value === null || guard(value);
+}
+
+function optional<T>(guard: Guard<T>): Guard<T | undefined> {
+  return (value): value is T | undefined => value === undefined || guard(value);
+}
+
+function arrayOf<T>(guard: Guard<T>): Guard<readonly T[]> {
+  return (value): value is readonly T[] => Array.isArray(value) && value.every(guard);
+}
+
+function literal<T extends string>(expected: T): Guard<T> {
+  return (value): value is T => value === expected;
+}
+
+/** An object with every listed field passing its guard. Extra fields are ignored. */
+function shape<T extends object>(fields: { readonly [K in keyof T]-?: Guard<T[K]> }): Guard<T> {
+  return (value): value is T => {
+    if (!isRecord(value)) {
+      return false;
+    }
+    for (const key of Object.keys(fields) as Array<keyof T & string>) {
+      if (!fields[key](value[key])) {
+        return false;
+      }
+    }
+    return true;
+  };
+}
+
 
 /** Contract version. A breaking change increments it and both sides check it. */
 export const CONTRACT_VERSION = 2;
@@ -98,37 +160,37 @@ export const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 const HANDLE_ID = /^[0-9a-f]{32}$/;
 
+/** Runtime guard for a handle arriving from the renderer. */
+export const isDocumentHandle: Guard<DocumentHandle> = shape<DocumentHandle>({
+  kind: literal('opera-incerta/document'),
+  id: (value): value is string => typeof value === 'string' && HANDLE_ID.test(value),
+});
+
+/** A page category, field by field. The core validates the colour on read. */
+const isPageCategory: Guard<PageCategory> = shape<PageCategory>({
+  id: isString,
+  name: isString,
+  color: isString,
+});
+
+/** A group entry, by the shape the renderer relies on. The core owns the rest. */
+const isGroupEntry: Guard<GroupEntry> = (value): value is GroupEntry =>
+  isRecord(value) &&
+  value['kind'] === 'group' &&
+  typeof value['relativePath'] === 'string' &&
+  Array.isArray(value['children']);
+
 /**
  * Runtime guard for a project snapshot leaving the main process. Used by the
  * renderer, which trusts nothing it did not validate either.
  */
-export function isProjectSnapshot(value: unknown): value is ProjectSnapshot {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<ProjectSnapshot>;
-  return (
-    typeof candidate.id === 'string' &&
-    typeof candidate.displayName === 'string' &&
-    typeof candidate.library === 'object' &&
-    candidate.library !== null &&
-    typeof candidate.handles === 'object' &&
-    candidate.handles !== null
-  );
-}
-
-/** Runtime guard for a handle arriving from the renderer. */
-export function isDocumentHandle(value: unknown): value is DocumentHandle {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<DocumentHandle>;
-  return (
-    candidate.kind === 'opera-incerta/document' &&
-    typeof candidate.id === 'string' &&
-    HANDLE_ID.test(candidate.id)
-  );
-}
+export const isProjectSnapshot: Guard<ProjectSnapshot> = shape<ProjectSnapshot>({
+  id: isString,
+  displayName: isString,
+  library: isGroupEntry,
+  handles: shape<Readonly<Record<string, string>>>({}),
+  categories: arrayOf(isPageCategory),
+});
 
 /**
  * A project as the renderer sees it.
@@ -142,7 +204,7 @@ export interface ProjectSnapshot {
   readonly id: string;
   readonly displayName: string;
   /** The library tree, rooted at the project directory. */
-  readonly library: unknown;
+  readonly library: GroupEntry;
   /** Relative sheet path to handle id. */
   readonly handles: Readonly<Record<string, string>>;
   /**
@@ -152,7 +214,7 @@ export interface ProjectSnapshot {
    * with the project and change with it, and a second source would be a second
    * chance to disagree.
    */
-  readonly categories: readonly unknown[];
+  readonly categories: readonly PageCategory[];
 }
 
 /**
@@ -206,18 +268,10 @@ export interface CreateProjectRequest {
   readonly displayName: string;
 }
 
-export function isCreateProjectRequest(value: unknown): value is CreateProjectRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<CreateProjectRequest>;
-  return (
-    typeof candidate.parentPath === 'string' &&
-    candidate.parentPath !== '' &&
-    typeof candidate.displayName === 'string' &&
-    candidate.displayName.trim() !== ''
-  );
-}
+export const isCreateProjectRequest: Guard<CreateProjectRequest> = shape<CreateProjectRequest>({
+  parentPath: isNotEmpty,
+  displayName: isNonBlank,
+});
 
 /**
  * The one rule for every path a request carries. SPEC.md §5.3.
@@ -263,17 +317,10 @@ export interface LibraryEditRequest {
   readonly name: string;
 }
 
-export function isLibraryEditRequest(value: unknown): value is LibraryEditRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<LibraryEditRequest>;
-  return (
-    isRelativeEntryPath(candidate.path) &&
-    typeof candidate.name === 'string' &&
-    candidate.name.trim() !== ''
-  );
-}
+export const isLibraryEditRequest: Guard<LibraryEditRequest> = shape<LibraryEditRequest>({
+  path: isRelativeEntryPath,
+  name: isNonBlank,
+});
 
 /**
  * What the main process should watch on the interface's behalf.
@@ -288,18 +335,12 @@ export interface WatchTargetsRequest {
 }
 
 /** A plain boolean payload, for a channel that carries nothing else. */
-export function isBooleanRequest(value: unknown): value is boolean {
-  return typeof value === 'boolean';
-}
+export const isBooleanRequest: Guard<boolean> = isBoolean;
 
-export function isWatchTargetsRequest(value: unknown): value is WatchTargetsRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<WatchTargetsRequest>;
-  const target = (path: unknown): boolean => path === null || isRelativeEntryPath(path);
-  return target(candidate.group) && target(candidate.sheet);
-}
+export const isWatchTargetsRequest: Guard<WatchTargetsRequest> = shape<WatchTargetsRequest>({
+  group: nullable(isRelativeEntryPath),
+  sheet: nullable(isRelativeEntryPath),
+});
 
 /**
  * One entry, named for an operation that needs nothing else. SPEC.md §6.7.
@@ -308,14 +349,14 @@ export interface LibraryPathRequest {
   readonly path: string;
 }
 
-export function isLibraryPathRequest(value: unknown): value is LibraryPathRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<LibraryPathRequest>;
-  // The project root is a path, and deleting it is not an operation.
-  return isRelativeEntryPath(candidate.path) && candidate.path !== '.';
-}
+/** A path inside the project that is not the project itself. */
+const isEntryBelowRoot: Guard<string> = (value): value is string =>
+  isRelativeEntryPath(value) && value !== '.';
+
+// The project root is a path, and deleting it is not an operation.
+export const isLibraryPathRequest: Guard<LibraryPathRequest> = shape<LibraryPathRequest>({
+  path: isEntryBelowRoot,
+});
 
 /** The two versions of a file that a comparison needs. SPEC.md §12. */
 export interface GitVersions {
@@ -343,18 +384,13 @@ export interface LibraryPlaceRequest {
   readonly before: string | null;
 }
 
-export function isLibraryPlaceRequest(value: unknown): value is LibraryPlaceRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<LibraryPlaceRequest>;
-  return (
-    isRelativeEntryPath(candidate.path) &&
-    candidate.path !== '.' &&
-    isRelativeEntryPath(candidate.into) &&
-    (candidate.before === null || (typeof candidate.before === 'string' && candidate.before !== ''))
-  );
-}
+export const isLibraryPlaceRequest: Guard<LibraryPlaceRequest> = shape<LibraryPlaceRequest>({
+  path: isEntryBelowRoot,
+  into: isRelativeEntryPath,
+  // `undefined` must not pass as "last": a typo would move the entry to the
+  // bottom of its group.
+  before: nullable(isNotEmpty),
+});
 
 /**
  * What a library edit produced: the refreshed project, and the entry the
@@ -367,6 +403,12 @@ export interface LibraryEditResult {
   readonly revealPath: string | null;
 }
 
+/** Runtime guard for what a library edit sends back. */
+export const isLibraryEditResult: Guard<LibraryEditResult> = shape<LibraryEditResult>({
+  snapshot: isProjectSnapshot,
+  revealPath: nullable(isString),
+});
+
 /** A chosen location, with a short form for display. */
 export interface ChosenLocation {
   readonly path: string;
@@ -378,13 +420,9 @@ export interface RecentProjectRequest {
   readonly path: string;
 }
 
-export function isRecentProjectRequest(value: unknown): value is RecentProjectRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<RecentProjectRequest>;
-  return typeof candidate.path === 'string' && candidate.path !== '';
-}
+export const isRecentProjectRequest: Guard<RecentProjectRequest> = shape<RecentProjectRequest>({
+  path: isNotEmpty,
+});
 
 /** A request that carries only a handle. */
 export interface DocumentRequest {
@@ -396,18 +434,17 @@ export interface WriteSheetRequest extends DocumentRequest {
   readonly text: string;
 }
 
+/** Runtime guard for a request that carries only a handle. */
+export const isDocumentRequest: Guard<DocumentRequest> = shape<DocumentRequest>({
+  handle: isDocumentHandle,
+});
+
 /** Runtime guard for {@link WriteSheetRequest}. */
-export function isWriteSheetRequest(value: unknown): value is WriteSheetRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<WriteSheetRequest>;
-  return (
-    isDocumentHandle(candidate.handle) &&
-    typeof candidate.text === 'string' &&
-    utf8ByteLength(candidate.text) <= MAX_DOCUMENT_BYTES
-  );
-}
+export const isWriteSheetRequest: Guard<WriteSheetRequest> = shape<WriteSheetRequest>({
+  handle: isDocumentHandle,
+  text: (value): value is string =>
+    typeof value === 'string' && utf8ByteLength(value) <= MAX_DOCUMENT_BYTES,
+});
 
 /**
  * UTF-8 byte length, computed without `TextEncoder` or Node.js `Buffer`.
@@ -459,7 +496,7 @@ export type BridgeResult<TValue> = BridgeSuccess<TValue> | BridgeFailure;
  */
 export interface GitReport {
   readonly root: string | null;
-  readonly entries: readonly unknown[];
+  readonly entries: readonly GitFileStatus[];
   /**
    * What the branch tracks and how far apart the two are, or `null` when it
    * tracks nothing. SPEC.md §12.
@@ -480,41 +517,43 @@ export interface GitTextRequest {
   readonly text: string;
 }
 
-export function isGitTextRequest(value: unknown): value is GitTextRequest {
-  return typeof value === 'object' && value !== null && typeof (value as GitTextRequest).text === 'string';
-}
-
-/** A local branch. SPEC.md §12. */
-export interface GitBranch {
-  readonly name: string;
-  readonly current: boolean;
-}
+export const isGitTextRequest: Guard<GitTextRequest> = shape<GitTextRequest>({ text: isString });
 
 /** A request naming one branch. */
 export interface GitBranchRequest {
   readonly name: string;
 }
 
-export function isGitBranchRequest(value: unknown): value is GitBranchRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<GitBranchRequest>;
-  return typeof candidate.name === 'string' && candidate.name.trim() !== '';
-}
+export const isGitBranchRequest: Guard<GitBranchRequest> = shape<GitBranchRequest>({
+  name: isNonBlank,
+});
 
-/** A remote, as git reports it. */
-export interface GitRemote {
-  readonly name: string;
-  readonly url: string;
-}
+const isGitFileStatus: Guard<GitFileStatus> = shape<GitFileStatus>({
+  path: isString,
+  indexStatus: isString,
+  worktreeStatus: isString,
+  previousPath: optional(isString),
+  groups: arrayOf(isString) as Guard<GitFileStatus['groups']>,
+});
 
-/** What a branch tracks, and how far it has drifted. SPEC.md §12. */
-export interface GitTracking {
-  readonly upstream: string;
-  readonly behind: number;
-  readonly ahead: number;
-}
+const isGitTracking: Guard<GitTracking> = shape<GitTracking>({
+  upstream: isString,
+  behind: isNumber,
+  ahead: isNumber,
+});
+
+const isGitRemote: Guard<GitRemote> = shape<GitRemote>({ name: isString, url: isString });
+
+/** Runtime guard for what the status channel sends back. */
+export const isGitReport: Guard<GitReport> = shape<GitReport>({
+  root: nullable(isString),
+  entries: arrayOf(isGitFileStatus),
+  tracking: nullable(isGitTracking),
+  merging: isBoolean,
+  hasCommit: isBoolean,
+  branch: nullable(isString),
+  remote: nullable(isGitRemote),
+});
 
 /**
  * Publishing a branch for the first time. SPEC.md §12.
@@ -527,13 +566,9 @@ export interface GitPublishRequest {
   readonly url?: string;
 }
 
-export function isGitPublishRequest(value: unknown): value is GitPublishRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<GitPublishRequest>;
-  return candidate.url === undefined || typeof candidate.url === 'string';
-}
+export const isGitPublishRequest: Guard<GitPublishRequest> = shape<GitPublishRequest>({
+  url: optional(isString),
+});
 
 /**
  * A file resolved by hand, and the text to put in its place. SPEC.md §12.
@@ -546,39 +581,28 @@ export interface GitResolveRequest {
   readonly text: string;
 }
 
-export function isGitResolveRequest(value: unknown): value is GitResolveRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<GitResolveRequest>;
-  return isRelativeEntryPath(candidate.path) && typeof candidate.text === 'string';
-}
+export const isGitResolveRequest: Guard<GitResolveRequest> = shape<GitResolveRequest>({
+  path: isRelativeEntryPath,
+  text: isString,
+});
 
 /** A request naming paths, relative to the repository root. */
 export interface GitPathsRequest {
   readonly paths: readonly string[];
 }
 
-export function isGitPathsRequest(value: unknown): value is GitPathsRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<GitPathsRequest>;
-  return Array.isArray(candidate.paths) && candidate.paths.every(isRelativeEntryPath);
-}
+export const isGitPathsRequest: Guard<GitPathsRequest> = shape<GitPathsRequest>({
+  paths: arrayOf(isRelativeEntryPath),
+});
 
 /** A commit request. An empty message is refused before Git ever sees it. */
 export interface GitCommitRequest {
   readonly message: string;
 }
 
-export function isGitCommitRequest(value: unknown): value is GitCommitRequest {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const candidate = value as Partial<GitCommitRequest>;
-  return typeof candidate.message === 'string' && candidate.message.trim() !== '';
-}
+export const isGitCommitRequest: Guard<GitCommitRequest> = shape<GitCommitRequest>({
+  message: isNonBlank,
+});
 
 /**
  * The complete surface the preload exposes on `window[BRIDGE_GLOBAL]`.
@@ -688,7 +712,7 @@ export interface OperaIncertaBridge {
   /** Puts an entry in a place: a group, and a position within it. */
   placeEntry(request: LibraryPlaceRequest): Promise<BridgeResult<LibraryEditResult>>;
   /** Replaces the project's page categories, and returns the refreshed project. */
-  writeCategories(categories: readonly unknown[]): Promise<BridgeResult<ProjectSnapshot>>;
+  writeCategories(categories: readonly PageCategory[]): Promise<BridgeResult<ProjectSnapshot>>;
   /** Moves an entry to the desktop trash, from where the author can restore it. */
   deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
   /**

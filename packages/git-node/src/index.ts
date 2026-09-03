@@ -33,27 +33,14 @@ import type { GitFileStatus } from '@opera-incerta/core';
  * shared busy flag lets a background refresh swallow a user action
  * (CONVENTIONS.md C-F3).
  */
-/** What a branch tracks, and how far it has drifted. SPEC.md §12. */
-export interface GitTracking {
-  /** The upstream's name, as git prints it — `origin/main`. */
-  readonly upstream: string;
-  /** Commits the upstream has and this branch does not. */
-  readonly behind: number;
-  /** Commits this branch has and the upstream does not. */
-  readonly ahead: number;
-}
+/**
+ * The git vocabulary — tracking, branches, remotes — lives in the portable
+ * core beside the status parser, so the contract and the renderer can name
+ * the same types without depending on this adapter.
+ */
+export type { GitBranch, GitRemote, GitTracking } from '@opera-incerta/core';
 
-/** A local branch. */
-export interface GitBranch {
-  readonly name: string;
-  readonly current: boolean;
-}
-
-/** A remote, as `git remote -v` reports it. */
-export interface GitRemote {
-  readonly name: string;
-  readonly url: string;
-}
+import type { GitBranch, GitRemote, GitTracking } from '@opera-incerta/core';
 
 export interface GitService {
   /**

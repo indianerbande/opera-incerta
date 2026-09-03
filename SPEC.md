@@ -1982,6 +1982,27 @@ settings (§13).
 
 - Every user-visible failure carries a **stable diagnostic code** and a source
   reference where one exists (file, and line where meaningful).
+- **One shape for a failure, everywhere.** A failure is a code and a message
+  (`CodedError` in the core), and every adapter's error is one of these: the
+  project adapter's carries a path for the log, git's carries the exit code
+  and git's own words. The bridge lets only a failure of this shape cross with
+  its message; any other error — Node's `ENOENT` with an absolute path in it —
+  is logged in the main process and crosses as `bridge/failed` with no words.
+  A message that was never meant for the author must not reach them.
+- **Git's failures are named, not only quoted.** The words git wrote are what
+  the author reads (§12), and the code beside them is what the interface acts
+  on: `git/no-upstream`, `git/not-fast-forward`, `git/conflict`,
+  `git/authentication`, `git/branch-not-merged`, `git/nothing-to-commit`,
+  `git/index-locked`, `git/no-identity`, `git/not-a-repository`, and
+  `git/command-failed` for what no rule recognises. Read from stderr by one
+  pure function in the core, tested against recorded output.
+- **Both sides check what crosses.** Every request is validated in the main
+  process by a guard built from one small set of combinators, and the renderer
+  checks the shape of what comes back — a snapshot, a git report, an edit
+  result — before it enters a store. The contract names the types it
+  transports with the core's own types, so neither side casts.
+- The preload is typed against the contract with `satisfies`, so a method
+  added to the interface and forgotten there fails to compile.
 - A failure to read one sheet MUST NOT abort a library scan; the affected item
   is marked and the scan continues.
 - A malformed `structure.json`, `categories.json`, or `project.json` falls back

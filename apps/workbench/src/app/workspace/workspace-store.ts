@@ -32,13 +32,15 @@ import {
   type SheetMetadata,
   type TextStatistics,
 } from '@opera-incerta/core';
-import type {
-  BridgeResult,
-  LibraryEditResult,
-  OperaIncertaBridge,
-  ProjectSnapshot,
+import {
+  isLibraryEditResult,
+  isProjectSnapshot,
+  type BridgeResult,
+  type LibraryEditResult,
+  type OperaIncertaBridge,
+  type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
-import { toBridgeFailure, unwrap, unwrapSnapshot } from './bridge.js';
+import { toBridgeFailure, unwrap, unwrapAs, unwrapSnapshot } from './bridge.js';
 
 export interface OpenSheet {
   readonly relativePath: string;
@@ -416,7 +418,11 @@ export class WorkspaceStore {
   /** Replaces the project's categories and adopts what came back. */
   async saveCategories(categories: readonly PageCategory[]): Promise<void> {
     await this.#withBridge(async (bridge) => {
-      const snapshot = unwrap(await bridge.writeCategories(categories));
+      const snapshot = unwrapAs(
+        await bridge.writeCategories(categories),
+        isProjectSnapshot,
+        'snapshot',
+      );
       await this.#readopt(snapshot, {
         group: this.#selectedGroupPath(),
         sheet: this.#openSheet()?.relativePath ?? null,
@@ -674,9 +680,9 @@ export class WorkspaceStore {
     const previousSheet = this.#openSheet()?.relativePath ?? null;
 
     await this.#withBridge(async (bridge) => {
-      const result = unwrap(await operation(bridge));
+      const result = unwrapAs(await operation(bridge), isLibraryEditResult, 'edit-result');
       const created = result.revealPath;
-      const library = result.snapshot.library as GroupEntry;
+      const library = result.snapshot.library;
       const ancestors = created === null ? [] : ancestorPaths(created);
       const placed = (options.movedFrom ?? null) !== null;
       const reveal =
@@ -754,7 +760,7 @@ export class WorkspaceStore {
     // The selection has to land on something that still exists: a deleted
     // group takes the selection with it otherwise, and the columns would show
     // a place that is gone.
-    this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, wanted.group));
+    this.#selectedGroupPath.set(nearestGroup(snapshot.library, wanted.group));
 
     if (wanted.sheet === null) {
       this.#clearOpenSheet();
@@ -778,7 +784,7 @@ export class WorkspaceStore {
    */
   #adopt(snapshot: ProjectSnapshot, keepOpen = false): void {
     this.#project.set({ id: snapshot.id, displayName: snapshot.displayName });
-    this.#library.set(snapshot.library as GroupEntry);
+    this.#library.set(snapshot.library);
     this.#handles.set(snapshot.handles);
     this.#categories.set(readCategories(snapshot.categories));
     if (!keepOpen) {
@@ -789,7 +795,7 @@ export class WorkspaceStore {
     // running, and the author would watch their tree fold itself up.
     const kept = new Set<string>(['.']);
     for (const path of this.#expanded()) {
-      if (findGroup(snapshot.library as GroupEntry, path) !== null) {
+      if (findGroup(snapshot.library, path) !== null) {
         kept.add(path);
       }
     }

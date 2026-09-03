@@ -17,14 +17,15 @@ import {
   type GitFileStatus,
   type SelectAllState,
 } from '@opera-incerta/core';
-import type {
-  GitBranch,
-  GitRemote,
-  GitTracking,
-  GitVersions,
-  OperaIncertaBridge,
+import {
+  isGitReport,
+  type GitBranch,
+  type GitRemote,
+  type GitTracking,
+  type GitVersions,
+  type OperaIncertaBridge,
 } from '@opera-incerta/desktop-contract';
-import { toBridgeFailure, unwrap } from './bridge.js';
+import { toBridgeFailure, unwrap, unwrapAs } from './bridge.js';
 
 export class SourceControlStore {
   readonly #bridge: OperaIncertaBridge | null;
@@ -352,9 +353,9 @@ export class SourceControlStore {
       return;
     }
     try {
-      const report = unwrap(await bridge.gitStatus());
+      const report = unwrapAs(await bridge.gitStatus(), isGitReport, 'report');
       this.#root.set(report.root);
-      this.#entries.set(report.entries as readonly GitFileStatus[]);
+      this.#entries.set(report.entries);
       this.#tracking.set(report.tracking);
       this.#merging.set(report.merging);
       this.#hasCommit.set(report.hasCommit);

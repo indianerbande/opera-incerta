@@ -220,6 +220,12 @@ Tests MUST cover:
   issued at once against one directory run one after the other, a failed one
   does not block the next, and commands against different directories are
   not held up by each other;
+- **git's failures named from its words** (`SPEC.md` §16): the classifier
+  as a pure function over recorded stderr for every code it knows, the
+  fallback for words it does not, and the adapter's errors carrying the
+  classified code — a push without a remote as `git/no-upstream`, a diverged
+  pull as `git/not-fast-forward`, a merge with a conflict as `git/conflict`,
+  a refused branch deletion as `git/branch-not-merged`;
 - **a machine without git** reported as `git/not-installed` rather than as a
   project outside a repository — from a runner that cannot start the
   process, and from the real runner with an empty `PATH`;
@@ -319,7 +325,10 @@ three seconds. A run takes about half a minute.
 Tests MUST cover:
 
 - runtime validation of **every** privileged renderer request, not merely its
-  compile-time type;
+  compile-time type — and of what comes back: the snapshot, the git report,
+  and the edit result are refused by the renderer when their shape is wrong;
+- that a failure crossing the bridge is a `CodedError` with its words, and
+  that any other error crosses as `bridge/failed` with **no** words;
 - rejection of IPC from untrusted pages, and denial of external navigation, new
   windows, permission requests, and webviews;
 - context isolation, renderer sandboxing, disabled Node.js integration, and a
