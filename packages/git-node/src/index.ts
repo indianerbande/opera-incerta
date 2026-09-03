@@ -50,6 +50,12 @@ export interface GitTracking {
   readonly ahead: number;
 }
 
+/** A remote, as `git remote -v` reports it. */
+export interface GitRemote {
+  readonly name: string;
+  readonly url: string;
+}
+
 export interface GitService {
   /** Resolves the repository root, or null when the path is not in a repository. */
   repositoryRoot(absolutePath: string): Promise<string | null>;
@@ -91,6 +97,17 @@ export interface GitService {
    * upstream, so there is simply nothing to compare against.
    */
   tracking(repositoryRoot: string): Promise<GitTracking | null>;
+  /** The checked-out branch, or null on a detached head. */
+  currentBranch(repositoryRoot: string): Promise<string | null>;
+  /**
+   * The remote a first publish would go to, or null when there is none.
+   * `origin` where it exists, otherwise whichever is first.
+   */
+  defaultRemote(repositoryRoot: string): Promise<GitRemote | null>;
+  /** Records a remote under a name. SPEC.md §12. */
+  addRemote(repositoryRoot: string, name: string, url: string): Promise<void>;
+  /** Pushes a branch and sets it to track what it was pushed to. */
+  publish(repositoryRoot: string, remote: string, branch: string): Promise<void>;
   /** Brings the remote's refs up to date. Touches no file in the working tree. */
   fetch(repositoryRoot: string): Promise<void>;
   /**

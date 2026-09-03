@@ -274,6 +274,45 @@ describe('against a real repository', () => {
       expect(await git.hasCommit(root)).toBe(true);
     });
   });
+  describe('publishing a branch', () => {
+    it('reports the branch, and no remote before there is one', async () => {
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+
+      expect(await git.currentBranch(root)).toBe('main');
+      expect(await git.defaultRemote(root)).toBeNull();
+      expect(await git.tracking(root)).toBeNull();
+    });
+
+    it('records a remote and pushes the branch to it', async () => {
+      const remote = join(await mkdtemp(join(tmpdir(), 'opera-incerta-publish-')), 'origin.git');
+      await systemGitRunner.run(['init', '--bare', '--initial-branch=main', remote], tmpdir());
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+
+      await git.addRemote(root, 'origin', remote);
+      expect(await git.defaultRemote(root)).toEqual({ name: 'origin', url: remote });
+
+      await git.publish(root, 'origin', 'main');
+
+      // Published means both: the commit is over there, and this branch knows
+      // where it belongs.
+      expect(await git.tracking(root)).toEqual({ upstream: 'origin/main', behind: 0, ahead: 0 });
+      const listed = await systemGitRunner.run(['ls-tree', '--name-only', 'main'], remote);
+      expect(listed.stdout).toContain('a.md');
+      await rm(remote, { recursive: true, force: true });
+    });
+
+    it('prefers origin when several remotes exist', async () => {
+      await systemGitRunner.run(['remote', 'add', 'backup', '/tmp/backup.git'], root);
+      await systemGitRunner.run(['remote', 'add', 'origin', '/tmp/origin.git'], root);
+
+      expect((await git.defaultRemote(root))?.name).toBe('origin');
+    });
+  });
+
   describe('tracking a remote', () => {
     let remote = '';
     let clone = '';

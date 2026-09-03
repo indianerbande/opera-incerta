@@ -125,6 +125,7 @@ export {
   canCommit,
   isConflicted,
   isFullyStaged,
+  isSafeRemoteUrl,
   parseGitStatus,
   selectAllState,
   touchesWorkingTree,

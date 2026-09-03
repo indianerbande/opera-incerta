@@ -127,6 +127,34 @@ export function canCommit(entries: readonly GitFileStatus[], message: string): b
 }
 
 /**
+ * Whether a remote's address is one this application will accept.
+ * SPEC.md §12.
+ *
+ * Git's transports include `ext::`, which **runs a command**: a pasted address
+ * of that shape would execute it on the author's machine at the next fetch. An
+ * address beginning with `-` is a second way in, because git would read it as
+ * an option rather than an address.
+ *
+ * So the accepted shapes are named rather than filtered: the ordinary URL
+ * schemes, the `user@host:path` form that ssh uses, and an absolute local
+ * path. Everything else is refused with a reason instead of being tried.
+ */
+export function isSafeRemoteUrl(value: string): boolean {
+  const address = value.trim();
+  if (address === '' || address.startsWith('-')) {
+    return false;
+  }
+  if (/^(?:https?|ssh|git|file):\/\//u.test(address)) {
+    return true;
+  }
+  // `user@host:path`, the form ssh takes without a scheme.
+  if (/^[\w.-]+@[\w.-]+:[^\s]+$/u.test(address)) {
+    return true;
+  }
+  return address.startsWith('/');
+}
+
+/**
  * Whether an entry is an unresolved merge conflict. SPEC.md §12.
  *
  * It counts as unstaged for the purpose of the change list — it is certainly

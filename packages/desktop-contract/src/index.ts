@@ -46,6 +46,7 @@ export const CHANNELS = {
   gitMerge: 'opera-incerta:git/merge',
   gitAbortMerge: 'opera-incerta:git/abort-merge',
   gitResolve: 'opera-incerta:git/resolve',
+  gitPublish: 'opera-incerta:git/publish',
   gitDiscard: 'opera-incerta:git/discard',
   gitDiff: 'opera-incerta:git/diff',
   gitVersions: 'opera-incerta:git/versions',
@@ -429,6 +430,16 @@ export interface GitReport {
   readonly tracking: GitTracking | null;
   /** Whether a merge is under way and unfinished. SPEC.md §12. */
   readonly merging: boolean;
+  /** The checked-out branch, or null on a detached head. */
+  readonly branch: string | null;
+  /** Where a first publish would go, or null when no remote is recorded. */
+  readonly remote: GitRemote | null;
+}
+
+/** A remote, as git reports it. */
+export interface GitRemote {
+  readonly name: string;
+  readonly url: string;
 }
 
 /** What a branch tracks, and how far it has drifted. SPEC.md §12. */
@@ -436,6 +447,25 @@ export interface GitTracking {
   readonly upstream: string;
   readonly behind: number;
   readonly ahead: number;
+}
+
+/**
+ * Publishing a branch for the first time. SPEC.md §12.
+ *
+ * `url` records a remote before pushing, and is left out when one is already
+ * recorded. The address is checked against the accepted shapes in the core
+ * before it reaches git: some of git's transports run commands.
+ */
+export interface GitPublishRequest {
+  readonly url?: string;
+}
+
+export function isGitPublishRequest(value: unknown): value is GitPublishRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<GitPublishRequest>;
+  return candidate.url === undefined || typeof candidate.url === 'string';
 }
 
 /**
@@ -555,6 +585,11 @@ export interface OperaIncertaBridge {
   gitAbortMerge(): Promise<BridgeResult<null>>;
   /** Writes a resolved file and stages it. */
   gitResolve(request: GitResolveRequest): Promise<BridgeResult<null>>;
+  /**
+   * Pushes the branch for the first time and sets it to track where it went.
+   * SPEC.md §12.
+   */
+  gitPublish(request: GitPublishRequest): Promise<BridgeResult<null>>;
   /**
    * Listens for native menu commands; the returned function stops listening.
    *

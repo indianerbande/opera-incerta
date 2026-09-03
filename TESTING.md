@@ -318,6 +318,12 @@ Tests MUST cover:
   to decide, and applying a decision writes the file with the chosen text and
   **no marker** in it. Committing afterwards produces a commit with two
   parents, checked with `git rev-list --parents`;
+- publishing a branch through the interface (`SPEC.md` §12), which is also how
+  the remote in the checks below comes to exist: the panel offers it while the
+  branch tracks nothing, an address of the command-running kind is **refused
+  before git sees it** and recorded nowhere — checked by asking git what
+  remotes it has — and the real address publishes, after which the upstream is
+  reported and the manuscript is in the remote, read with `git ls-tree`;
 - fetching and pulling against a **real remote** (`SPEC.md` §12), with a second
   working copy standing in for the other machine: after a fetch the panel says
   one commit behind and **no file has appeared** in the working tree; after a

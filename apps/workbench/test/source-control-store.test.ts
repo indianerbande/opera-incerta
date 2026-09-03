@@ -41,7 +41,7 @@ function fakeBridge(
         `${staged.has('b.md') ? 'A ' : '??'} b.md`,
       ),
     );
-    return { ok: true, value: { root: '/repo', entries, tracking: null, merging: false } };
+    return { ok: true, value: { root: '/repo', entries, tracking: null, merging: false, branch: null, remote: null } };
   };
 
   return {
@@ -90,7 +90,7 @@ describe('reading status', () => {
 
   it('treats a project outside a repository as a state, not a failure', async () => {
     const store = new SourceControlStore(
-      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null, merging: false } }) }),
+      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null, merging: false, branch: null, remote: null } }) }),
     );
     await store.refresh();
 
@@ -248,7 +248,7 @@ describe('without a shell', () => {
   });
 
   it('does nothing at all when there is nothing to stage', async () => {
-    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null, merging: false } }) });
+    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null, merging: false, branch: null, remote: null } }) });
     const store = new SourceControlStore(bridge);
     await store.refresh();
     await store.toggleAll();
@@ -266,7 +266,7 @@ describe('watching the repository', () => {
       fakeBridge({
         status: () => {
           reads += 1;
-          return { ok: true, value: { root: '/book', entries: [], tracking: null, merging: false } };
+          return { ok: true, value: { root: '/book', entries: [], tracking: null, merging: false, branch: null, remote: null } };
         },
         onRepositoryChange: (each) => {
           listener = each;
@@ -363,7 +363,7 @@ describe('showing what changed', () => {
 
 describe('a branch that tracks a remote', () => {
   function tracking(behind: number, ahead: number): GitReport {
-    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead }, merging: false };
+    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead }, merging: false, branch: 'main', remote: null };
   }
 
   it('offers pulling only when there is something to pull', async () => {
@@ -429,6 +429,8 @@ describe('an unfinished merge', () => {
       entries: parseGitStatus(porcelain('UU a.md', ' M b.md')),
       tracking: { upstream: 'origin/main', behind: 1, ahead: 1 },
       merging: true,
+      branch: 'main',
+      remote: { name: 'origin', url: '/tmp/origin.git' },
     };
   }
 
@@ -451,6 +453,8 @@ describe('an unfinished merge', () => {
             entries: [],
             tracking: { upstream: 'origin/main', behind: 2, ahead: 0 },
             merging: false,
+            branch: 'main',
+            remote: null,
           },
         }),
       }),

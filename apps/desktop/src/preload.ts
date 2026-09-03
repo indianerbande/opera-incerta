@@ -35,6 +35,7 @@ const bridge = {
   gitMerge: () => ipcRenderer.invoke(CHANNELS.gitMerge),
   gitAbortMerge: () => ipcRenderer.invoke(CHANNELS.gitAbortMerge),
   gitResolve: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitResolve, request),
+  gitPublish: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitPublish, request),
   gitDiscard: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitDiscard, request),
   gitDiff: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitDiff, request),
   gitVersions: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitVersions, request),

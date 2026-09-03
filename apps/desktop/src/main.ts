@@ -38,6 +38,7 @@ import {
   isDocumentHandle,
   isGitCommitRequest,
   isGitPathsRequest,
+  isGitPublishRequest,
   isGitResolveRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
@@ -50,7 +51,7 @@ import {
   type BridgeResult,
   type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
-import { projectDirectoryName, readPreferences } from '@opera-incerta/core';
+import { isSafeRemoteUrl, projectDirectoryName, readPreferences } from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
 import {
   canonicalPath,
@@ -641,6 +642,30 @@ privileged(CHANNELS.gitAbortMerge, acceptsNothing, async () => {
   return null;
 });
 
+privileged(CHANNELS.gitPublish, isGitPublishRequest, async (request) => {
+  const root = await repositoryRoot();
+  const branch = await git.currentBranch(root);
+  if (branch === null) {
+    throw new ProjectSessionError('git/no-branch');
+  }
+
+  if (request.url !== undefined) {
+    // Checked here, where it can still be refused, rather than handed to git:
+    // some of git's transports run commands (SPEC.md §12).
+    if (!isSafeRemoteUrl(request.url)) {
+      throw new ProjectSessionError('git/unsafe-remote');
+    }
+    await git.addRemote(root, 'origin', request.url.trim());
+  }
+
+  const remote = await git.defaultRemote(root);
+  if (remote === null) {
+    throw new ProjectSessionError('git/no-remote');
+  }
+  await git.publish(root, remote.name, branch);
+  return null;
+});
+
 privileged(CHANNELS.gitResolve, isGitResolveRequest, async (request) => {
   const root = await repositoryRoot();
   const absolute = join(root, request.path);
@@ -762,7 +787,7 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
   const root = await git.repositoryRoot(projectPath);
   // A project outside a repository is a normal state, not a failure.
   if (root === null) {
-    return { root: null, entries: [], tracking: null, merging: false };
+    return { root: null, entries: [], tracking: null, merging: false, branch: null, remote: null };
   }
   return {
     root,
@@ -771,6 +796,8 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
     // beside the other.
     tracking: await git.tracking(root),
     merging: await git.isMerging(root),
+    branch: await git.currentBranch(root),
+    remote: await git.defaultRemote(root),
   };
 });
 
@@ -2034,8 +2061,43 @@ async function checkFetchAndPull(window: BrowserWindow): Promise<void> {
   // check needs a push to *fail* for want of one.
   const remote = join(mkdtempSync(join(tmpdir(), 'opera-incerta-remote-')), 'origin.git');
   runGit(smokeProjectPath, ['init', '--bare', '--initial-branch=main', remote]);
-  runGit(smokeProjectPath, ['remote', 'add', 'origin', remote]);
-  runGit(smokeProjectPath, ['push', '-u', 'origin', 'main']);
+
+  // Published through the interface, which is also how the upstream comes to
+  // exist at all (SPEC.md §12).
+  await refreshSourceControl(window);
+  const unpublished = await trackingLine(window);
+  if (unpublished === null || !unpublished.includes('not published')) {
+    throw new Error(`a branch with no upstream is not offered one: ${String(unpublished)}`);
+  }
+
+  // An address git would run rather than fetch is refused before git sees it.
+  await clickText(window, 'wi-source-control .tracking button', 'Publish');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'ext::sh -c "touch /tmp/opera-incerta-should-not-exist"');
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  const refused = (await window.webContents.executeJavaScript(
+    "document.querySelector('wi-source-control .failure')?.textContent?.trim() ?? null",
+  )) as string | null;
+  if (refused === null || !refused.includes('unsafe-remote')) {
+    throw new Error(`a command-running address was not refused: ${String(refused)}`);
+  }
+  if (runGit(smokeProjectPath, ['remote']).trim() !== '') {
+    throw new Error('the refused address was recorded as a remote anyway');
+  }
+
+  await clickText(window, 'wi-source-control .tracking button', 'Publish');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, remote);
+  await settleWatch(window, async () => (await trackingLine(window))?.includes('origin/main') === true);
+
+  const published = await trackingLine(window);
+  if (published === null || !published.includes('origin/main')) {
+    throw new Error(`publishing did not set an upstream: ${String(published)}`);
+  }
+  if (!runGit(remote, ['ls-tree', '--name-only', 'main']).includes('part-1')) {
+    throw new Error('the manuscript did not reach the remote');
+  }
 
   const elsewhere = join(mkdtempSync(join(tmpdir(), 'opera-incerta-elsewhere-')), 'clone');
   runGit(smokeProjectPath, ['clone', remote, elsewhere]);

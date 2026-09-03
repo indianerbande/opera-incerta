@@ -11,7 +11,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 **State 2026-09-02:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and the committed slice of source
-control (§12). `pnpm run check` green on **Node 24**: 6 projects, **690
+control (§12). `pnpm run check` green on **Node 24**: 6 projects, **697
 tests**, plus the desktop and asset checks. `pnpm run desktop:smoke` green
 across twenty-seven checks, `pnpm run spike:editor` 7/7.
 
@@ -34,6 +34,14 @@ the decision in §2.1.
    running `install.js` in the store directory. Find the correct pnpm 11
    configuration so a clean checkout works in one step, then record it in
    `PLATFORMS.md`.
+
+4. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+   of `checkDocumentFlow` reported "the saved file does not contain the edit"
+   in a run whose only change was in an unrelated core rule. Four runs
+   immediately afterwards — two clean, two falsified — were green. Recorded
+   rather than explained away: if it returns, the trail starts here, and the
+   suspicion to test first is a race between the menu save and the
+   watcher-driven re-read.
 
 ## 2. To decide before code exists
 
@@ -70,8 +78,8 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Source control beyond the committed slice** — the panel, the tri-state
   select-all, committing and pushing are built and checked against a real
   repository. What `SPEC.md` §12 lists as *not* goals of this stage is still
-  open and each needs its own round: upstream creation, branches, amend, and
-  editing `.gitignore`. Conflict resolution decides **per region**; deciding
+  open and each needs its own round: branches, amend, and editing
+  `.gitignore`. Conflict resolution decides **per region**; deciding
   *within* a region — keeping half of each version — would need a merge editor,
   and is a separate question.
   The live watcher of §12 is the open item above.

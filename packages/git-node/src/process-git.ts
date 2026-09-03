@@ -8,7 +8,7 @@
  */
 import { execFile } from 'node:child_process';
 import { parseGitStatus, type GitFileStatus } from '@opera-incerta/core';
-import type { GitService, GitTracking } from './index.js';
+import type { GitRemote, GitService, GitTracking } from './index.js';
 
 export interface GitCommandResult {
   readonly stdout: string;
@@ -182,6 +182,44 @@ class ProcessGitService implements GitService {
       behind: Number.isFinite(behind) ? (behind as number) : 0,
       ahead: Number.isFinite(ahead) ? (ahead as number) : 0,
     };
+  }
+
+  async currentBranch(repositoryRoot: string): Promise<string | null> {
+    const result = await this.#runner.run(['symbolic-ref', '--short', 'HEAD'], repositoryRoot);
+    return result.exitCode === 0 ? result.stdout.trim() : null;
+  }
+
+  async defaultRemote(repositoryRoot: string): Promise<GitRemote | null> {
+    const result = await this.#runner.run(['remote', '-v'], repositoryRoot);
+    if (result.exitCode !== 0) {
+      return null;
+    }
+
+    const remotes = new Map<string, string>();
+    for (const line of result.stdout.split('\n')) {
+      const [name, rest] = line.split('\t');
+      const url = rest?.split(' ')[0];
+      if (name !== undefined && name !== '' && url !== undefined && !remotes.has(name)) {
+        remotes.set(name, url);
+      }
+    }
+
+    const origin = remotes.get('origin');
+    if (origin !== undefined) {
+      return { name: 'origin', url: origin };
+    }
+    const [first] = remotes;
+    return first === undefined ? null : { name: first[0], url: first[1] };
+  }
+
+  async addRemote(repositoryRoot: string, name: string, url: string): Promise<void> {
+    // `--` so that an address is never read as an option, whatever it starts
+    // with. The core refuses those addresses as well (SPEC.md §12).
+    await this.#run(['remote', 'add', '--', name, url], repositoryRoot);
+  }
+
+  async publish(repositoryRoot: string, remote: string, branch: string): Promise<void> {
+    await this.#run(['push', '--set-upstream', '--', remote, branch], repositoryRoot);
   }
 
   async fetch(repositoryRoot: string): Promise<void> {

@@ -17,6 +17,7 @@ import {
   type SelectAllState,
 } from '@opera-incerta/core';
 import type {
+  GitRemote,
   GitTracking,
   GitVersions,
   OperaIncertaBridge,
@@ -32,6 +33,8 @@ export class SourceControlStore {
   readonly #root = signal<string | null>(null);
   readonly #tracking = signal<GitTracking | null>(null);
   readonly #merging = signal(false);
+  readonly #branch = signal<string | null>(null);
+  readonly #remote = signal<GitRemote | null>(null);
   readonly #message = signal('');
   readonly #failure = signal<string | null>(null);
   readonly #loaded = signal(false);
@@ -54,6 +57,16 @@ export class SourceControlStore {
   readonly canPull = computed(() => (this.#tracking()?.behind ?? 0) > 0);
   /** A merge is under way and unfinished. SPEC.md §12. */
   readonly merging = this.#merging.asReadonly();
+  /** The checked-out branch, and where a first publish would go. */
+  readonly branch = this.#branch.asReadonly();
+  readonly remote = this.#remote.asReadonly();
+  /**
+   * A branch that has never been published. The offer appears only inside a
+   * repository, and only while there is no upstream. SPEC.md §12.
+   */
+  readonly canPublish = computed(
+    () => this.#root() !== null && this.#tracking() === null && this.#branch() !== null,
+  );
   /**
    * Merging is offered only when the two have actually drifted apart — the
    * case a fast-forward pull refuses.
@@ -202,6 +215,19 @@ export class SourceControlStore {
   }
 
   /**
+   * Pushes the branch for the first time and sets it to track where it went.
+   * SPEC.md §12.
+   *
+   * `url` is given only when no remote is recorded yet; the address is checked
+   * in the main process before git sees it.
+   */
+  async publish(url?: string): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitPublish(url === undefined ? {} : { url }));
+    });
+  }
+
+  /**
    * Merges the upstream in. SPEC.md §12.
    *
    * It may leave conflicts, which is the whole reason it is a separate action
@@ -274,6 +300,8 @@ export class SourceControlStore {
       this.#entries.set(report.entries as readonly GitFileStatus[]);
       this.#tracking.set(report.tracking);
       this.#merging.set(report.merging);
+      this.#branch.set(report.branch);
+      this.#remote.set(report.remote);
       this.#loaded.set(true);
       this.#failure.set(null);
     } catch (error: unknown) {

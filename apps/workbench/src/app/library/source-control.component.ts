@@ -24,6 +24,17 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
       </p>
     } @else {
       <div class="panel">
+        @if (canPublish()) {
+          <div class="tracking">
+            <div class="remote">
+              <span class="upstream">{{ branch() }} — not published</span>
+            </div>
+            <div class="remote-actions">
+              <button type="button" (click)="publish.emit()">Publish branch…</button>
+            </div>
+          </div>
+        }
+
         @if (tracking(); as remote) {
           <div class="tracking">
             <div class="remote">
@@ -351,6 +362,8 @@ export class SourceControlComponent {
   readonly canPull = input(false);
   readonly canMerge = input(false);
   readonly merging = input(false);
+  readonly canPublish = input(false);
+  readonly branch = input<string | null>(null);
 
   readonly canCommit = input.required<boolean>();
   readonly root = input.required<string | null>();
@@ -365,6 +378,7 @@ export class SourceControlComponent {
   readonly pull = output<void>();
   readonly merge = output<void>();
   readonly abortMerge = output<void>();
+  readonly publish = output<void>();
   /** Asks to decide one file's conflicts; the shell shows the resolver. */
   readonly resolve = output<GitFileStatus>();
   readonly toggleAll = output<void>();

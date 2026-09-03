@@ -130,6 +130,8 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [canPull]="sourceControl.canPull()"
             [canMerge]="sourceControl.canMerge()"
             [merging]="sourceControl.merging()"
+            [canPublish]="sourceControl.canPublish()"
+            [branch]="sourceControl.branch()"
             [canCommit]="sourceControl.canCommit()"
             [root]="sourceControl.repositoryRoot()"
             [loaded]="sourceControl.loaded()"
@@ -140,6 +142,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             (pull)="sourceControl.pull()"
             (merge)="askToMerge()"
             (abortMerge)="sourceControl.abortMerge()"
+            (publish)="askToPublish()"
             (resolve)="openResolver($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
@@ -757,6 +760,36 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  /**
+   * Publishing a branch for the first time. SPEC.md §12.
+   *
+   * With a remote already recorded the address is known and only needs
+   * confirming — this is the moment the manuscript first leaves the machine.
+   * Without one, the address is asked for.
+   */
+  protected askToPublish(): void {
+    const remote = this.sourceControl.remote();
+    if (remote === null) {
+      this.prompt.set({
+        title: 'Publish this branch',
+        initial: '',
+        placeholder: 'https://example.com/book.git',
+        hint: 'The address of an empty repository. It is recorded as “origin”.',
+        confirmLabel: 'Publish',
+        action: (value) => void this.sourceControl.publish(value),
+      });
+      return;
+    }
+
+    this.confirmation.set({
+      title: `Publish “${this.sourceControl.branch() ?? ''}” to ${remote.name}?`,
+      warning: `Everything committed on this branch is sent to ${remote.url}.`,
+      hint: 'From then on, Commit and push goes there without asking again.',
+      confirmLabel: 'Publish',
+      action: () => void this.sourceControl.publish(),
+    });
   }
 
   /** The conflicted file being decided, if any. SPEC.md §12. */

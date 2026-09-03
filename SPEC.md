@@ -1515,8 +1515,23 @@ changes and a non-empty message.
 freshly created project is in. There the path is removed from the index
 instead, which is the same outcome for content that was never committed.
 
+**Publishing a branch** is offered where a repository has a branch that tracks
+nothing, and only there. With a remote already recorded, the address is known
+and the action is **confirmed**, naming it: this is the moment the manuscript
+first leaves the machine. With no remote, the address is asked for and recorded
+as `origin`.
+
+**An address is checked before git sees it.** Git's transports include `ext::`,
+which *runs a command* — a pasted address of that shape would execute it at the
+next fetch — and an address beginning with `-` would be read as an option. The
+accepted shapes are therefore named rather than filtered: `https`, `http`,
+`ssh`, `git` and `file` URLs, the `user@host:path` form, and an absolute local
+path. Everything else is refused with a reason. Recent git refuses the `ext::`
+transport itself, which is a second line rather than a substitute: it depends
+on the machine's configuration, and this check does not.
+
 **Push** runs against the resolved repository root using the system Git
-credentials. Deliberately **no** upstream creation. A missing remote or failed
+credentials. A missing remote or failed
 authentication surfaces the Git error message; it never crashes. If the commit
 succeeds and the push fails, the commit stands, the message field is cleared
 (it was committed), and only the push error is shown.
@@ -1628,8 +1643,7 @@ discarded change back on the next save, and would raise the conflict prompt of
 §10.6 in between — asking the author to decide again what they have just
 decided. A re-read that was already in flight must not put them back either.
 
-**Not goals of this stage:** upstream creation, branches, amend, and editing
-`.gitignore`.
+**Not goals of this stage:** branches, amend, and editing `.gitignore`.
 
 ## 13. Settings contract
 

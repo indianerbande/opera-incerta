@@ -6,6 +6,46 @@ documents").
 
 ---
 
+## 2026-09-03 — publishing a branch, and refusing an address that would run
+
+**What exists.** A repository whose branch tracks nothing offers to publish it.
+With a remote already recorded the address is known and the action is
+confirmed, naming it — the moment a manuscript first leaves the machine
+deserves to be said out loud. With no remote, the address is asked for and
+recorded as `origin`.
+
+**Why §12 excluded this, and what the exclusion was really about.** Not the
+push: the address. Git's transports include `ext::`, which **runs a command**,
+so a pasted address of that shape would execute it at the next fetch. An
+address beginning with `-` is a second way in, because git would read it as an
+option. So the accepted shapes are *named* rather than filtered — the ordinary
+URL schemes, `user@host:path`, and an absolute path — and everything else is
+refused with a reason. The `--` separator goes into the git invocation as well,
+so that an address can never be read as an option even if the rule ever missed
+one.
+
+**What the falsification taught.** With the rule removed, the address still did
+not run: recent git refuses the `ext::` transport itself. That makes this a
+second line rather than the only one — worth knowing, and worth keeping, because
+git's refusal depends on the machine's `protocol.*.allow` configuration and
+this check does not. The check confirms both halves: no file was created, and
+`git remote` lists nothing after the refusal.
+
+**A one-off failure I could not reproduce**, and did not explain away: one
+falsification run failed in an unrelated, much earlier check. Four runs
+straight afterwards — two clean, two falsified — were green, and the
+falsification then landed exactly where it was aimed. It is written down in
+`TODO.md` with the suspicion to test first, because a flaky check is worse than
+a missing one and pretending it did not happen is worse still.
+
+**Verification.** `pnpm run check` green: **697 tests**. The smoke now creates
+the remote for its later checks *through the interface*: it confirms the branch
+is offered as unpublished, tries a command-running address and finds it refused
+and unrecorded, then publishes for real and finds the manuscript in the remote
+with `git ls-tree`.
+
+---
+
 ## 2026-09-03 — merging, and deciding a conflict without ever showing a marker
 
 **What exists.** Merge is a separate action, offered only where the two sides
