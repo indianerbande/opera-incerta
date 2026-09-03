@@ -121,7 +121,29 @@ Tests MUST prove:
   block literals, comments, and lines without a colon — as consecutive raw
   lines in their original relative order;
 - correct reading and writing of the multi-line owned `notes` field as a block
-  literal, with line breaks preserved;
+  literal, with line breaks preserved — including content a hand indented by
+  more than the writer does, and blank lines inside the block;
+- **refusal of every owned-field shape the reader does not read** (`SPEC.md`
+  §6.2): a folded block, a keep indicator, an explicit indentation indicator,
+  a mapping under a scalar field, a bare block indicator on a single-line
+  field, and an owned field that appears twice — each with its stable code on
+  its line, the file read-only, and every line of the block still foreign.
+  And the property those cases protect, asserted directly: an owned key is
+  never written twice, whatever shape it was read from;
+- `keywords` as a block sequence read and written back inline, stably;
+- quoting read back exactly: a literal backslash before an `n`, a tab, a
+  newline, a quote in the middle of a keyword, and a hand-written inline list
+  with quotes inside its items;
+- a file that begins with a thematic break — a keyless block between two
+  rules, a heading under a rule, a lone rule with nothing to close it —
+  staying whole in the body and writable, while a keyless block that carries
+  a key is still unterminated;
+- **generated documents** (§5): seeded, from a vocabulary of owned, foreign,
+  malformed, and stray fragments, several hundred of them — none throws, a
+  diagnostic and read-only always go together, and every writable one
+  serializes to text that reads back to the same model, serializes again to
+  the same bytes, carries no owned key twice, and contains every foreign line
+  it came in with;
 - a file with **no** front matter, with an **empty** front matter block, and
   with an unterminated block, each handled without data loss and without
   invention of fields;

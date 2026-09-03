@@ -380,6 +380,21 @@ not need every full text (§15).
 continuation lines). The reader MUST accept it and the writer MUST produce it;
 line breaks are preserved.
 
+**What the reader reads, and what it refuses.** The owned block follows a
+schema this project defines, and the reader reads exactly that schema: a plain
+or quoted scalar on the line for `title`, `topic`, `status`, and `category`;
+an inline list (`[a, b]`) or a block sequence (`- a` lines) for `keywords`; a
+scalar or a literal block (`|`, `|-`, with the content's indentation read from
+its first line) for `notes`. An owned field in any other YAML shape — a folded
+block, a keep indicator (`|+`), an explicit indentation indicator, a mapping
+under a scalar field — and an owned field that appears twice are **refused
+with a diagnostic and the file is read-only**, exactly like a malformed
+namespace. The alternative, carrying such a field as unknown lines, honoured
+"saving discards nothing" to the letter and broke it in spirit: the writer
+regenerated the field beside the original, and the file left with the same
+key twice in one mapping, which is not YAML for any reader. A value the
+reader cannot read is not preserved by writing around it.
+
 **Why the namespace.** Front matter is a shared namespace with no owner: a file
 may already carry keys from Jekyll, Hugo, Astro, Obsidian, Pandoc, or an
 agent-instruction convention before Opera Incerta ever opens it. A bare `status`
@@ -438,12 +453,27 @@ CRLF and the writer reproduces it. A line-ending difference MUST NOT change the
 parsed model (`TESTING.md` §4).
 
 **An `opera-incerta:` key with no children is an empty mapping**, not a
-malformed one: that is the state a freshly created block has.
+malformed one: that is the state a freshly created block has. So is the
+inline spelling, `opera-incerta: {}`.
+
+**What is a front matter block at all.** A `---` on the first line opens one,
+and the next `---` line closes it — the convention every front-matter-aware
+tool shares. But front matter is a mapping, and a block with **no top-level
+key in it** is not one: a poem between two rules, a heading under a rule, are
+Markdown that happens to begin with a thematic break, and the whole file is
+the body. Nothing is lost either way — the rule decides where the text is
+*shown*, in the editor rather than in the front matter area — and a file
+without front matter gains an owned block in front of its body on the first
+save that needs one, like any other. The empty block, `---` directly over
+`---`, stays a front matter block with nothing in it. A block that carries a
+key and is never closed is unterminated and read-only, as before.
 
 **Diagnostics.** The codec reports stable codes without display text
-(§14.3): `front-matter/unterminated`, `front-matter/namespace-duplicated`, and
-`front-matter/namespace-not-a-mapping`. The first two also mark the file
-read-only, as does the third.
+(§14.3): `front-matter/unterminated`, `front-matter/namespace-duplicated`,
+`front-matter/namespace-not-a-mapping`, `front-matter/field-unreadable`, and
+`front-matter/field-duplicated`. Every one of them marks the file read-only,
+and in that state nothing is claimed as owned, so even a mistaken write could
+not regenerate a field over the original.
 
 ### 6.3 Foreign front matter — lossless round trip
 
@@ -467,8 +497,14 @@ Without that check, a `title:` nested under a foreign mapping would be read as
 the sheet title, a silent data error.
 
 **On write** the `opera-incerta:` block comes first, then the foreign lines
-verbatim in their original relative order. The round trip MUST be idempotent: saving twice
-produces the same bytes as saving once.
+verbatim in their original relative order — with one exception that the
+indentation rule forces: foreign lines at the very head of the block that are
+**indented** have no top-level key of their own, and written after the owned
+block they would continue it and be read as owned fields on the next load. A
+leading run of such lines, blank lines among them included, therefore keeps
+its place in front, and the owned block goes before the first line that can
+stand alone. The round trip MUST be idempotent: saving twice produces the same
+bytes as saving once.
 
 This rule exists because the obvious implementation loses every foreign key on
 the first save: a reader that ignores unknown keys, paired with a writer that

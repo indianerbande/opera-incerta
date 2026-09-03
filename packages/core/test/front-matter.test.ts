@@ -378,3 +378,391 @@ describe('the namespace constant', () => {
     expect(text).toContain(`${FRONT_MATTER_NAMESPACE}:`);
   });
 });
+
+describe('owned fields in shapes the reader does not read', () => {
+  // The rule: refuse and say why, never demote to "unknown". A known key
+  // carried as unknown lines was regenerated beside the original on write,
+  // and the file left with the same key twice in one mapping.
+  const unreadable: ReadonlyArray<readonly [string, readonly string[], number]> = [
+    ['a folded title', ['  title: >', '    folded text'], 3],
+    ['a literal on a single-line field', ['  status: |', '    draft'], 3],
+    ['a mapping under a scalar field', ['  topic:', '    nested: value'], 3],
+    ['notes with a keep indicator', ['  notes: |+', '    text', ''], 3],
+    ['folded notes', ['  notes: >', '    folded'], 3],
+    ['notes with an explicit indentation indicator', ['  notes: |2', '    text'], 3],
+    ['a keyword sequence with a nested mapping', ['  keywords:', '    - a', '      b: c'], 3],
+    ['a keyword item that is itself a block', ['  keywords:', '    - |', '      x'], 3],
+    ['a bare block indicator as a title', ['  title: |'], 3],
+  ];
+
+  for (const [name, lines, line] of unreadable) {
+    it(`refuses ${name} with a diagnostic on its line`, () => {
+      const text = ['---', 'opera-incerta:', ...lines, '---', 'Body\n'].join('\n');
+      const parsed = parseSheet(text);
+
+      expect(parsed.writable).toBe(false);
+      expect(parsed.diagnostics).toEqual([{ code: 'front-matter/field-unreadable', line }]);
+      expect(parsed.sheet.metadata).toEqual({});
+      // Nothing claimed as ours, so nothing can be rewritten: the block is
+      // foreign in its entirety, and the body is untouched.
+      expect(parsed.sheet.foreignLines).toEqual(['opera-incerta:', ...lines]);
+      expect(parsed.sheet.body).toBe('Body\n');
+    });
+  }
+
+  it('refuses a field that appears twice, pointing at the second', () => {
+    const text = [
+      '---',
+      'opera-incerta:',
+      '  title: First',
+      '  topic: x',
+      '  title: Second',
+      '---',
+      '',
+    ].join('\n');
+    const parsed = parseSheet(text);
+
+    expect(parsed.writable).toBe(false);
+    expect(parsed.diagnostics).toEqual([{ code: 'front-matter/field-duplicated', line: 5 }]);
+    expect(parsed.sheet.metadata).toEqual({});
+  });
+
+  it('never writes an owned key twice, whatever shape it was read from', () => {
+    // The defect this describes: a block-sequence `keywords:` was carried as
+    // unknown lines and written back beside a regenerated `keywords: [x]`.
+    const text = ['---', 'opera-incerta:', '  keywords:', '    - a', '    - b', '---', ''].join(
+      '\n',
+    );
+    const parsed = parseSheet(text);
+    const written = serializeSheet({ ...parsed.sheet, metadata: { keywords: ['x'] } });
+
+    expect(written.match(/^\s+keywords:/gm)).toHaveLength(1);
+    expect(written).toContain('  keywords: [x]');
+  });
+});
+
+describe('keywords as a block sequence', () => {
+  const text = [
+    '---',
+    'opera-incerta:',
+    '  title: Ours',
+    '  keywords:',
+    '    - draft',
+    '    - "with, comma"',
+    "    - 'it''s'",
+    '',
+    '    - Größe',
+    '---',
+    'Body\n',
+  ].join('\n');
+
+  it('reads the items', () => {
+    const parsed = parseSheet(text);
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.sheet.metadata.keywords).toEqual(['draft', 'with, comma', "it's", 'Größe']);
+  });
+
+  it('writes them back in the inline form, and is then stable', () => {
+    // Formatting inside the owned block belongs to the application (SPEC.md
+    // §6.2); what must survive is the value.
+    const once = roundTrip(text);
+    expect(once).toContain('  keywords: [draft, "with, comma", it\'s, Größe]');
+    expect(parseSheet(once).sheet.metadata.keywords).toEqual([
+      'draft',
+      'with, comma',
+      "it's",
+      'Größe',
+    ]);
+    expect(roundTrip(once)).toBe(once);
+  });
+
+  it('accepts an empty sequence line as no keywords', () => {
+    const empty = ['---', 'opera-incerta:', '  keywords:', '    -', '---', ''].join('\n');
+    expect(parseSheet(empty).sheet.metadata.keywords).toEqual(['']);
+  });
+});
+
+describe('the empty mapping spelled inline', () => {
+  it('reads `opera-incerta: {}` as an empty mapping that can be written', () => {
+    const parsed = parseSheet('---\nopera-incerta: {}\n---\nBody\n');
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.sheet.metadata).toEqual({});
+  });
+
+  it('refuses `{}` with children under it', () => {
+    const parsed = parseSheet('---\nopera-incerta: {}\n  title: x\n---\n');
+
+    expect(parsed.writable).toBe(false);
+    expect(parsed.diagnostics[0]?.code).toBe('front-matter/namespace-not-a-mapping');
+  });
+
+  it('ignores a comment after the namespace key', () => {
+    const parsed = parseSheet('---\nopera-incerta: # ours\n  title: x\n---\n');
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.sheet.metadata).toEqual({ title: 'x' });
+  });
+});
+
+describe('quoting, read back exactly', () => {
+  const values: ReadonlyArray<readonly [string, string]> = [
+    // A literal backslash before an `n`: three sequential replaces read each
+    // other's output and turned this into a real newline.
+    ['backslash-n', 'a: \\nb'],
+    ['backslash then quote', 'x\\"y'],
+    ['two backslashes', 'a\\\\b'],
+    ['a tab', 'a\tb'],
+    ['a newline', 'line one\nline two'],
+    ['newline then backslash', 'one\n\\two'],
+  ];
+
+  for (const [name, value] of values) {
+    it(`round-trips a title with ${name}`, () => {
+      const base = parseSheet('body').sheet;
+      const text = serializeSheet({ ...base, metadata: { title: value } });
+
+      expect(parseSheet(text).sheet.metadata.title).toBe(value);
+      expect(roundTrip(text)).toBe(text);
+    });
+  }
+
+  it('leaves an escape it does not know as it is, rather than dropping it', () => {
+    const parsed = parseSheet('---\nopera-incerta:\n  title: "a\\qb"\n---\n');
+    expect(parsed.sheet.metadata.title).toBe('a\\qb');
+  });
+
+  it('round-trips keywords with a quote inside them', () => {
+    // The reader honours a quote only at the start of an item; one in the
+    // middle used to open a quoted run and join three keywords into one.
+    const base = parseSheet('body').sheet;
+    const keywords = ["it's", 'fine', "o'clock", 'said "so"', "o'clock, x", 'a\nb'];
+    const text = serializeSheet({ ...base, metadata: { keywords } });
+
+    expect(parseSheet(text).sheet.metadata.keywords).toEqual(keywords);
+    expect(roundTrip(text)).toBe(text);
+  });
+
+  it('reads a hand-written inline list with quotes in the middle of items', () => {
+    const parsed = parseSheet("---\nopera-incerta:\n  keywords: [it's, o'clock, \"q, r\"]\n---\n");
+    expect(parsed.sheet.metadata.keywords).toEqual(["it's", "o'clock", 'q, r']);
+  });
+});
+
+describe('block literals as a hand writes them', () => {
+  it('reads content indented by more than the writer would', () => {
+    const text = [
+      '---',
+      'opera-incerta:',
+      '  notes: |',
+      '     three-space indent',
+      '     kept',
+      '---',
+      '',
+    ].join('\n');
+    const parsed = parseSheet(text);
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.sheet.metadata.notes).toBe('three-space indent\nkept\n');
+  });
+
+  it('keeps blank lines inside the block, and relative indentation', () => {
+    const text = [
+      '---',
+      'opera-incerta:',
+      '  notes: |-',
+      '    first',
+      '',
+      '      indented more',
+      '    last',
+      '---',
+      '',
+    ].join('\n');
+    const parsed = parseSheet(text);
+
+    expect(parsed.sheet.metadata.notes).toBe('first\n\n  indented more\nlast');
+    expect(roundTrip(text)).toBe(text);
+  });
+
+  it('reads a literal with nothing under it as the empty value', () => {
+    const clipped = ['---', 'opera-incerta:', '  notes: |', '---', ''].join('\n');
+    const stripped = ['---', 'opera-incerta:', '  notes: |-', '---', ''].join('\n');
+
+    expect(parseSheet(clipped).sheet.metadata.notes).toBe('\n');
+    expect(parseSheet(stripped).sheet.metadata.notes).toBe('');
+    // Written back without a blank line to carry the nothing.
+    expect(roundTrip(clipped)).toBe(clipped);
+    expect(roundTrip(stripped)).toBe(stripped);
+  });
+
+  it('keeps a stray unkeyed line in the owned block as an unknown line', () => {
+    // Not YAML for anyone, but not ours to drop either: the forward
+    // compatibility rule keeps it, and the literal above it stays empty.
+    const text = ['---', 'opera-incerta:', '  notes: |', '  a line without a key', '---', ''].join(
+      '\n',
+    );
+    const parsed = parseSheet(text);
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.sheet.metadata.notes).toBe('\n');
+    expect(parsed.sheet.unknownOwnedLines).toEqual(['  a line without a key']);
+    expect(roundTrip(text)).toBe(text);
+  });
+});
+
+describe('a file that starts with a thematic break', () => {
+  // Front matter is a mapping. A block with no key in it is not one, and the
+  // text between the rules is the author's, not metadata.
+  it('keeps a poem between two rules in the body', () => {
+    const text = '---\n\nA poem\n\n---\n\nMore text\n';
+    const parsed = parseSheet(text);
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.sheet.foreignLines).toEqual([]);
+    expect(parsed.sheet.body).toBe(text);
+    expect(roundTrip(text)).toBe(text);
+  });
+
+  it('keeps a heading under a rule in the body', () => {
+    const text = '---\n# Title\n\nText\n---\n';
+    expect(parseSheet(text).sheet.body).toBe(text);
+  });
+
+  it('keeps a single rule with nothing to close it in the body, writable', () => {
+    const text = '---\nA poem\n';
+    const parsed = parseSheet(text);
+
+    expect(parsed.writable).toBe(true);
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.sheet.body).toBe(text);
+  });
+
+  it('still reports an unterminated block that carries keys', () => {
+    const parsed = parseSheet('---\ntitle: x\nText\n');
+    expect(parsed.writable).toBe(false);
+    expect(parsed.diagnostics[0]?.code).toBe('front-matter/unterminated');
+  });
+
+  it('adds owned metadata in front of such a body and reads it back', () => {
+    const text = '---\n\nA poem\n\n---\n';
+    const parsed = parseSheet(text);
+    const written = serializeSheet({ ...parsed.sheet, metadata: { title: 'Poem' } });
+    const again = parseSheet(written);
+
+    expect(again.sheet.metadata).toEqual({ title: 'Poem' });
+    expect(again.sheet.body).toBe(text);
+    expect(roundTrip(written)).toBe(written);
+  });
+});
+
+describe('generated front matter never throws, and what it writes it reads back', () => {
+  // TESTING.md §5. Seeded, so a failure is a case and not a rumour.
+  function random(seed: number): () => number {
+    let state = seed >>> 0;
+    return () => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 0x1_0000_0000;
+    };
+  }
+
+  const fragments = [
+    'opera-incerta:',
+    'opera-incerta: {}',
+    'opera-incerta: scalar',
+    '  title: Ours',
+    '  title: "2024"',
+    '  title: >',
+    '  title: |',
+    '  topic:',
+    '  keywords: [a, b]',
+    '  keywords:',
+    '    - a',
+    "    - 'it''s'",
+    '  status: draft',
+    '  notes: |',
+    '  notes: |-',
+    '  notes: |+',
+    '    a line',
+    '     deeper',
+    '',
+    '  future: value',
+    '    nested: deeper',
+    'layout: post',
+    'title: Foreign',
+    '# a comment',
+    'tags:',
+    '  - x',
+    'weird line',
+    '---',
+    '    ',
+    '  - stray item',
+  ];
+
+  /**
+   * The lines under `opera-incerta:` in the written front matter, up to the
+   * next top-level line. Only the front matter: a body may carry the same
+   * words, and a keyless block is a body.
+   */
+  function ownedBlockOf(written: string): readonly string[] {
+    const lines = written.split(/\r?\n/);
+    const closing = lines[0] === '---' ? lines.indexOf('---', 1) : -1;
+    const front = closing === -1 ? [] : lines.slice(1, closing);
+    const start = front.indexOf('opera-incerta:');
+    if (start === -1) {
+      return [];
+    }
+    const block: string[] = [];
+    for (const line of front.slice(start + 1)) {
+      if (line.trim() !== '' && !/^\s/.test(line)) {
+        break;
+      }
+      block.push(line);
+    }
+    return block;
+  }
+
+  function document(next: () => number): string {
+    const count = Math.floor(next() * 12);
+    const lines: string[] = [];
+    for (let index = 0; index < count; index += 1) {
+      lines.push(fragments[Math.floor(next() * fragments.length)] as string);
+    }
+    const lineEnding = next() < 0.2 ? '\r\n' : '\n';
+    const closed = next() < 0.9;
+    return ['---', ...lines, ...(closed ? ['---'] : []), 'Body', ''].join(lineEnding);
+  }
+
+  it('holds for five hundred generated documents', () => {
+    const next = random(20260903);
+
+    for (let index = 0; index < 500; index += 1) {
+      const text = document(next);
+      const parsed = parseSheet(text);
+      expect(parsed.writable).toBe(parsed.diagnostics.length === 0);
+      if (!parsed.writable) {
+        continue;
+      }
+
+      const once = serializeSheet(parsed.sheet);
+      const again = parseSheet(once);
+      // What was written is readable, means the same, and is stable.
+      expect(again.writable).toBe(true);
+      expect(again.sheet.metadata).toEqual(parsed.sheet.metadata);
+      expect(serializeSheet(again.sheet)).toBe(once);
+      // No owned key twice, whatever shape it was read from. Unknown lines
+      // may repeat as they came in; the known fields never. Only the owned
+      // block counts: a foreign line may be indented and look like one.
+      const ownedKeys = ownedBlockOf(once)
+        .map((line) => /^  (title|topic|keywords|status|category|notes):/.exec(line)?.[1])
+        .filter((key): key is string => key !== undefined);
+      expect(new Set(ownedKeys).size).toBe(ownedKeys.length);
+      // Every foreign line went out as it came in.
+      for (const line of parsed.sheet.foreignLines) {
+        expect(once).toContain(line);
+      }
+    }
+  });
+});

@@ -6,6 +6,91 @@ documents").
 
 ---
 
+## 2026-09-03 — the codec refuses what it cannot read, instead of writing around it
+
+**What was found.** The architecture review ran hand-picked inputs through
+the front matter codec and found five ways it misread or damaged a file that
+another tool, or a hand, had written — every one confirmed against the built
+core before anything was changed:
+
+- an owned field in a YAML shape the reader did not read — `keywords:` as a
+  block sequence, `title: >` folded — was demoted to "unknown" and carried
+  through verbatim, and on the next save the writer regenerated the field
+  **beside** it. The file left with the same key twice in one mapping, which
+  is not YAML for any reader. "Saving discards nothing" was honoured to the
+  letter and broken in spirit;
+- the double-quote unescaping ran three `replace`s in sequence, and each read
+  the previous one's output: a written `"a: \\nb"` — a literal backslash and
+  an `n` — came back as a real newline;
+- the inline keyword list treated any quote as the start of a quoted item,
+  while the writer quoted only items with a comma or a bracket; `[it's, fine,
+  o'clock]` read back as one keyword;
+- a block literal's content was sliced at a fixed two spaces past the key, so
+  a hand-written block indented by three lost its first character per line;
+  `|+` was read as `|`; `opera-incerta: {}` was refused as "not a mapping";
+  a duplicated owned field silently last-won while a duplicated namespace was
+  a hard error;
+- a Markdown file beginning with a thematic break — `---`, a poem, `---` —
+  was read as front matter, and the poem left the editor for the metadata
+  area.
+
+**The decision.** The codec keeps its stated shape — a reader for the schema
+this project defines, no general YAML parser (`SPEC.md` §6.3) — and takes the
+posture the namespace rules already had: **what it cannot read, it refuses
+with a diagnostic and marks read-only**, and in that state it claims nothing
+as owned, so even a mistaken write could not regenerate a field over the
+original. Two new codes, `front-matter/field-unreadable` and
+`front-matter/field-duplicated`, beside the three that existed. The reader's
+schema is now written down in `SPEC.md` §6.2: a scalar on the line for the
+single fields, an inline list *or a block sequence* for `keywords` (the shape
+a hand most often writes, now read and written back inline), a scalar or a
+literal block for `notes` with the content's indentation read from its first
+line. Escapes are undone in one pass; a quote counts only at the start of a
+list item, and the list item and the scalar share one quoting function;
+`{}` is the empty mapping.
+
+**What is a front matter block at all** got a rule of its own. A `---` on
+line one opens one, as every tool agrees — but front matter is a mapping, and
+a block with **no top-level key** in it is not one. A poem between two rules,
+a heading under a rule, a lone rule with nothing to close it: all stay whole
+in the body, writable, and gain an owned block in front on the first save
+that needs one. The empty block stays front matter; a keyed block that is
+never closed stays unterminated and read-only.
+
+**What the generated test found.** `TESTING.md` §5 asked for generated
+documents once the codec was stable; five hundred of them now run from a
+seeded vocabulary of owned, foreign, malformed and stray fragments, and every
+writable one must serialize to text that reads back to the same model,
+serializes again to the same bytes, and carries no owned key twice. The first
+run found a defect older than this round: a front matter whose **first lines
+were indented** — continuation lines with no key of their own — had those
+lines classified foreign, and the writer put the owned block in front of
+them; on the next read they continued *it*, and a field was duplicated. The
+writer now keeps such a leading run in front of the owned block (`SPEC.md`
+§6.3, the one exception to "owned block first"). Two further failures were
+the test itself scanning the body, and were fixed in the test.
+
+**Verification.** `pnpm run check` green: **770 tests**, 36 of them new in
+the codec suite — nine unreadable shapes each with its code on its line, the
+duplicated field, the no-duplicate-key property asserted directly, the block
+sequence, `{}`, six escape cases, quotes inside keywords, hand-indented and
+blank-lined literals, the empty literal, five thematic-break cases, and the
+generated documents. `pnpm run desktop:smoke` green across thirty checks,
+twice. Three of the new checks were falsified against
+their defect: with the escapes undone in sequence again, the backslash-`n`
+case failed and nothing else; with the writer putting the owned block first
+unconditionally, only the generated documents failed — the case no hand-picked
+input covers; with an unreadable field demoted to unknown lines again, every
+unreadable-shape case failed on the missing diagnostic.
+
+**Lesson.** A rule that preserves bytes can still destroy a file, if the
+bytes are put back where they mean something else. "Discard nothing" is
+necessary, not sufficient; the writer also has to know what it is writing
+*next to*. And the generated test earned its place in the first hour: it
+found the one defect none of the hand-picked inputs had thought of.
+
+---
+
 ## 2026-09-03 — one rule for every path a request carries
 
 **What was found.** An architecture review of the whole repository turned up
