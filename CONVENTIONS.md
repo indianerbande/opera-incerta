@@ -628,6 +628,15 @@ itself, a panel could no longer misplace it. Generalized: a rule that several
 call sites must apply consistently is moved into one unit rather than repeated.
 **Adopted** (`SPEC.md` §8.3, `AGENTS.md`).
 
+**C-U8 — Flows live in plain classes; the shell only renders.** What a click
+means — the menu it opens, the question it asks, what the answer does — is
+decided in a class that holds no framework, takes the stores and an overlay
+host, and runs in a unit test against the fake bridge. The shell renders
+whatever overlay is up, one at a time. The workbench shell had reached a
+thousand lines with three hundred lines of untested flow logic before this
+was done; the flows were untested only because they could not be reached
+without rendering. **Adopted** (`SPEC.md` §8.7, `TESTING.md` §2.6).
+
 ## B.2 Filesystem and data
 
 **C-F1 — Compare canonically resolved paths.** Temporary directories and

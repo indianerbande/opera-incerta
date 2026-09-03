@@ -36,6 +36,33 @@ export class BridgeFailure extends Error {
   }
 }
 
+/**
+ * Whatever was thrown, as a failure with a code and a message.
+ *
+ * The one place that looks inside an unknown error. A `BridgeFailure` comes
+ * back as it is; anything else that carries a `code` or a `message` is read
+ * for them; the rest is `bridge/failed`. Every store and component used to
+ * duck-type this for itself, and the three copies disagreed about which field
+ * to prefer.
+ */
+export function toBridgeFailure(error: unknown): BridgeFailure {
+  if (error instanceof BridgeFailure) {
+    return error;
+  }
+  const candidate =
+    typeof error === 'object' && error !== null
+      ? (error as { code?: unknown; message?: unknown })
+      : {};
+  const code = typeof candidate.code === 'string' ? candidate.code : 'bridge/failed';
+  const message =
+    typeof candidate.message === 'string'
+      ? candidate.message
+      : typeof error === 'string'
+        ? error
+        : '';
+  return new BridgeFailure(code, message);
+}
+
 /** Unwraps a result, turning a reported failure into a typed error. */
 export function unwrap<T>(result: BridgeResult<T>): T {
   if (!result.ok) {

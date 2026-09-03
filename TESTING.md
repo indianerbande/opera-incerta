@@ -249,7 +249,18 @@ Component and state tests MUST cover:
 - inspector: reading and writing owned metadata fields and computing progress
   figures; and
 - rejection of stale asynchronous results: a slow scan or search that completes
-  after a newer one MUST NOT overwrite the newer result.
+  after a newer one MUST NOT overwrite the newer result; and
+- **the flows** (`SPEC.md` §8.7), driven without a component: each context
+  menu offers the entries its target gets and no others; choosing an entry
+  puts up the prompt or confirmation with the words the author reads, and
+  answering it reaches the bridge with the right request; deleting warns of
+  unsaved work on the open sheet and of what a group carries; discarding
+  words its warning by tracked or untracked and forgets the editor's version
+  afterwards; a branch switch over unsaved work stops to ask and saves before
+  switching on confirmation; publishing asks for an address only when no
+  remote is recorded; amending fills the field from the last commit and
+  quotes it; the diff, the resolver, and the ignore editor open on what was
+  read and open nothing when the read failed.
 
 **The editor adapter has one contract suite for every implementation**
 (`CONVENTIONS.md` C-T11). It is written without a test framework so that the

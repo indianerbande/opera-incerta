@@ -4,7 +4,7 @@ import type {
   OperaIncertaBridge,
   RecentProjectEntry,
 } from '@opera-incerta/desktop-contract';
-import { resolveBridge, unwrap } from '../workspace/bridge.js';
+import { resolveBridge, toBridgeFailure, unwrap } from '../workspace/bridge.js';
 import { NewProjectDialogComponent } from './new-project-dialog.component.js';
 
 /**
@@ -255,7 +255,7 @@ export class WelcomeComponent {
         this.location.set(chosen);
       }
     } catch (error: unknown) {
-      this.createFailure.set(codeOf(error));
+      this.createFailure.set(toBridgeFailure(error).code);
     }
   }
 
@@ -273,7 +273,7 @@ export class WelcomeComponent {
     } catch (error: unknown) {
       // The dialog stays open with the failure, so the author keeps what they
       // typed instead of starting over.
-      this.createFailure.set(codeOf(error));
+      this.createFailure.set(toBridgeFailure(error).code);
     }
   }
 
@@ -314,13 +314,7 @@ export class WelcomeComponent {
       await operation(bridge);
       this.failure.set(null);
     } catch (error: unknown) {
-      this.failure.set(codeOf(error));
+      this.failure.set(toBridgeFailure(error).code);
     }
   }
-}
-
-function codeOf(error: unknown): string {
-  return typeof error === 'object' && error !== null && 'code' in error
-    ? String((error as { code: unknown }).code)
-    : 'bridge/failed';
 }

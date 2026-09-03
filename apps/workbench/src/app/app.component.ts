@@ -8,13 +8,6 @@ import {
   viewChild,
 } from '@angular/core';
 
-import {
-  findGroup,
-  sheetsOf,
-  walkLibrary,
-  type GitFileStatus,
-  type PageCategory,
-} from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
@@ -24,10 +17,7 @@ import {
 } from './library/sheet-list.component.js';
 import { SourceControlComponent } from './library/source-control.component.js';
 import { ActivityBarComponent } from './shell/activity-bar.component.js';
-import {
-  ContextMenuComponent,
-  type ContextMenuEntry,
-} from './shell/context-menu.component.js';
+import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
 import { LibraryDrag, type OverRow } from './shell/library-drag.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
@@ -38,7 +28,6 @@ import {
 } from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
-import type { GitBranch, GitVersions } from '@opera-incerta/desktop-contract';
 import { BranchesComponent } from './library/branches.component.js';
 import { TextEditorComponent } from './shell/text-editor.component.js';
 import { ConflictResolverComponent } from './library/conflict-resolver.component.js';
@@ -46,16 +35,22 @@ import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
 import { OutlineComponent } from './sidebar/outline.component.js';
+import { type MenuEntry, type Overlay } from './shell/overlay.js';
 import { resolveBridge } from './workspace/bridge.js';
+import { LibraryActions } from './workspace/library-actions.js';
+import { SourceControlActions } from './workspace/source-control-actions.js';
 import { SourceControlStore } from './workspace/source-control-store.js';
 import { WorkspaceStore } from './workspace/workspace-store.js';
 import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
 
 /**
- * The workbench shell. SPEC.md §8.
+ * The workbench shell. SPEC.md §8, §8.7.
  *
- * It composes the regions and routes user actions to the store; it holds no
- * document state and applies no Markdown rule of its own.
+ * It composes the regions and renders whatever overlay is up. What a click
+ * *means* — which menu an entry gets, what a prompt asks, what confirming does
+ * — is decided in `LibraryActions` and `SourceControlActions`, which hold no
+ * Angular and are tested without this component. The shell holds no document
+ * state and applies no Markdown rule of its own.
  */
 @Component({
   selector: 'wi-root',
@@ -118,7 +113,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 [drag]="libraryDrag"
                 (select)="store.selectGroup($event)"
                 (toggle)="store.toggleExpanded($event)"
-                (contextMenu)="openGroupMenu($event)"
+                (contextMenu)="libraryActions.openGroupMenu($event.path, $event)"
               />
             } @else {
               <p class="hint">No project open.</p>
@@ -141,18 +136,18 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [root]="sourceControl.repositoryRoot()"
             [loaded]="sourceControl.loaded()"
             (toggle)="sourceControl.toggle($event)"
-            (discard)="askToDiscard($event)"
-            (showDiff)="showDiff($event)"
+            (discard)="gitActions.askToDiscard($event)"
+            (showDiff)="gitActions.showDiff($event)"
             (fetch)="sourceControl.fetch()"
             (pull)="sourceControl.pull()"
-            (merge)="askToMerge()"
+            (merge)="gitActions.askToMerge()"
             (abortMerge)="sourceControl.abortMerge()"
-            (publish)="askToPublish()"
-            (showBranches)="openBranches()"
-            (amend)="askToAmend()"
-            (editIgnore)="openIgnore()"
+            (publish)="gitActions.askToPublish()"
+            (showBranches)="gitActions.openBranches()"
+            (amend)="gitActions.askToAmend()"
+            (editIgnore)="gitActions.openIgnore()"
             (ignore)="sourceControl.ignorePath($event.path)"
-            (resolve)="openResolver($event)"
+            (resolve)="gitActions.openResolver($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
             (commit)="sourceControl.commit()"
@@ -190,7 +185,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           [groupPath]="store.selectedGroupPath()"
           [categories]="store.categories()"
           (select)="store.selectSheet($event)"
-          (contextMenu)="openSheetMenu($event)"
+          (contextMenu)="libraryActions.openSheetMenu($event.path, $event.name, $event)"
         />
       </section>
 
@@ -292,7 +287,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 [statistics]="store.statistics()"
                 [available]="store.openSheet() !== null"
                 [categories]="store.categories()"
-                (manage)="managingCategories.set(true)"
+                (manage)="libraryActions.manageCategories()"
                 (change)="store.updateMetadata($event)"
               />
             }
@@ -318,73 +313,82 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       />
     </div>
 
-    @if (menu(); as open) {
-      <wi-context-menu
-        [entries]="open.entries"
-        [x]="open.x"
-        [y]="open.y"
-        (choose)="chooseMenuEntry($event)"
-        (dismiss)="menu.set(null)"
-      />
-    }
-
-    @if (prompt(); as open) {
-      <wi-text-prompt
-        [title]="open.title"
-        [initial]="open.initial"
-        [placeholder]="open.placeholder"
-        [hint]="open.hint"
-        [confirmLabel]="open.confirmLabel"
-        (confirm)="confirmPrompt($event)"
-        (cancel)="prompt.set(null)"
-      />
-    }
-
-    @if (ignoreText() !== null) {
-      <wi-text-editor
-        title="Ignored files"
-        hint="One path or pattern per line, as git reads them."
-        [text]="ignoreText() ?? ''"
-        (save)="saveIgnore($event)"
-        (close)="ignoreText.set(null)"
-      />
-    }
-
-    @if (branches(); as list) {
-      <wi-branches
-        [branches]="list"
-        (switchTo)="switchBranch($event)"
-        (remove)="askToDeleteBranch($event)"
-        (create)="askForBranchName()"
-        (close)="branches.set(null)"
-      />
-    }
-
-    @if (resolving(); as conflict) {
-      <wi-conflict-resolver
-        [path]="conflict.path"
-        [text]="conflict.text"
-        [incoming]="sourceControl.tracking()?.upstream ?? null"
-        (resolved)="applyResolution(conflict.path, $event)"
-        (close)="resolving.set(null)"
-      />
-    }
-
-    @if (diff(); as shown) {
-      <wi-diff-view
-        [path]="shown.path"
-        [text]="shown.text"
-        [versions]="shown.versions"
-        (close)="diff.set(null)"
-      />
-    }
-
-    @if (managingCategories()) {
-      <wi-category-manager
-        [categories]="store.categories()"
-        (confirm)="saveCategories($event)"
-        (cancel)="managingCategories.set(false)"
-      />
+    <!-- One overlay at a time (SPEC.md §8.7). The conflict prompt below is
+         the store's own and may stand beside it: it is raised by a re-read,
+         not by a click. -->
+    @if (overlay(); as open) {
+      @if (open.kind === 'menu') {
+        <wi-context-menu
+          [entries]="open.entries"
+          [x]="open.x"
+          [y]="open.y"
+          (choose)="chooseMenuEntry($event)"
+          (dismiss)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'prompt') {
+        <wi-text-prompt
+          [title]="open.title"
+          [initial]="open.initial"
+          [placeholder]="open.placeholder"
+          [hint]="open.hint"
+          [confirmLabel]="open.confirmLabel"
+          (confirm)="confirmPrompt($event)"
+          (cancel)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'confirmation') {
+        <wi-confirm-prompt
+          [title]="open.title"
+          [warning]="open.warning"
+          [hint]="open.hint ?? 'It goes to the desktop trash, where it can be restored.'"
+          [confirmLabel]="open.confirmLabel ?? 'Delete'"
+          (confirm)="confirmAction()"
+          (cancel)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'ignore') {
+        <wi-text-editor
+          title="Ignored files"
+          hint="One path or pattern per line, as git reads them."
+          [text]="open.text"
+          (save)="gitActions.saveIgnore($event)"
+          (close)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'branches') {
+        <wi-branches
+          [branches]="open.branches"
+          (switchTo)="gitActions.switchBranch($event)"
+          (remove)="gitActions.askToDeleteBranch($event)"
+          (create)="gitActions.askForBranchName()"
+          (close)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'resolver') {
+        <wi-conflict-resolver
+          [path]="open.path"
+          [text]="open.text"
+          [incoming]="sourceControl.tracking()?.upstream ?? null"
+          (resolved)="gitActions.applyResolution(open.path, $event)"
+          (close)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'diff') {
+        <wi-diff-view
+          [path]="open.path"
+          [text]="open.text"
+          [versions]="open.versions"
+          (close)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'categories') {
+        <wi-category-manager
+          [categories]="store.categories()"
+          (confirm)="libraryActions.saveCategories($event)"
+          (cancel)="overlay.set(null)"
+        />
+      }
     }
 
     @if (store.conflict(); as path) {
@@ -395,17 +399,6 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         confirmLabel="Load the file"
         (confirm)="store.resolveConflict('disk')"
         (cancel)="store.resolveConflict('mine')"
-      />
-    }
-
-    @if (confirmation(); as open) {
-      <wi-confirm-prompt
-        [title]="open.title"
-        [warning]="open.warning"
-        [hint]="open.hint ?? 'It goes to the desktop trash, where it can be restored.'"
-        [confirmLabel]="open.confirmLabel ?? 'Delete'"
-        (confirm)="confirmDeletion()"
-        (cancel)="confirmation.set(null)"
       />
     }
 
@@ -507,6 +500,15 @@ export class AppComponent {
   protected readonly store = new WorkspaceStore(this.#bridge);
   protected readonly sourceControl = new SourceControlStore(this.#bridge);
   protected readonly layout = new LayoutState(this.#bridge);
+
+  /** What lies over the workbench, if anything. SPEC.md §8.7. */
+  protected readonly overlay = signal<Overlay | null>(null);
+  protected readonly libraryActions = new LibraryActions(this.store, this.overlay);
+  protected readonly gitActions = new SourceControlActions(
+    this.store,
+    this.sourceControl,
+    this.overlay,
+  );
 
   protected readonly navigatorItems = NAVIGATOR_ITEMS;
   protected readonly secondaryItems = SECONDARY_ITEMS;
@@ -643,393 +645,26 @@ export class AppComponent {
     );
   }
 
-  /** The open context menu, and what it acts on. */
-  protected readonly menu = signal<{
-    entries: readonly ContextMenuEntry[];
-    x: number;
-    y: number;
-    target: { kind: 'group' | 'sheet'; path: string; name: string };
-  } | null>(null);
-
-  /** Whether the category manager is open. SPEC.md §6.6. */
-  protected readonly managingCategories = signal(false);
-
-  protected saveCategories(categories: readonly PageCategory[]): void {
-    this.managingCategories.set(false);
-    void this.store.saveCategories(categories);
-  }
-
-  /** The open confirmation, and what it would take away. SPEC.md §6.7. */
-  protected readonly confirmation = signal<{
-    title: string;
-    warning: string | null;
-    /** What the destructive button says, and what happens afterwards. */
-    hint?: string;
-    confirmLabel?: string;
-    action: () => void;
-  } | null>(null);
-
-  /** The open prompt, and what confirming it will do. */
-  protected readonly prompt = signal<{
-    title: string;
-    initial: string;
-    placeholder: string;
-    hint: string | null;
-    confirmLabel: string;
-    action: (value: string) => void;
-  } | null>(null);
-
-  protected openGroupMenu(event: { path: string; x: number; y: number }): void {
-    const group = this.store.library() === null ? null : event.path;
-    if (group === null) {
-      return;
-    }
-    this.menu.set({
-      entries: [
-        { id: 'sheet/new', label: 'New Sheet…' },
-        { id: 'group/new', label: 'New Group…' },
-        { id: 'group/rename', label: 'Rename…' },
-        // The project root has no group above it to delete it from.
-        ...(event.path === '.' ? [] : [{ id: 'group/delete', label: 'Delete Group…' }]),
-      ],
-      x: event.x,
-      y: event.y,
-      target: { kind: 'group', path: event.path, name: this.groupName(event.path) },
-    });
-  }
-
-  protected openSheetMenu(event: { path: string; name: string; x: number; y: number }): void {
-    this.menu.set({
-      entries: [
-        { id: 'sheet/rename', label: 'Rename…' },
-        { id: 'sheet/delete', label: 'Delete Sheet…' },
-      ],
-      x: event.x,
-      y: event.y,
-      target: { kind: 'sheet', path: event.path, name: event.name },
-    });
-  }
-
-  protected chooseMenuEntry(id: string): void {
-    const open = this.menu();
-    this.menu.set(null);
-    if (open === undefined || open === null) {
-      return;
-    }
-    const { target } = open;
-
-    switch (id) {
-      case 'sheet/new':
-        this.prompt.set({
-          title: 'New sheet',
-          initial: '',
-          placeholder: 'The First Scene',
-          // The rule, where it applies: the file name is derived once and then
-          // stays, while this title can change any time (SPEC.md §6.4).
-          hint: 'The title can change later; the file name is set once, from it.',
-          confirmLabel: 'Create',
-          action: (value) => void this.store.createSheet(target.path, value),
-        });
-        return;
-      case 'group/new':
-        this.prompt.set({
-          title: 'New group',
-          initial: '',
-          placeholder: 'Part One',
-          hint: 'The name can change later; the folder name is set once, from it.',
-          confirmLabel: 'Create',
-          action: (value) => void this.store.createGroup(target.path, value),
-        });
-        return;
-      case 'group/rename':
-        this.prompt.set({
-          title: 'Rename group',
-          initial: target.name,
-          placeholder: '',
-          hint: 'Renaming changes the name shown here, never the folder on disk.',
-          confirmLabel: 'Rename',
-          action: (value) => void this.store.renameGroup(target.path, value),
-        });
-        return;
-      case 'sheet/rename':
-        this.prompt.set({
-          title: 'Rename sheet',
-          initial: target.name,
-          placeholder: '',
-          hint: 'Renaming changes the title in the file, never the file name.',
-          confirmLabel: 'Rename',
-          action: (value) => void this.store.renameSheet(target.path, value),
-        });
-        return;
-      case 'sheet/delete':
-        this.confirmation.set({
-          title: `Move “${target.name}” to the trash?`,
-          // Unsaved work does not go to the trash with the file: it was never
-          // in it. The author has to hear that before, not after.
-          warning:
-            this.store.openSheet()?.relativePath === target.path && this.store.dirty()
-              ? 'It has unsaved changes, and those are not in the trash afterwards.'
-              : null,
-          action: () => void this.store.deleteEntry(target.path),
-        });
-        return;
-      case 'group/delete':
-        this.confirmation.set({
-          title: `Move “${target.name}” to the trash?`,
-          warning: this.groupContents(target.path),
-          action: () => void this.store.deleteEntry(target.path),
-        });
-        return;
-      default:
-        return;
-    }
+  /** A chosen menu entry runs after the menu is gone, so it may put up the next overlay. */
+  protected chooseMenuEntry(entry: MenuEntry): void {
+    this.overlay.set(null);
+    entry.run();
   }
 
   protected confirmPrompt(value: string): void {
-    const open = this.prompt();
-    this.prompt.set(null);
-    open?.action(value);
-  }
-
-  /** The `.gitignore` being edited, if any. SPEC.md §12. */
-  protected readonly ignoreText = signal<string | null>(null);
-
-  protected async openIgnore(): Promise<void> {
-    this.ignoreText.set(await this.sourceControl.readIgnore());
-  }
-
-  protected async saveIgnore(text: string): Promise<void> {
-    this.ignoreText.set(null);
-    await this.sourceControl.writeIgnore(text);
-  }
-
-  /**
-   * Replacing the last commit. SPEC.md §12.
-   *
-   * The message field is filled with the wording the commit already has, so
-   * that amending to add a forgotten file does not cost the author their
-   * message. The question then quotes that wording rather than pointing at the
-   * field, which is behind the dialog and cannot be typed into while it is
-   * open: to change it, cancel, edit the field, and ask again.
-   */
-  protected async askToAmend(): Promise<void> {
-    if (this.sourceControl.message().trim() === '') {
-      const previous = await this.sourceControl.lastMessage();
-      if (previous !== null) {
-        this.sourceControl.setMessage(previous);
-      }
-    }
-
-    const message = this.sourceControl.message().trim();
-    this.confirmation.set({
-      title: 'Replace the last commit?',
-      warning: `It is rewritten with whatever is staged, and its message becomes “${message}”.`,
-      hint: 'Offered only while it has not been pushed; afterwards it could only be replaced by force.',
-      confirmLabel: 'Amend',
-      action: () => void this.sourceControl.amend(),
-    });
-  }
-
-  /** The branch list on screen, if any. SPEC.md §12. */
-  protected readonly branches = signal<readonly GitBranch[] | null>(null);
-
-  protected async openBranches(): Promise<void> {
-    this.branches.set(await this.sourceControl.branches());
-  }
-
-  /**
-   * Switching replaces files in the working tree wholesale.
-   *
-   * It is refused while the editor holds unsaved work: git knows nothing about
-   * a buffer, and an author whose text sat under a file that has just become a
-   * different file has no way to make sense of what happened. Saving or
-   * discarding first is one click, and then the question does not arise.
-   */
-  protected async switchBranch(name: string): Promise<void> {
-    if (this.store.dirty()) {
-      this.confirmation.set({
-        title: 'Save or discard first',
-        warning: `“${this.store.openTitle() ?? ''}” has changes that are not saved.`,
-        hint: 'Switching branches replaces files on disk, and unsaved work has nowhere to go.',
-        confirmLabel: 'Save and switch',
-        action: () => void this.saveAndSwitch(name),
-      });
-      return;
-    }
-    this.branches.set(null);
-    await this.sourceControl.switchBranch(name);
-  }
-
-  private async saveAndSwitch(name: string): Promise<void> {
-    await this.store.save();
-    this.branches.set(null);
-    await this.sourceControl.switchBranch(name);
-  }
-
-  protected askForBranchName(): void {
-    this.branches.set(null);
-    this.prompt.set({
-      title: 'New branch',
-      initial: '',
-      placeholder: 'draft/chapter-3',
-      hint: 'It starts at the current commit, and is switched to at once.',
-      confirmLabel: 'Create',
-      action: (value) => void this.sourceControl.createBranch(value),
-    });
-  }
-
-  protected askToDeleteBranch(name: string): void {
-    this.branches.set(null);
-    this.confirmation.set({
-      title: `Delete the branch “${name}”?`,
-      warning: 'Only a branch whose work is already merged can be deleted; git refuses the rest.',
-      hint: 'The commits stay in the repository either way.',
-      confirmLabel: 'Delete',
-      action: () => void this.sourceControl.deleteBranch(name),
-    });
-  }
-
-  /**
-   * Publishing a branch for the first time. SPEC.md §12.
-   *
-   * With a remote already recorded the address is known and only needs
-   * confirming — this is the moment the manuscript first leaves the machine.
-   * Without one, the address is asked for.
-   */
-  protected askToPublish(): void {
-    const remote = this.sourceControl.remote();
-    if (remote === null) {
-      this.prompt.set({
-        title: 'Publish this branch',
-        initial: '',
-        placeholder: 'https://example.com/book.git',
-        hint: 'The address of an empty repository. It is recorded as “origin”.',
-        confirmLabel: 'Publish',
-        action: (value) => void this.sourceControl.publish(value),
-      });
-      return;
-    }
-
-    this.confirmation.set({
-      title: `Publish “${this.sourceControl.branch() ?? ''}” to ${remote.name}?`,
-      warning: `Everything committed on this branch is sent to ${remote.url}.`,
-      hint: 'From then on, Commit and push goes there without asking again.',
-      confirmLabel: 'Publish',
-      action: () => void this.sourceControl.publish(),
-    });
-  }
-
-  /** The conflicted file being decided, if any. SPEC.md §12. */
-  protected readonly resolving = signal<{ path: string; text: string } | null>(null);
-
-  /**
-   * Merging is confirmed, because it is the one Git operation here that can
-   * leave the manuscript in a state the author has to sort out.
-   */
-  protected askToMerge(): void {
-    this.confirmation.set({
-      title: 'Merge the changes from the remote?',
-      warning: 'Where both sides changed the same passage, you decide which version stays.',
-      hint: 'A merge can be abandoned afterwards, putting everything back as it was.',
-      confirmLabel: 'Merge',
-      action: () => void this.sourceControl.merge(),
-    });
-  }
-
-  protected async openResolver(entry: GitFileStatus): Promise<void> {
-    const versions = await this.sourceControl.versions(entry.path);
-    if (versions?.current != null) {
-      this.resolving.set({ path: entry.path, text: versions.current });
+    const open = this.overlay();
+    this.overlay.set(null);
+    if (open?.kind === 'prompt') {
+      open.action(value);
     }
   }
 
-  protected async applyResolution(path: string, text: string): Promise<void> {
-    this.resolving.set(null);
-    await this.sourceControl.resolve(path, text);
-  }
-
-  /** The diff on screen, if any. SPEC.md §12. */
-  protected readonly diff = signal<{
-    path: string;
-    text: string;
-    versions: GitVersions | null;
-  } | null>(null);
-
-  protected async showDiff(entry: GitFileStatus): Promise<void> {
-    // Both readings are fetched at once, so switching between them is
-    // immediate and neither is read twice.
-    const [text, versions] = await Promise.all([
-      this.sourceControl.diff(entry.path),
-      this.sourceControl.versions(entry.path),
-    ]);
-    if (text !== null) {
-      this.diff.set({ path: entry.path, text, versions });
+  protected confirmAction(): void {
+    const open = this.overlay();
+    this.overlay.set(null);
+    if (open?.kind === 'confirmation') {
+      open.action();
     }
-  }
-
-  /**
-   * Confirms throwing a change away. SPEC.md §12.
-   *
-   * The warning says what actually happens, and the two cases differ: a
-   * tracked file goes back to its last committed state, while an untracked one
-   * has no earlier state to go back to and goes to the trash instead.
-   */
-  protected askToDiscard(entry: GitFileStatus): void {
-    const untracked = entry.groups.includes('untracked');
-    this.confirmation.set({
-      title: `Discard the changes to “${entry.path}”?`,
-      warning: untracked
-        ? 'This file is not in the repository yet, so there is nothing to go back to: it goes to the trash.'
-        : 'The file goes back to its last committed state, and unsaved changes to it in the editor go with it.',
-      hint: untracked
-        ? 'It goes to the desktop trash, where it can be restored.'
-        : 'The committed version stays in the repository’s history either way.',
-      confirmLabel: 'Discard',
-      action: () => void this.discardChanges(entry),
-    });
-  }
-
-  private async discardChanges(entry: GitFileStatus): Promise<void> {
-    const affected = await this.sourceControl.discard([entry.path]);
-    // Whatever the editor still held for those sheets would otherwise put the
-    // discarded change back on the next save.
-    this.store.forgetEdits(affected);
-  }
-
-  protected confirmDeletion(): void {
-    const open = this.confirmation();
-    this.confirmation.set(null);
-    open?.action();
-  }
-
-  /** What goes along with a group, in words, or null when it is empty. */
-  private groupContents(path: string): string | null {
-    const library = this.store.library();
-    const group = library === null ? null : findGroup(library, path);
-    if (group === null) {
-      return null;
-    }
-    const sheets = sheetsOf(group).length;
-    const groups = [...walkLibrary(group)].filter(
-      (entry) => entry.kind === 'group' && entry !== group,
-    ).length;
-    if (sheets === 0 && groups === 0) {
-      return null;
-    }
-
-    const parts = [
-      sheets === 1 ? '1 sheet' : `${String(sheets)} sheets`,
-      ...(groups === 0 ? [] : [groups === 1 ? '1 subgroup' : `${String(groups)} subgroups`]),
-    ];
-    return `Everything in it goes too: ${parts.join(' and ')}.`;
-  }
-
-  private groupName(path: string): string {
-    const library = this.store.library();
-    if (library === null) {
-      return path;
-    }
-    return findGroup(library, path)?.displayName ?? path;
   }
 
   /** The toggle lives in the layout state; the outline reads it from there. */

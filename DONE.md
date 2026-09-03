@@ -6,6 +6,79 @@ documents").
 
 ---
 
+## 2026-09-03 — the shell renders, the flows decide
+
+**What was found.** The architecture review's picture of the renderer: the
+core-adapter split is real and the stores are tested, but `app.component.ts`
+had become the place where every dialog and every flow lived — 1,054 lines,
+eight independent overlay signals with nothing to stop two being open at
+once, and some three hundred lines of flow logic (which menu an entry gets,
+what a prompt says, what confirming does, when a branch switch stops to ask)
+that no test reached, because the only way to reach it was to render the
+component. Context menus went out as string ids and came back through a
+`switch`. The workspace store carried three copies of "capture the editing
+state, adopt the snapshot, select, restore", two copies of "put the editor
+back to what was saved", and one line twice. Three files translated an
+unknown error three different ways.
+
+**What changed, and what did not.**
+
+- **Two plain classes hold the flows**: `LibraryActions` (the group and
+  sheet menus, the prompts they lead to, the delete confirmations with what
+  goes along, the category manager) and `SourceControlActions` (discard,
+  diff, merge, resolve, publish, branches with the save-first rule, amend
+  with the last message, the ignore editor). They take the stores and an
+  overlay host and hold no Angular. Every flow now runs in a unit test
+  against the fake bridge, menu to prompt to store: **30 new tests**.
+- **One overlay** (`shell/overlay.ts`): a value with a `kind`, replacing
+  eight signals. Confirming or cancelling takes it down; opening another
+  replaces it. The conflict prompt of §10.6 stays the store's own, because a
+  re-read raises it, not a click.
+- **Menu entries carry what choosing them does.** `{ label, run }`; the menu
+  reports the entry and the shell runs it after the menu is gone. The string
+  ids and the `switch` are gone.
+- **One re-adopt in the workspace store** (`#readopt`), called by the
+  explicit reload, saving the categories, and every library edit. `#adopt`
+  no longer resets the selected group as a side effect; the two callers
+  that want the root say so. `#dropEditing` replaces the two copies of the
+  reset. The doubled line is gone.
+- **One error translator** (`toBridgeFailure` in `bridge.ts`). The
+  workspace store shows the code, source control prefers git's own words —
+  that difference is intended (`SPEC.md` §12) and now sits on one function
+  rather than three duck-typings. `SourceControlStore` gained the `#runRead`
+  it was missing beside `#runWrite`; five reads that each carried the same
+  seven lines are one line each.
+- **The shell is 689 lines**, down from 1,054, and what remains is
+  composition, the drag measurement, and three one-line handlers that hand
+  an overlay's answer to its action.
+
+**What did not change.** Any behaviour the smoke can see: thirty checks,
+the same lines. The dialog components themselves — their chrome is copied
+eight times, and that is the first item of the second round. So are the two
+ways state reaches components, the drag's DOM protocol, the welcome
+window's private store, and the layout state's inconsistencies; all in
+`TODO.md` §1.7 with the review's notes, so the next round starts from a
+list rather than a re-review.
+
+**Verification.** `pnpm run check` green: **800 tests** (30 new, in
+`library-actions.test.ts` and `source-control-actions.test.ts`; every
+existing workspace and source-control test unchanged and green). The
+Angular build type-checks the rewritten template. `pnpm run desktop:smoke`
+green across **thirty checks**. Three falsifications: with the branch
+switch no longer stopping for unsaved work, exactly the test for it failed;
+with the root offered a delete entry, exactly the root-menu test failed;
+with `#readopt` no longer restoring the editing state, **six** older
+workspace-store tests failed — the fold preserved what they pin.
+
+**Lesson.** A flow that lives in a component is a flow without a test, and
+it stays that way for as long as the component is the only door to it. The
+fix was not a component test — it was to put the flow where a test can
+reach it and let the component render the result. The thirty tests written
+this round took an hour; the flows had been untested since the day each was
+built.
+
+---
+
 ## 2026-09-03 — the smoke has an entry of its own, and a README
 
 **What was found.** `apps/desktop/src/main.ts` was 4,113 lines, and 3,164 of

@@ -24,7 +24,7 @@ import type {
   GitVersions,
   OperaIncertaBridge,
 } from '@opera-incerta/desktop-contract';
-import { unwrap } from './bridge.js';
+import { toBridgeFailure, unwrap } from './bridge.js';
 
 export class SourceControlStore {
   readonly #bridge: OperaIncertaBridge | null;
@@ -163,17 +163,7 @@ export class SourceControlStore {
    * it wait behind a write would present as "the click did nothing" (C-F3).
    */
   async diff(path: string): Promise<string | null> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      this.#failure.set('bridge/absent');
-      return null;
-    }
-    try {
-      return unwrap(await bridge.gitDiff({ path }));
-    } catch (error: unknown) {
-      this.#failure.set(reasonOf(error));
-      return null;
-    }
+    return this.#runRead(null, async (bridge) => unwrap(await bridge.gitDiff({ path })));
   }
 
   /**
@@ -181,17 +171,7 @@ export class SourceControlStore {
    * SPEC.md §12. A read, like `diff`, and guarded like one.
    */
   async versions(path: string): Promise<GitVersions | null> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      this.#failure.set('bridge/absent');
-      return null;
-    }
-    try {
-      return unwrap(await bridge.gitVersions({ path }));
-    } catch (error: unknown) {
-      this.#failure.set(reasonOf(error));
-      return null;
-    }
+    return this.#runRead(null, async (bridge) => unwrap(await bridge.gitVersions({ path })));
   }
 
   /**
@@ -242,31 +222,12 @@ export class SourceControlStore {
 
   /** The last commit's message, for filling the field before amending. */
   async lastMessage(): Promise<string | null> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      return null;
-    }
-    try {
-      return unwrap(await bridge.gitLastMessage());
-    } catch (error: unknown) {
-      this.#failure.set(reasonOf(error));
-      return null;
-    }
+    return this.#runRead(null, async (bridge) => unwrap(await bridge.gitLastMessage()));
   }
 
   /** The repository's `.gitignore`. SPEC.md §12. */
   async readIgnore(): Promise<string | null> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      this.#failure.set('bridge/absent');
-      return null;
-    }
-    try {
-      return unwrap(await bridge.gitReadIgnore());
-    } catch (error: unknown) {
-      this.#failure.set(reasonOf(error));
-      return null;
-    }
+    return this.#runRead(null, async (bridge) => unwrap(await bridge.gitReadIgnore()));
   }
 
   async writeIgnore(text: string): Promise<void> {
@@ -289,17 +250,7 @@ export class SourceControlStore {
 
   /** Every local branch, read when they are about to be shown. SPEC.md §12. */
   async branches(): Promise<readonly GitBranch[]> {
-    const bridge = this.#bridge;
-    if (bridge === null) {
-      this.#failure.set('bridge/absent');
-      return [];
-    }
-    try {
-      return unwrap(await bridge.gitBranches());
-    } catch (error: unknown) {
-      this.#failure.set(reasonOf(error));
-      return [];
-    }
+    return this.#runRead([], async (bridge) => unwrap(await bridge.gitBranches()));
   }
 
   async createBranch(name: string): Promise<void> {
@@ -417,6 +368,28 @@ export class SourceControlStore {
     }
   }
 
+  /**
+   * A read that changes nothing: it goes through neither guard, because
+   * making it wait behind a write would present as "the click did nothing"
+   * (C-F3). A failure is reported; the caller gets the fallback.
+   */
+  async #runRead<T>(
+    fallback: T,
+    operation: (bridge: OperaIncertaBridge) => Promise<T>,
+  ): Promise<T> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      this.#failure.set('bridge/absent');
+      return fallback;
+    }
+    try {
+      return await operation(bridge);
+    } catch (error: unknown) {
+      this.#failure.set(reasonOf(error));
+      return fallback;
+    }
+  }
+
   /** A user action, guarded separately from the refresh, then re-reading. */
   async #runWrite(operation: (bridge: OperaIncertaBridge) => Promise<void>): Promise<void> {
     const bridge = this.#bridge;
@@ -464,13 +437,7 @@ export class SourceControlStore {
  * outside Git — a missing bridge, a busy guard — already are.
  */
 function reasonOf(error: unknown): string {
-  if (typeof error !== 'object' || error === null) {
-    return 'git/failed';
-  }
-  const candidate = error as { message?: unknown; code?: unknown };
-  const message = typeof candidate.message === 'string' ? candidate.message.trim() : '';
-  if (message !== '') {
-    return message;
-  }
-  return 'code' in candidate ? String(candidate.code) : 'git/failed';
+  const failure = toBridgeFailure(error);
+  const message = failure.message.trim();
+  return message !== '' ? message : failure.code;
 }

@@ -1,15 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-
-export interface ContextMenuEntry {
-  readonly id: string;
-  readonly label: string;
-}
+import type { MenuEntry } from './overlay.js';
 
 /**
  * A menu at a point on screen, for right-clicking an entry in the library.
  *
- * It knows nothing about what its entries mean: it reports which was chosen,
- * and the caller acts. Escape and a click outside dismiss it.
+ * It knows nothing about what its entries mean: each entry carries what
+ * choosing it does, and the caller runs that. Escape and a click outside
+ * dismiss it.
  */
 @Component({
   selector: 'wi-context-menu',
@@ -27,8 +24,8 @@ export interface ContextMenuEntry {
       [style.top.px]="y()"
       (mousedown)="$event.stopPropagation()"
     >
-      @for (entry of entries(); track entry.id) {
-        <button type="button" role="menuitem" class="item" (click)="choose.emit(entry.id)">
+      @for (entry of entries(); track entry.label) {
+        <button type="button" role="menuitem" class="item" (click)="choose.emit(entry)">
           {{ entry.label }}
         </button>
       }
@@ -64,10 +61,10 @@ export interface ContextMenuEntry {
   `,
 })
 export class ContextMenuComponent {
-  readonly entries = input.required<readonly ContextMenuEntry[]>();
+  readonly entries = input.required<readonly MenuEntry[]>();
   readonly x = input.required<number>();
   readonly y = input.required<number>();
 
-  readonly choose = output<string>();
+  readonly choose = output<MenuEntry>();
   readonly dismiss = output<void>();
 }

@@ -1075,6 +1075,39 @@ against the real directory when the project is created, and the renderer cannot
 know what is in it. The dialog says the folder name it derives, not the one it
 will certainly get.
 
+
+### 8.7 The shell renders; the flows decide
+
+**Status: Accepted (2026-09-03).**
+
+The workbench shell (`wi-root`) composes the regions and renders. What a
+click **means** — which entries a context menu offers, what a prompt asks,
+what confirming it does, which question a branch switch stops for — is
+decided in plain classes that hold no Angular: one for the library
+(`LibraryActions`), one for source control (`SourceControlActions`). They
+take the stores and an overlay host, and every flow in them runs in a unit
+test against the fake bridge, menu to prompt to store.
+
+**At most one overlay at a time.** A menu, a prompt, a confirmation, the
+branch list, the resolver, the diff, the ignore editor, and the category
+manager are one value with a `kind`, not one signal each. Opening one
+replaces another; confirming or cancelling takes it down. The conflict prompt
+of §10.6 is the exception, deliberately: it is raised by a re-read rather
+than by a click, so it belongs to the store and may stand beside whatever
+the author had open.
+
+**A menu entry carries what choosing it does.** Entries are `{ label, run }`;
+the menu component reports the entry, and the shell runs it after the menu
+is gone, so the entry may put up the next overlay. String identifiers that a
+`switch` translated back into actions were one more place for the two to
+drift apart.
+
+**Why.** The shell had grown to a thousand lines, eight independent dialog
+signals, and three hundred lines of flow logic that no test reached, because
+the only way to reach it was to render the component. Nothing prevented two
+dialogs at once. The flows are the part of the renderer most worth testing
+and were the one part untested.
+
 ## 9. Library
 
 ### 9.1 Project explorer

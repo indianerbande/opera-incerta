@@ -39,7 +39,7 @@ import type {
   OperaIncertaBridge,
   ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
-import { unwrap, unwrapSnapshot } from './bridge.js';
+import { toBridgeFailure, unwrap, unwrapSnapshot } from './bridge.js';
 
 export interface OpenSheet {
   readonly relativePath: string;
@@ -223,6 +223,7 @@ export class WorkspaceStore {
       const snapshot = unwrapSnapshot(await bridge.currentProject());
       if (snapshot !== null) {
         this.#adopt(snapshot);
+        this.#selectedGroupPath.set('.');
       }
     });
   }
@@ -232,6 +233,7 @@ export class WorkspaceStore {
       const snapshot = unwrapSnapshot(await bridge.openProject());
       if (snapshot !== null) {
         this.#adopt(snapshot);
+        this.#selectedGroupPath.set('.');
       }
     });
   }
@@ -252,18 +254,12 @@ export class WorkspaceStore {
       if (snapshot === null) {
         return;
       }
-      const previousSheet = this.#openSheet()?.relativePath ?? null;
-      const previousGroup = this.#selectedGroupPath();
-      const before = this.#editingState();
-
-      this.#adopt(snapshot, true);
-      this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, previousGroup));
-      if (previousSheet === null) {
-        this.#clearOpenSheet();
-      } else {
-        await this.selectSheet(previousSheet);
-        this.#restoreEditing(before, previousSheet, true);
-      }
+      await this.#readopt(snapshot, {
+        group: this.#selectedGroupPath(),
+        sheet: this.#openSheet()?.relativePath ?? null,
+        sameDocument: true,
+        mayConflict: true,
+      });
     });
   }
 
@@ -273,12 +269,7 @@ export class WorkspaceStore {
       this.#project.set(null);
       this.#library.set(null);
       this.#handles.set({});
-      this.#openSheet.set(null);
-      this.#editorDocument.set(null);
-      this.#currentText.set('');
-      this.#currentMetadata.set({});
-      this.#currentForeign.set([]);
-    this.#currentForeign.set([]);
+      this.#clearOpenSheet();
       this.#selectedGroupPath.set('.');
       this.#expanded.set(new Set(['.']));
       // Nothing is open, so nothing is watched: a watcher on a closed project
@@ -381,11 +372,7 @@ export class WorkspaceStore {
   forgetEdits(relativePaths: readonly string[]): void {
     const open = this.#openSheet();
     if (open !== null && relativePaths.includes(open.relativePath)) {
-      this.#editingEpoch += 1;
-      this.#currentText.set(open.savedBody);
-      this.#currentMetadata.set(open.sheet.metadata);
-      this.#currentForeign.set(open.sheet.foreignLines);
-      this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
+      this.#dropEditing(open);
     }
   }
 
@@ -439,18 +426,12 @@ export class WorkspaceStore {
   async saveCategories(categories: readonly PageCategory[]): Promise<void> {
     await this.#withBridge(async (bridge) => {
       const snapshot = unwrap(await bridge.writeCategories(categories));
-      const previousGroup = this.#selectedGroupPath();
-      const previousSheet = this.#openSheet()?.relativePath ?? null;
-      const before = this.#editingState();
-
-      this.#adopt(snapshot, true);
-      this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, previousGroup));
-      if (previousSheet === null) {
-        this.#clearOpenSheet();
-      } else {
-        await this.selectSheet(previousSheet);
-        this.#restoreEditing(before, previousSheet, false);
-      }
+      await this.#readopt(snapshot, {
+        group: this.#selectedGroupPath(),
+        sheet: this.#openSheet()?.relativePath ?? null,
+        sameDocument: true,
+        mayConflict: false,
+      });
     });
   }
 
@@ -655,13 +636,22 @@ export class WorkspaceStore {
   resolveConflict(take: 'disk' | 'mine'): void {
     const open = this.#openSheet();
     if (take === 'disk' && open !== null) {
-      this.#editingEpoch += 1;
-      this.#currentText.set(open.savedBody);
-      this.#currentMetadata.set(open.sheet.metadata);
-      this.#currentForeign.set(open.sheet.foreignLines);
-      this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
+      this.#dropEditing(open);
     }
     this.#conflict.set(null);
+  }
+
+  /**
+   * Puts the editor back to what was last read from or written to disk, on
+   * the author's say-so. The epoch moves, so a re-read that is in flight will
+   * not put the dropped work back (see `#editingEpoch`).
+   */
+  #dropEditing(open: OpenSheet): void {
+    this.#editingEpoch += 1;
+    this.#currentText.set(open.savedBody);
+    this.#currentMetadata.set(open.sheet.metadata);
+    this.#currentForeign.set(open.sheet.foreignLines);
+    this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
   }
 
   dismissFailure(): void {
@@ -696,15 +686,10 @@ export class WorkspaceStore {
   ): Promise<void> {
     const previousGroup = this.#selectedGroupPath();
     const previousSheet = this.#openSheet()?.relativePath ?? null;
-    // Adopting a refreshed project re-reads the open sheet from disk. What the
-    // author has typed but not saved is not on disk, and renaming a *different*
-    // sheet is no reason to lose it.
-    const before = this.#editingState();
 
     await this.#withBridge(async (bridge) => {
       const result = unwrap(await operation(bridge));
       const created = result.revealPath;
-      this.#adopt(result.snapshot, true);
       const library = result.snapshot.library as GroupEntry;
       const ancestors = created === null ? [] : ancestorPaths(created);
       const placed = (options.movedFrom ?? null) !== null;
@@ -720,11 +705,6 @@ export class WorkspaceStore {
                 // with it: the author is still looking at what they were.
                 previousGroup
               : created;
-      this.#expand(ancestors);
-      // The selection has to land on something that still exists: a deleted
-      // group takes the selection with it otherwise, and the columns would
-      // show a place that is gone.
-      this.#selectedGroupPath.set(nearestGroup(library, reveal));
 
       // A created sheet is selected and opened; otherwise the previously open
       // one stays open — creating a *group* must not close the editor
@@ -741,18 +721,63 @@ export class WorkspaceStore {
         wanted !== null && findSheet(library, wanted) !== null
           ? wanted
           : (options.fallbackSheet ?? null);
-      if (toOpen === null) {
-        this.#clearOpenSheet();
-      } else {
-        await this.selectSheet(toOpen);
+
+      await this.#readopt(result.snapshot, {
+        group: reveal,
+        expand: ancestors,
+        sheet: toOpen,
         // The same document, either because it never moved or because this is
         // where it went.
-        const sameDocument = toOpen === previousSheet || toOpen === followed;
-        if (sameDocument) {
-          this.#restoreEditing(before, toOpen, false);
-        }
-      }
+        sameDocument: toOpen === previousSheet || toOpen === followed,
+        mayConflict: false,
+      });
     });
+  }
+
+  /**
+   * Takes a re-read of the **same** project and puts the author back where
+   * they were: the group (or the nearest one that still exists), the sheet,
+   * and whatever was in the editor.
+   *
+   * One choreography for the three things that re-read — an explicit reload,
+   * a library edit, saving the categories — because each used to carry its own
+   * copy of it, and three copies of "capture, adopt, select, restore" is three
+   * places for the order to go wrong.
+   */
+  async #readopt(
+    snapshot: ProjectSnapshot,
+    wanted: {
+      /** The group to show; the nearest existing one is taken. */
+      readonly group: string;
+      /** Groups to open in the tree on the way, if any. */
+      readonly expand?: readonly string[];
+      /** The sheet to open, or null for none. */
+      readonly sheet: string | null;
+      /** Whether that sheet is the document that was open, so its edits belong to it. */
+      readonly sameDocument: boolean;
+      /** Whether a difference on disk is worth the conflict prompt (§10.6). */
+      readonly mayConflict: boolean;
+    },
+  ): Promise<void> {
+    // Adopting a refreshed project re-reads the open sheet from disk. What the
+    // author has typed but not saved is not on disk, and renaming a *different*
+    // sheet is no reason to lose it.
+    const before = this.#editingState();
+    this.#adopt(snapshot, true);
+    this.#expand(wanted.expand ?? []);
+    // The selection has to land on something that still exists: a deleted
+    // group takes the selection with it otherwise, and the columns would show
+    // a place that is gone.
+    this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, wanted.group));
+
+    if (wanted.sheet === null) {
+      this.#clearOpenSheet();
+      return;
+    }
+    await this.selectSheet(wanted.sheet);
+    if (wanted.sameDocument) {
+      this.#restoreEditing(before, wanted.sheet, wanted.mayConflict);
+    }
   }
 
   /**
@@ -770,7 +795,6 @@ export class WorkspaceStore {
     this.#library.set(snapshot.library as GroupEntry);
     this.#handles.set(snapshot.handles);
     this.#categories.set(readCategories(snapshot.categories));
-    this.#selectedGroupPath.set('.');
     if (!keepOpen) {
       this.#clearOpenSheet();
     }
@@ -821,11 +845,7 @@ export class WorkspaceStore {
       await operation(bridge);
       this.#failure.set(null);
     } catch (error: unknown) {
-      this.#failure.set(
-        typeof error === 'object' && error !== null && 'code' in error
-          ? String((error as { code: unknown }).code)
-          : 'bridge/failed',
-      );
+      this.#failure.set(toBridgeFailure(error).code);
     } finally {
       this.#busy.set(false);
     }
