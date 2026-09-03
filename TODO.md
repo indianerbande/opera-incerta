@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **886 tests**, plus the desktop and asset checks.
+projects, **896 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -41,13 +41,7 @@ has to be consulted to build, verify or change the product.
    configuration so a clean checkout works in one step, then record it in
    `PLATFORMS.md`.
 
-5. **The identity git needs** (`SPEC.md` §12), the round after that. Without
-   `user.name` and `user.email` the first commit fails with a message written
-   for programmers, and for an author who has never used git that is the normal
-   case. Ask only when no **global** identity exists, write the answer
-   repository-locally, never touch the global configuration, and offer a place
-   to supply it later for someone who declines.
-6. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+5. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the

@@ -77,6 +77,17 @@ export interface GitRemote {
   readonly url: string;
 }
 
+/**
+ * Who a commit is by. SPEC.md §12.
+ *
+ * Both go into every commit and travel with the manuscript to whatever
+ * remote it is pushed to; the question that asks for them says so.
+ */
+export interface GitIdentity {
+  readonly name: string;
+  readonly email: string;
+}
+
 function isRenameOrCopy(status: string): boolean {
   return status === 'R' || status === 'C';
 }

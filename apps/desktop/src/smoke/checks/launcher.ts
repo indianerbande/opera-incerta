@@ -13,6 +13,8 @@ import {
   clickMenuItem,
   clickText,
   forwardConsole,
+  isVisible,
+  rendered,
   waitForProjectWindow,
   waitForSelector,
   waitUntil,
@@ -252,9 +254,36 @@ async function checkCreateRepository(
   writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${evidence}`);
 
+  // A machine without a global identity, from here on: git 2.32+ reads the
+  // global configuration from this file, and it is empty. The fixture project
+  // set its identity locally, so nothing before this point depended on one.
+  const globalConfig = join(smoke.createParent, 'global-gitconfig');
+  writeFileSync(globalConfig, '');
+  process.env['GIT_CONFIG_GLOBAL'] = globalConfig;
+
   await clickText(window, 'wi-source-control .create-repository', 'Create repository');
   await waitUntil('the repository to exist', () => existsSync(join(projectPath, '.git')));
+
+  // The question follows, because there is no global identity (SPEC.md §12).
+  await waitForSelector(window, 'wi-identity-prompt');
+  const question = join(smoke.evidenceDirectory, 'smoke-identity-question.png');
+  writeFileSync(question, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${question}`);
+  await fillIdentity(window, 'Smoke Author', 'author@opera-incerta.invalid');
+  await waitUntil(
+    'the identity row to be gone',
+    async () => !(await isVisible(window, 'wi-source-control .identity-row')),
+  );
   await waitForSelector(window, 'wi-source-control .changes');
+
+  const name = smoke.git(projectPath, ['config', '--local', 'user.name']).trim();
+  const email = smoke.git(projectPath, ['config', '--local', 'user.email']).trim();
+  if (name !== 'Smoke Author' || email !== 'author@opera-incerta.invalid') {
+    throw new Error(`the repository records ${JSON.stringify({ name, email })}`);
+  }
+  if (readFileSync(globalConfig, 'utf8') !== '') {
+    throw new Error('the global configuration was written');
+  }
 
   if (smoke.git(projectPath, ['symbolic-ref', 'HEAD']).trim() !== 'refs/heads/main') {
     throw new Error('the repository did not start on main');
@@ -282,8 +311,32 @@ async function checkCreateRepository(
 
   console.log(
     'smoke ok: a project without a repository was offered one, and got it on main with nothing ' +
-      'staged and no commit',
+      'staged and no commit; the identity question followed and its answer went into the ' +
+      'repository only',
   );
+}
+
+/** Answers the identity question through its two fields and the Save button. */
+async function fillIdentity(window: BrowserWindow, name: string, email: string): Promise<void> {
+  const filled = (await window.webContents.executeJavaScript(
+    `(() => {
+       const fields = [
+         [document.querySelector('wi-identity-prompt input[name="name"]'), ${JSON.stringify(name)}],
+         [document.querySelector('wi-identity-prompt input[name="email"]'), ${JSON.stringify(email)}],
+       ];
+       if (fields.some(([field]) => field === null)) { return false; }
+       for (const [field, value] of fields) {
+         field.value = value;
+         field.dispatchEvent(new Event('input', { bubbles: true }));
+       }
+       return true;
+     })()`,
+  )) as boolean;
+  if (!filled) {
+    throw new Error('no identity question to answer');
+  }
+  await rendered(window);
+  await clickText(window, 'wi-identity-prompt button.save', 'Save');
 }
 
 /** Clicks an entry of the trailing activity bar by its accessible name. */

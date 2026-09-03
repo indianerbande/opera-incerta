@@ -54,6 +54,8 @@ export function baseBridge(): OperaIncertaBridge {
     gitMerge: async () => notScripted(),
     gitAbortMerge: async () => notScripted(),
     gitInit: async () => notScripted(),
+    gitIdentity: async () => ({ ok: true, value: { global: null, local: null } }),
+    gitSetIdentity: async () => notScripted(),
     gitResolve: async () => notScripted(),
     gitPublish: async () => notScripted(),
     gitBranches: async () => notScripted(),

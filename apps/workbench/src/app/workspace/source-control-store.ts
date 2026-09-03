@@ -18,8 +18,11 @@ import {
   type SelectAllState,
 } from '@opera-incerta/core';
 import {
+  isGitIdentityReport,
   isGitReport,
   type GitBranch,
+  type GitIdentity,
+  type GitIdentityReport,
   type GitRemote,
   type GitTracking,
   type GitVersions,
@@ -39,6 +42,7 @@ export class SourceControlStore {
   readonly #hasCommit = signal(false);
   readonly #branch = signal<string | null>(null);
   readonly #remote = signal<GitRemote | null>(null);
+  readonly #identity = signal<GitIdentityReport | null>(null);
   readonly #message = signal('');
   readonly #failure = signal<string | null>(null);
   readonly #loaded = signal(false);
@@ -64,6 +68,17 @@ export class SourceControlStore {
   /** The checked-out branch, and where a first publish would go. */
   readonly branch = this.#branch.asReadonly();
   readonly remote = this.#remote.asReadonly();
+  /** Who commits would be by, read with the status; null outside a repository. */
+  readonly identity = this.#identity.asReadonly();
+  /**
+   * Inside a repository whose commits would have nobody to be by. SPEC.md §12:
+   * the first commit would fail with a message written for programmers, so
+   * the panel offers the question before that happens.
+   */
+  readonly identityMissing = computed(() => {
+    const identity = this.#identity();
+    return identity !== null && identity.global === null && identity.local === null;
+  });
   /**
    * A branch that has never been published. The offer appears only inside a
    * repository, and only while there is no upstream. SPEC.md §12.
@@ -305,6 +320,13 @@ export class SourceControlStore {
    * A write like any other: guarded, and followed by the status read that
    * turns "not inside a repository" into a list of untracked files.
    */
+  /** Records who commits are by, in this repository only. SPEC.md §12. */
+  async setIdentity(identity: GitIdentity): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitSetIdentity(identity));
+    });
+  }
+
   async createRepository(): Promise<void> {
     await this.#runWrite(async (bridge) => {
       unwrap(await bridge.gitInit());
@@ -373,6 +395,11 @@ export class SourceControlStore {
       this.#hasCommit.set(report.hasCommit);
       this.#branch.set(report.branch);
       this.#remote.set(report.remote);
+      this.#identity.set(
+        report.root === null
+          ? null
+          : unwrapAs(await bridge.gitIdentity(), isGitIdentityReport, 'identity'),
+      );
       this.#loaded.set(true);
       this.#failure.set(null);
     } catch (error: unknown) {

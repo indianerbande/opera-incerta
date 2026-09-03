@@ -265,7 +265,10 @@ Tests MUST cover:
 - the `.git` path filter: events confined to `.git` trigger no refresh
   (`SPEC.md` §12);
 - creating a repository: `git init` with `main` as the initial branch, in the
-  directory it was asked for, leaving nothing staged and no commit; and
+  directory it was asked for, leaving nothing staged and no commit;
+- the identity commits are by (`SPEC.md` §12): read per scope and null when
+  either half is missing; written with `--local` only, and in a real
+  repository the global file named by `GIT_CONFIG_GLOBAL` stays empty; and
 - a project without a repository leaving the watcher off.
 
 Process invocation is tested against a recorded-output adapter; at least one
@@ -387,7 +390,10 @@ Tests MUST cover:
   repository, source control offers to create one (`SPEC.md` §12): after the
   click, `.git` is in the project root, `HEAD` names `main`, nothing is
   staged, there is no commit, and the panel lists the project as untracked
-  (git reports an untracked directory as one entry);
+  (git reports an untracked directory as one entry) — and, the run having
+  pointed `GIT_CONFIG_GLOBAL` at an empty file first, the identity question
+  follows, its answer is read back with `git config --local`, and the global
+  file is still empty;
 - the native menu of `SPEC.md` §8.5: every declared command has an item with
   its specified accelerator, the items are enabled only when their command is
   possible, saving and closing are exercised **through the menu item** rather

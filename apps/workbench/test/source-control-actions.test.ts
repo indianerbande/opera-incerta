@@ -334,3 +334,74 @@ describe('the ignore list', () => {
     expect(sourceControl.failure()).toBe('unreadable');
   });
 });
+
+describe('creating a repository and the identity question', () => {
+  function identityQuestion(overlay: { (): Overlay | null }) {
+    const open = overlay();
+    if (open?.kind !== 'identity') {
+      throw new Error(`no identity question is open: ${JSON.stringify(open)}`);
+    }
+    return open;
+  }
+
+  async function projectWithoutRepository(globalIdentity: { name: string; email: string } | null) {
+    let created = false;
+    return setUp({
+      gitStatus: async () => ({
+        ok: true,
+        value: {
+          root: created ? '/repo' : null,
+          entries: [],
+          tracking: null,
+          merging: false,
+          hasCommit: false,
+          branch: created ? 'main' : null,
+          remote: null,
+        },
+      }),
+      gitInit: async () => {
+        created = true;
+        return { ok: true, value: null };
+      },
+      gitIdentity: async () => ({ ok: true, value: { global: globalIdentity, local: null } }),
+    });
+  }
+
+  it('asks for name and e-mail when the author has no global identity', async () => {
+    const { actions, overlay, sourceControl } = await projectWithoutRepository(null);
+    await actions.createRepository();
+    expect(identityQuestion(overlay).initial).toBeNull();
+    expect(sourceControl.identityMissing()).toBe(true);
+  });
+
+  it('asks nothing when a global identity exists', async () => {
+    const { actions, overlay } = await projectWithoutRepository({ name: 'A', email: 'a@x.test' });
+    await actions.createRepository();
+    expect(overlay()).toBeNull();
+  });
+
+  it('records the answer in the repository', async () => {
+    const recorded: string[] = [];
+    const { actions, overlay } = await setUp({
+      gitSetIdentity: async (identity) => {
+        recorded.push(`${identity.name} <${identity.email}>`);
+        return { ok: true, value: null };
+      },
+    });
+    actions.askForIdentity();
+    identityQuestion(overlay).action({ name: 'A. Writer', email: 'a@x.test' });
+    await settle();
+    expect(recorded).toEqual(['A. Writer <a@x.test>']);
+  });
+
+  it('starts a later correction from what the repository has', async () => {
+    const { actions, overlay } = await setUp({
+      gitIdentity: async () => ({
+        ok: true,
+        value: { global: null, local: { name: 'Old', email: 'old@x.test' } },
+      }),
+    });
+    actions.askForIdentity();
+    expect(identityQuestion(overlay).initial).toEqual({ name: 'Old', email: 'old@x.test' });
+  });
+});

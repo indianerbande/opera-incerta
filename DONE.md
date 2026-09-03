@@ -6,6 +6,50 @@ documents").
 
 ---
 
+## 2026-09-03 — the identity git needs, asked once and kept local
+
+**What was open** (`TODO.md` §5, decided in `SPEC.md` §12). Without
+`user.name` and `user.email` the first commit fails with "Author identity
+unknown" and three lines of `git config --global` advice. For an author who
+has never used git that is the normal case, and it arrived after creating,
+writing, and staging had all worked.
+
+**What changed.** Creating a repository now ends with a question when — and
+only when — the machine has no global identity: a name, an e-mail address,
+and one sentence saying that both go into every commit and travel with the
+manuscript, and that they are recorded in this project only. The answer is
+written with `git config --local`; the author's global configuration is
+never written. **Not now** is an ordinary answer: the repository stays, and
+the panel shows one row, "Commits have no author yet" with a **Set…**
+button, for as long as neither scope has an identity. Correcting a recorded
+identity starts from what the repository has.
+
+The pieces: `identity(scope)` and `setIdentity` in the adapter, `gitIdentity`
+and `gitSetIdentity` on the bridge, the identity read alongside the status in
+the store, `createRepository` and `askForIdentity` as flows in the actions,
+one new overlay kind with its dialog, and the row in the panel.
+
+**Verification.** `pnpm run check` green: **896 tests** — the adapter's
+arguments, a real repository unset then set locally with the global file
+untouched, the store reading the identity only inside a repository, the
+flows asking when the global identity is missing and not when it is there.
+`pnpm run desktop:smoke` green across **thirty-one checks**: the run points
+`GIT_CONFIG_GLOBAL` at an empty file, creates the repository, answers the
+question through its two fields, and reads the answer back with
+`git config --local` while the global file is still empty. Falsified twice:
+an adapter writing the name with `--global` failed the real-repository test
+and the smoke, which gave up waiting for the panel's row to go — neither
+scope then held both halves; flows that skipped the question failed the
+actions test.
+
+**Lesson.** The line this application draws — nothing outside the project
+changes — was easy to keep here because it was written down before the
+feature was. `git config --global` is the answer every tutorial gives, and
+the tempting one; the specification said no in advance, and the smoke reads
+the global file to make sure.
+
+---
+
 ## 2026-09-03 — a project without a repository is offered one
 
 **What was open** (`TODO.md` §1.4, specified in `SPEC.md` §12 since the

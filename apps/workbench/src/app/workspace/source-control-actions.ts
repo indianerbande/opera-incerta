@@ -25,6 +25,32 @@ export class SourceControlActions {
   }
 
   /**
+   * Creating a repository, and the question that may follow. SPEC.md §12.
+   *
+   * Asked only when the author has no global identity: with one, git already
+   * knows who they are and there is nothing to ask. Declining leaves the
+   * repository as it is; the panel keeps offering the question.
+   */
+  async createRepository(): Promise<void> {
+    await this.#sourceControl.createRepository();
+    if (this.#sourceControl.failure() !== null) {
+      return;
+    }
+    if (this.#sourceControl.identity()?.global === null) {
+      this.askForIdentity();
+    }
+  }
+
+  /** The name and e-mail address commits are by. SPEC.md §12. */
+  askForIdentity(): void {
+    this.#overlay.set({
+      kind: 'identity',
+      initial: this.#sourceControl.identity()?.local ?? null,
+      action: (identity) => void this.#sourceControl.setIdentity(identity),
+    });
+  }
+
+  /**
    * Confirms throwing a change away. SPEC.md §12.
    *
    * The warning says what actually happens, and the two cases differ: a

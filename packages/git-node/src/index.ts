@@ -38,9 +38,9 @@ import type { GitFileStatus } from '@opera-incerta/core';
  * core beside the status parser, so the contract and the renderer can name
  * the same types without depending on this adapter.
  */
-export type { GitBranch, GitRemote, GitTracking } from '@opera-incerta/core';
+export type { GitBranch, GitIdentity, GitRemote, GitTracking } from '@opera-incerta/core';
 
-import type { GitBranch, GitRemote, GitTracking } from '@opera-incerta/core';
+import type { GitBranch, GitIdentity, GitRemote, GitTracking } from '@opera-incerta/core';
 
 export interface GitService {
   /**
@@ -121,6 +121,20 @@ export interface GitService {
    * `origin` where it exists, otherwise whichever is first.
    */
   defaultRemote(repositoryRoot: string): Promise<GitRemote | null>;
+  /**
+   * The identity recorded at one scope, or null when either half is missing.
+   * SPEC.md §12.
+   *
+   * `global` is the author's own configuration, read to decide whether to
+   * ask at all; `local` is this repository's. The directory is where git is
+   * run — for the global scope any existing directory will do.
+   */
+  identity(absolutePath: string, scope: 'global' | 'local'): Promise<GitIdentity | null>;
+  /**
+   * Records an identity in this repository only. SPEC.md §12: the author's
+   * global configuration is never written.
+   */
+  setIdentity(repositoryRoot: string, identity: GitIdentity): Promise<void>;
   /** Records a remote under a name. SPEC.md §12. */
   addRemote(repositoryRoot: string, name: string, url: string): Promise<void>;
   /** Pushes a branch and sets it to track what it was pushed to. */

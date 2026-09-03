@@ -12,7 +12,7 @@
  * (`workspace/library-actions.ts`, `workspace/source-control-actions.ts`),
  * which is what makes them testable without a component.
  */
-import type { GitBranch, GitVersions } from '@opera-incerta/desktop-contract';
+import type { GitBranch, GitIdentity, GitVersions } from '@opera-incerta/desktop-contract';
 
 /** One entry of a context menu: what it says, and what choosing it does. */
 export interface MenuEntry {
@@ -63,7 +63,13 @@ export type Overlay =
       readonly versions: GitVersions | null;
     }
   /** The category manager. SPEC.md §6.6. */
-  | { readonly kind: 'categories' };
+  | { readonly kind: 'categories' }
+  /** The name and e-mail address commits are by. SPEC.md §12. */
+  | {
+      readonly kind: 'identity';
+      readonly initial: GitIdentity | null;
+      readonly action: (identity: GitIdentity) => void;
+    };
 
 /**
  * Where the flows put their overlay. A writable signal satisfies it; so does

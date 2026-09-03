@@ -16,13 +16,14 @@
 import type {
   GitBranch,
   GitFileStatus,
+  GitIdentity,
   GitRemote,
   GitTracking,
   GroupEntry,
   PageCategory,
 } from '@opera-incerta/core';
 
-export type { GitBranch, GitRemote, GitTracking } from '@opera-incerta/core';
+export type { GitBranch, GitIdentity, GitRemote, GitTracking } from '@opera-incerta/core';
 
 /**
  * The guards below are built from a few combinators, so that every request
@@ -108,6 +109,8 @@ export const CHANNELS = {
   gitMerge: 'opera-incerta:git/merge',
   gitAbortMerge: 'opera-incerta:git/abort-merge',
   gitInit: 'opera-incerta:git/init',
+  gitIdentity: 'opera-incerta:git/identity',
+  gitSetIdentity: 'opera-incerta:git/set-identity',
   gitResolve: 'opera-incerta:git/resolve',
   gitPublish: 'opera-incerta:git/publish',
   gitBranches: 'opera-incerta:git/branches',
@@ -545,6 +548,28 @@ const isGitTracking: Guard<GitTracking> = shape<GitTracking>({
 
 const isGitRemote: Guard<GitRemote> = shape<GitRemote>({ name: isString, url: isString });
 
+export const isGitIdentity: Guard<GitIdentity> = shape<GitIdentity>({
+  name: isString,
+  email: isString,
+});
+
+/**
+ * The identity at both scopes. SPEC.md §12.
+ *
+ * `global` decides whether the question is asked when a repository is
+ * created; `local` is what this repository has, and null for both means the
+ * first commit would fail — the state the panel offers a way out of.
+ */
+export interface GitIdentityReport {
+  readonly global: GitIdentity | null;
+  readonly local: GitIdentity | null;
+}
+
+export const isGitIdentityReport: Guard<GitIdentityReport> = shape<GitIdentityReport>({
+  global: nullable(isGitIdentity),
+  local: nullable(isGitIdentity),
+});
+
 /** Runtime guard for what the status channel sends back. */
 export const isGitReport: Guard<GitReport> = shape<GitReport>({
   root: nullable(isString),
@@ -675,6 +700,10 @@ export interface OperaIncertaBridge {
    * branch. Refused where the project is already inside one. SPEC.md §12.
    */
   gitInit(): Promise<BridgeResult<null>>;
+  /** Who commits would be by, at both scopes. SPEC.md §12. */
+  gitIdentity(): Promise<BridgeResult<GitIdentityReport>>;
+  /** Records the identity in this repository only. SPEC.md §12. */
+  gitSetIdentity(identity: GitIdentity): Promise<BridgeResult<null>>;
   /** Writes a resolved file and stages it. */
   gitResolve(request: GitResolveRequest): Promise<BridgeResult<null>>;
   /**

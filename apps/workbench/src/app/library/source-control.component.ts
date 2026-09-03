@@ -31,7 +31,7 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
              (SPEC.md §12). Nothing is staged or committed by it. -->
         <div class="no-repository">
           <p class="hint">This project is not inside a Git repository.</p>
-          <button type="button" class="create-repository" (click)="store.createRepository()">
+          <button type="button" class="create-repository" (click)="actions.createRepository()">
             Create repository
           </button>
         </div>
@@ -92,6 +92,17 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
           <div class="merging" role="status">
             <span>Merge in progress. Decide each conflict, then commit.</span>
             <button type="button" (click)="store.abortMerge()">Abort merge</button>
+          </div>
+        }
+
+        @if (store.identityMissing()) {
+          <!-- The way back to the question a created repository asked, for an
+               author who declined it then (SPEC.md §12). -->
+          <div class="identity-row">
+            <span class="hint">Commits have no author yet.</span>
+            <button type="button" class="set-identity" (click)="actions.askForIdentity()">
+              Set…
+            </button>
           </div>
         }
 
@@ -438,6 +449,18 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
     button:disabled {
       opacity: 0.5;
     }
+    .identity-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--wi-separator);
+    }
+    .identity-row .hint {
+      margin: 0;
+    }
+
     .no-repository {
       display: flex;
       flex-direction: column;

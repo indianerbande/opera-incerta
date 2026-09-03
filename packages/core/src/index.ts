@@ -129,6 +129,7 @@ export type {
   GitFileGroup,
   GitFileStatus,
   GitBranch,
+  GitIdentity,
   GitRemote,
   GitTracking,
   SelectAllState,

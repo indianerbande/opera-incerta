@@ -199,6 +199,53 @@ describe('creating a repository', () => {
   });
 });
 
+describe('the identity commits are by', () => {
+  it('writes both halves into the repository, never the global configuration', async () => {
+    const runner = recordingRunner();
+    await createGitService(runner).setIdentity('/book', { name: 'A. Writer', email: 'a@x.test' });
+    expect(runner.calls).toEqual([
+      ['config', '--local', 'user.name', 'A. Writer'],
+      ['config', '--local', 'user.email', 'a@x.test'],
+    ]);
+  });
+
+  it('reads null when either half is missing', async () => {
+    const runner = recordingRunner({ config: { stdout: '', stderr: '', exitCode: 1 } });
+    expect(await createGitService(runner).identity('/book', 'global')).toBeNull();
+    expect(runner.calls[0]).toEqual(['config', '--global', '--get', 'user.name']);
+  });
+
+  it('in a real repository: unset, then set locally, with the global file untouched', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'opera-incerta-identity-'));
+    const globalFile = join(directory, 'global-gitconfig');
+    const previous = process.env['GIT_CONFIG_GLOBAL'];
+    process.env['GIT_CONFIG_GLOBAL'] = globalFile;
+    try {
+      await writeFile(globalFile, '', 'utf8');
+      const git = createGitService();
+      await git.init(directory);
+      expect(await git.identity(directory, 'global')).toBeNull();
+      expect(await git.identity(directory, 'local')).toBeNull();
+
+      await git.setIdentity(directory, { name: 'A. Writer', email: 'a@x.test' });
+
+      expect(await git.identity(directory, 'local')).toEqual({
+        name: 'A. Writer',
+        email: 'a@x.test',
+      });
+      expect(await git.identity(directory, 'global')).toBeNull();
+      expect(await readFile(globalFile, 'utf8')).toBe('');
+    } finally {
+      if (previous === undefined) {
+        delete process.env['GIT_CONFIG_GLOBAL'];
+      } else {
+        process.env['GIT_CONFIG_GLOBAL'] = previous;
+      }
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('a machine without git', () => {
   it('is reported as its own condition, not as a project outside a repository', async () => {
     const runner: GitCommandRunner = {

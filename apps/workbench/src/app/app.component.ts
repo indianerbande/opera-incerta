@@ -20,6 +20,8 @@ import { SourceControlComponent } from './library/source-control.component.js';
 import { ActivityBarComponent } from './shell/activity-bar.component.js';
 import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
+import { IdentityPromptComponent } from './shell/identity-prompt.component.js';
+import type { GitIdentity } from '@opera-incerta/desktop-contract';
 import { LibraryDrag, describeListEnd, describeRow, type OverRow } from './shell/library-drag.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
 import {
@@ -77,6 +79,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     SheetListComponent,
     SourceControlComponent,
     ConfirmPromptComponent,
+    IdentityPromptComponent,
     TextPromptComponent,
   ],
   // The whole library drag lives here, because this is the one element that
@@ -302,6 +305,13 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           [hint]="open.hint ?? 'It goes to the desktop trash, where it can be restored.'"
           [confirmLabel]="open.confirmLabel ?? 'Delete'"
           (confirm)="confirmAction()"
+          (cancel)="overlay.set(null)"
+        />
+      }
+      @if (open.kind === 'identity') {
+        <wi-identity-prompt
+          [initial]="open.initial"
+          (confirm)="confirmIdentity($event)"
           (cancel)="overlay.set(null)"
         />
       }
@@ -602,6 +612,14 @@ export class AppComponent {
     this.overlay.set(null);
     if (open?.kind === 'confirmation') {
       open.action();
+    }
+  }
+
+  protected confirmIdentity(identity: GitIdentity): void {
+    const open = this.overlay();
+    this.overlay.set(null);
+    if (open?.kind === 'identity') {
+      open.action(identity);
     }
   }
 

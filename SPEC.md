@@ -1830,7 +1830,7 @@ where the project is already inside a repository (`git/already-a-repository`),
 because `git init` there would reinitialise, which is not what the button
 says.
 
-**The identity git needs.** *Status: decided, not built.* `git commit` fails
+**The identity git needs.** *Status: built (2026-09-03).* `git commit` fails
 with "Author identity unknown" when `user.name` and `user.email` are unset. For
 a writing application that is the **normal case**, not an edge case: an author
 who has never used git has no global configuration, so creating and staging
@@ -1844,7 +1844,9 @@ work and only the first commit fails, with a message written for programmers.
   everywhere: nothing outside the project is changed.
 - Declining the question still creates the repository. It is useful without an
   identity, and the answer can be supplied later; a settings entry MUST offer
-  that, otherwise the refusal is a dead end.
+  that, otherwise the refusal is a dead end. Until the settings dialog (§13)
+  exists, that place is a row in the source control panel, shown only while
+  neither scope has an identity, whose button opens the same question.
 - The e-mail address is written into every commit and travels with the
   manuscript to whatever remote it is pushed to. The question says so.
 

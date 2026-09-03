@@ -737,3 +737,71 @@ describe('creating a repository', () => {
     expect(store.failure()).toBe('git/already-a-repository');
   });
 });
+
+describe('the identity commits are by', () => {
+  const insideRepository = {
+    root: '/book',
+    entries: [],
+    tracking: null,
+    merging: false,
+    hasCommit: false,
+    branch: 'main',
+    remote: null,
+  };
+
+  it('is read with the status inside a repository, and not outside one', async () => {
+    let inside = false;
+    let identityReads = 0;
+    const store = new SourceControlStore({
+      ...baseBridge(),
+      gitStatus: async () => ({
+        ok: true,
+        value: inside ? insideRepository : { ...insideRepository, root: null, branch: null },
+      }),
+      gitIdentity: async () => {
+        identityReads += 1;
+        return { ok: true, value: { global: null, local: null } };
+      },
+    });
+    await store.refresh();
+    expect(identityReads).toBe(0);
+    expect(store.identity()).toBeNull();
+    expect(store.identityMissing()).toBe(false);
+
+    inside = true;
+    await store.refresh();
+    expect(identityReads).toBe(1);
+    expect(store.identityMissing()).toBe(true);
+  });
+
+  it('is not missing when either scope has one', async () => {
+    const store = new SourceControlStore({
+      ...baseBridge(),
+      gitStatus: async () => ({ ok: true, value: insideRepository }),
+      gitIdentity: async () => ({
+        ok: true,
+        value: { global: { name: 'A', email: 'a@x.test' }, local: null },
+      }),
+    });
+    await store.refresh();
+    expect(store.identityMissing()).toBe(false);
+  });
+
+  it('hands the identity to the bridge and reads the status again', async () => {
+    const calls: string[] = [];
+    const store = new SourceControlStore({
+      ...baseBridge(),
+      gitStatus: async () => {
+        calls.push('status');
+        return { ok: true, value: insideRepository };
+      },
+      gitSetIdentity: async (identity) => {
+        calls.push(`set ${identity.name} <${identity.email}>`);
+        return { ok: true, value: null };
+      },
+    });
+    await store.refresh();
+    await store.setIdentity({ name: 'A. Writer', email: 'a@x.test' });
+    expect(calls).toEqual(['status', 'set A. Writer <a@x.test>', 'status']);
+  });
+});

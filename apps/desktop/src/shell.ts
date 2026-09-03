@@ -30,6 +30,7 @@ import {
   CONTRACT_VERSION,
   isDocumentHandle,
   isGitCommitRequest,
+  isGitIdentity,
   isGitBranchRequest,
   isGitPathsRequest,
   isGitPublishRequest,
@@ -675,6 +676,27 @@ export function startShell(options: ShellOptions = {}): Shell {
       throw new ProjectSessionError('git/already-a-repository');
     }
     await git.init(projectPath);
+    return null;
+  });
+
+  /**
+   * The identity at both scopes. SPEC.md §12. Read for the project directory
+   * so that the global half is known before there is a repository at all.
+   */
+  privileged(CHANNELS.gitIdentity, acceptsNothing, async () => {
+    const projectPath = session.openPath;
+    if (projectPath === null) {
+      throw new ProjectSessionError('project/none-open');
+    }
+    const root = await git.repositoryRoot(projectPath);
+    return {
+      global: await git.identity(projectPath, 'global'),
+      local: root === null ? null : await git.identity(root, 'local'),
+    };
+  });
+
+  privileged(CHANNELS.gitSetIdentity, isGitIdentity, async (identity) => {
+    await git.setIdentity(await repositoryRoot(), identity);
     return null;
   });
 

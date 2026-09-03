@@ -14,6 +14,7 @@ import {
   parseTrackingHeader,
   type GitBranch,
   type GitFileStatus,
+  type GitIdentity,
   type GitRemote,
   type GitTracking,
 } from '@opera-incerta/core';
@@ -261,6 +262,26 @@ class ProcessGitService implements GitService {
     // `-d`, never `-D`: git refuses a branch whose work is not merged, and
     // that refusal is exactly what the author needs to see (SPEC.md §12).
     await this.#run(['branch', '--delete', '--end-of-options', name], repositoryRoot);
+  }
+
+  async identity(
+    absolutePath: string,
+    scope: 'global' | 'local',
+  ): Promise<GitIdentity | null> {
+    // Exit code 1 means the key is unset; a missing global file counts as
+    // unset too, which is the case for an author who has never used git.
+    const name = await this.#invoke(['config', `--${scope}`, '--get', 'user.name'], absolutePath);
+    const email = await this.#invoke(['config', `--${scope}`, '--get', 'user.email'], absolutePath);
+    if (name.exitCode !== 0 || email.exitCode !== 0) {
+      return null;
+    }
+    const identity = { name: name.stdout.trim(), email: email.stdout.trim() };
+    return identity.name === '' || identity.email === '' ? null : identity;
+  }
+
+  async setIdentity(repositoryRoot: string, identity: GitIdentity): Promise<void> {
+    await this.#run(['config', '--local', 'user.name', identity.name], repositoryRoot);
+    await this.#run(['config', '--local', 'user.email', identity.email], repositoryRoot);
   }
 
   async defaultRemote(repositoryRoot: string): Promise<GitRemote | null> {
