@@ -362,6 +362,24 @@ Do not call a task complete until the requested artifact exists, the relevant
 checks have passed, the visual result has been inspected where applicable, and
 all remaining open decisions or limitations are reported clearly.
 
+Three parts of that are easy to skip and are therefore named:
+
+- **Every new check is falsified.** Break the thing the check watches, see the
+  check fail, and put it back. A green check proves nothing until it has been
+  seen to go red for the right reason. Aim the falsification at the one check
+  it is meant to prove: a break that stops the run early proves only the check
+  it stopped at.
+- **The screenshot is looked at.** Capturing evidence is not inspecting it.
+  Every defect found by looking this far — front matter in the wrong place, a
+  blank editor after a re-read, a name truncated to `.git...` — was invisible
+  to a green suite.
+- **`SPEC.md`, `TESTING.md`, `TODO.md` and `DONE.md` are updated in the same
+  round as the code**, then the round is committed with a message that says
+  what was decided and why, and pushed.
+
+**Undoing a change mid-round is done with a copy, never with `git checkout`.**
+A checkout takes uncommitted work with it. This cost a round's work once.
+
 ## Growth of this document
 
 This file grows with the project. Changes to it are expressly welcome, and
