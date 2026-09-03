@@ -46,6 +46,15 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
               <span class="status" [title]="statusTitle(entry)">{{ statusCode(entry) }}</span>
               <span class="name">{{ fileName(entry.path) }}</span>
               <span class="directory">{{ directory(entry.path) }}</span>
+              <button
+                type="button"
+                class="discard"
+                [attr.aria-label]="'Discard changes to ' + entry.path"
+                title="Discard changes"
+                (click)="discard.emit(entry)"
+              >
+                ↺
+              </button>
             </li>
           } @empty {
             <li class="hint">Nothing has changed.</li>
@@ -74,6 +83,25 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
     }
   `,
   styles: `
+    .change .discard {
+      flex: none;
+      padding: 0 4px;
+      border: 0;
+      border-radius: 4px;
+      background: none;
+      color: rgba(128, 128, 128, 0.9);
+      font: inherit;
+      cursor: default;
+      opacity: 0;
+    }
+    .change:hover .discard,
+    .change .discard:focus-visible {
+      /* Destructive, so it does not sit under the pointer by accident. */
+      opacity: 1;
+    }
+    .change .discard:hover {
+      color: rgba(150, 60, 60, 0.95);
+    }
     .failure {
       margin: 0;
       padding: 4px 6px;
@@ -180,11 +208,14 @@ export class SourceControlComponent {
   readonly message = input.required<string>();
   /** What the last Git action reported, if it failed. SPEC.md §12. */
   readonly failure = input<string | null>(null);
+
   readonly canCommit = input.required<boolean>();
   readonly root = input.required<string | null>();
   readonly loaded = input.required<boolean>();
 
   readonly toggle = output<GitFileStatus>();
+  /** Asks to throw a change away; the shell confirms it first. */
+  readonly discard = output<GitFileStatus>();
   readonly toggleAll = output<void>();
   readonly messageChange = output<string>();
   readonly commit = output<void>();

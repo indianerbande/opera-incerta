@@ -103,6 +103,25 @@ export class SourceControlStore {
     });
   }
 
+  /**
+   * Throws away the changes to one file. SPEC.md §12.
+   *
+   * Destructive, so the caller confirms first — this only carries it out. What
+   * comes back are the affected paths **relative to the project**, so that
+   * whatever the editor still holds for them can be forgotten: saving the old
+   * buffer afterwards would put the discarded change straight back.
+   */
+  async discard(paths: readonly string[]): Promise<readonly string[]> {
+    if (paths.length === 0) {
+      return [];
+    }
+    let affected: readonly string[] = [];
+    await this.#runWrite(async (bridge) => {
+      affected = unwrap(await bridge.gitDiscard({ paths: [...paths] }));
+    });
+    return affected;
+  }
+
   async commit(): Promise<void> {
     if (!this.canCommit()) {
       return;

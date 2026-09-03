@@ -49,6 +49,7 @@ export function baseBridge(): OperaIncertaBridge {
     placeEntry: async () => notScripted(),
     watchTargets: async () => ({ ok: true, value: null }) as const,
     onExternalChange: () => () => undefined,
+    gitDiscard: async () => notScripted(),
     watchRepository: async () => ({ ok: true, value: null }) as const,
     onRepositoryChange: () => () => undefined,
     writeCategories: async () => notScripted(),

@@ -41,6 +41,7 @@ export const CHANNELS = {
   gitUnstage: 'opera-incerta:git/unstage',
   gitCommit: 'opera-incerta:git/commit',
   gitPush: 'opera-incerta:git/push',
+  gitDiscard: 'opera-incerta:git/discard',
   menuCommand: 'opera-incerta:menu/command',
   createSheet: 'opera-incerta:sheet/create',
   createGroup: 'opera-incerta:group/create',
@@ -471,6 +472,15 @@ export interface OperaIncertaBridge {
   gitStatus(): Promise<BridgeResult<GitReport>>;
   gitStage(request: GitPathsRequest): Promise<BridgeResult<null>>;
   gitUnstage(request: GitPathsRequest): Promise<BridgeResult<null>>;
+  /**
+   * Throws changes away. Destructive, and therefore confirmed before it is
+   * called (SPEC.md §12).
+   *
+   * Returns the affected paths **relative to the project**, so the interface
+   * can forget what it was still holding for them. Git reports paths relative
+   * to the repository root, which is not the same place.
+   */
+  gitDiscard(request: GitPathsRequest): Promise<BridgeResult<readonly string[]>>;
   gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
   gitPush(): Promise<BridgeResult<null>>;
   /**

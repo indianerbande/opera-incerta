@@ -18,7 +18,7 @@ import {
 } from 'node:fs';
 import { mkdir, readdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   BrowserWindow,
@@ -51,7 +51,11 @@ import {
 } from '@opera-incerta/desktop-contract';
 import { projectDirectoryName, readPreferences } from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
-import { createLibraryWatcher, createProjectFilesystem } from '@opera-incerta/project-node';
+import {
+  canonicalPath,
+  createLibraryWatcher,
+  createProjectFilesystem,
+} from '@opera-incerta/project-node';
 import { MENU_ACCELERATORS, installApplicationMenu, menuItemId } from './application-menu.js';
 import { ProjectSession, ProjectSessionError } from './project-session.js';
 import { ProjectWatch } from './project-watch.js';
@@ -613,6 +617,51 @@ privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
 });
 
 const git = createGitService();
+
+privileged(CHANNELS.gitDiscard, isGitPathsRequest, async (request) => {
+  if (session.openPath === null) {
+    throw new ProjectSessionError('project/none-open');
+  }
+  // Both canonical before they are compared: on macOS the session knows a
+  // project under `/var/...` while git reports the same directory as
+  // `/private/var/...`, and the relative path between the two forms points out
+  // of the project entirely.
+  const projectPath = await canonicalPath(session.openPath);
+  const root = await canonicalPath(await repositoryRoot());
+  const wanted = new Set(request.paths);
+
+  // What each path *is* is read here, from git, rather than taken from the
+  // renderer: discarding is destructive, and the renderer's picture of the
+  // working tree may be a second old.
+  const tracked: string[] = [];
+  const toTrash: string[] = [];
+  for (const entry of await git.status(root)) {
+    if (wanted.has(entry.path)) {
+      (entry.groups.includes('untracked') ? toTrash : tracked).push(entry.path);
+    }
+  }
+
+  if (tracked.length > 0) {
+    if (await git.hasCommit(root)) {
+      await git.restore(root, tracked);
+    } else {
+      // Nothing to go back to: in a repository without a commit the file's
+      // whole existence is the change (SPEC.md §12).
+      await git.unstage(root, tracked);
+      toTrash.push(...tracked);
+    }
+  }
+
+  // Never removed, always moved: the same rule as deleting a sheet (§6.7).
+  for (const path of toTrash) {
+    await trashItem(join(root, path));
+  }
+
+  return [...new Set([...tracked, ...toTrash])]
+    .map((path) => relative(projectPath, join(root, path)))
+    .filter((path) => path !== '' && !path.startsWith('..'));
+});
+
 
 privileged(CHANNELS.watchRepository, isBooleanRequest, async (visible) => {
   // Only while the panel is on screen, and only where there is a repository
@@ -1720,6 +1769,133 @@ async function checkLiveStatus(window: BrowserWindow): Promise<void> {
     'smoke ok: a file written behind the application’s back appeared in source control by ' +
       'itself, and the watch then stayed quiet for three seconds',
   );
+
+  await checkDiscarding(window);
+}
+
+/**
+ * Throwing a change away, confirmed first. SPEC.md §12.
+ *
+ * Both kinds, because they end differently: a tracked file goes back to its
+ * last committed state, and an untracked one has no state to go back to and
+ * goes to the trash.
+ */
+async function checkDiscarding(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null || smokeTrashPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  // An untracked file has nothing to go back to. Cancelling first, because a
+  // confirmation that is not asked is not a confirmation.
+  const untracked = join(smokeProjectPath, 'written-by-someone-else.txt');
+  if (!existsSync(untracked)) {
+    throw new Error('the untracked file the live check wrote is gone');
+  }
+
+  await openDiscard(window, 'written-by-someone-else.txt');
+  const warning = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-confirm-prompt .warning')?.textContent.trim() ?? null`,
+  )) as string | null;
+  if (warning === null || !warning.includes('trash')) {
+    throw new Error(`the confirmation does not say where it goes: ${String(warning)}`);
+  }
+
+  // A frame, so the picture has the dialog in it: the element is in the DOM
+  // before the compositor has drawn it.
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const image = await window.webContents.capturePage();
+  const evidencePath = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-discard.png');
+  writeFileSync(evidencePath, image.toPNG());
+  console.log(`smoke evidence: ${evidencePath}`);
+
+  await pressKey(window, 'Escape');
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  if (!existsSync(untracked)) {
+    throw new Error('cancelling the confirmation discarded the file anyway');
+  }
+
+  await openDiscard(window, 'written-by-someone-else.txt');
+  await clickText(window, 'wi-confirm-prompt button', 'Discard');
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  if (existsSync(untracked)) {
+    throw new Error('the untracked file is still in the project');
+  }
+  if (!existsSync(join(smokeTrashPath, 'written-by-someone-else.txt'))) {
+    throw new Error('the untracked file was removed instead of moved to the trash');
+  }
+
+  // The tracked case, on the sheet the editor holds — which is the one that
+  // matters, because the editor is still holding a version of it.
+  const sheet = join(smokeProjectPath, 'part-1', 'scene.md');
+  const committed = runGit(smokeProjectPath, ['show', 'HEAD:part-1/scene.md']);
+
+  // Save what the inspector changed earlier, so there is something to discard.
+  clickMenuItem('sheet/save');
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  if (readFileSync(sheet, 'utf8') === committed) {
+    throw new Error('nothing was saved, so there is nothing to discard');
+  }
+  await settleWatch(window, async () => rowFor(window, 'scene.md'));
+
+  // And type something on top, unsaved.
+  await placeCursorInEditor(window);
+  await typeText(window, 'Typed, and about to be discarded.');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  await openDiscard(window, 'scene.md');
+  await clickText(window, 'wi-confirm-prompt button', 'Discard');
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  if (readFileSync(sheet, 'utf8') !== committed) {
+    throw new Error('the file did not go back to its committed state');
+  }
+  if (await editorContains(window, 'Typed, and about to be discarded.')) {
+    throw new Error('the editor still holds what was discarded, and would write it back');
+  }
+  // No conflict prompt: the author has just decided this, and being asked
+  // about it afterwards would be asking them to decide it twice.
+  if (await isVisible(window, 'wi-confirm-prompt')) {
+    throw new Error('discarding raised a prompt about the change it had just discarded');
+  }
+  const marker = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')]
+       .some((element) => element.textContent.trim().endsWith('•'))`,
+  )) as boolean;
+  if (marker) {
+    throw new Error('the sheet is still marked unsaved after its change was discarded');
+  }
+
+  console.log(
+    'smoke ok: discarding put a tracked file back to its committed state and took the editor’s ' +
+      'unsaved version with it, sent an untracked one to the trash, and cancelling kept both',
+  );
+}
+
+/** Whether the change list has a row for a file. */
+async function rowFor(window: BrowserWindow, name: string): Promise<boolean> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-source-control .change')]
+       .some((row) => row.textContent.includes(${JSON.stringify(name)}))`,
+  )) as boolean;
+}
+
+/** Opens the discard confirmation for one row. */
+async function openDiscard(window: BrowserWindow, name: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-source-control .change')]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(name)}));
+       const button = row?.querySelector('button.discard');
+       if (button === null || button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no discard control for ${name}`);
+  }
+  await waitForSelector(window, 'wi-confirm-prompt button');
 }
 
 /** Clicks one control inside the source control panel. */

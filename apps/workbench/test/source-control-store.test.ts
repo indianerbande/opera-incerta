@@ -19,6 +19,7 @@ function fakeBridge(
     commit?: () => BridgeResult<null>;
     push?: () => BridgeResult<null>;
     onRepositoryChange?: (listener: () => void) => () => void;
+    discard?: (request: { paths: readonly string[] }) => BridgeResult<readonly string[]>;
   } = {},
 ): OperaIncertaBridge & Recorder {
   const calls: string[] = [];
@@ -41,6 +42,8 @@ function fakeBridge(
       : { onRepositoryChange: script.onRepositoryChange }),
     calls,
     gitStatus: async () => (script.status ?? status)(),
+    gitDiscard: async (request) =>
+      script.discard?.(request) ?? { ok: true, value: [] as readonly string[] },
     gitStage: async (request) => {
       calls.push(`stage:${request.paths.join(',')}`);
       staged = new Set([...staged, ...request.paths]);
@@ -271,5 +274,38 @@ describe('watching the repository', () => {
   it('does nothing without a bridge, rather than failing', () => {
     const store = new SourceControlStore(null);
     expect(() => store.listenForRepositoryChanges()()).not.toThrow();
+  });
+});
+
+describe('discarding a change', () => {
+  it('reports back which sheets the editor must forget', async () => {
+    let asked: unknown = null;
+    const store = new SourceControlStore(
+      fakeBridge({
+        discard: (request) => {
+          asked = request;
+          return { ok: true, value: ['part-1/scene.md'] };
+        },
+      }),
+    );
+
+    expect(await store.discard(['book/part-1/scene.md'])).toEqual(['part-1/scene.md']);
+    expect(asked).toEqual({ paths: ['book/part-1/scene.md'] });
+  });
+
+  it('asks for nothing when there is nothing to discard', async () => {
+    const store = new SourceControlStore(fakeBridge());
+    expect(await store.discard([])).toEqual([]);
+  });
+
+  it('reports a refusal and forgets nothing', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        discard: () => ({ ok: false, code: 'git/command-failed', message: 'is not tracked' }),
+      }),
+    );
+
+    expect(await store.discard(['a.md'])).toEqual([]);
+    expect(store.failure()).toBe('is not tracked');
   });
 });

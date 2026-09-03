@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -211,6 +211,33 @@ describe('against a real repository', () => {
     const repositoryRoot = (await git.repositoryRoot(root)) ?? root;
     await expect(git.push(repositoryRoot)).rejects.toMatchObject({
       code: 'git/command-failed',
+    });
+  });
+
+  describe('discarding a change', () => {
+    it('puts a tracked file back to its last committed state', async () => {
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+      await writeFile(join(root, 'a.md'), 'changed by mistake\n', 'utf8');
+      await git.stage(root, ['a.md']);
+
+      await git.restore(root, ['a.md']);
+
+      // Index and working tree together: half a restore leaves the file looking
+      // unchanged while the index still carries the change.
+      expect(await readFile(join(root, 'a.md'), 'utf8')).toBe('first\n');
+      expect(await git.status(root)).toEqual([]);
+    });
+
+    it('knows whether there is anything to go back to', async () => {
+      expect(await git.hasCommit(root)).toBe(false);
+
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+
+      expect(await git.hasCommit(root)).toBe(true);
     });
   });
 });

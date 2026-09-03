@@ -48,6 +48,18 @@ export interface GitService {
   stage(repositoryRoot: string, paths: readonly string[]): Promise<void>;
   /** Unstages every path in one invocation. */
   unstage(repositoryRoot: string, paths: readonly string[]): Promise<void>;
+  /**
+   * Whether the repository has a commit at all.
+   *
+   * A freshly created project has none, and `HEAD` is what half of Git's
+   * restoring vocabulary resolves against (SPEC.md §12).
+   */
+  hasCommit(repositoryRoot: string): Promise<boolean>;
+  /**
+   * Puts tracked paths back to `HEAD`, in the index and in the working tree.
+   * Only meaningful where there is a commit to go back to.
+   */
+  restore(repositoryRoot: string, paths: readonly string[]): Promise<void>;
   commit(repositoryRoot: string, message: string): Promise<void>;
   /** Deliberately without upstream creation, pull, or fetch. SPEC.md §12. */
   push(repositoryRoot: string): Promise<void>;

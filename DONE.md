@@ -6,6 +6,52 @@ documents").
 
 ---
 
+## 2026-09-03 — discarding a change, confirmed first
+
+**What exists.** Each row in source control can throw its change away, and
+always asks first. The two kinds end differently and the confirmation says so:
+a tracked file goes back to its last committed state; an untracked one has
+nothing to go back to and goes to the **desktop trash** — never to `rm`, the
+same rule as deleting a sheet (§6.7). In a repository without a commit every
+tracked file is in that position too, because there is no `HEAD`.
+
+**What each path is gets read from Git at the moment of discarding**, not taken
+from the interface. This is destructive, and the interface's picture of the
+working tree may be a second old.
+
+**The editor's version goes with it.** Otherwise the next save would put the
+discarded change straight back, and the conflict prompt of §10.6 would appear
+in between, asking the author to decide again what they had just decided.
+
+**Two defects, and one piece of speculative code caught in the act.**
+
+The first was mine and macOS's: the affected paths came back **empty**, because
+Git reports the repository as `/private/var/…` while the session knows the same
+directory as `/var/…`. The relative path between the two forms points out of
+the project, so every path was filtered away as external. Both are canonical
+before they are compared now.
+
+The second is a real race, and the story of how it was accepted is the point.
+I added a guard against it on suspicion, wrote a test for it, and the test
+passed — **with the guard and without it**. A test that cannot fail is worse
+than no test, so the honest next step was to delete both. Aiming the test at
+the actual interleaving instead — holding the *second* file read, so the
+discard lands between reading the file and putting the editor's version back on
+top — made it fail without the guard and pass with it. Only then had either
+earned its place.
+
+**Verification.** `pnpm run check` green: **626 tests**. The smoke's
+twenty-fifth check refuses the confirmation first and finds both files
+untouched, then discards an untracked file and finds it in the trash rather
+than gone, then discards a tracked one and compares the result against
+`git show HEAD:<path>` — with the editor's unsaved version gone and no prompt
+about it. Falsified by making `forgetEdits` a no-op: the editor then still
+holds what was discarded. The screenshot of the confirmation needed a frame's
+wait before capturing; the element is in the DOM before the compositor has
+drawn it, and the first picture was of an empty window.
+
+---
+
 ## 2026-09-02 — the live watcher for source control
 
 **What exists.** While the source control panel is on screen — and only then —

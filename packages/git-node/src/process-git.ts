@@ -127,6 +127,19 @@ class ProcessGitService implements GitService {
     await this.#run(['rm', '--cached', '--quiet', '--', ...paths], repositoryRoot);
   }
 
+  async restore(repositoryRoot: string, paths: readonly string[]): Promise<void> {
+    if (paths.length === 0) {
+      return;
+    }
+    // Index and working tree together: half a restore would leave the file
+    // looking unchanged while still carrying the change in the index.
+    await this.#run(['restore', '--staged', '--worktree', '--', ...paths], repositoryRoot);
+  }
+
+  async hasCommit(repositoryRoot: string): Promise<boolean> {
+    return this.#hasCommit(repositoryRoot);
+  }
+
   async #hasCommit(repositoryRoot: string): Promise<boolean> {
     const result = await this.#runner.run(['rev-parse', '--verify', 'HEAD'], repositoryRoot);
     return result.exitCode === 0;

@@ -294,6 +294,11 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- discarding a change (`SPEC.md` §12), in both kinds and with the confirmation
+  refused first: cancelling keeps the file, an untracked file arrives in the
+  trash rather than being removed, a tracked one is byte-identical to
+  `git show HEAD:<path>` afterwards, and the editor's unsaved version of it is
+  gone — with no conflict prompt about the change that was just discarded;
 - the live status of `SPEC.md` §12: with the panel on screen, a file written
   behind the application's back appears in the change list without anyone
   asking — and then the watch **stays quiet for three seconds**, counted in the

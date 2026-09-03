@@ -79,6 +79,15 @@ export class WorkspaceStore {
   readonly #expanded = signal<ReadonlySet<string>>(new Set(['.']));
   readonly #failure = signal<string | null>(null);
   readonly #conflict = signal<string | null>(null);
+  /**
+   * Counts the times the editing state was **deliberately** dropped.
+   *
+   * A re-read captures what the editor holds and puts it back afterwards. If
+   * the author decides in between that it should go — by discarding the change
+   * (§12) or by taking the file in a conflict (§10.6) — the captured copy must
+   * not come back. Comparing the count is how a restore knows it is stale.
+   */
+  #editingEpoch = 0;
   readonly #editorDocument = signal<EditorDocument | null>(null);
   readonly #categories = signal<readonly PageCategory[]>([]);
   readonly #busy = signal(false);
@@ -353,6 +362,25 @@ export class WorkspaceStore {
     });
   }
 
+  /**
+   * Drops whatever the editor still holds for these sheets. SPEC.md §12.
+   *
+   * Used after discarding a change: the author said to throw it away, and a
+   * buffer that survived would put it back on the next save — and would raise
+   * the conflict prompt of §10.6 in the meantime, asking about a decision that
+   * has just been made.
+   */
+  forgetEdits(relativePaths: readonly string[]): void {
+    const open = this.#openSheet();
+    if (open !== null && relativePaths.includes(open.relativePath)) {
+      this.#editingEpoch += 1;
+      this.#currentText.set(open.savedBody);
+      this.#currentMetadata.set(open.sheet.metadata);
+      this.#currentForeign.set(open.sheet.foreignLines);
+      this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
+    }
+  }
+
   /** Records what the editor currently holds, without writing anything. */
   noteText(text: string): void {
     this.#currentText.set(text);
@@ -554,6 +582,7 @@ export class WorkspaceStore {
       return null;
     }
     return {
+      epoch: this.#editingEpoch,
       path: open.relativePath,
       savedBody: open.savedBody,
       savedMetadata: open.sheet.metadata,
@@ -579,6 +608,11 @@ export class WorkspaceStore {
     // The caller has established that this is the same document; its path may
     // have changed on the way, which is exactly what a move does.
     if (before === null || open === null) {
+      return;
+    }
+    if (before.epoch !== this.#editingEpoch) {
+      // Dropped on purpose while this read was in flight. Putting it back
+      // would undo a decision the author has just made.
       return;
     }
 
@@ -613,6 +647,7 @@ export class WorkspaceStore {
   resolveConflict(take: 'disk' | 'mine'): void {
     const open = this.#openSheet();
     if (take === 'disk' && open !== null) {
+      this.#editingEpoch += 1;
       this.#currentText.set(open.savedBody);
       this.#currentMetadata.set(open.sheet.metadata);
       this.#currentForeign.set(open.sheet.foreignLines);
@@ -810,6 +845,7 @@ function sameMetadata(left: SheetMetadata, right: SheetMetadata): boolean {
 
 /** The editor's state at a moment: the baseline it was read from, and the work on top. */
 interface EditingState {
+  readonly epoch: number;
   readonly path: string;
   readonly savedBody: string;
   readonly savedMetadata: SheetMetadata;

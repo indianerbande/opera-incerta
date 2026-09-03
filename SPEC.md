@@ -1524,9 +1524,31 @@ shown.
 
 Git output is tool output and is never localized (§14.2).
 
+**Discarding a change** is offered per file, from its row, and is always
+confirmed. What the confirmation says differs, because the two cases end
+differently:
+
+- **a tracked file** goes back to its last committed state, index and working
+  tree together. Half a restore would leave it looking unchanged while the
+  index still carried the change.
+- **an untracked file** has no earlier state to go back to: its whole existence
+  is the change. It goes to the **desktop trash**, never to `rm` — the same
+  rule as deleting a sheet (§6.7). In a repository without a commit every
+  tracked file is in this position too, because there is no `HEAD` to restore
+  against.
+
+What each path *is* is read from Git at the moment of discarding, not taken
+from the interface: this is destructive, and the interface's picture of the
+working tree may be a second old.
+
+**The editor's version goes with it.** Discarding while the editor holds
+unsaved changes to that sheet drops them as well; leaving them would put the
+discarded change back on the next save, and would raise the conflict prompt of
+§10.6 in between — asking the author to decide again what they have just
+decided. A re-read that was already in flight must not put them back either.
+
 **Not goals of this stage:** pull/fetch, upstream creation, branches,
-merge and conflict resolution, amend, discarding changes (destructive, needs
-its own round with a confirmation prompt), and editing `.gitignore`.
+merge and conflict resolution, amend, and editing `.gitignore`.
 
 ## 13. Settings contract
 

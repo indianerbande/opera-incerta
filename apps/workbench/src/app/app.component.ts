@@ -8,7 +8,13 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { findGroup, sheetsOf, walkLibrary, type PageCategory } from '@opera-incerta/core';
+import {
+  findGroup,
+  sheetsOf,
+  walkLibrary,
+  type GitFileStatus,
+  type PageCategory,
+} from '@opera-incerta/core';
 import { EditorComponent } from './editor/editor.component.js';
 import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
@@ -119,6 +125,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [root]="sourceControl.repositoryRoot()"
             [loaded]="sourceControl.loaded()"
             (toggle)="sourceControl.toggle($event)"
+            (discard)="askToDiscard($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
             (commit)="sourceControl.commit()"
@@ -329,6 +336,8 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       <wi-confirm-prompt
         [title]="open.title"
         [warning]="open.warning"
+        [hint]="open.hint ?? 'It goes to the desktop trash, where it can be restored.'"
+        [confirmLabel]="open.confirmLabel ?? 'Delete'"
         (confirm)="confirmDeletion()"
         (cancel)="confirmation.set(null)"
       />
@@ -588,6 +597,9 @@ export class AppComponent {
   protected readonly confirmation = signal<{
     title: string;
     warning: string | null;
+    /** What the destructive button says, and what happens afterwards. */
+    hint?: string;
+    confirmLabel?: string;
     action: () => void;
   } | null>(null);
 
@@ -711,6 +723,35 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  /**
+   * Confirms throwing a change away. SPEC.md §12.
+   *
+   * The warning says what actually happens, and the two cases differ: a
+   * tracked file goes back to its last committed state, while an untracked one
+   * has no earlier state to go back to and goes to the trash instead.
+   */
+  protected askToDiscard(entry: GitFileStatus): void {
+    const untracked = entry.groups.includes('untracked');
+    this.confirmation.set({
+      title: `Discard the changes to “${entry.path}”?`,
+      warning: untracked
+        ? 'This file is not in the repository yet, so there is nothing to go back to: it goes to the trash.'
+        : 'The file goes back to its last committed state, and unsaved changes to it in the editor go with it.',
+      hint: untracked
+        ? 'It goes to the desktop trash, where it can be restored.'
+        : 'The committed version stays in the repository’s history either way.',
+      confirmLabel: 'Discard',
+      action: () => void this.discardChanges(entry),
+    });
+  }
+
+  private async discardChanges(entry: GitFileStatus): Promise<void> {
+    const affected = await this.sourceControl.discard([entry.path]);
+    // Whatever the editor still held for those sheets would otherwise put the
+    // discarded change back on the next save.
+    this.store.forgetEdits(affected);
   }
 
   protected confirmDeletion(): void {

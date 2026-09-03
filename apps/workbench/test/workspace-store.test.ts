@@ -1179,3 +1179,66 @@ describe('what survives a re-read', () => {
     expect(store.isExpanded('.')).toBe(true);
   });
 });
+
+describe('forgetting edits after a discard', () => {
+  it('drops what the editor held for the discarded sheet', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nA change about to be discarded.\n');
+    store.updateMetadata({ topic: 'harbour' });
+    expect(store.dirty()).toBe(true);
+
+    store.forgetEdits(['preface.md']);
+
+    // Otherwise the next save would put the discarded change straight back.
+    expect(store.dirty()).toBe(false);
+    expect(store.editorDocument()?.text).toBe('# Preface\n');
+  });
+
+  it('leaves the edits of another sheet alone', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('Still being written.\n');
+
+    store.forgetEdits(['part-1/scene.md']);
+
+    expect(store.dirty()).toBe(true);
+  });
+});
+
+describe('a buffer dropped on purpose stays dropped', () => {
+  it('is not put back by a re-read that was already in flight', async () => {
+    let release: (() => void) | null = null;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let reads = 0;
+    const store = new WorkspaceStore(
+      fakeBridge({
+        readSheet: async () => {
+          reads += 1;
+          // The second read is the one inside the re-read; holding it there
+          // puts the discard exactly between reading the file and putting the
+          // editor's version back on top.
+          if (reads === 2) {
+            await held;
+          }
+          return { ok: true, value: '---\nopera-incerta:\n  title: Preface\n---\n# Preface\n' };
+        },
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nAbout to be discarded.\n');
+
+    const reload = store.reloadProject();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    store.forgetEdits(['preface.md']);
+    (release as unknown as () => void)();
+    await reload;
+
+    // The author decided this while the read was running; putting the text
+    // back would undo a decision they had just made.
+    expect(store.dirty()).toBe(false);
+  });
+});

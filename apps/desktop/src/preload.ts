@@ -30,6 +30,7 @@ const bridge = {
   gitUnstage: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitUnstage, request),
   gitCommit: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitCommit, request),
   gitPush: () => ipcRenderer.invoke(CHANNELS.gitPush),
+  gitDiscard: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitDiscard, request),
 
   /**
    * The one inbound channel.
