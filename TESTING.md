@@ -263,7 +263,9 @@ Tests MUST cover:
   `status --porcelain=v2 --branch`, as a pure parser over recorded output —
   ahead and behind the right way round, and null without an upstream;
 - the `.git` path filter: events confined to `.git` trigger no refresh
-  (`SPEC.md` §12); and
+  (`SPEC.md` §12);
+- creating a repository: `git init` with `main` as the initial branch, in the
+  directory it was asked for, leaving nothing staged and no commit; and
 - a project without a repository leaving the watcher off.
 
 Process invocation is tested against a recorded-output adapter; at least one
@@ -381,7 +383,11 @@ Tests MUST cover:
 - creating a project from the launcher: the dialog previews the slug of the
   typed name, Create is offered only with both a name and a location, and the
   project that appears on disk carries the display name unchanged while its
-  directory carries the slug;
+  directory carries the slug — and then, in that project, which has no
+  repository, source control offers to create one (`SPEC.md` §12): after the
+  click, `.git` is in the project root, `HEAD` names `main`, nothing is
+  staged, there is no commit, and the panel lists the project as untracked
+  (git reports an untracked directory as one entry);
 - the native menu of `SPEC.md` §8.5: every declared command has an item with
   its specified accelerator, the items are enabled only when their command is
   possible, saving and closing are exercised **through the menu item** rather

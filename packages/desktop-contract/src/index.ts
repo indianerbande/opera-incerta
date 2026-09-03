@@ -107,6 +107,7 @@ export const CHANNELS = {
   gitPull: 'opera-incerta:git/pull',
   gitMerge: 'opera-incerta:git/merge',
   gitAbortMerge: 'opera-incerta:git/abort-merge',
+  gitInit: 'opera-incerta:git/init',
   gitResolve: 'opera-incerta:git/resolve',
   gitPublish: 'opera-incerta:git/publish',
   gitBranches: 'opera-incerta:git/branches',
@@ -669,6 +670,11 @@ export interface OperaIncertaBridge {
   gitMerge(): Promise<BridgeResult<null>>;
   /** Puts everything back as it was before the merge began. */
   gitAbortMerge(): Promise<BridgeResult<null>>;
+  /**
+   * Creates a repository in the open project, with `main` as its initial
+   * branch. Refused where the project is already inside one. SPEC.md §12.
+   */
+  gitInit(): Promise<BridgeResult<null>>;
   /** Writes a resolved file and stages it. */
   gitResolve(request: GitResolveRequest): Promise<BridgeResult<null>>;
   /**

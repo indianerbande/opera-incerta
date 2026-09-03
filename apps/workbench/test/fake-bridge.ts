@@ -53,6 +53,7 @@ export function baseBridge(): OperaIncertaBridge {
     gitPull: async () => notScripted(),
     gitMerge: async () => notScripted(),
     gitAbortMerge: async () => notScripted(),
+    gitInit: async () => notScripted(),
     gitResolve: async () => notScripted(),
     gitPublish: async () => notScripted(),
     gitBranches: async () => notScripted(),

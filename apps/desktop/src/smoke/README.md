@@ -36,7 +36,7 @@ on macOS and Windows that is always there, on Linux use `xvfb-run`).
 | `main.ts` | The entry. Makes the temporary directories, starts the shell, and holds **the whole order of the run** in `run()`, top to bottom. Start reading here. |
 | `context.ts` | `Smoke`: the one object every check receives — the shell handle, the project copy, the trash directory, the evidence directory, `git()`. |
 | `harness.ts` | Helpers that do what a hand does: wait for a selector, click text, right-click a row, fill a prompt, press a key, type. They know nothing about what is being checked. |
-| `checks/launcher.ts` | Opening a project from the launcher, returning to it, creating a project, the native menu. |
+| `checks/launcher.ts` | Opening a project from the launcher, returning to it, creating a project and giving it a repository, the native menu. |
 | `checks/bridge.ts` | The workbench rendered, the bridge answers, the bridge refuses a path out of the project, the editor laid out. |
 | `checks/editor.ts` | Dot commands, the gutter menu, cursor rules around hidden heading syntax, saving through the menu, switching sheets. |
 | `checks/panes.ts` | Front matter area, page categories, inspector, outline, sidebar collapse, column dividers. |

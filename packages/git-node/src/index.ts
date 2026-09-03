@@ -49,6 +49,12 @@ export interface GitService {
    * — the one failure that is not a property of the path.
    */
   repositoryRoot(absolutePath: string): Promise<string | null>;
+  /**
+   * Creates a repository in a directory, with `main` as its initial branch.
+   * Nothing is staged and nothing is committed: what goes into the first
+   * commit stays the author's decision (SPEC.md §12).
+   */
+  init(absolutePath: string): Promise<void>;
   status(repositoryRoot: string): Promise<readonly GitFileStatus[]>;
   /** Stages every path in one invocation, so the guard applies once. */
   stage(repositoryRoot: string, paths: readonly string[]): Promise<void>;

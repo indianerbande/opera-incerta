@@ -141,6 +141,11 @@ class ProcessGitService implements GitService {
     return root === '' ? null : root;
   }
 
+  async init(absolutePath: string): Promise<void> {
+    // `--initial-branch` needs git 2.28 (2020); older gits are not a target.
+    await this.#run(['init', '--initial-branch=main'], absolutePath);
+  }
+
   async status(repositoryRoot: string): Promise<readonly GitFileStatus[]> {
     const result = await this.#run(['status', '--porcelain=v1', '-z'], repositoryRoot);
     return parseGitStatus(result.stdout);

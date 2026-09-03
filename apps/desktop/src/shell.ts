@@ -657,6 +657,27 @@ export function startShell(options: ShellOptions = {}): Shell {
     return null;
   });
 
+  /**
+   * A repository for a project that has none. SPEC.md §12.
+   *
+   * In the project root, never a parent: the manuscript is what gets a
+   * history. Refused where one already exists, because `git init` in an
+   * existing repository reinitialises it, and that is not what the button
+   * says. Nothing is staged or committed here; the status the renderer reads
+   * afterwards shows every file as untracked, which is the honest state.
+   */
+  privileged(CHANNELS.gitInit, acceptsNothing, async () => {
+    const projectPath = session.openPath;
+    if (projectPath === null) {
+      throw new ProjectSessionError('project/none-open');
+    }
+    if ((await git.repositoryRoot(projectPath)) !== null) {
+      throw new ProjectSessionError('git/already-a-repository');
+    }
+    await git.init(projectPath);
+    return null;
+  });
+
   privileged(CHANNELS.gitBranches, acceptsNothing, async () =>
     git.branches(await repositoryRoot()),
   );

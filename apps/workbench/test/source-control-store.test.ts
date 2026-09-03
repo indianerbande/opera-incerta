@@ -688,3 +688,52 @@ describe('amending, and ignoring', () => {
     expect(written).toEqual(['build/\nnotes.txt\n']);
   });
 });
+
+describe('creating a repository', () => {
+  it('asks the bridge, then reads the status that now exists', async () => {
+    const calls: string[] = [];
+    let created = false;
+    const bridge: OperaIncertaBridge = {
+      ...baseBridge(),
+      gitStatus: async () => {
+        calls.push('status');
+        return {
+          ok: true,
+          value: {
+            root: created ? '/book' : null,
+            entries: [],
+            tracking: null,
+            merging: false,
+            hasCommit: false,
+            branch: created ? 'main' : null,
+            remote: null,
+          },
+        };
+      },
+      gitInit: async () => {
+        calls.push('init');
+        created = true;
+        return { ok: true, value: null };
+      },
+    };
+    const store = new SourceControlStore(bridge);
+    await store.refresh();
+    expect(store.repositoryRoot()).toBeNull();
+
+    await store.createRepository();
+
+    expect(calls).toEqual(['status', 'init', 'status']);
+    expect(store.repositoryRoot()).toBe('/book');
+    expect(store.branch()).toBe('main');
+    expect(store.failure()).toBeNull();
+  });
+
+  it('reports the refusal when the project is already inside one', async () => {
+    const store = new SourceControlStore({
+      ...baseBridge(),
+      gitInit: async () => ({ ok: false, code: 'git/already-a-repository', message: '' }),
+    });
+    await store.createRepository();
+    expect(store.failure()).toBe('git/already-a-repository');
+  });
+});

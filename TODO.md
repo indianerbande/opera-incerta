@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **882 tests**, plus the desktop and asset checks.
+projects, **886 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -41,10 +41,6 @@ has to be consulted to build, verify or change the product.
    configuration so a clean checkout works in one step, then record it in
    `PLATFORMS.md`.
 
-4. **Creating a repository for a project that has none** (`SPEC.md` §12). The
-   panel says the project is not inside a Git repository and offers nothing.
-   `git init -b main` in the project root plus an ordinary status read is the
-   whole step; nothing is staged or committed by it.
 5. **The identity git needs** (`SPEC.md` §12), the round after that. Without
    `user.name` and `user.email` the first commit fails with a message written
    for programmers, and for an author who has never used git that is the normal

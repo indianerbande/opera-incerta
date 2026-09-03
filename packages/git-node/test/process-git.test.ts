@@ -172,6 +172,33 @@ describe('one command at a time per repository', () => {
   });
 });
 
+describe('creating a repository', () => {
+  it('asks for main as the initial branch, in the directory it was given', async () => {
+    const runner = recordingRunner();
+    await createGitService(runner).init('/book');
+    expect(runner.calls).toEqual([['init', '--initial-branch=main']]);
+  });
+
+  it('leaves a real directory as a repository on main with nothing staged and no commit', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'opera-incerta-init-'));
+    try {
+      await writeFile(join(directory, 'a.md'), 'text\n', 'utf8');
+      const git = createGitService();
+      expect(await git.repositoryRoot(directory)).toBeNull();
+
+      await git.init(directory);
+
+      expect(await git.repositoryRoot(directory)).not.toBeNull();
+      expect(await git.currentBranch(directory)).toBe('main');
+      expect(await git.hasCommit(directory)).toBe(false);
+      const entries = await git.status(directory);
+      expect(entries.map((entry) => [entry.path, entry.groups])).toEqual([['a.md', ['untracked']]]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('a machine without git', () => {
   it('is reported as its own condition, not as a project outside a repository', async () => {
     const runner: GitCommandRunner = {

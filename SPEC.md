@@ -1818,12 +1818,17 @@ where it is and only leaves the change list.
 the project but not to the manuscript, and the editor's rules about headings and
 front matter have nothing to say about a list of patterns.
 
-**Creating a repository.** *Status: specified, not built.* A project without a
-repository is a normal starting point, and the panel says so plainly today
-while offering nothing. It MUST offer to create one: `git init` with `main` as
-the initial branch in the **project root**, followed by an ordinary status
-read. Nothing is committed and nothing is staged by that step — what goes into
-the first commit stays the author's decision.
+**Creating a repository.** *Status: built (2026-09-03).* A project without a
+repository is a normal starting point, and the panel says so plainly and
+offers the one thing that fits: **Create repository**. That is `git init`
+with `main` as the initial branch in the **project root** — never a parent,
+because the manuscript is what gets a history — followed by the ordinary
+status read, which turns the notice into a list of untracked files. Nothing
+is committed and nothing is staged by that step — what goes into the first
+commit stays the author's decision. The main process refuses the request
+where the project is already inside a repository (`git/already-a-repository`),
+because `git init` there would reinitialise, which is not what the button
+says.
 
 **The identity git needs.** *Status: decided, not built.* `git commit` fails
 with "Author identity unknown" when `user.name` and `user.email` are unset. For

@@ -26,10 +26,17 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
              rather than the project: git itself is missing, or cannot be
              asked. Said in its own words (SPEC.md §12). -->
         <p class="failure" role="alert">{{ wording(reason) }}</p>
+      } @else if (store.loaded()) {
+        <!-- A normal starting point, and the one offer that fits it
+             (SPEC.md §12). Nothing is staged or committed by it. -->
+        <div class="no-repository">
+          <p class="hint">This project is not inside a Git repository.</p>
+          <button type="button" class="create-repository" (click)="store.createRepository()">
+            Create repository
+          </button>
+        </div>
       } @else {
-        <p class="hint">
-          {{ store.loaded() ? 'This project is not inside a Git repository.' : 'Reading…' }}
-        </p>
+        <p class="hint">Reading…</p>
       }
     } @else {
       <div class="panel">
@@ -430,6 +437,25 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
     }
     button:disabled {
       opacity: 0.5;
+    }
+    .no-repository {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px;
+    }
+    .no-repository .hint {
+      padding: 0;
+    }
+    .create-repository {
+      padding: 3px 10px;
+      border: 1px solid var(--wi-border);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: default;
     }
     .hint {
       margin: 0;

@@ -4,12 +4,14 @@
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserWindow, Menu } from 'electron';
 import { MENU_ACCELERATORS, menuItemId } from '../../application-menu.js';
 import {
+  activateSidebar,
   clickMenuItem,
+  clickText,
   forwardConsole,
   waitForProjectWindow,
   waitForSelector,
@@ -224,6 +226,63 @@ export async function checkCreateProject(smoke: Smoke, launcher: BrowserWindow):
 
   console.log(
     'smoke ok: created a project — the display name kept its spaces, the folder took the slug',
+  );
+
+  await checkCreateRepository(smoke, window, projectPath);
+}
+
+/**
+ * A project without a repository is offered one. SPEC.md §12.
+ *
+ * The new project is the one place in the run that has none, so the check
+ * lives here. What it proves is read from disk and from git: the repository
+ * is in the project root, on `main`, with nothing staged and no commit.
+ */
+async function checkCreateRepository(
+  smoke: Smoke,
+  window: BrowserWindow,
+  projectPath: string,
+): Promise<void> {
+  await activateSidebar(window, 'Source control');
+  await waitForSelector(window, 'wi-source-control .create-repository');
+  if (existsSync(join(projectPath, '.git'))) {
+    throw new Error('the new project already had a repository');
+  }
+  const evidence = join(smoke.evidenceDirectory, 'smoke-create-repository.png');
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  await clickText(window, 'wi-source-control .create-repository', 'Create repository');
+  await waitUntil('the repository to exist', () => existsSync(join(projectPath, '.git')));
+  await waitForSelector(window, 'wi-source-control .changes');
+
+  if (smoke.git(projectPath, ['symbolic-ref', 'HEAD']).trim() !== 'refs/heads/main') {
+    throw new Error('the repository did not start on main');
+  }
+  if (smoke.git(projectPath, ['diff', '--cached', '--name-only']).trim() !== '') {
+    throw new Error('creating the repository staged something');
+  }
+  let hasCommit = true;
+  try {
+    smoke.git(projectPath, ['rev-parse', '--verify', 'HEAD']);
+  } catch {
+    hasCommit = false;
+  }
+  if (hasCommit) {
+    throw new Error('creating the repository made a commit');
+  }
+  const listed = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-source-control .change')].map((row) => row.textContent.trim())`,
+  )) as readonly string[];
+  // Git reports an untracked directory as one entry, so the project's record
+  // directory is the row, not the files inside it.
+  if (!listed.some((row) => row.includes('.opera-incerta'))) {
+    throw new Error(`the panel does not list the project as untracked: ${JSON.stringify(listed)}`);
+  }
+
+  console.log(
+    'smoke ok: a project without a repository was offered one, and got it on main with nothing ' +
+      'staged and no commit',
   );
 }
 

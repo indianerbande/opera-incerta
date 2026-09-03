@@ -6,6 +6,45 @@ documents").
 
 ---
 
+## 2026-09-03 — a project without a repository is offered one
+
+**What was open** (`TODO.md` §1.4, specified in `SPEC.md` §12 since the
+gap check). The panel said the project was not inside a Git repository and
+offered nothing; a freshly created project is exactly that state.
+
+**What changed.** The panel's no-repository notice carries one button,
+**Create repository**. It runs `git init --initial-branch=main` in the
+project root — never a parent, because the manuscript is what gets a
+history — and the status read that follows every write turns the notice
+into a list of untracked files. Nothing is staged, nothing is committed:
+what goes into the first commit stays the author's decision. The main
+process refuses the request where the project is already inside a
+repository, with `git/already-a-repository`, because `git init` there would
+reinitialise, which is not what the button says.
+
+The pieces: `GitService.init` in the adapter, `gitInit` on the bridge with
+its handler in the shell, `createRepository` in the store as an ordinary
+guarded write, the button in the panel.
+
+**Verification.** `pnpm run check` green: **886 tests** — the
+adapter's argument and a real directory left on `main` with nothing staged
+and no commit; the store asking the bridge and reading the status that now
+exists, and reporting the refusal. `pnpm run desktop:smoke` green across
+**thirty-one checks**: the new project from the launcher, which has no
+repository, is offered one; after the click `.git` is in the project root,
+`HEAD` names `main`, nothing is staged, there is no commit, and the panel
+lists the project as untracked — all read from disk and from git.
+Falsified by having the handler skip `git init`: the smoke gave up waiting
+for the repository to exist.
+
+**Lesson.** The first thing an author without git sees of source control is
+a sentence about their project not being in a repository. A sentence that
+ends there is a wall; the same sentence with the one fitting offer beside it
+is a door. The feature was five small pieces, and the sentence was the
+reason for all of them.
+
+---
+
 ## 2026-09-03 — the editor forgets a document that is gone
 
 **What was open** (`TODO.md` §1.7 until this round). The CodeMirror adapter

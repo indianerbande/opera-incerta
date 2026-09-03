@@ -299,6 +299,18 @@ export class SourceControlStore {
     });
   }
 
+  /**
+   * Creates a repository for a project that has none. SPEC.md §12.
+   *
+   * A write like any other: guarded, and followed by the status read that
+   * turns "not inside a repository" into a list of untracked files.
+   */
+  async createRepository(): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitInit());
+    });
+  }
+
   /** Puts everything back as it was before the merge began. */
   async abortMerge(): Promise<void> {
     await this.#runWrite(async (bridge) => {
