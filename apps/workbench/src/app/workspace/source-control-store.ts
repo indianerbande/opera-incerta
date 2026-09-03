@@ -52,6 +52,17 @@ export class SourceControlStore {
   }
 
   /** Reads the status, coalescing overlapping requests. */
+  /**
+   * Reacts to a change in the working tree by reading the status again.
+   * SPEC.md §12.
+   *
+   * The coordinator behind `refresh` coalesces, so a burst that the debounce
+   * did not already merge still costs one read.
+   */
+  listenForRepositoryChanges(): () => void {
+    return this.#bridge?.onRepositoryChange(() => void this.refresh()) ?? ((): void => undefined);
+  }
+
   async refresh(): Promise<void> {
     await this.#refresh.request();
   }

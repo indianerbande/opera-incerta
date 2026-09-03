@@ -294,6 +294,12 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- the live status of `SPEC.md` §12: with the panel on screen, a file written
+  behind the application's back appears in the change list without anyone
+  asking — and then the watch **stays quiet for three seconds**, counted in the
+  main process. That second half is the check for C-F4: `git status` writes
+  inside `.git` on every read, and a watcher without the filter refreshes
+  itself for as long as the panel stays open;
 - the commit model of `SPEC.md` §12 against a **real repository**: the smoke
   project is `git init`-ed without a commit, which is the state a freshly
   created project is in. Everything is staged in one batch through the

@@ -50,6 +50,8 @@ export const CHANNELS = {
   writeCategories: 'opera-incerta:categories/write',
   watchTargets: 'opera-incerta:watch/targets',
   externalChange: 'opera-incerta:watch/changed',
+  watchRepository: 'opera-incerta:watch/repository',
+  repositoryChange: 'opera-incerta:watch/repository-changed',
   deleteEntry: 'opera-incerta:library/delete',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
@@ -234,6 +236,11 @@ export function isLibraryEditRequest(value: unknown): value is LibraryEditReques
 export interface WatchTargetsRequest {
   readonly group: string | null;
   readonly sheet: string | null;
+}
+
+/** A plain boolean payload, for a channel that carries nothing else. */
+export function isBooleanRequest(value: unknown): value is boolean {
+  return typeof value === 'boolean';
 }
 
 export function isWatchTargetsRequest(value: unknown): value is WatchTargetsRequest {
@@ -497,6 +504,14 @@ export interface OperaIncertaBridge {
    * on its own: the listener re-reads and compares before it acts (§10.6).
    */
   onExternalChange(listener: () => void): () => void;
+  /**
+   * Watches the repository while source control is on screen, and stops when
+   * it is not. SPEC.md §12.
+   */
+  watchRepository(visible: boolean): Promise<BridgeResult<null>>;
+  /** Something changed in the working tree. A separate concern, so a separate
+   * channel: this one ends in a status refresh, not in re-reading the project. */
+  onRepositoryChange(listener: () => void): () => void;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

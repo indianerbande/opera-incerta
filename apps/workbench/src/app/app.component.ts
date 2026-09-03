@@ -453,17 +453,24 @@ export class AppComponent {
     // A change under the group or the open document arrives without anyone
     // asking (SPEC.md §10.6). What it means is decided by re-reading.
     const stopWatching = this.store.listenForExternalChanges();
+    const stopWatchingRepository = this.sourceControl.listenForRepositoryChanges();
     inject(DestroyRef).onDestroy(() => {
       stopListening?.();
       stopWatching();
+      stopWatchingRepository();
     });
 
     // Source control reads when its view is shown, and after a save: both are
-    // moments when what git reports has just changed.
+    // moments when what git reports has just changed. While it is on screen —
+    // and only then — the repository is watched, so a change made elsewhere
+    // arrives without asking (SPEC.md §12).
     effect(() => {
-      if (this.layout.navigatorView() === 'sourceControl' && this.store.project() !== null) {
+      const showing =
+        this.layout.navigatorView() === 'sourceControl' && this.store.project() !== null;
+      if (showing) {
         void this.sourceControl.refresh();
       }
+      void this.#bridge?.watchRepository(showing);
     });
   }
 

@@ -18,6 +18,7 @@ function fakeBridge(
     status?: () => BridgeResult<{ root: string | null; entries: readonly unknown[] }>;
     commit?: () => BridgeResult<null>;
     push?: () => BridgeResult<null>;
+    onRepositoryChange?: (listener: () => void) => () => void;
   } = {},
 ): OperaIncertaBridge & Recorder {
   const calls: string[] = [];
@@ -35,6 +36,9 @@ function fakeBridge(
 
   return {
     ...baseBridge(),
+    ...(script.onRepositoryChange === undefined
+      ? {}
+      : { onRepositoryChange: script.onRepositoryChange }),
     calls,
     gitStatus: async () => (script.status ?? status)(),
     gitStage: async (request) => {
@@ -234,5 +238,38 @@ describe('without a shell', () => {
 
     expect(bridge.calls).toEqual([]);
     expect(store.failure()).toBeNull();
+  });
+});
+
+describe('watching the repository', () => {
+  it('reads the status again when the working tree changed', async () => {
+    let listener: (() => void) | null = null;
+    let reads = 0;
+    const store = new SourceControlStore(
+      fakeBridge({
+        status: () => {
+          reads += 1;
+          return { ok: true, value: { root: '/book', entries: [] } };
+        },
+        onRepositoryChange: (each) => {
+          listener = each;
+          return () => (listener = null);
+        },
+      }),
+    );
+    const stop = store.listenForRepositoryChanges();
+    const notify = listener as unknown as (() => void) | null;
+    expect(notify).not.toBeNull();
+
+    notify?.();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(reads).toBe(1);
+    stop();
+  });
+
+  it('does nothing without a bridge, rather than failing', () => {
+    const store = new SourceControlStore(null);
+    expect(() => store.listenForRepositoryChanges()()).not.toThrow();
   });
 });

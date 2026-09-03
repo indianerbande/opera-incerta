@@ -40,6 +40,7 @@ import {
   isGitPathsRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
+  isBooleanRequest,
   isLibraryPathRequest,
   isLibraryPlaceRequest,
   isWatchTargetsRequest,
@@ -584,11 +585,27 @@ privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
  * the comparison against the loaded baseline happens. A payload would invite
  * acting on the message instead of on the file.
  */
-const projectWatch = new ProjectWatch(createLibraryWatcher(), () => {
-  if (projectWindow !== null && !projectWindow.isDestroyed()) {
-    projectWindow.webContents.send(CHANNELS.externalChange);
-  }
+/**
+ * How many times the repository watch has reported. Read by the smoke, which
+ * checks that watching a repository does not make it report forever: `git
+ * status` writes inside `.git`, and without the filter of §12 each refresh
+ * would trigger the next (`CONVENTIONS.md` C-F4).
+ */
+let repositoryReports = 0;
+
+const projectWatch = new ProjectWatch(createLibraryWatcher(), {
+  onLibraryChange: () => notifyRenderer(CHANNELS.externalChange),
+  onRepositoryChange: () => {
+    repositoryReports += 1;
+    notifyRenderer(CHANNELS.repositoryChange);
+  },
 });
+
+function notifyRenderer(channel: string): void {
+  if (projectWindow !== null && !projectWindow.isDestroyed()) {
+    projectWindow.webContents.send(channel);
+  }
+}
 
 privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
   projectWatch.set(session.openPath, request);
@@ -596,6 +613,17 @@ privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
 });
 
 const git = createGitService();
+
+privileged(CHANNELS.watchRepository, isBooleanRequest, async (visible) => {
+  // Only while the panel is on screen, and only where there is a repository
+  // at all (SPEC.md §12). The root is resolved fresh each time, so a project
+  // change re-establishes the watch on the right one.
+  const projectPath = session.openPath;
+  const root = visible && projectPath !== null ? await git.repositoryRoot(projectPath) : null;
+  projectWatch.setRepository(root);
+  return null;
+});
+
 
 /**
  * The repository root of the open project.
@@ -1642,6 +1670,55 @@ async function checkCommitting(window: BrowserWindow): Promise<void> {
   console.log(
     'smoke ok: staged in one batch, unstaged without a HEAD, committed, and a push with no ' +
       `remote kept the commit and said why (${reported.slice(0, 40)})`,
+  );
+
+  await checkLiveStatus(window);
+}
+
+/**
+ * The live update of `SPEC.md` §12: while the panel is on screen, a change in
+ * the working tree appears without anyone asking — and the panel does not then
+ * keep refreshing itself.
+ */
+async function checkLiveStatus(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  const countRows = async (): Promise<number> =>
+    (await window.webContents.executeJavaScript(
+      "document.querySelectorAll('wi-source-control .change').length",
+    )) as number;
+
+  const before = await countRows();
+  // Not a sheet: git reports it, and the library does not, so this check
+  // leaves the fixture exactly as it found it for the checks that follow.
+  writeFileSync(join(smokeProjectPath, 'written-by-someone-else.txt'), 'Not a sheet.\n', 'utf8');
+
+  await settleWatch(window, async () => (await countRows()) > before);
+  const listed = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-source-control .change')].map((row) => row.textContent.trim())`,
+  )) as readonly string[];
+  if (!listed.some((row) => row.includes('written-by-someone-else.txt'))) {
+    throw new Error(`the status did not notice a new file by itself: ${JSON.stringify(listed)}`);
+  }
+
+  // And now the part `CONVENTIONS.md` C-F4 exists for: `git status` writes
+  // inside `.git` on every read, so without the filter each refresh would
+  // trigger the next one, for as long as the panel stays open.
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const quiet = repositoryReports;
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  if (repositoryReports !== quiet) {
+    throw new Error(
+      `the repository watch reported ${String(repositoryReports - quiet)} times with nobody ` +
+        'touching anything: it is triggering itself',
+    );
+  }
+
+  console.log(
+    'smoke ok: a file written behind the application’s back appeared in source control by ' +
+      'itself, and the watch then stayed quiet for three seconds',
   );
 }
 

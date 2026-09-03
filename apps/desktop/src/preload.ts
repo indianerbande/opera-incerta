@@ -46,6 +46,7 @@ const bridge = {
     ipcRenderer.invoke(CHANNELS.writeCategories, categories),
   deleteEntry: (request: unknown) => ipcRenderer.invoke(CHANNELS.deleteEntry, request),
   watchTargets: (request: unknown) => ipcRenderer.invoke(CHANNELS.watchTargets, request),
+  watchRepository: (visible: unknown) => ipcRenderer.invoke(CHANNELS.watchRepository, visible),
   readPreferences: () => ipcRenderer.invoke(CHANNELS.readPreferences),
   writePreferences: (record: unknown) => ipcRenderer.invoke(CHANNELS.writePreferences, record),
 
@@ -56,6 +57,16 @@ const bridge = {
     ipcRenderer.on(CHANNELS.externalChange, forward);
     return () => {
       ipcRenderer.removeListener(CHANNELS.externalChange, forward);
+    };
+  },
+
+  onRepositoryChange: (listener: () => void) => {
+    const forward = (): void => {
+      listener();
+    };
+    ipcRenderer.on(CHANNELS.repositoryChange, forward);
+    return () => {
+      ipcRenderer.removeListener(CHANNELS.repositoryChange, forward);
     };
   },
 

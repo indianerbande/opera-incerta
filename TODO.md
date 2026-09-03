@@ -11,9 +11,9 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 **State 2026-09-02:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and the committed slice of source
-control (§12). `pnpm run check` green on **Node 24**: 6 projects, **612
+control (§12). `pnpm run check` green on **Node 24**: 6 projects, **618
 tests**, plus the desktop and asset checks. `pnpm run desktop:smoke` green
-across twenty-three checks, `pnpm run spike:editor` 7/7.
+across twenty-four checks, `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
 open are the parts of §12 and §15 that this stage deliberately excludes, and
@@ -73,11 +73,6 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   open and each needs its own round: "show diff", the destructive "discard
   changes" with its prompt, pull and fetch, upstream creation, and branches.
   The live watcher of §12 is the open item above.
-- **The live watcher for source control** (`SPEC.md` §12) — the mechanism now
-  exists and is used for the library and the open document; what is missing is
-  the third target, the repository root watched recursively while the source
-  control panel is visible. The `.git` filter it needs is already built and
-  applied by the adapter.
 - **`PLATFORMS.md` and the native build matrix** — written with the first
   packaging round (`CONVENTIONS.md` C-P5).
 - **Import, export, AI provider, snapshots** — each needs its own decision

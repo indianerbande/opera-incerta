@@ -6,6 +6,38 @@ documents").
 
 ---
 
+## 2026-09-02 — the live watcher for source control
+
+**What exists.** While the source control panel is on screen — and only then —
+the repository root is watched recursively, and a change in the working tree
+puts itself in the change list. The third and last watch target of §12.
+
+**Set independently of the other two.** The selection moves constantly while
+the panel's visibility rarely does, so the library targets and the repository
+target release only what they replace. A single `dispose()` for everything
+would have meant that every click in the tree stopped watching the repository.
+
+**Two consumers, two channels.** The library notification ends in re-reading
+the project; this one ends in reading `git status`. One channel would have
+meant one of them doing the other's work.
+
+**What the falsification showed, and it was not what I expected.** Removing the
+`.git` filter does not first break the check written for it. It breaks an
+*earlier* one: a failed push reports nothing, because the refresh storm
+overwrites the message before anyone can read it. That is precisely the harm
+`CONVENTIONS.md` C-F4 was written about, demonstrated more convincingly than
+the check that was aiming at it.
+
+**Verification.** `pnpm run check` green: **618 tests**. The smoke's
+twenty-fourth check writes a file behind the application's back with the panel
+open, watches it appear in the change list by itself, and then counts the
+watch's reports over three quiet seconds: none. The file it writes is
+deliberately not a sheet, so the fixture the later checks depend on is left
+exactly as it was found — the first attempt used a `.md` file and broke a
+deletion check four steps later.
+
+---
+
 ## 2026-09-02 — the filesystem watcher, on `fs.watch` and nothing else
 
 **What exists.** The main process watches the group whose sheet list is on

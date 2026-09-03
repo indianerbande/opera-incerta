@@ -1492,6 +1492,15 @@ paths and refresh only when at least one event concerns the working tree (a
 path with no `.git` component). `git status` opportunistically writes inside
 `.git`; without this filter every refresh would re-trigger itself (`CONVENTIONS.md` C-F4).
 
+The harm is not merely wasted reads. With the filter removed, the first thing
+that breaks is a *failed push reporting nothing*: the refresh storm overwrites
+the message before the author can read it. The filter is what keeps the panel
+able to say anything at all.
+
+The three watches are set **independently** of one another: the selection moves
+constantly while the panel's visibility rarely does, and one must not release
+the other's handles.
+
 **Writing — the commit model.** The panel follows the established commit
 pattern, top to bottom: a small toolbar with refresh; a flat list of all
 changes with **one checkbox per file** (checked means staged); a header showing
