@@ -6,6 +6,83 @@ documents").
 
 ---
 
+## 2026-09-03 — the core rules the review found loose, tightened
+
+**What was open** (`TODO.md` §1.8 until this round): eleven rules in the
+portable core that the review had found wrong, loose, or in the wrong
+place, each confirmed against the built code before the round began.
+
+**What changed.**
+
+- **The two conflict rules agree.** `hasConflictMarkers` is defined through
+  the parser: a start marker that never closes is text to both, where the
+  store used to lock a sheet the resolver had nothing to resolve in.
+- **A rename detected in the working tree** (` R`, git ≥ 2.18) consumes its
+  old path like an index rename does, rather than inventing a file from it.
+- **Emphasis has a flanking rule**, in its smallest form: an asterisk
+  followed by a space opens nothing, one preceded by a space closes nothing.
+  `2 * 3 * 4` is arithmetic again.
+- **Fences and indented code as CommonMark has them.** A fence closes only
+  on one at least as long and of the same character; four spaces or a tab
+  after a blank line is verbatim, an indented continuation of a paragraph
+  is not.
+- **The outline is one-based**, like every other line number the core hands
+  out; the outline component no longer adds one.
+- **`previewLines` is generic over the line**, so the level travels with the
+  text and the sheet list no longer matches levels back by comparing texts.
+- **The editor contract suite is `@opera-incerta/core/testing`**, a
+  subpath export: a test suite in the production export was a test suite in
+  the production bundle. The core's own test and the editor spike import it
+  from there.
+- **Progress figures count the prose**, not the file: heading hashes and
+  emphasis delimiters are not words; a fenced block counts as written.
+- **Slugs keep every letter.** The text is decomposed and its combining
+  marks dropped after the umlaut table has run, so `Café` is `cafe` and
+  `Größe` stays `groesse`. The test that enshrined `caf-nave` now enshrines
+  `cafe-naive`.
+- **A category colour is stored as `#RRGGBB`** whatever the file spelled;
+  the badge binds the string into a style, where `ff8000` is not a colour.
+- **The refresh coordinator runs the follow-up it coalesced even when the
+  run before it failed.** Requests made during a run wait for the
+  follow-up, not for the run that began before they asked; the comment that
+  described a case that could not occur is gone. `ExclusiveTask.run` says
+  `{ ran: false }` rather than `null`, which an operation may itself answer.
+- **`block-height.ts` is gone**, with its exports and the tests that lived
+  in another module's file; `front-matter-view.ts` had carried the same
+  rule all along.
+
+**What was left as it is, deliberately.** `HeadingMarkerActivation` still
+carries the marker's viewport coordinates through the core boundary: the
+menu is placed by the shell, and a pair of numbers with a documented meaning
+is the least the boundary can carry for that. The layout and preference
+constants stay in the core: they are pure, tested, and shared by two
+frontends' worth of code (the workbench and the smoke), which is what the
+core is for.
+
+**Verification.** `pnpm run check` green: **880 tests** — fifteen new in
+the core for the tightened rules, the outline and preview tests re-pinned,
+the refresh tests extended. `pnpm run spike:editor` 7/7 with the suite
+imported from its new place. `pnpm run desktop:smoke` green across
+**thirty checks** — after one run stopped at the merge check because the
+Resolve click had no wait of its own and came one status refresh early,
+which is the rule of the sleep round applied once more: wait for the panel.
+Three green runs followed.
+
+Three falsifications: with each half of the flanking rule removed in turn,
+exactly the tests for that half failed — the first attempt removed only the
+opening half and found that no test needed it, so one was written; with the worktree rename ignored again, exactly the
+` R` test failed; with `hasConflictMarkers` back to looking for `<<<<<<<`
+alone, exactly the agreement test failed.
+
+**Lesson.** A rule that two places must apply the same way is one rule,
+defined once — `hasConflictMarkers` through the parser, the visible children
+of a directory through one function, the preview line with its level in
+one object. Every item in this round that was a *bug* was two places
+disagreeing; every one that was *loose* was a rule that had stopped one
+case short of where the format's own rules end.
+
+---
+
 ## 2026-09-03 — the port is the only way to the disk
 
 **What was open** (`TODO.md` §1.8 until this round). The `ProjectFilesystem`

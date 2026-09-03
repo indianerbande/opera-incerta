@@ -21,7 +21,8 @@
 export class RefreshCoordinator {
   readonly #run: () => Promise<void>;
   #running: Promise<void> | null = null;
-  #pending = false;
+  /** The follow-up's outcome, for the requests that were coalesced into it. */
+  #followUp: Deferred | null = null;
 
   constructor(run: () => Promise<void>) {
     this.#run = run;
@@ -34,44 +35,74 @@ export class RefreshCoordinator {
 
   /** True when exactly one follow-up run is already scheduled. */
   get hasPending(): boolean {
-    return this.#pending;
+    return this.#followUp !== null;
   }
 
   /**
    * Requests a run and resolves when the work covering this request is done.
    *
    * Requesting during a run does not start a second one; it marks a single
-   * follow-up. Further requests during the same run collapse into that one.
+   * follow-up, and every request made during the same run waits for **that**
+   * follow-up — not for the run that was already under way, which began
+   * before they asked. A follow-up runs whether or not the run before it
+   * failed: the later request wanted a fresh read, and a failure that dropped
+   * it would leave the panel showing a state nobody asked for.
    */
-  async request(): Promise<void> {
-    if (this.#running !== null) {
-      this.#pending = true;
-      await this.#running;
-      // The follow-up runs after the in-flight run completes; awaiting the
-      // chain keeps the caller's promise meaningful.
-      if (this.#running !== null) {
-        await this.#running;
-      }
-      return;
+  request(): Promise<void> {
+    if (this.#running === null) {
+      this.#running = this.#cycle();
+      return this.#running;
     }
-
-    this.#running = this.#cycle();
-    await this.#running;
+    this.#followUp ??= deferred();
+    return this.#followUp.promise;
   }
 
   async #cycle(): Promise<void> {
+    let firstFailure: unknown = null;
+    let failed = false;
     try {
       await this.#run();
-      while (this.#pending) {
-        this.#pending = false;
+    } catch (error: unknown) {
+      firstFailure = error;
+      failed = true;
+    }
+    while (this.#followUp !== null) {
+      const followUp = this.#followUp;
+      this.#followUp = null;
+      try {
         await this.#run();
+        followUp.resolve();
+      } catch (error: unknown) {
+        followUp.reject(error);
       }
-    } finally {
-      this.#running = null;
-      this.#pending = false;
+    }
+    this.#running = null;
+    if (failed) {
+      throw firstFailure;
     }
   }
 }
+
+interface Deferred {
+  readonly promise: Promise<void>;
+  resolve(): void;
+  reject(reason: unknown): void;
+}
+
+function deferred(): Deferred {
+  let resolve: () => void = () => undefined;
+  let reject: (reason: unknown) => void = () => undefined;
+  const promise = new Promise<void>((resolveFn, rejectFn) => {
+    resolve = resolveFn;
+    reject = rejectFn;
+  });
+  return { promise, resolve, reject };
+}
+
+/** What `ExclusiveTask.run` answers: the operation's value, or that it did not run. */
+export type ExclusiveOutcome<T> =
+  | { readonly ran: true; readonly value: T }
+  | { readonly ran: false };
 
 /**
  * Runs an operation with its own guard, rejecting overlap instead of dropping
@@ -86,17 +117,18 @@ export class ExclusiveTask {
   }
 
   /**
-   * Runs `operation` unless one is already in flight, in which case `null` is
-   * returned. A caller can then report that the previous action is still
-   * running rather than pretending nothing happened.
+   * Runs `operation` unless one is already in flight, and says which it was.
+   * A caller can then report that the previous action is still running rather
+   * than pretending nothing happened. Said explicitly rather than with `null`,
+   * because an operation may itself answer `null`.
    */
-  async run<T>(operation: () => Promise<T>): Promise<T | null> {
+  async run<T>(operation: () => Promise<T>): Promise<ExclusiveOutcome<T>> {
     if (this.#running) {
-      return null;
+      return { ran: false };
     }
     this.#running = true;
     try {
-      return await operation();
+      return { ran: true, value: await operation() };
     } finally {
       this.#running = false;
     }

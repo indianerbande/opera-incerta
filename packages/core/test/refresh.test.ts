@@ -71,6 +71,29 @@ describe('RefreshCoordinator', () => {
     expect(observed).toEqual(['before', 'after']);
   });
 
+  it('still runs the follow-up when the run it was coalesced into fails', async () => {
+    const gate = deferred();
+    let runs = 0;
+    const coordinator = new RefreshCoordinator(async () => {
+      runs += 1;
+      if (runs === 1) {
+        await gate.promise;
+        throw new Error('the first read failed');
+      }
+    });
+
+    const first = coordinator.request();
+    const second = coordinator.request();
+    gate.resolve();
+
+    // The first requester hears about its failure; the second asked for a
+    // fresh read and gets one, rather than the first one's error.
+    await expect(first).rejects.toThrow('the first read failed');
+    await expect(second).resolves.toBeUndefined();
+    expect(runs).toBe(2);
+    expect(coordinator.isRunning).toBe(false);
+  });
+
   it('recovers after a failing run rather than staying stuck', async () => {
     let runs = 0;
     const coordinator = new RefreshCoordinator(async () => {
@@ -87,9 +110,11 @@ describe('RefreshCoordinator', () => {
 });
 
 describe('ExclusiveTask', () => {
-  it('runs an operation and returns its result', async () => {
+  it('runs an operation and says so, with its result', async () => {
     const task = new ExclusiveTask();
-    await expect(task.run(async () => 'done')).resolves.toBe('done');
+    await expect(task.run(async () => 'done')).resolves.toEqual({ ran: true, value: 'done' });
+    // An operation that answers null is still one that ran.
+    await expect(task.run(async () => null)).resolves.toEqual({ ran: true, value: null });
   });
 
   it('refuses an overlapping run instead of dropping it silently', async () => {
@@ -102,9 +127,9 @@ describe('ExclusiveTask', () => {
     });
     const second = await task.run(async () => 'second');
 
-    expect(second).toBeNull();
+    expect(second).toEqual({ ran: false });
     gate.resolve();
-    await expect(first).resolves.toBe('first');
+    await expect(first).resolves.toEqual({ ran: true, value: 'first' });
   });
 
   it('is usable again after a failure', async () => {
@@ -112,7 +137,7 @@ describe('ExclusiveTask', () => {
     await expect(task.run(async () => Promise.reject(new Error('write failed')))).rejects.toThrow();
 
     expect(task.isRunning).toBe(false);
-    await expect(task.run(async () => 'ok')).resolves.toBe('ok');
+    await expect(task.run(async () => 'ok')).resolves.toEqual({ ran: true, value: 'ok' });
   });
 
   it('does not block a read guard, which is the point of separate guards', async () => {
@@ -132,6 +157,6 @@ describe('ExclusiveTask', () => {
     expect(reads).toBe(1);
 
     gate.resolve();
-    await expect(writing).resolves.toBe('written');
+    await expect(writing).resolves.toEqual({ ran: true, value: 'written' });
   });
 });

@@ -149,7 +149,24 @@ Tests MUST prove:
   invention of fields;
 - heading transformation in both directions for all six levels, including a
   line that merely begins with `#` inside a code fence, which MUST NOT be
-  treated as a heading;
+  treated as a heading — and the fence rules as CommonMark has them: a
+  fence closes only on one at least as long and of the same character, and
+  four-space indented code after a blank line is verbatim while an indented
+  continuation of a paragraph is not;
+- the flanking rule of emphasis: an asterisk followed by a space opens
+  nothing, so `2 * 3 * 4` stays arithmetic, and one preceded by a space closes
+  nothing;
+- the two conflict rules agreeing: a start marker that never closes is text to
+  the parser and to the marker check alike;
+- a rename detected in the working tree (` R`) consuming its old path like an
+  index rename does, rather than inventing a file from it;
+- progress figures over the prose, not the file: heading hashes and emphasis
+  delimiters are not words, a fenced block counts as written;
+- slugs that keep accented letters as their base letter (`Café` → `cafe`)
+  while the German umlauts keep their German spelling;
+- a category colour stored as `#RRGGBB` whatever the file spelled;
+- the refresh coordinator running the follow-up it coalesced even when the run
+  before it failed, and the exclusive task saying explicitly whether it ran;
 - that display-to-Markdown output is standard-conformant and readable by an
   independent Markdown parser; and
 - that a read failure prevents any write to the same file (`SPEC.md` §16).

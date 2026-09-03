@@ -2,9 +2,13 @@
  * Progress figures for the inspector: characters, words, reading time.
  * SPEC.md §11, TESTING.md §2.1.
  *
- * These count the body only. Front matter is metadata, not text the author
- * wrote, and counting it would make the figures jump when a keyword is added.
+ * These count the body only, and the body as the author reads it: front
+ * matter is metadata, not text, and `#` and `**` are markup, not words. A
+ * heading's hashes and a bold phrase's asterisks counted as words until this
+ * read the display text instead of the file.
  */
+import { markdownToDisplay } from './heading.js';
+import { delimiterRanges } from './inline.js';
 
 /**
  * Words per minute for silent reading of prose. A conventional value rather
@@ -24,10 +28,27 @@ export interface TextStatistics {
 }
 
 export function textStatistics(body: string): TextStatistics {
-  const characters = [...body].length;
-  const charactersWithoutSpaces = [...body.replace(/\s/gu, '')].length;
-  const words = body.split(/\s+/u).filter((word) => word !== '').length;
+  const text = proseOf(body);
+  const characters = [...text].length;
+  const charactersWithoutSpaces = [...text.replace(/\s/gu, '')].length;
+  const words = text.split(/\s+/u).filter((word) => word !== '').length;
   const readingMinutes = words === 0 ? 0 : Math.max(1, Math.round(words / READING_WORDS_PER_MINUTE));
 
   return { characters, charactersWithoutSpaces, words, readingMinutes };
+}
+
+/** The body without its markup: heading prefixes gone, inline delimiters gone. */
+function proseOf(body: string): string {
+  return markdownToDisplay(body)
+    .map((line) => {
+      if (line.verbatim) {
+        return line.text;
+      }
+      let text = line.text;
+      for (const range of [...delimiterRanges(line.text)].reverse()) {
+        text = text.slice(0, range.from) + text.slice(range.to);
+      }
+      return text;
+    })
+    .join('\n');
 }

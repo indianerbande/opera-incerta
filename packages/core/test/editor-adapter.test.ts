@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   displayToMarkdown,
   markdownToDisplay,
-  runEditorAdapterContract,
   withHeadingLevel,
   type EditorAdapter,
   type EditorChangeListener,
@@ -11,6 +10,7 @@ import {
   type HeadingMarkerActivation,
   type HeadingMarkerListener,
 } from '../src/index.js';
+import { runEditorAdapterContract } from '../src/testing/index.js';
 
 /**
  * An in-memory adapter: the contract with no component underneath.

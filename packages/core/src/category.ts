@@ -97,7 +97,10 @@ export function readCategories(value: unknown): readonly PageCategory[] {
       continue;
     }
     seen.add(id);
-    categories.push({ id, name, color });
+    // Stored as `#RRGGBB` whatever the file spelled: the badge binds the
+    // string into a style, and a colour without the hash is not a colour there.
+    const trimmed = color.trim();
+    categories.push({ id, name, color: trimmed.startsWith('#') ? trimmed : `#${trimmed}` });
     if (categories.length === MAX_CATEGORIES) {
       break;
     }

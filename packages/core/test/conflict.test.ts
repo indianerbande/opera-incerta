@@ -142,3 +142,17 @@ describe('resolveConflicts', () => {
     expect(resolveConflicts(two, ['theirs', 'ours'])).toBe('first theirs\nsecond mine');
   });
 });
+
+describe('hasConflictMarkers agrees with the parser', () => {
+  it('is false for a start marker that never closes, which the parser reads as text', () => {
+    const text = '<<<<<<< HEAD\nthe line\n';
+    expect(countConflicts(parseConflicts(text))).toBe(0);
+    expect(hasConflictMarkers(text)).toBe(false);
+  });
+
+  it('is true exactly when the parser finds a region', () => {
+    const text = '<<<<<<< HEAD\nmine\n=======\ntheirs\n>>>>>>> origin/main\n';
+    expect(countConflicts(parseConflicts(text))).toBe(1);
+    expect(hasConflictMarkers(text)).toBe(true);
+  });
+});

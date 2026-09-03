@@ -111,6 +111,15 @@ function matchCode(lineText: string, start: number): InlineSpan | null {
   };
 }
 
+/**
+ * The flanking rule, in its smallest form: an opening delimiter is not
+ * followed by whitespace, a closing one is not preceded by it. Without it
+ * `2 * 3 * 4` was arithmetic with a hidden operator and ` 3 ` in italics.
+ */
+function isWhitespace(character: string | undefined): boolean {
+  return character !== undefined && /\s/u.test(character);
+}
+
 function matchEmphasis(lineText: string, start: number): InlineSpan | null {
   for (const rule of RULES) {
     if (!lineText.startsWith(rule.delimiter, start)) {
@@ -118,6 +127,9 @@ function matchEmphasis(lineText: string, start: number): InlineSpan | null {
     }
 
     const contentFrom = start + rule.delimiter.length;
+    if (isWhitespace(lineText[contentFrom])) {
+      continue;
+    }
     const closing = findClosing(lineText, rule.delimiter, contentFrom);
     if (closing === null) {
       continue;
@@ -146,7 +158,13 @@ function findClosing(lineText: string, delimiter: string, contentFrom: number): 
       continue;
     }
     if (lineText.startsWith(delimiter, index)) {
-      return index === contentFrom ? null : index;
+      if (index === contentFrom) {
+        return null;
+      }
+      // A closing delimiter preceded by whitespace is not one; keep looking.
+      if (!isWhitespace(lineText[index - 1])) {
+        return index;
+      }
     }
     index += 1;
   }

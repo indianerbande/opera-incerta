@@ -48,3 +48,17 @@ describe('textStatistics', () => {
     expect(textStatistics(sheet.body).words).toBe(4);
   });
 });
+
+describe('markup is not text', () => {
+  it('does not count heading hashes or emphasis delimiters as words', () => {
+    const { words, charactersWithoutSpaces } = textStatistics('# Title\n\n**bold** text\n');
+    expect(words).toBe(3);
+    // `Title`, `bold`, `text`: 13 letters, no hashes and no asterisks.
+    expect(charactersWithoutSpaces).toBe(13);
+  });
+
+  it('counts a fenced block as written, since backticks mean literally this', () => {
+    // The fences and the hash are text here: six words, not three.
+    expect(textStatistics('```\n# not a heading\n```\n').words).toBe(6);
+  });
+});

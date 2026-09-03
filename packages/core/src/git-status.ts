@@ -77,6 +77,10 @@ export interface GitRemote {
   readonly url: string;
 }
 
+function isRenameOrCopy(status: string): boolean {
+  return status === 'R' || status === 'C';
+}
+
 /** Status pairs Git reports for an unresolved merge. */
 const CONFLICT_PAIRS = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU']);
 
@@ -105,8 +109,11 @@ export function parseGitStatus(output: string): readonly GitFileStatus[] {
     const path = field.slice(3);
     const pair = `${indexStatus}${worktreeStatus}`;
 
+    // A rename or a copy on either side carries its old path in the next
+    // field. Git ≥ 2.18 reports a rename detected in the working tree as
+    // ` R`, and reading only the index side invented a file from its old path.
     let previousPath: string | undefined;
-    if (indexStatus === 'R' || indexStatus === 'C') {
+    if (isRenameOrCopy(indexStatus) || isRenameOrCopy(worktreeStatus)) {
       previousPath = fields[index];
       index += 1;
     }

@@ -58,15 +58,17 @@ export function previewFontSize(
 
 /**
  * Picks the lines shown in a preview: the body without its blank lines unless
- * they are requested, capped at the density's line count.
+ * they are requested, capped at the density's line count. Generic over the
+ * line, so a line keeps whatever else it carries — its heading level — and
+ * the list does not have to match levels back to texts.
  */
-export function previewLines(
-  bodyLines: readonly string[],
+export function previewLines<T extends { readonly text: string }>(
+  bodyLines: readonly T[],
   density: PreviewDensity,
   showBlankLines: boolean,
-): readonly string[] {
+): readonly T[] {
   const candidates = showBlankLines
     ? bodyLines
-    : bodyLines.filter((line) => line.trim() !== '');
+    : bodyLines.filter((line) => line.text.trim() !== '');
   return candidates.slice(0, previewLineCount(density));
 }

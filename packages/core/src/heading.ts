@@ -44,29 +44,56 @@ const CLOSING_HASHES = /^([\s\S]*?)([ \t]+#+)$/;
 /** A fenced code block opener or closer. */
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 
+/** An indented code line: four spaces or a tab, per CommonMark. */
+const INDENTED_CODE = /^(?: {4}|\t)/;
+
 /**
  * Converts Markdown text into display lines.
  *
  * Lines inside a fenced code block are never headings, however they begin.
+ * A fence closes only on a fence of the same character and at least the
+ * same length, as CommonMark has it — a shorter one is content. An indented
+ * code block, four spaces or a tab after a blank line, is verbatim too: its
+ * `#` and `**` are literally that.
  */
 export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
   const lines = markdown.split('\n');
   const display: DisplayLine[] = [];
-  let openFence: string | null = null;
+  let openFence: { readonly marker: string; readonly length: number } | null = null;
+  let previousBlank = true;
+  let inIndentedCode = false;
 
   for (const line of lines) {
     const fence = FENCE.exec(line);
     if (fence !== null) {
-      const marker = (fence[1] ?? '').charAt(0);
+      const run = fence[1] ?? '';
       if (openFence === null) {
-        openFence = marker;
-      } else if (marker === openFence) {
-        openFence = null;
+        openFence = { marker: run.charAt(0), length: run.length };
+        display.push(plainLine(line, true));
+        previousBlank = false;
+        continue;
       }
+      if (run.charAt(0) === openFence.marker && run.length >= openFence.length) {
+        openFence = null;
+        display.push(plainLine(line, true));
+        previousBlank = false;
+        continue;
+      }
+    }
+    if (openFence !== null) {
       display.push(plainLine(line, true));
       continue;
     }
-    display.push(openFence === null ? readLine(line) : plainLine(line, true));
+
+    const blank = line.trim() === '';
+    if (INDENTED_CODE.test(line) && (previousBlank || inIndentedCode)) {
+      inIndentedCode = true;
+      display.push(plainLine(line, true));
+    } else {
+      inIndentedCode = blank && inIndentedCode;
+      display.push(readLine(line));
+    }
+    previousBlank = blank;
   }
 
   return display;
@@ -135,7 +162,7 @@ export function withHeadingLevel(line: DisplayLine, level: HeadingLevel | null):
 export interface OutlineEntry {
   readonly level: HeadingLevel;
   readonly text: string;
-  /** Zero-based index into the display lines. */
+  /** One-based line number, like every other line number in the core. */
   readonly line: number;
 }
 
@@ -144,7 +171,7 @@ export function outlineOf(lines: readonly DisplayLine[]): readonly OutlineEntry[
   const entries: OutlineEntry[] = [];
   lines.forEach((line, index) => {
     if (line.level !== null) {
-      entries.push({ level: line.level, text: line.text, line: index });
+      entries.push({ level: line.level, text: line.text, line: index + 1 });
     }
   });
   return entries;

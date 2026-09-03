@@ -18,8 +18,12 @@ describe('slugify', () => {
     expect(slugify('ÄÖÜ')).toBe('aeoeue');
   });
 
-  it('removes other non-ASCII characters', () => {
-    expect(slugify('Café — 日本語 — naïve')).toBe('caf-nave');
+  it('reduces accented letters to their base, and removes what has none', () => {
+    // `Café` is `cafe`, not `caf`: a title in French or Polish keeps its letters.
+    expect(slugify('Café — 日本語 — naïve')).toBe('cafe-naive');
+    expect(slugify('Ærø Łódź')).toBe('r-odz');
+    // The umlaut table runs first, so an `ö` keeps its German spelling.
+    expect(slugify('Señor Ångström')).toBe('senor-angstroem');
   });
 
   it('collapses separator runs and trims them at both ends', () => {

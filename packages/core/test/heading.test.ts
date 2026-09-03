@@ -178,12 +178,13 @@ describe('outline', () => {
   );
 
   it('lists headings with their line numbers', () => {
+    // One-based, like every other line number the core hands out.
     expect(outlineOf(lines)).toEqual([
-      { level: 1, text: 'Part', line: 0 },
-      { level: 2, text: 'Chapter', line: 2 },
-      { level: 3, text: 'Scene', line: 3 },
-      { level: 6, text: 'Aside', line: 5 },
-      { level: 2, text: 'Chapter two', line: 6 },
+      { level: 1, text: 'Part', line: 1 },
+      { level: 2, text: 'Chapter', line: 3 },
+      { level: 3, text: 'Scene', line: 4 },
+      { level: 6, text: 'Aside', line: 6 },
+      { level: 2, text: 'Chapter two', line: 7 },
     ]);
   });
 
@@ -200,5 +201,31 @@ describe('outline', () => {
 
   it('is empty for a document without headings', () => {
     expect(outlineOf(markdownToDisplay('no headings here'))).toEqual([]);
+  });
+});
+
+describe('code blocks are verbatim, by CommonMark\'s rules', () => {
+  it('closes a fence only on one at least as long, of the same character', () => {
+    const lines = markdownToDisplay(
+      ['````', '```', '# not a heading', '````', '# heading'].join('\n'),
+    );
+    expect(lines.map((line) => line.verbatim)).toEqual([true, true, true, true, false]);
+    expect(lines[4]?.level).toBe(1);
+
+    const mixed = markdownToDisplay(['```', '~~~', '# still inside', '```'].join('\n'));
+    expect(mixed.map((line) => line.verbatim)).toEqual([true, true, true, true]);
+  });
+
+  it('treats four-space indented code after a blank line as verbatim', () => {
+    const lines = markdownToDisplay(
+      ['text', '', '    # code, not a heading', '    **not bold**', '', 'after'].join('\n'),
+    );
+    expect(lines.map((line) => line.verbatim)).toEqual([false, false, true, true, false, false]);
+    expect(lines[2]?.level).toBeNull();
+  });
+
+  it('does not take an indented continuation of a paragraph for code', () => {
+    const lines = markdownToDisplay(['a paragraph', '    that continues indented'].join('\n'));
+    expect(lines.map((line) => line.verbatim)).toEqual([false, false]);
   });
 });

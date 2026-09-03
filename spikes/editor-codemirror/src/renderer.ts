@@ -24,8 +24,8 @@ import { keymap } from '@codemirror/view';
 import {
   displayToMarkdown,
   markdownToDisplay,
-  runEditorAdapterContract,
 } from '@opera-incerta/core';
+import { runEditorAdapterContract } from '@opera-incerta/core/testing';
 import { createCodeMirrorEditorAdapter } from '@opera-incerta/workbench/editor';
 
 interface CriterionResult {

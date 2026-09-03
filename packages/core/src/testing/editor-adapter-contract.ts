@@ -6,9 +6,13 @@
  * against an in-memory double and inside a real renderer against the
  * CodeMirror implementation. An adapter that passes here behaves the same way
  * from the application's point of view, whatever component sits underneath.
+ *
+ * Reached as `@opera-incerta/core/testing`, not from the core's main entry: it
+ * is a test suite, and a test suite in the production export is a test suite
+ * in the production bundle.
  */
-import { markdownToDisplay } from './heading.js';
-import type { EditorAdapter, EditorDocument } from './editor-adapter.js';
+import { markdownToDisplay } from '../heading.js';
+import type { EditorAdapter, EditorDocument } from '../editor-adapter.js';
 
 export interface ContractCase {
   readonly name: string;

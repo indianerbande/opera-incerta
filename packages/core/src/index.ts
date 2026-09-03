@@ -25,9 +25,6 @@ export type {
   HeadingMarkerActivation,
   HeadingMarkerListener,
 } from './editor-adapter.js';
-export { runEditorAdapterContract } from './editor-adapter-contract.js';
-export type { ContractCase } from './editor-adapter-contract.js';
-
 export { applyDotCommand, dotCommandAt } from './dot-command.js';
 export type { DotCommand } from './dot-command.js';
 
@@ -94,13 +91,8 @@ export {
 } from './preview.js';
 export type { PreviewDensity, PreviewDensitySpec } from './preview.js';
 
-export {
-  FRONT_MATTER_MAX_VISIBLE_LINES,
-  cappedBlockHeight,
-  effectiveBlockHeight,
-} from './block-height.js';
-
 export { ExclusiveTask, RefreshCoordinator, WATCH_DEBOUNCE_MS } from './refresh.js';
+export type { ExclusiveOutcome } from './refresh.js';
 
 export { diffLineKind, readDiff } from './diff.js';
 export type { DiffLine, DiffLineKind } from './diff.js';

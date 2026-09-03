@@ -22,7 +22,7 @@ import type { OutlineEntry } from '@opera-incerta/core';
               type="button"
               class="entry"
               [style.padding-inline-start.px]="6 + (entry.level - 1) * 10"
-              (click)="reveal.emit(entry.line + 1)"
+              (click)="reveal.emit(entry.line)"
             >
               <span class="level">H{{ entry.level }}</span>
               <span class="text">{{ entry.text || '—' }}</span>

@@ -5,8 +5,10 @@ import {
   findCategory,
   previewFontSize,
   previewLines,
+  type HeadingLevel,
   type PageCategory,
   type PreviewDensity,
+  type PreviewLine,
   type SheetEntry,
 } from '@opera-incerta/core';
 import { LibraryDrag } from '../shell/library-drag.js';
@@ -204,23 +206,13 @@ export class SheetListComponent {
     });
   }
 
-  /** The preview lines this density shows for one sheet. */
-  protected preview(sheet: SheetEntry): readonly { text: string; level: number | null }[] {
-    const texts = previewLines(
-      sheet.preview.map((line) => line.text),
-      this.density(),
-      this.showBlankLines(),
-    );
-    // Match each kept text back to its level; identical texts are
-    // indistinguishable and share a level, which is harmless here.
-    return texts.map((text) => ({
-      text,
-      level: sheet.preview.find((line) => line.text === text)?.level ?? null,
-    }));
+  /** The preview lines this density shows for one sheet, level and all. */
+  protected preview(sheet: SheetEntry): readonly PreviewLine[] {
+    return previewLines(sheet.preview, this.density(), this.showBlankLines());
   }
 
-  protected size(level: number | null): number {
-    return previewFontSize(level as 1 | null, this.density());
+  protected size(level: HeadingLevel | null): number {
+    return previewFontSize(level, this.density());
   }
 }
 

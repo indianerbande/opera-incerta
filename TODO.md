@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **872 tests**, plus the desktop and asset checks.
+projects, **880 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -65,34 +65,6 @@ has to be consulted to build, verify or change the product.
    editor boundary (`EditorAdapter` in the core), which changes the contract
    suite; the rest of the review's adapter findings are done. Small, and a
    memory question only for a very long session.
-
-8. **Core rules the review found wrong or loose**, one tidy-up round:
-    - `hasConflictMarkers` is true for a bare `<<<<<<< HEAD` line while
-      `parseConflicts` reports no conflict, so the store locks a sheet the
-      resolver has nothing to resolve in (`conflict.ts`);
-    - `parseGitStatus` consumes the rename's second field only for an index
-      rename, so a worktree rename (` R`, git ≥ 2.18) yields an invented
-      entry (`git-status.ts`);
-    - emphasis has no flanking rule: `2 * 3 * 4` hides the asterisks and
-      italicises ` 3 ` (`inline.ts`);
-    - a shorter closing fence ends a longer one, and four-space indented code
-      is not marked verbatim (`heading.ts`);
-    - `OutlineEntry.line` is zero-based while every other line number is
-      one-based, paid for with `+ 1` in the outline component;
-    - `previewLines` takes strings while the library carries `PreviewLine`,
-      and the sheet list matches levels back by text;
-    - `editor-adapter-contract.ts` is a test framework exported from the
-      production core; `HeadingMarkerActivation` carries viewport
-      coordinates through the core boundary; the layout and preference
-      constants describe one frontend's chrome;
-    - `textStatistics` counts Markdown syntax as words; `slugify` deletes
-      every accented letter but the German umlauts, and a test enshrines
-      `caf-nave`; `readCategories` accepts a colour without `#`;
-    - `RefreshCoordinator` drops a request coalesced into a run that then
-      fails, and its comment describes a case that does not occur;
-      `ExclusiveTask.run` uses `null` for "refused", ambiguous for a `T`
-      that includes it;
-    - `block-height.ts` is a dead duplicate of `front-matter-view.ts`.
 
 ## 2. To decide before code exists
 

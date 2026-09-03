@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FRONT_MATTER_MAX_VISIBLE_LINES,
   PREVIEW_BASE_FONT_SIZE,
   PREVIEW_DENSITIES,
   PREVIEW_STEP_RATIO,
-  cappedBlockHeight,
-  effectiveBlockHeight,
   previewFontSize,
   previewLineCount,
   previewLines,
@@ -56,19 +53,20 @@ describe('previewFontSize', () => {
 });
 
 describe('previewLines', () => {
-  const body = ['First line', '', 'Second line', '', '', 'Third line', 'Fourth', 'Fifth'];
+  const texts = ['First line', '', 'Second line', '', '', 'Third line', 'Fourth', 'Fifth'];
+  const body = texts.map((text, index) => ({ text, level: index === 0 ? (1 as const) : null }));
+  const kept = (lines: readonly { text: string }[]): string[] => lines.map((line) => line.text);
 
-  it('drops blank lines by default', () => {
-    expect(previewLines(body, 'standard', false)).toEqual([
-      'First line',
-      'Second line',
-      'Third line',
-      'Fourth',
-    ]);
+  it('drops blank lines by default, and keeps what a line carries', () => {
+    const lines = previewLines(body, 'standard', false);
+    expect(kept(lines)).toEqual(['First line', 'Second line', 'Third line', 'Fourth']);
+    // The level travels with the line, so nothing has to be matched back.
+    expect(lines[0]?.level).toBe(1);
+    expect(lines[1]?.level).toBeNull();
   });
 
   it('keeps blank lines when asked', () => {
-    expect(previewLines(body, 'standard', true)).toEqual(['First line', '', 'Second line', '']);
+    expect(kept(previewLines(body, 'standard', true))).toEqual(['First line', '', 'Second line', '']);
   });
 
   it('never returns more lines than the density allows', () => {
@@ -81,36 +79,5 @@ describe('previewLines', () => {
   it('returns fewer lines than allowed when the body is short', () => {
     // Five non-blank lines, nine slots.
     expect(previewLines(body, 'large', false)).toHaveLength(5);
-  });
-});
-
-describe('cappedBlockHeight', () => {
-  it('shows short content at its measured height', () => {
-    expect(cappedBlockHeight(80, 4)).toBe(80);
-    expect(cappedBlockHeight(200, FRONT_MATTER_MAX_VISIBLE_LINES)).toBe(200);
-  });
-
-  it('caps proportionally: twice the allowed lines shows half the height', () => {
-    expect(cappedBlockHeight(400, FRONT_MATTER_MAX_VISIBLE_LINES * 2)).toBe(200);
-  });
-
-  it('collapses to nothing for empty or unmeasurable content', () => {
-    expect(cappedBlockHeight(0, 0)).toBe(0);
-    expect(cappedBlockHeight(100, 0)).toBe(0);
-    expect(cappedBlockHeight(Number.NaN, 5)).toBe(0);
-  });
-});
-
-describe('effectiveBlockHeight', () => {
-  it('uses the content height when nothing was dragged', () => {
-    expect(effectiveBlockHeight(120, null)).toBe(120);
-  });
-
-  it('lets dragging enlarge', () => {
-    expect(effectiveBlockHeight(120, 300)).toBe(300);
-  });
-
-  it('never lets dragging hide content', () => {
-    expect(effectiveBlockHeight(120, 40)).toBe(120);
   });
 });

@@ -59,6 +59,12 @@ describe('parseGitStatus', () => {
     expect(parseGitStatus(porcelain('C  copy.md', 'source.md'))[0]?.previousPath).toBe('source.md');
   });
 
+  it('reads a rename detected in the working tree, which git ≥ 2.18 reports too', () => {
+    const entries = parseGitStatus(porcelain(' R new.md', 'old.md', ' M other.md'));
+    expect(entries.map((entry) => entry.path)).toEqual(['new.md', 'other.md']);
+    expect(entries[0]?.previousPath).toBe('old.md');
+  });
+
   it('does not invent a file from the second field of a rename', () => {
     const entries = parseGitStatus(porcelain('R  new.md', 'old.md', ' M other.md'));
 

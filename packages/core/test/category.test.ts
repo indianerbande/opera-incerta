@@ -109,3 +109,12 @@ describe('findCategory', () => {
     expect(findCategory(categories, undefined)).toBeNull();
   });
 });
+
+describe('the colour is stored as #RRGGBB', () => {
+  it('adds the hash a file left out, so the badge can bind the value', () => {
+    const [category] = readCategories([{ id: 'a', name: 'Draft', color: 'ff8000' }]);
+    expect(category?.color).toBe('#ff8000');
+    const [kept] = readCategories([{ id: 'b', name: 'Done', color: ' #00FF00 ' }]);
+    expect(kept?.color).toBe('#00FF00');
+  });
+});

@@ -21,8 +21,13 @@ const TRANSLITERATIONS: ReadonlyArray<readonly [RegExp, string]> = [
 
 /**
  * Turns a free-form title into a slug: lowercase, spaces to hyphens, German
- * umlauts transliterated to ASCII, all other non-ASCII characters removed,
- * capped at {@link SLUG_MAX_LENGTH}.
+ * umlauts transliterated the German way, every other accented letter reduced
+ * to its base letter, what is left of non-ASCII removed, capped at
+ * {@link SLUG_MAX_LENGTH}.
+ *
+ * The umlauts go first, because `ä` is `ae` in German and merely `a` to a
+ * decomposition; then the text is decomposed and its combining marks dropped,
+ * so `Café` becomes `cafe` rather than `caf`.
  *
  * Returns an empty string when nothing usable remains; callers decide on a
  * fallback, because the fallback differs by object kind.
@@ -33,6 +38,8 @@ export function slugify(title: string): string {
     value = value.replace(pattern, replacement);
   }
   value = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/gu, '')
     .replace(/[^\x20-\x7E]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

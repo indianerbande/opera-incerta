@@ -579,7 +579,12 @@ export async function checkMergeAndResolve(smoke: Smoke, window: BrowserWindow, 
     throw new Error('a sheet full of conflict markers is offered for editing');
   }
 
-  // Decide it: one region, both versions in front of the author.
+  // Decide it: one region, both versions in front of the author. The row
+  // with the offer arrives with the status re-read that follows the merge,
+  // which may be one refresh behind the merging notice.
+  await waitUntil('the conflicted row', () =>
+    isVisible(window, 'wi-source-control .change button.resolve'),
+  );
   await clickText(window, 'wi-source-control .change button.resolve', 'Resolve');
   await waitForSelector(window, 'wi-conflict-resolver .region');
   const shown = (await window.webContents.executeJavaScript(

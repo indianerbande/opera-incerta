@@ -82,6 +82,30 @@ describe('code spans', () => {
   });
 });
 
+describe('flanking', () => {
+  it('leaves arithmetic alone: an asterisk followed by a space opens nothing', () => {
+    expect(summarize('2 * 3 * 4')).toEqual([]);
+    expect(summarize('a * b, c * d')).toEqual([]);
+  });
+
+  it('does not open on an asterisk followed by a space, even with a proper closer', () => {
+    // Only the opening half of the rule catches this: the closer hugs its text.
+    expect(summarize('* a*')).toEqual([]);
+    expect(summarize('** b**')).toEqual([]);
+  });
+
+  it('does not close on an asterisk that follows a space', () => {
+    expect(summarize('*a * b*')).toEqual([{ kind: 'italic', content: 'a * b', raw: '*a * b*' }]);
+  });
+
+  it('still finds emphasis that hugs its text', () => {
+    expect(summarize('say *this* and **that**').map((span) => span.kind)).toEqual([
+      'italic',
+      'bold',
+    ]);
+  });
+});
+
 describe('delimiterRanges', () => {
   it('returns the delimiter characters, not the content', () => {
     const text = 'a **bold** b';

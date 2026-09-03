@@ -408,9 +408,7 @@ export class SourceControlStore {
       }
     });
 
-    // `null` from the guard means "already running"; the operation itself
-    // reports its own outcome as a code or an explicit absence of one.
-    if (outcome === null) {
+    if (!outcome.ran) {
       // Another write is in flight; say so rather than doing nothing visible.
       this.#failure.set('git/busy');
       return;
@@ -423,8 +421,8 @@ export class SourceControlStore {
     // The refresh reports its own success by clearing the failure, so a write
     // failure is restored afterwards — otherwise the message the author needs
     // disappears in the same tick it appeared.
-    if (outcome.code !== null) {
-      this.#failure.set(outcome.code);
+    if (outcome.value.code !== null) {
+      this.#failure.set(outcome.value.code);
     }
   }
 }

@@ -52,9 +52,16 @@ const BASE = /^\|{7}(?: (.*))?$/u;
 const SEPARATOR = /^={7}$/u;
 const END = /^>{7}(?: (.*))?$/u;
 
-/** Whether a text carries conflict markers at all. */
+/**
+ * Whether a text carries at least one conflict the resolver can decide.
+ *
+ * Defined through the parser rather than by looking for `<<<<<<<` alone: a
+ * start marker that never closes is ordinary text to the parser, and a store
+ * that locked the sheet for it would lock a sheet the resolver has nothing
+ * to resolve in. The two must agree, so one of them is defined by the other.
+ */
 export function hasConflictMarkers(text: string): boolean {
-  return text.split('\n').some((line) => START.test(line));
+  return countConflicts(parseConflicts(text)) > 0;
 }
 
 /**
