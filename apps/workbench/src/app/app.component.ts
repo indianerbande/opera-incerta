@@ -38,6 +38,7 @@ import {
 } from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
+import type { GitVersions } from '@opera-incerta/desktop-contract';
 import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
@@ -317,7 +318,12 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     }
 
     @if (diff(); as shown) {
-      <wi-diff-view [path]="shown.path" [text]="shown.text" (close)="diff.set(null)" />
+      <wi-diff-view
+        [path]="shown.path"
+        [text]="shown.text"
+        [versions]="shown.versions"
+        (close)="diff.set(null)"
+      />
     }
 
     @if (managingCategories()) {
@@ -733,12 +739,21 @@ export class AppComponent {
   }
 
   /** The diff on screen, if any. SPEC.md §12. */
-  protected readonly diff = signal<{ path: string; text: string } | null>(null);
+  protected readonly diff = signal<{
+    path: string;
+    text: string;
+    versions: GitVersions | null;
+  } | null>(null);
 
   protected async showDiff(entry: GitFileStatus): Promise<void> {
-    const text = await this.sourceControl.diff(entry.path);
+    // Both readings are fetched at once, so switching between them is
+    // immediate and neither is read twice.
+    const [text, versions] = await Promise.all([
+      this.sourceControl.diff(entry.path),
+      this.sourceControl.versions(entry.path),
+    ]);
     if (text !== null) {
-      this.diff.set({ path: entry.path, text });
+      this.diff.set({ path: entry.path, text, versions });
     }
   }
 

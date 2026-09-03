@@ -15,7 +15,7 @@ import {
   type GitFileStatus,
   type SelectAllState,
 } from '@opera-incerta/core';
-import type { OperaIncertaBridge } from '@opera-incerta/desktop-contract';
+import type { GitVersions, OperaIncertaBridge } from '@opera-incerta/desktop-contract';
 import { unwrap } from './bridge.js';
 
 export class SourceControlStore {
@@ -117,6 +117,24 @@ export class SourceControlStore {
     }
     try {
       return unwrap(await bridge.gitDiff({ path }));
+    } catch (error: unknown) {
+      this.#failure.set(reasonOf(error));
+      return null;
+    }
+  }
+
+  /**
+   * The two versions of one file, for comparing prose word by word.
+   * SPEC.md §12. A read, like `diff`, and guarded like one.
+   */
+  async versions(path: string): Promise<GitVersions | null> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      this.#failure.set('bridge/absent');
+      return null;
+    }
+    try {
+      return unwrap(await bridge.gitVersions({ path }));
     } catch (error: unknown) {
       this.#failure.set(reasonOf(error));
       return null;

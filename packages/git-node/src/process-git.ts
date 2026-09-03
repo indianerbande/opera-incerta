@@ -158,6 +158,13 @@ class ProcessGitService implements GitService {
     return result.stdout;
   }
 
+  async showAtHead(repositoryRoot: string, path: string): Promise<string | null> {
+    // A path the commit does not carry is a normal answer, not a failure: it
+    // is what a new file looks like.
+    const result = await this.#runner.run(['show', `HEAD:${path}`], repositoryRoot);
+    return result.exitCode === 0 ? result.stdout : null;
+  }
+
   async hasCommit(repositoryRoot: string): Promise<boolean> {
     return this.#hasCommit(repositoryRoot);
   }

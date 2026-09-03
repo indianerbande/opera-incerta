@@ -16,7 +16,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { mkdir, readdir, rename } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -55,6 +55,7 @@ import {
   canonicalPath,
   createLibraryWatcher,
   createProjectFilesystem,
+  isInside,
 } from '@opera-incerta/project-node';
 import { MENU_ACCELERATORS, installApplicationMenu, menuItemId } from './application-menu.js';
 import { ProjectSession, ProjectSessionError } from './project-session.js';
@@ -617,6 +618,21 @@ privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
 });
 
 const git = createGitService();
+
+privileged(CHANNELS.gitVersions, isLibraryPathRequest, async (request) => {
+  const root = await repositoryRoot();
+  const absolute = join(root, request.path);
+  if (!(await isInside(root, absolute))) {
+    throw new ProjectSessionError('entry/outside-project');
+  }
+
+  return {
+    committed: await git.showAtHead(root, request.path),
+    // A file the working tree no longer has is a normal answer: that is what a
+    // deletion looks like.
+    current: await readFile(absolute, 'utf8').catch(() => null),
+  };
+});
 
 privileged(CHANNELS.gitDiff, isLibraryPathRequest, async (request) => {
   const root = await repositoryRoot();
@@ -1860,8 +1876,47 @@ async function checkDiscarding(window: BrowserWindow): Promise<void> {
   }
   await settleWatch(window, async () => rowFor(window, 'scene.md'));
 
-  // What changed against the last commit, in Git's own words.
+  // What changed against the last commit. A sheet opens word by word — the
+  // whole point: Git would report the entire line twice.
   await openDiff(window, 'scene.md');
+  const wordwise = (await window.webContents.executeJavaScript(
+    `(() => {
+       const prose = document.querySelector('wi-diff-view .prose');
+       if (prose === null) { return null; }
+       return {
+         mode: document.querySelector('wi-diff-view .mode.active')?.textContent.trim() ?? null,
+         added: [...prose.querySelectorAll('.word.added')].map((e) => e.textContent),
+         removed: [...prose.querySelectorAll('.word.removed')].map((e) => e.textContent),
+         text: prose.textContent,
+       };
+     })()`,
+  )) as { mode: string | null; added: string[]; removed: string[]; text: string } | null;
+
+  if (wordwise === null || wordwise.mode !== 'Words') {
+    throw new Error(`a sheet did not open word by word: ${JSON.stringify(wordwise)}`);
+  }
+  // The inserted run is the words plus the whitespace that follows them: the
+  // whitespace *before* them was already there, in front of the next line.
+  if (wordwise.added.join('').trim() !== 'status: review') {
+    throw new Error(`the word view marks more than what changed: ${JSON.stringify(wordwise.added)}`);
+  }
+  if (wordwise.removed.length !== 0) {
+    throw new Error(`nothing was removed, yet: ${JSON.stringify(wordwise.removed)}`);
+  }
+  // Nothing invented and nothing lost: what it shows is the file itself.
+  if (!wordwise.text.includes('## The Second Bell')) {
+    throw new Error('the word view does not show the text it is comparing');
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const proseImage = await window.webContents.capturePage();
+  const proseEvidence = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-prose-diff.png');
+  writeFileSync(proseEvidence, proseImage.toPNG());
+  console.log(`smoke evidence: ${proseEvidence}`);
+
+  // Git's own reading is still one click away.
+  await clickText(window, 'wi-diff-view .mode', 'Lines');
+  await new Promise((resolve) => setTimeout(resolve, 250));
   const changed = await diffLines(window);
   if (!changed.some((line) => line.kind === 'added' && line.text.includes('status: review'))) {
     throw new Error(`the diff does not show what was saved: ${JSON.stringify(changed)}`);
@@ -1942,7 +1997,8 @@ async function openDiff(window: BrowserWindow, name: string): Promise<void> {
   if (!clicked) {
     throw new Error(`no diff control for ${name}`);
   }
-  await waitForSelector(window, 'wi-diff-view pre');
+  // Either reading, or the note that there is nothing to read.
+  await waitForSelector(window, 'wi-diff-view pre, wi-diff-view .prose, wi-diff-view .hint');
 }
 
 /** The diff as the author sees it: each line with the kind it was given. */

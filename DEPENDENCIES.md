@@ -232,6 +232,16 @@ in `SPEC.md` §10.6.
 rescanning or event normalisation: it goes behind the same port, and no rule
 moves.
 
+### Comparing prose — no dependency
+
+The word-level comparison of §12 is Myers' shortest edit script over tokens, in
+the portable core. A diff library would have brought its own tokenizer, its own
+idea of a word, and its own opinion about whitespace — none of which is more
+than the hundred lines it replaces, and all of which would have to be
+understood before the result could be trusted. What makes the result
+trustworthy here is the invariant it is tested against, not the size of the
+implementation.
+
 ### Git — no dependency
 
 Source control uses the locally installed `git` executable through

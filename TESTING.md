@@ -294,10 +294,18 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
-- showing what changed (`SPEC.md` §12): the diff of a tracked file carries the
-  saved line as **added** and its four header lines as header — the case where
-  `--- a/…` would otherwise read as a removal — while an untracked file shows
-  additions and **no** removals at all;
+- showing what changed (`SPEC.md` §12): a sheet opens **word by word**, with
+  only the words that changed marked and the rest of the file readable around
+  them, and Git's line view one click away; the line view carries the saved
+  line as added and its four header lines as header — the case where `--- a/…`
+  would otherwise read as a removal — while an untracked file shows additions
+  and **no** removals at all;
+- the word comparison itself, against its invariant rather than against
+  examples: for two hundred generated pairs of prose, the kept and removed
+  parts reproduce the first text exactly and the kept and added parts the
+  second. Nothing invented, nothing lost. The bound is checked too: two texts
+  with nothing in common are reported as one replacement rather than searched
+  forever;
 - discarding a change (`SPEC.md` §12), in both kinds and with the confirmation
   refused first: cancelling keeps the file, an untracked file arrives in the
   trash rather than being removed, a tracked one is byte-identical to

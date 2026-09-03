@@ -6,6 +6,50 @@ documents").
 
 ---
 
+## 2026-09-03 — a word-level diff for prose
+
+**What exists.** A sheet's changes are shown **word by word**: the committed
+text and the current one merged into one flowing text, with only what changed
+marked. Git's line view is one click away and stays the default for everything
+that is not a sheet — for a `structure.json` it is the useful one.
+
+**Why it was worth an algorithm.** Git compares lines. Rewording four words in
+a paragraph shows up as the whole paragraph removed and the whole paragraph
+added, and the author has to find the change by reading both versions. That is
+the wrong tool for a manuscript, and no arrangement of Git's output fixes it.
+
+**Myers' shortest edit script over tokens, in the core, with no dependency.**
+Words and the whitespace between them are tokens, so the text can be put back
+together exactly. The common prefix and suffix are trimmed first — nearly all
+of the work for a typical edit — and the search is bounded: beyond the bound
+the middle is reported as replaced wholesale. Coarse, but correct, and bounded
+work matters more than an ideal script for a file that was rewritten.
+
+A library was considered and not taken (`DEPENDENCIES.md`): it would have
+brought its own tokenizer, its own idea of a word and its own opinion about
+whitespace, none of it smaller than the hundred lines it replaces, and all of
+it to be understood before the result could be trusted.
+
+**What makes it trustworthy is an invariant, not examples.** The kept and
+removed parts put together must reproduce the committed text exactly, and the
+kept and added parts the current one — nothing invented, nothing lost. It is
+checked against two hundred generated pairs as well as the written cases.
+Falsified twice: swapping the two edit kinds in the backtracking fails six
+tests, and dropping the prefix trim fails two.
+
+**One property, stated rather than hidden.** An inserted run carries the
+whitespace that *follows* it, because the whitespace before it was already
+there. That is minimal at the token level; writing it down as a test keeps it a
+property instead of a surprise.
+
+**Verification.** `pnpm run check` green: **661 tests**. The smoke opens a
+sheet's diff and finds it in the word view with only `status: review` marked
+and the rest of the file readable around it, switches to Git's view and finds
+the header still read as a header. Falsified by never fetching the two
+versions: the sheet then opens in the line view.
+
+---
+
 ## 2026-09-03 — showing what changed
 
 **What exists.** Each row in source control can show its diff: **Git's own

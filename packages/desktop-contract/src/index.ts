@@ -43,6 +43,7 @@ export const CHANNELS = {
   gitPush: 'opera-incerta:git/push',
   gitDiscard: 'opera-incerta:git/discard',
   gitDiff: 'opera-incerta:git/diff',
+  gitVersions: 'opera-incerta:git/versions',
   menuCommand: 'opera-incerta:menu/command',
   createSheet: 'opera-incerta:sheet/create',
   createGroup: 'opera-incerta:group/create',
@@ -271,6 +272,12 @@ export function isLibraryPathRequest(value: unknown): value is LibraryPathReques
   return typeof candidate.path === 'string' && candidate.path !== '' && candidate.path !== '.';
 }
 
+/** The two versions of a file that a comparison needs. SPEC.md §12. */
+export interface GitVersions {
+  readonly committed: string | null;
+  readonly current: string | null;
+}
+
 /**
  * Putting one entry in a place. SPEC.md §6.4, §6.8.
  *
@@ -487,6 +494,12 @@ export interface OperaIncertaBridge {
    * (SPEC.md §12, §14.2).
    */
   gitDiff(request: LibraryPathRequest): Promise<BridgeResult<string>>;
+  /**
+   * The two versions of one path — as committed and as it is now — for the
+   * word-level comparison of prose (SPEC.md §12). Either may be `null`: a new
+   * file has no committed version, a deleted one has no current content.
+   */
+  gitVersions(request: LibraryPathRequest): Promise<BridgeResult<GitVersions>>;
   gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
   gitPush(): Promise<BridgeResult<null>>;
   /**

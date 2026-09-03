@@ -105,6 +105,9 @@ export { ExclusiveTask, RefreshCoordinator, WATCH_DEBOUNCE_MS } from './refresh.
 export { diffLineKind, readDiff } from './diff.js';
 export type { DiffLine, DiffLineKind } from './diff.js';
 
+export { MAX_PROSE_EDITS, diffProse, tokenizeProse } from './prose-diff.js';
+export type { ProseSegment, ProseSegmentKind } from './prose-diff.js';
+
 export {
   canCommit,
   isFullyStaged,

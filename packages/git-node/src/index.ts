@@ -67,6 +67,11 @@ export interface GitService {
    * `HEAD` — is shown as entirely added, because that is what it is.
    */
   diff(repositoryRoot: string, path: string, tracked: boolean): Promise<string>;
+  /**
+   * The committed content of one path, or `null` when the last commit does not
+   * carry it — a new file, or a repository without a commit at all.
+   */
+  showAtHead(repositoryRoot: string, path: string): Promise<string | null>;
   commit(repositoryRoot: string, message: string): Promise<void>;
   /** Deliberately without upstream creation, pull, or fetch. SPEC.md §12. */
   push(repositoryRoot: string): Promise<void>;

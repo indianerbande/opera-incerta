@@ -1533,6 +1533,28 @@ index and the working tree separately. A file with nothing behind it — an
 untracked one, or any file in a repository without a `HEAD` — is shown as
 entirely added, because that is what it is.
 
+**Two readings, and a sheet opens in the second.** Git compares lines, which is
+right for a structure file and wrong for a manuscript: rewording four words in
+a paragraph shows up as the whole paragraph removed and the whole paragraph
+added, and the author has to find the change by reading both. A **word-level**
+comparison of the committed text against the current one shows the change
+itself, in one flowing text. `.md` files open in it; everything else opens in
+Git's, and either is one click away.
+
+The word comparison is Myers' shortest edit script over tokens — words and the
+whitespace between them — in the portable core, with no dependency. The common
+prefix and suffix are trimmed first, which is nearly all of the work for a
+typical edit, and the search is **bounded**: beyond the bound the middle is
+reported as replaced wholesale, which is coarse but correct. Bounded work
+matters more than an ideal script on a file that was rewritten from scratch.
+
+**The invariant it is held to**: the kept and removed parts put together
+reproduce the committed text exactly, and the kept and added parts reproduce
+the current one. Nothing invented, nothing lost. An inserted run carries the
+whitespace that *follows* it, because the whitespace before it was already
+there — minimal at the token level, and stated so that it is a property rather
+than a surprise.
+
 Reading a diff is deliberately **not** guarded against a running write: it
 changes nothing, and making it wait behind one presents as "the click did
 nothing" (§12, separate guards).
