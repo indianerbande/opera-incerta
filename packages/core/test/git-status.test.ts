@@ -3,6 +3,7 @@ import {
   canCommit,
   isFullyStaged,
   parseGitStatus,
+  parseTrackingHeader,
   selectAllState,
   isSafeRemoteUrl,
   isValidBranchName,
@@ -225,5 +226,33 @@ describe('withIgnoredPath', () => {
 
   it('ignores a request to add nothing', () => {
     expect(withIgnoredPath('build/\n', '   ')).toBe('build/\n');
+  });
+});
+
+describe('parseTrackingHeader', () => {
+  it('reads the upstream, ahead, and behind from the porcelain v2 branch header', () => {
+    const output = [
+      '# branch.oid 3f2a1b',
+      '# branch.head main',
+      '# branch.upstream origin/main',
+      '# branch.ab +3 -1',
+      '1 .M N... 100644 100644 100644 abc abc a.md',
+      '',
+    ].join('\n');
+    expect(parseTrackingHeader(output)).toEqual({ upstream: 'origin/main', ahead: 3, behind: 1 });
+  });
+
+  it('answers null for a branch that tracks nothing, and for an initial repository', () => {
+    expect(parseTrackingHeader('# branch.oid abc\n# branch.head main\n')).toBeNull();
+    expect(parseTrackingHeader('# branch.oid (initial)\n# branch.head main\n')).toBeNull();
+    expect(parseTrackingHeader('')).toBeNull();
+  });
+
+  it('treats an upstream without an ab line as even', () => {
+    expect(parseTrackingHeader('# branch.upstream origin/main\n')).toEqual({
+      upstream: 'origin/main',
+      ahead: 0,
+      behind: 0,
+    });
   });
 });

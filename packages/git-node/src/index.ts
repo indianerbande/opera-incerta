@@ -26,13 +26,6 @@ export type { GitFileGroup, GitFileStatus, SelectAllState } from '@opera-incerta
 
 import type { GitFileStatus } from '@opera-incerta/core';
 
-/** A failed Git invocation, surfaced to the user rather than thrown away. */
-export interface GitFailure {
-  readonly code: string;
-  readonly message: string;
-  readonly exitCode: number | null;
-}
-
 /**
  * The port the desktop application implements.
  *
@@ -63,7 +56,11 @@ export interface GitRemote {
 }
 
 export interface GitService {
-  /** Resolves the repository root, or null when the path is not in a repository. */
+  /**
+   * Resolves the repository root, or null when the path is not in a
+   * repository. Rejects with `git/not-installed` when there is no git to ask
+   * — the one failure that is not a property of the path.
+   */
   repositoryRoot(absolutePath: string): Promise<string | null>;
   status(repositoryRoot: string): Promise<readonly GitFileStatus[]>;
   /** Stages every path in one invocation, so the guard applies once. */
@@ -159,5 +156,5 @@ export interface GitService {
   abortMerge(repositoryRoot: string): Promise<void>;
 }
 
-export { GitError, createGitService, systemGitRunner } from './process-git.js';
+export { GitError, GitUnavailableError, createGitService, systemGitRunner } from './process-git.js';
 export type { GitCommandResult, GitCommandRunner } from './process-git.js';

@@ -1584,6 +1584,24 @@ Paths from `git status` are relative to the **repository root**, not the
 project root, and can point outside the project directory. The service MUST
 resolve and report the repository root and build absolute paths against it.
 
+**One git command at a time per repository.** Every bridge handler runs
+concurrently, and two git processes in one repository at once — a status
+refresh racing a commit, a stage racing a push — fail on `index.lock` with a
+message the author cannot act on. The service therefore queues its commands
+per directory: a new one waits for the last to finish, succeed or fail. Reads
+wait too, deliberately: a status that runs *beside* a push is a lock error,
+a status that runs *after* it is merely late, and the renderer's separate
+guards (`CONVENTIONS.md` C-F3) already keep a slow read from swallowing a
+click.
+
+**Without git.** A machine without a `git` executable is a normal machine for
+an author (`CONVENTIONS.md` C-P10). It is reported as its own condition,
+`git/not-installed`, distinct from "this project is not inside a repository":
+the first is about the machine and says what to install, the second is about
+the project and says what to create. Everything outside the source control
+panel works without git; the panel words the code and offers nothing until
+git is there.
+
 **Live updates.** While the source control view is visible, a watcher observes
 the resolved repository root recursively and refreshes the status debounced
 (about 400 ms, coalescing). The watcher runs only while the panel is visible,

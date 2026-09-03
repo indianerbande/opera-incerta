@@ -114,6 +114,17 @@ describe('reading status', () => {
     expect(store.loaded()).toBe(true);
   });
 
+  it('shows the code when the failure carries no words of git’s own', async () => {
+    // A missing git has no message to pass on; the panel words the code.
+    const store = new SourceControlStore(
+      fakeBridge({ status: () => ({ ok: false, code: 'git/not-installed', message: '' }) }),
+    );
+    await store.refresh();
+    expect(store.failure()).toBe('git/not-installed');
+    expect(store.repositoryRoot()).toBeNull();
+    expect(store.loaded()).toBe(true);
+  });
+
   it('reports a failure with the code the main process sent', async () => {
     const store = new SourceControlStore(
       fakeBridge({

@@ -24,6 +24,47 @@ export interface GitFileStatus {
   readonly groups: readonly GitFileGroup[];
 }
 
+/** What a branch tracks and how far the two have drifted. SPEC.md §12. */
+export interface GitTrackingState {
+  /** The upstream's name, as git prints it — `origin/main`. */
+  readonly upstream: string;
+  /** Commits the upstream has and this branch does not. */
+  readonly behind: number;
+  /** Commits this branch has and the upstream does not. */
+  readonly ahead: number;
+}
+
+/**
+ * Reads the upstream and the drift from the header of
+ * `git status --porcelain=v2 --branch`, or null when the branch tracks
+ * nothing — a normal state, not a failure.
+ *
+ *     # branch.oid 3f2a…
+ *     # branch.head main
+ *     # branch.upstream origin/main
+ *     # branch.ab +1 -2
+ *
+ * One command where two were used before (`rev-parse @{u}` and `rev-list
+ * --count`), and a pure parser here so the adapter stays a thin wrapper.
+ */
+export function parseTrackingHeader(output: string): GitTrackingState | null {
+  let upstream: string | null = null;
+  let ahead = 0;
+  let behind = 0;
+  for (const line of output.split('\n')) {
+    if (line.startsWith('# branch.upstream ')) {
+      upstream = line.slice('# branch.upstream '.length).trim();
+    } else if (line.startsWith('# branch.ab ')) {
+      const match = /^# branch\.ab \+(\d+) -(\d+)$/u.exec(line.trim());
+      if (match !== null) {
+        ahead = Number(match[1]);
+        behind = Number(match[2]);
+      }
+    }
+  }
+  return upstream === null || upstream === '' ? null : { upstream, ahead, behind };
+}
+
 /** Status pairs Git reports for an unresolved merge. */
 const CONFLICT_PAIRS = new Set(['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU']);
 

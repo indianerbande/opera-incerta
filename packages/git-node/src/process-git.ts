@@ -7,7 +7,7 @@
  * the parsing lives in the portable core.
  */
 import { execFile } from 'node:child_process';
-import { parseGitStatus, type GitFileStatus } from '@opera-incerta/core';
+import { parseGitStatus, parseTrackingHeader, type GitFileStatus } from '@opera-incerta/core';
 import type { GitBranch, GitRemote, GitService, GitTracking } from './index.js';
 
 export interface GitCommandResult {
@@ -46,16 +46,40 @@ export class GitError extends Error {
   }
 }
 
+/**
+ * There is no git to run. SPEC.md §12, CONVENTIONS.md C-P10.
+ *
+ * Its own code, because it is not a property of any command or repository:
+ * a machine without git must not look like a project outside a repository,
+ * which is what an exit code of 1 with empty stderr used to become. The
+ * message is empty on purpose — there are no words of git's to pass on, and
+ * the interface words the code itself.
+ */
+export class GitUnavailableError extends Error {
+  readonly code = 'git/not-installed';
+
+  constructor() {
+    super('');
+    this.name = 'GitUnavailableError';
+  }
+}
+
 const MAX_OUTPUT_BYTES = 32 * 1024 * 1024;
 
 export const systemGitRunner: GitCommandRunner = {
   run(args, cwd) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       execFile(
         'git',
         [...args],
         { cwd, encoding: 'utf8', maxBuffer: MAX_OUTPUT_BYTES },
         (error, stdout, stderr) => {
+          if (error !== null && error.code === 'ENOENT') {
+            // The executable, not a file it was asked about: `git` itself
+            // was not found on the path.
+            reject(new GitUnavailableError());
+            return;
+          }
           const exitCode =
             error === null ? 0 : typeof error.code === 'number' ? error.code : 1;
           resolve({ stdout, stderr, exitCode });
@@ -71,6 +95,17 @@ export function createGitService(runner: GitCommandRunner = systemGitRunner): Gi
 
 class ProcessGitService implements GitService {
   readonly #runner: GitCommandRunner;
+  /**
+   * One command at a time per directory. SPEC.md §12.
+   *
+   * Every bridge handler runs concurrently, and two git processes in one
+   * repository at once — a status refresh racing a commit — fail on
+   * `index.lock` with a message the author cannot act on. The queue is the
+   * tail of the last invocation for that directory; a new one waits for it,
+   * succeed or fail. Reads wait too: a status behind a push is late, and a
+   * status beside a push is a lock error.
+   */
+  readonly #queues = new Map<string, Promise<unknown>>();
 
   constructor(runner: GitCommandRunner) {
     this.#runner = runner;
@@ -83,7 +118,7 @@ class ProcessGitService implements GitService {
    * (SPEC.md §12).
    */
   async repositoryRoot(absolutePath: string): Promise<string | null> {
-    const result = await this.#runner.run(['rev-parse', '--show-toplevel'], absolutePath);
+    const result = await this.#invoke(['rev-parse', '--show-toplevel'], absolutePath);
     if (result.exitCode !== 0) {
       return null;
     }
@@ -120,7 +155,7 @@ class ProcessGitService implements GitService {
     if (paths.length === 0) {
       return;
     }
-    if (await this.#hasCommit(repositoryRoot)) {
+    if (await this.hasCommit(repositoryRoot)) {
       await this.#run(['restore', '--staged', '--', ...paths], repositoryRoot);
       return;
     }
@@ -141,14 +176,14 @@ class ProcessGitService implements GitService {
     // what this returns, and `--no-color` because the colours are the
     // interface's business, not Git's.
     const common = ['--no-ext-diff', '--no-color', '--'];
-    if (tracked && (await this.#hasCommit(repositoryRoot))) {
+    if (tracked && (await this.hasCommit(repositoryRoot))) {
       return (await this.#run(['diff', 'HEAD', ...common, path], repositoryRoot)).stdout;
     }
 
     // Nothing to compare against: the whole file is the change. `--no-index`
     // reports a difference with exit code 1, which here is the normal outcome
     // rather than a failure.
-    const result = await this.#runner.run(
+    const result = await this.#invoke(
       ['diff', '--no-ext-diff', '--no-color', '--no-index', '--', '/dev/null', path],
       repositoryRoot,
     );
@@ -159,38 +194,20 @@ class ProcessGitService implements GitService {
   }
 
   async tracking(repositoryRoot: string): Promise<GitTracking | null> {
-    const named = await this.#runner.run(
-      ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'],
-      repositoryRoot,
-    );
-    if (named.exitCode !== 0) {
-      // No upstream is a normal state, not a failure: this application never
-      // creates one (SPEC.md §12).
-      return null;
-    }
-
-    const counted = await this.#runner.run(
-      ['rev-list', '--left-right', '--count', '@{u}...HEAD'],
-      repositoryRoot,
-    );
-    if (counted.exitCode !== 0) {
-      return null;
-    }
-    const [behind, ahead] = counted.stdout.trim().split(/\s+/u).map(Number);
-    return {
-      upstream: named.stdout.trim(),
-      behind: Number.isFinite(behind) ? (behind as number) : 0,
-      ahead: Number.isFinite(ahead) ? (ahead as number) : 0,
-    };
+    // One command: the branch header of porcelain v2 carries the upstream and
+    // the drift. No upstream is a normal state, not a failure — this
+    // application creates one only when asked to publish (SPEC.md §12).
+    const result = await this.#invoke(['status', '--porcelain=v2', '--branch'], repositoryRoot);
+    return result.exitCode === 0 ? parseTrackingHeader(result.stdout) : null;
   }
 
   async currentBranch(repositoryRoot: string): Promise<string | null> {
-    const result = await this.#runner.run(['symbolic-ref', '--short', 'HEAD'], repositoryRoot);
+    const result = await this.#invoke(['symbolic-ref', '--short', 'HEAD'], repositoryRoot);
     return result.exitCode === 0 ? result.stdout.trim() : null;
   }
 
   async branches(repositoryRoot: string): Promise<readonly GitBranch[]> {
-    const result = await this.#runner.run(
+    const result = await this.#invoke(
       ['for-each-ref', '--format=%(refname:short)', 'refs/heads'],
       repositoryRoot,
     );
@@ -227,17 +244,22 @@ class ProcessGitService implements GitService {
   }
 
   async defaultRemote(repositoryRoot: string): Promise<GitRemote | null> {
-    const result = await this.#runner.run(['remote', '-v'], repositoryRoot);
+    // From the configuration rather than `remote -v`, whose lines end in
+    // ` (fetch)` and were split on a space — which cut a local path with a
+    // space in it. Exit code 1 means no remote is configured.
+    const result = await this.#invoke(
+      ['config', '--get-regexp', '^remote\\..*\\.url$'],
+      repositoryRoot,
+    );
     if (result.exitCode !== 0) {
       return null;
     }
 
     const remotes = new Map<string, string>();
     for (const line of result.stdout.split('\n')) {
-      const [name, rest] = line.split('\t');
-      const url = rest?.split(' ')[0];
-      if (name !== undefined && name !== '' && url !== undefined && !remotes.has(name)) {
-        remotes.set(name, url);
+      const match = /^remote\.(.+)\.url (.*)$/u.exec(line);
+      if (match !== null && !remotes.has(match[1] ?? '')) {
+        remotes.set(match[1] ?? '', match[2] ?? '');
       }
     }
 
@@ -270,7 +292,7 @@ class ProcessGitService implements GitService {
   }
 
   async lastCommitMessage(repositoryRoot: string): Promise<string | null> {
-    const result = await this.#runner.run(['log', '-1', '--pretty=%B'], repositoryRoot);
+    const result = await this.#invoke(['log', '-1', '--pretty=%B'], repositoryRoot);
     return result.exitCode === 0 ? result.stdout.replace(/\n+$/u, '') : null;
   }
 
@@ -294,7 +316,7 @@ class ProcessGitService implements GitService {
   }
 
   async isMerging(repositoryRoot: string): Promise<boolean> {
-    const result = await this.#runner.run(
+    const result = await this.#invoke(
       ['rev-parse', '--quiet', '--verify', 'MERGE_HEAD'],
       repositoryRoot,
     );
@@ -308,16 +330,12 @@ class ProcessGitService implements GitService {
   async showAtHead(repositoryRoot: string, path: string): Promise<string | null> {
     // A path the commit does not carry is a normal answer, not a failure: it
     // is what a new file looks like.
-    const result = await this.#runner.run(['show', `HEAD:${path}`], repositoryRoot);
+    const result = await this.#invoke(['show', `HEAD:${path}`], repositoryRoot);
     return result.exitCode === 0 ? result.stdout : null;
   }
 
   async hasCommit(repositoryRoot: string): Promise<boolean> {
-    return this.#hasCommit(repositoryRoot);
-  }
-
-  async #hasCommit(repositoryRoot: string): Promise<boolean> {
-    const result = await this.#runner.run(['rev-parse', '--verify', 'HEAD'], repositoryRoot);
+    const result = await this.#invoke(['rev-parse', '--verify', 'HEAD'], repositoryRoot);
     return result.exitCode === 0;
   }
 
@@ -336,11 +354,37 @@ class ProcessGitService implements GitService {
     await this.#run(['push'], repositoryRoot);
   }
 
+  /** Runs a command and turns a non-zero exit into a `GitError`. */
   async #run(args: readonly string[], cwd: string): Promise<GitCommandResult> {
-    const result = await this.#runner.run(args, cwd);
+    const result = await this.#invoke(args, cwd);
     if (result.exitCode !== 0) {
       throw new GitError(args, result);
     }
     return result;
+  }
+
+  /**
+   * The one place a process is started: behind the directory's queue, so two
+   * commands never run in one repository at once.
+   */
+  #invoke(args: readonly string[], cwd: string): Promise<GitCommandResult> {
+    const previous = this.#queues.get(cwd) ?? Promise.resolve();
+    const next = previous.then(
+      () => this.#runner.run(args, cwd),
+      () => this.#runner.run(args, cwd),
+    );
+    // The queue must not stay rejected: a later command waits for the tail,
+    // whatever became of the one before it.
+    const settled = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.#queues.set(cwd, settled);
+    void settled.then(() => {
+      if (this.#queues.get(cwd) === settled) {
+        this.#queues.delete(cwd);
+      }
+    });
+    return next;
   }
 }

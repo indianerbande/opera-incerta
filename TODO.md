@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **817 tests**, plus the desktop and asset checks.
+projects, **829 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -66,24 +66,13 @@ has to be consulted to build, verify or change the product.
    suite; the rest of the review's adapter findings are done. Small, and a
    memory question only for a very long session.
 
-8. **Git calls are not serialized, and a missing git looks like a failed
-   command** (`packages/git-node/src/process-git.ts`). Every bridge handler
-   runs concurrently, so a status refresh racing a commit reaches the author
-   as an `index.lock` error; and `systemGitRunner` turns the `ENOENT` of a
-   machine without git into exit code 1 with empty stderr, which
-   `repositoryRoot` then swallows into "not inside a repository". A per-root
-   queue in the service, and a `git/not-installed` code that the panel can
-   word, are the whole step. Related, smaller: `hasCommit` and `#hasCommit`
-   duplicate; `defaultRemote` splits `git remote -v` on a space and breaks
-   on a path with one; `tracking` runs two commands where
-   `--porcelain=v2 --branch` gives everything in the status read already.
-9. **The smoke sleeps** — ninety `setTimeout` waits across
+8. **The smoke sleeps** — ninety `setTimeout` waits across
    `apps/desktop/src/smoke/checks/`, thirty-six of them in source control.
    Each is a place a slower machine fails; the README names them as the first
    suspect for §1.6. Replace them with conditions (`waitForSelector`,
    `settleWatch`) file by file, and keep a sleep only where nothing observable
    marks completion, with a comment saying what it waits for.
-10. **One error shape and typed contract payloads.** `ProjectError`,
+9. **One error shape and typed contract payloads.** `ProjectError`,
     `ProjectSessionError`, `GitError`, and the renderer's `BridgeFailure`
     are four classes of the same shape; `GitError.code` is always
     `git/command-failed`, so the renderer cannot tell "not fast-forwardable"
@@ -98,7 +87,7 @@ has to be consulted to build, verify or change the product.
     gain the response guards they lack; and `preload.ts` should be typed
     against the contract with `satisfies OperaIncertaBridge`, so a method
     added to the interface but not to the preload fails to compile.
-11. **The project adapter's port and its error handling**
+10. **The project adapter's port and its error handling**
     (`packages/project-node`, `apps/desktop/src/project-session.ts`). The
     `ProjectFilesystem` port exists "so tests run against an in-memory
     double", and no double exists — session and shell reach past it to
@@ -112,7 +101,7 @@ has to be consulted to build, verify or change the product.
     `writeSheet` has; `placeEntry` reopens the project twice per drag and
     re-mints every handle, while the comment on `reopen` says handles are
     kept; and `inspectFolder` reads `project.json` fully to test existence.
-12. **Core rules the review found wrong or loose**, one tidy-up round:
+11. **Core rules the review found wrong or loose**, one tidy-up round:
     - `hasConflictMarkers` is true for a bare `<<<<<<< HEAD` line while
       `parseConflicts` reports no conflict, so the store locks a sheet the
       resolver has nothing to resolve in (`conflict.ts`);

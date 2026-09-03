@@ -6,6 +6,63 @@ documents").
 
 ---
 
+## 2026-09-03 — one git command at a time, and a machine without git
+
+**What was open** (`TODO.md` §1.8 until this round). Every bridge handler
+runs concurrently, so a status refresh racing a commit reached the author as
+an `index.lock` error; and `systemGitRunner` turned the `ENOENT` of a machine
+without git into exit code 1 with empty stderr, which `repositoryRoot`
+swallowed into "this project is not inside a Git repository" — a message
+about the wrong thing. Three smaller items sat beside them: `hasCommit`
+twice, `defaultRemote` splitting `git remote -v` on a space, and `tracking`
+running two commands.
+
+**What changed.**
+
+- **A queue per directory** in `ProcessGitService`: every command goes
+  through one `#invoke`, which chains it behind the last command for that
+  directory, succeed or fail, and lets other directories run alongside.
+  Reads wait too, deliberately (`SPEC.md` §12): a status beside a push is a
+  lock error, a status after it is merely late, and the renderer's separate
+  guards already keep a slow read from swallowing a click.
+- **`GitUnavailableError`**, code `git/not-installed`, thrown by the real
+  runner when the executable itself is not found. It carries no message —
+  there are no words of git's to pass on — so the code reaches the panel,
+  which words it: git is not installed, or not on the path; source control
+  needs it, everything else works without it. The panel shows a failure in
+  its no-repository state now, where it used to show only the hint.
+- **`tracking` is one command.** The branch header of
+  `status --porcelain=v2 --branch` carries the upstream and the drift; a
+  pure `parseTrackingHeader` in the core reads it, tested against recorded
+  output, and the adapter stays a wrapper.
+- **`defaultRemote` reads the configuration** (`config --get-regexp`), so a
+  local path with a space in it arrives whole. `hasCommit` is one method.
+  The unused `GitFailure` interface is gone.
+
+**Verification.** `pnpm run check` green: **829 tests** — eight new in the
+git adapter (two commands against one directory run one after the other; a
+failed one does not block the next; two directories are not held up by each
+other; a runner that cannot start reports `git/not-installed`, and so does
+the real runner with an empty `PATH`; a remote path with a space; no remote;
+the upstream from one status call), three in the core for the header parser,
+one in the renderer for a failure without words. Every real-repository test
+of the adapter, tracking and merging included, runs on the new
+implementation unchanged. `pnpm run desktop:smoke` green across **thirty
+checks**, twice.
+
+Three falsifications: with the queue bypassed, exactly the two ordering
+tests failed and the two-directories test stayed green; with `ENOENT`
+mapped to exit code 1 again, exactly the empty-`PATH` test failed; with
+ahead and behind swapped in the parser, exactly the header test failed.
+
+**Lesson.** A failure that is turned into a "normal state" one layer down
+cannot be told apart from that state one layer up. The runner had no way to
+say "there is no git", so the service had no way to say it, so the panel
+said something true about a different thing. The code had to exist at the
+bottom before the words could exist at the top.
+
+---
+
 ## 2026-09-03 — the renderer, second round: one dialog, one way in, rows from the model
 
 **What was open.** The first round took the flows out of the shell; `TODO.md`

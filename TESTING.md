@@ -216,6 +216,17 @@ Tests MUST cover:
   push error is reported;
 - absence of a remote or of credentials surfacing the Git error rather than
   crashing;
+- **one command at a time per repository** (`SPEC.md` §12): two commands
+  issued at once against one directory run one after the other, a failed one
+  does not block the next, and commands against different directories are
+  not held up by each other;
+- **a machine without git** reported as `git/not-installed` rather than as a
+  project outside a repository — from a runner that cannot start the
+  process, and from the real runner with an empty `PATH`;
+- a remote whose address is a local path with a space in it, read whole;
+- the upstream and the drift read from the branch header of one
+  `status --porcelain=v2 --branch`, as a pure parser over recorded output —
+  ahead and behind the right way round, and null without an upstream;
 - the `.git` path filter: events confined to `.git` trigger no refresh
   (`SPEC.md` §12); and
 - a project without a repository leaving the watcher off.

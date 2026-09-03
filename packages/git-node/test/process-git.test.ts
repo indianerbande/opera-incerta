@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   GitError,
+  GitUnavailableError,
   createGitService,
   systemGitRunner,
   type GitCommandResult,
@@ -111,6 +112,126 @@ describe('command construction', () => {
     expect(flattened).not.toContain('-u');
     expect(flattened).not.toContain('pull');
     expect(flattened).not.toContain('fetch');
+  });
+});
+
+describe('one command at a time per repository', () => {
+  /** A runner that records when each command starts and ends, with a delay. */
+  function slowRunner(): GitCommandRunner & { readonly log: string[] } {
+    const log: string[] = [];
+    return {
+      log,
+      async run(args, cwd) {
+        log.push(`start ${cwd} ${args[0] ?? ''}`);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        log.push(`end ${cwd} ${args[0] ?? ''}`);
+        if (args[0] === 'push') {
+          return { stdout: '', stderr: 'rejected', exitCode: 1 };
+        }
+        return { stdout: '', stderr: '', exitCode: 0 };
+      },
+    };
+  }
+
+  it('runs two commands against one directory one after the other', async () => {
+    const runner = slowRunner();
+    const git = createGitService(runner);
+    // Issued together, as two bridge handlers would: a stage and a status.
+    await Promise.all([git.stage('/repo', ['a.md']), git.status('/repo')]);
+
+    expect(runner.log).toEqual([
+      'start /repo add',
+      'end /repo add',
+      'start /repo status',
+      'end /repo status',
+    ]);
+  });
+
+  it('lets a failed command through without blocking the next', async () => {
+    const runner = slowRunner();
+    const git = createGitService(runner);
+    const results = await Promise.allSettled([git.push('/repo'), git.status('/repo')]);
+
+    expect(results[0]?.status).toBe('rejected');
+    expect(results[1]?.status).toBe('fulfilled');
+    expect(runner.log).toEqual([
+      'start /repo push',
+      'end /repo push',
+      'start /repo status',
+      'end /repo status',
+    ]);
+  });
+
+  it('does not hold one directory up for another', async () => {
+    const runner = slowRunner();
+    const git = createGitService(runner);
+    await Promise.all([git.status('/one'), git.status('/two')]);
+
+    // Both started before either ended: the queues are per directory.
+    expect(runner.log.slice(0, 2)).toEqual(['start /one status', 'start /two status']);
+  });
+});
+
+describe('a machine without git', () => {
+  it('is reported as its own condition, not as a project outside a repository', async () => {
+    const runner: GitCommandRunner = {
+      run: () => Promise.reject(new GitUnavailableError()),
+    };
+    const git = createGitService(runner);
+
+    await expect(git.repositoryRoot('/book')).rejects.toMatchObject({
+      code: 'git/not-installed',
+    });
+    await expect(git.status('/book')).rejects.toMatchObject({ code: 'git/not-installed' });
+  });
+
+  it('is what the real runner reports when git is not on the path', async () => {
+    const path = process.env['PATH'];
+    process.env['PATH'] = '';
+    try {
+      await expect(systemGitRunner.run(['--version'], tmpdir())).rejects.toMatchObject({
+        code: 'git/not-installed',
+      });
+    } finally {
+      process.env['PATH'] = path;
+    }
+  });
+});
+
+describe('reading what git reports', () => {
+  it('reads the remote from the configuration, a path with a space kept whole', async () => {
+    const runner = recordingRunner({
+      config: {
+        stdout: 'remote.origin.url /Users/someone/My Books/remote.git\nremote.backup.url x\n',
+        stderr: '',
+        exitCode: 0,
+      },
+    });
+    const remote = await createGitService(runner).defaultRemote('/repo');
+
+    expect(remote).toEqual({ name: 'origin', url: '/Users/someone/My Books/remote.git' });
+    expect(runner.calls[0]).toEqual(['config', '--get-regexp', '^remote\\..*\\.url$']);
+  });
+
+  it('reports no remote when the configuration has none', async () => {
+    const runner = recordingRunner({ config: { stdout: '', stderr: '', exitCode: 1 } });
+    expect(await createGitService(runner).defaultRemote('/repo')).toBeNull();
+  });
+
+  it('reads the upstream and the drift from one status call', async () => {
+    const runner = recordingRunner({
+      status: {
+        stdout:
+          '# branch.oid abc\n# branch.head main\n' +
+          '# branch.upstream origin/main\n# branch.ab +2 -1\n',
+        stderr: '',
+        exitCode: 0,
+      },
+    });
+    const tracking = await createGitService(runner).tracking('/repo');
+
+    expect(tracking).toEqual({ upstream: 'origin/main', ahead: 2, behind: 1 });
+    expect(runner.calls).toEqual([['status', '--porcelain=v2', '--branch']]);
   });
 });
 

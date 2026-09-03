@@ -21,9 +21,16 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (store.repositoryRoot() === null) {
-      <p class="hint">
-        {{ store.loaded() ? 'This project is not inside a Git repository.' : 'Reading…' }}
-      </p>
+      @if (store.failure(); as reason) {
+        <!-- Before any repository is known, a failure is about the machine
+             rather than the project: git itself is missing, or cannot be
+             asked. Said in its own words (SPEC.md §12). -->
+        <p class="failure" role="alert">{{ wording(reason) }}</p>
+      } @else {
+        <p class="hint">
+          {{ store.loaded() ? 'This project is not inside a Git repository.' : 'Reading…' }}
+        </p>
+      }
     } @else {
       <div class="panel">
         @if (store.branch(); as name) {
@@ -468,5 +475,17 @@ export class SourceControlComponent {
 
   protected value(event: Event): string {
     return (event.target as HTMLTextAreaElement).value;
+  }
+
+  /**
+   * The one failure the panel words itself. Every other failure is git's own
+   * message and is shown as it came (SPEC.md §12); this one has no words of
+   * git's, because there is no git.
+   */
+  protected wording(reason: string): string {
+    return reason === 'git/not-installed'
+      ? 'Git is not installed on this machine, or not on the path. Source control needs ' +
+          'it; everything else works without it.'
+      : reason;
   }
 }

@@ -128,11 +128,17 @@ export {
   isSafeRemoteUrl,
   isValidBranchName,
   parseGitStatus,
+  parseTrackingHeader,
   selectAllState,
   touchesWorkingTree,
   withIgnoredPath,
 } from './git-status.js';
-export type { GitFileGroup, GitFileStatus, SelectAllState } from './git-status.js';
+export type {
+  GitFileGroup,
+  GitFileStatus,
+  GitTrackingState,
+  SelectAllState,
+} from './git-status.js';
 
 export {
   SLUG_MAX_LENGTH,
