@@ -40,6 +40,16 @@ export interface GitFailure {
  * shared busy flag lets a background refresh swallow a user action
  * (CONVENTIONS.md C-F3).
  */
+/** What a branch tracks, and how far it has drifted. SPEC.md §12. */
+export interface GitTracking {
+  /** The upstream's name, as git prints it — `origin/main`. */
+  readonly upstream: string;
+  /** Commits the upstream has and this branch does not. */
+  readonly behind: number;
+  /** Commits this branch has and the upstream does not. */
+  readonly ahead: number;
+}
+
 export interface GitService {
   /** Resolves the repository root, or null when the path is not in a repository. */
   repositoryRoot(absolutePath: string): Promise<string | null>;
@@ -73,8 +83,25 @@ export interface GitService {
    */
   showAtHead(repositoryRoot: string, path: string): Promise<string | null>;
   commit(repositoryRoot: string, message: string): Promise<void>;
-  /** Deliberately without upstream creation, pull, or fetch. SPEC.md §12. */
   push(repositoryRoot: string): Promise<void>;
+  /**
+   * Where the branch tracks, and how far apart the two are. SPEC.md §12.
+   *
+   * `null` when the branch tracks nothing: this application does not create an
+   * upstream, so there is simply nothing to compare against.
+   */
+  tracking(repositoryRoot: string): Promise<GitTracking | null>;
+  /** Brings the remote's refs up to date. Touches no file in the working tree. */
+  fetch(repositoryRoot: string): Promise<void>;
+  /**
+   * Fast-forward only, never a merge.
+   *
+   * A merge can conflict, and resolving conflicts is not part of this stage
+   * (§12) — conflict markers written into a manuscript would be the worst
+   * possible outcome. Where a fast-forward is impossible git refuses, and its
+   * refusal is what the author is shown.
+   */
+  pull(repositoryRoot: string): Promise<void>;
 }
 
 export { GitError, createGitService, systemGitRunner } from './process-git.js';

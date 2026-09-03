@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { parseGitStatus } from '@opera-incerta/core';
-import type { BridgeResult, OperaIncertaBridge } from '@opera-incerta/desktop-contract';
+import type {
+  BridgeResult,
+  GitReport,
+  OperaIncertaBridge,
+} from '@opera-incerta/desktop-contract';
 import { SourceControlStore } from '../src/app/workspace/source-control-store.js';
 import { baseBridge } from './fake-bridge.js';
 
@@ -15,25 +19,27 @@ interface Recorder {
 
 function fakeBridge(
   script: {
-    status?: () => BridgeResult<{ root: string | null; entries: readonly unknown[] }>;
+    status?: () => BridgeResult<GitReport>;
     commit?: () => BridgeResult<null>;
     push?: () => BridgeResult<null>;
     onRepositoryChange?: (listener: () => void) => () => void;
     discard?: (request: { paths: readonly string[] }) => BridgeResult<readonly string[]>;
     diff?: () => BridgeResult<string>;
+    fetch?: () => BridgeResult<null>;
+    pull?: () => BridgeResult<null>;
   } = {},
 ): OperaIncertaBridge & Recorder {
   const calls: string[] = [];
   let staged = new Set<string>();
 
-  const status = (): BridgeResult<{ root: string | null; entries: readonly unknown[] }> => {
+  const status = (): BridgeResult<GitReport> => {
     const entries = parseGitStatus(
       porcelain(
         `${staged.has('a.md') ? 'M ' : ' M'} a.md`,
         `${staged.has('b.md') ? 'A ' : '??'} b.md`,
       ),
     );
-    return { ok: true, value: { root: '/repo', entries } };
+    return { ok: true, value: { root: '/repo', entries, tracking: null } };
   };
 
   return {
@@ -43,6 +49,8 @@ function fakeBridge(
       : { onRepositoryChange: script.onRepositoryChange }),
     calls,
     gitStatus: async () => (script.status ?? status)(),
+    gitFetch: async () => script.fetch?.() ?? { ok: true, value: null },
+    gitPull: async () => script.pull?.() ?? { ok: true, value: null },
     gitDiff: async () => script.diff?.() ?? { ok: true, value: '' },
     gitDiscard: async (request) =>
       script.discard?.(request) ?? { ok: true, value: [] as readonly string[] },
@@ -78,7 +86,7 @@ describe('reading status', () => {
 
   it('treats a project outside a repository as a state, not a failure', async () => {
     const store = new SourceControlStore(
-      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [] } }) }),
+      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null } }) }),
     );
     await store.refresh();
 
@@ -236,7 +244,7 @@ describe('without a shell', () => {
   });
 
   it('does nothing at all when there is nothing to stage', async () => {
-    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [] } }) });
+    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null } }) });
     const store = new SourceControlStore(bridge);
     await store.refresh();
     await store.toggleAll();
@@ -254,7 +262,7 @@ describe('watching the repository', () => {
       fakeBridge({
         status: () => {
           reads += 1;
-          return { ok: true, value: { root: '/book', entries: [] } };
+          return { ok: true, value: { root: '/book', entries: [], tracking: null } };
         },
         onRepositoryChange: (each) => {
           listener = each;
@@ -346,5 +354,66 @@ describe('showing what changed', () => {
     const committing = store.commit();
     expect(await store.diff('a.md')).toBe('read while a write was running');
     await committing;
+  });
+});
+
+describe('a branch that tracks a remote', () => {
+  function tracking(behind: number, ahead: number): GitReport {
+    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead } };
+  }
+
+  it('offers pulling only when there is something to pull', async () => {
+    const behind = new SourceControlStore(fakeBridge({ status: () => ({ ok: true, value: tracking(2, 0) }) }));
+    await behind.refresh();
+    expect(behind.canPull()).toBe(true);
+    expect(behind.tracking()?.upstream).toBe('origin/main');
+
+    const even = new SourceControlStore(fakeBridge({ status: () => ({ ok: true, value: tracking(0, 3) }) }));
+    await even.refresh();
+    expect(even.canPull()).toBe(false);
+  });
+
+  it('offers nothing to a branch that tracks nothing', async () => {
+    const store = new SourceControlStore(fakeBridge());
+    await store.refresh();
+
+    // This application never creates an upstream, so having none is normal.
+    expect(store.tracking()).toBeNull();
+    expect(store.canPull()).toBe(false);
+  });
+
+  it('reports what git says when a pull cannot fast-forward', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        status: () => ({ ok: true, value: tracking(1, 1) }),
+        pull: () => ({
+          ok: false,
+          code: 'git/command-failed',
+          message: 'fatal: Not possible to fast-forward, aborting.',
+        }),
+      }),
+    );
+    await store.refresh();
+    await store.pull();
+
+    // Resolving a merge is not part of this stage; git's refusal is the answer.
+    expect(store.failure()).toBe('fatal: Not possible to fast-forward, aborting.');
+  });
+
+  it('fetches without touching anything', async () => {
+    const calls: string[] = [];
+    const store = new SourceControlStore(
+      fakeBridge({
+        status: () => ({ ok: true, value: tracking(0, 0) }),
+        fetch: () => {
+          calls.push('fetch');
+          return { ok: true, value: null };
+        },
+      }),
+    );
+    await store.fetch();
+
+    expect(calls).toEqual(['fetch']);
+    expect(store.failure()).toBeNull();
   });
 });

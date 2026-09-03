@@ -15,7 +15,11 @@ import {
   type GitFileStatus,
   type SelectAllState,
 } from '@opera-incerta/core';
-import type { GitVersions, OperaIncertaBridge } from '@opera-incerta/desktop-contract';
+import type {
+  GitTracking,
+  GitVersions,
+  OperaIncertaBridge,
+} from '@opera-incerta/desktop-contract';
 import { unwrap } from './bridge.js';
 
 export class SourceControlStore {
@@ -25,6 +29,7 @@ export class SourceControlStore {
 
   readonly #entries = signal<readonly GitFileStatus[]>([]);
   readonly #root = signal<string | null>(null);
+  readonly #tracking = signal<GitTracking | null>(null);
   readonly #message = signal('');
   readonly #failure = signal<string | null>(null);
   readonly #loaded = signal(false);
@@ -41,6 +46,10 @@ export class SourceControlStore {
 
   /** Null when the project is not inside a repository — a normal state. */
   readonly repositoryRoot = this.#root.asReadonly();
+  /** What the branch tracks, or null when it tracks nothing. SPEC.md §12. */
+  readonly tracking = this.#tracking.asReadonly();
+  /** Pulling is offered only when there is something to pull. */
+  readonly canPull = computed(() => (this.#tracking()?.behind ?? 0) > 0);
 
   /** All, none, or some staged — the tri-state of the select-all box. */
   readonly selectAll = computed<SelectAllState>(() => selectAllState(this.#entries()));
@@ -160,6 +169,24 @@ export class SourceControlStore {
     return affected;
   }
 
+  /** Brings the remote's refs up to date. Touches no file. SPEC.md §12. */
+  async fetch(): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitFetch());
+    });
+  }
+
+  /**
+   * Fast-forward only. Where the histories have diverged git refuses, and its
+   * refusal is what the author is shown: resolving a merge is not part of this
+   * stage, and conflict markers in a manuscript would be the worst outcome.
+   */
+  async pull(): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitPull());
+    });
+  }
+
   async commit(): Promise<void> {
     if (!this.canCommit()) {
       return;
@@ -203,6 +230,7 @@ export class SourceControlStore {
       const report = unwrap(await bridge.gitStatus());
       this.#root.set(report.root);
       this.#entries.set(report.entries as readonly GitFileStatus[]);
+      this.#tracking.set(report.tracking);
       this.#loaded.set(true);
       this.#failure.set(null);
     } catch (error: unknown) {

@@ -619,6 +619,16 @@ privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
 
 const git = createGitService();
 
+privileged(CHANNELS.gitFetch, acceptsNothing, async () => {
+  await git.fetch(await repositoryRoot());
+  return null;
+});
+
+privileged(CHANNELS.gitPull, acceptsNothing, async () => {
+  await git.pull(await repositoryRoot());
+  return null;
+});
+
 privileged(CHANNELS.gitVersions, isLibraryPathRequest, async (request) => {
   const root = await repositoryRoot();
   const absolute = join(root, request.path);
@@ -726,7 +736,16 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
   }
   const root = await git.repositoryRoot(projectPath);
   // A project outside a repository is a normal state, not a failure.
-  return root === null ? { root: null, entries: [] } : { root, entries: await git.status(root) };
+  if (root === null) {
+    return { root: null, entries: [], tracking: null };
+  }
+  return {
+    root,
+    entries: await git.status(root),
+    // Read with the status, so the panel never shows one from a moment ago
+    // beside the other.
+    tracking: await git.tracking(root),
+  };
 });
 
 privileged(CHANNELS.gitStage, isGitPathsRequest, async (request) => {
@@ -1972,6 +1991,105 @@ async function checkDiscarding(window: BrowserWindow): Promise<void> {
     'smoke ok: discarding put a tracked file back to its committed state and took the editor’s ' +
       'unsaved version with it, sent an untracked one to the trash, and cancelling kept both',
   );
+
+  await checkFetchAndPull(window);
+}
+
+/**
+ * Fetching and pulling against a real remote, with a second working copy
+ * standing in for the other machine. SPEC.md §12.
+ */
+async function checkFetchAndPull(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+
+  // The remote is set up here rather than in the fixture, because an earlier
+  // check needs a push to *fail* for want of one.
+  const remote = join(mkdtempSync(join(tmpdir(), 'opera-incerta-remote-')), 'origin.git');
+  runGit(smokeProjectPath, ['init', '--bare', '--initial-branch=main', remote]);
+  runGit(smokeProjectPath, ['remote', 'add', 'origin', remote]);
+  runGit(smokeProjectPath, ['push', '-u', 'origin', 'main']);
+
+  const elsewhere = join(mkdtempSync(join(tmpdir(), 'opera-incerta-elsewhere-')), 'clone');
+  runGit(smokeProjectPath, ['clone', remote, elsewhere]);
+  for (const setting of [
+    ['user.email', 'other@opera-incerta.invalid'],
+    ['user.name', 'The Other Machine'],
+    ['commit.gpgsign', 'false'],
+  ]) {
+    runGit(elsewhere, ['config', ...setting]);
+  }
+  // Not a sheet, so the library — and every check after this one — sees the
+  // fixture exactly as it was.
+  writeFileSync(join(elsewhere, 'from-the-other-machine.txt'), 'Written elsewhere.\n', 'utf8');
+  runGit(elsewhere, ['add', 'from-the-other-machine.txt']);
+  runGit(elsewhere, ['commit', '-m', 'from the other machine']);
+  runGit(elsewhere, ['push']);
+
+  // The upstream is new, so the panel has to be told to look again. Git's own
+  // writes inside `.git` are filtered out of the watch, on purpose (§12).
+  const refreshed = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-panel-header button')]
+         .find((candidate) => candidate.getAttribute('title') === 'Refresh');
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!refreshed) {
+    throw new Error('no refresh button in the source control header');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  await settleWatch(window, async () => (await trackingLine(window)) !== null);
+  const before = await trackingLine(window);
+  if (before === null || !before.includes('origin/main') || !before.includes('up to date')) {
+    throw new Error(`the panel does not show the upstream: ${String(before)}`);
+  }
+
+  await clickText(window, 'wi-source-control .tracking button', 'Fetch');
+  await settleWatch(window, async () => ((await trackingLine(window)) ?? '').includes('↓1'));
+  const fetched = await trackingLine(window);
+  if (fetched === null || !fetched.includes('↓1')) {
+    throw new Error(`fetching did not report being behind: ${String(fetched)}`);
+  }
+  // Fetching changes what is known, and no file in the working tree.
+  if (existsSync(join(smokeProjectPath, 'from-the-other-machine.txt'))) {
+    throw new Error('fetching brought a file into the working tree');
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const pullImage = await window.webContents.capturePage();
+  const pullEvidence = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-pull.png');
+  writeFileSync(pullEvidence, pullImage.toPNG());
+  console.log(`smoke evidence: ${pullEvidence}`);
+
+  await clickText(window, 'wi-source-control .tracking button', 'Pull');
+  await settleWatch(window, async () =>
+    existsSync(join(smokeProjectPath, 'from-the-other-machine.txt')),
+  );
+
+  if (!existsSync(join(smokeProjectPath, 'from-the-other-machine.txt'))) {
+    throw new Error('pulling did not bring the commit in');
+  }
+  await settleWatch(window, async () => ((await trackingLine(window)) ?? '').includes('up to date'));
+  const after = await trackingLine(window);
+  if (after === null || !after.includes('up to date')) {
+    throw new Error(`the panel is still behind after pulling: ${String(after)}`);
+  }
+
+  console.log(
+    'smoke ok: fetching reported one commit behind without touching a file, and pulling brought ' +
+      'it in by fast-forward',
+  );
+}
+
+/** What the panel says about the upstream, or null when it says nothing. */
+async function trackingLine(window: BrowserWindow): Promise<string | null> {
+  return (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-source-control .tracking')?.textContent.replace(/\\s+/gu, ' ').trim() ?? null`,
+  )) as string | null;
 }
 
 /** Whether the change list has a row for a file. */

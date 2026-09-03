@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -271,6 +272,90 @@ describe('against a real repository', () => {
       await git.commit(root, 'first');
 
       expect(await git.hasCommit(root)).toBe(true);
+    });
+  });
+  describe('tracking a remote', () => {
+    let remote = '';
+    let clone = '';
+
+    beforeEach(async () => {
+      remote = join(await mkdtemp(join(tmpdir(), 'opera-incerta-remote-')), 'origin.git');
+      await systemGitRunner.run(['init', '--bare', '--initial-branch=main', remote], tmpdir());
+
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+      await systemGitRunner.run(['remote', 'add', 'origin', remote], root);
+      await systemGitRunner.run(['push', '-u', 'origin', 'main'], root);
+
+      // A second working copy, standing in for the other machine.
+      clone = join(await mkdtemp(join(tmpdir(), 'opera-incerta-clone-')), 'clone');
+      await systemGitRunner.run(['clone', remote, clone], tmpdir());
+      await systemGitRunner.run(['config', 'user.email', 'other@example.invalid'], clone);
+      await systemGitRunner.run(['config', 'user.name', 'Other'], clone);
+      await systemGitRunner.run(['config', 'commit.gpgsign', 'false'], clone);
+    });
+
+    afterEach(async () => {
+      await rm(remote, { recursive: true, force: true });
+      await rm(clone, { recursive: true, force: true });
+    });
+
+    it('reports the upstream, and nothing apart yet', async () => {
+      expect(await git.tracking(root)).toEqual({ upstream: 'origin/main', behind: 0, ahead: 0 });
+    });
+
+    it('reports nothing at all for a branch that tracks nothing', async () => {
+      const alone = await mkdtemp(join(tmpdir(), 'opera-incerta-alone-'));
+      await systemGitRunner.run(['init', '--initial-branch=main'], alone);
+      // This application never creates an upstream, so having none is normal.
+      expect(await git.tracking(alone)).toBeNull();
+      await rm(alone, { recursive: true, force: true });
+    });
+
+    it('sees the other machine’s commit only after fetching', async () => {
+      await writeFile(join(clone, 'b.md'), 'from elsewhere\n', 'utf8');
+      await systemGitRunner.run(['add', 'b.md'], clone);
+      await systemGitRunner.run(['commit', '-m', 'from elsewhere'], clone);
+      await systemGitRunner.run(['push'], clone);
+
+      expect((await git.tracking(root))?.behind).toBe(0);
+
+      await git.fetch(root);
+
+      // Fetching changes what is known, and no file in the working tree.
+      expect((await git.tracking(root))?.behind).toBe(1);
+      expect(existsSync(join(root, 'b.md'))).toBe(false);
+    });
+
+    it('brings the commit in with a fast-forward', async () => {
+      await writeFile(join(clone, 'b.md'), 'from elsewhere\n', 'utf8');
+      await systemGitRunner.run(['add', 'b.md'], clone);
+      await systemGitRunner.run(['commit', '-m', 'from elsewhere'], clone);
+      await systemGitRunner.run(['push'], clone);
+      await git.fetch(root);
+
+      await git.pull(root);
+
+      expect(await readFile(join(root, 'b.md'), 'utf8')).toBe('from elsewhere\n');
+      expect(await git.tracking(root)).toEqual({ upstream: 'origin/main', behind: 0, ahead: 0 });
+    });
+
+    it('refuses rather than merging when the histories have diverged', async () => {
+      await writeFile(join(clone, 'b.md'), 'from elsewhere\n', 'utf8');
+      await systemGitRunner.run(['add', 'b.md'], clone);
+      await systemGitRunner.run(['commit', '-m', 'from elsewhere'], clone);
+      await systemGitRunner.run(['push'], clone);
+
+      await writeFile(join(root, 'c.md'), 'from here\n', 'utf8');
+      await git.stage(root, ['c.md']);
+      await git.commit(root, 'from here');
+      await git.fetch(root);
+
+      // A merge could conflict, and resolving conflicts is not part of this
+      // stage: git's refusal is the answer the author gets.
+      await expect(git.pull(root)).rejects.toMatchObject({ code: 'git/command-failed' });
+      expect(existsSync(join(root, 'b.md'))).toBe(false);
     });
   });
 });

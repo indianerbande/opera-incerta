@@ -1516,11 +1516,27 @@ freshly created project is in. There the path is removed from the index
 instead, which is the same outcome for content that was never committed.
 
 **Push** runs against the resolved repository root using the system Git
-credentials. Deliberately **no** upstream creation, **no** pull or fetch. A
-missing remote or failed authentication surfaces the Git error message; it
-never crashes. If the commit succeeds and the push fails, the commit stands,
-the message field is cleared (it was committed), and only the push error is
-shown.
+credentials. Deliberately **no** upstream creation. A missing remote or failed
+authentication surfaces the Git error message; it never crashes. If the commit
+succeeds and the push fails, the commit stands, the message field is cleared
+(it was committed), and only the push error is shown.
+
+**Fetch and pull, with pull restricted to a fast-forward.** A merge can
+conflict, and resolving conflicts is not part of this stage — conflict markers
+written into a manuscript would be the worst outcome this application could
+produce. `git pull --ff-only` cannot reach that state: where the histories have
+diverged git refuses, and its refusal is what the author is shown. Fetching is
+unrestricted because it touches no file in the working tree.
+
+The panel shows what the branch tracks and how far apart the two are, read with
+the status so that the two are never a moment out of step. Pull is offered only
+when there is something to pull. A branch that tracks nothing shows none of
+this: no upstream is a normal state, because this application never creates
+one.
+
+A pull changes files behind the editor's back, and nothing special is needed
+for that: the watchers of §10.6 notice, and the comparison rule decides whether
+the author is told.
 
 Git output is tool output and is never localized (§14.2).
 
@@ -1587,8 +1603,8 @@ discarded change back on the next save, and would raise the conflict prompt of
 §10.6 in between — asking the author to decide again what they have just
 decided. A re-read that was already in flight must not put them back either.
 
-**Not goals of this stage:** pull/fetch, upstream creation, branches,
-merge and conflict resolution, amend, and editing `.gitignore`.
+**Not goals of this stage:** upstream creation, branches, merge and conflict
+resolution, amend, and editing `.gitignore`.
 
 ## 13. Settings contract
 

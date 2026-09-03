@@ -6,6 +6,42 @@ documents").
 
 ---
 
+## 2026-09-03 — fetch, and a pull that cannot merge
+
+**What exists.** The panel shows what the branch tracks and how far apart the
+two are, and offers Fetch and Pull. Pull is offered only when there is
+something to pull; a branch that tracks nothing shows none of it, because no
+upstream is a normal state — this application still never creates one.
+
+**Why this reverses part of §12, and how far.** §12 excluded pull and fetch
+deliberately, and the reason stands two lines further down in the same section:
+merge and conflict resolution are excluded too. A pull that merges can leave
+conflict markers inside a manuscript, which is the worst outcome this
+application could produce. So what is built is the half that cannot reach that
+state: `--ff-only`. Where the histories have diverged git refuses, and its
+refusal is what the author is shown. Fetching is unrestricted, because it
+touches no file.
+
+**Nothing special was needed for the files a pull brings in.** They arrive
+behind the editor's back, the watchers notice, and the comparison rule of
+§10.6 decides whether the author is told — machinery that was already there and
+already tested.
+
+**Verification.** `pnpm run check` green: **670 tests**. The service is checked
+against a real remote with a second working copy as the other machine: after a
+fetch, one commit behind and **no file** in the working tree; after a pull, the
+commit is in. The smoke does the same through the interface, creating the
+remote inside the check rather than in the fixture — an earlier check needs a
+push to fail for want of one. Falsified where it matters: with `--ff-only`
+replaced by an ordinary pull, the diverged-histories case merges instead of
+refusing, and that test fails.
+
+**The visual check earned its keep again.** In the narrow navigator the
+upstream's name was truncated to `origi…`, which tells the author nothing. It
+has its own line now, with the counts beside it and the buttons below.
+
+---
+
 ## 2026-09-03 — a word-level diff for prose
 
 **What exists.** A sheet's changes are shown **word by word**: the committed

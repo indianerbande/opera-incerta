@@ -8,7 +8,7 @@
  */
 import { execFile } from 'node:child_process';
 import { parseGitStatus, type GitFileStatus } from '@opera-incerta/core';
-import type { GitService } from './index.js';
+import type { GitService, GitTracking } from './index.js';
 
 export interface GitCommandResult {
   readonly stdout: string;
@@ -156,6 +156,42 @@ class ProcessGitService implements GitService {
       throw new GitError(['diff', '--no-index', path], result);
     }
     return result.stdout;
+  }
+
+  async tracking(repositoryRoot: string): Promise<GitTracking | null> {
+    const named = await this.#runner.run(
+      ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'],
+      repositoryRoot,
+    );
+    if (named.exitCode !== 0) {
+      // No upstream is a normal state, not a failure: this application never
+      // creates one (SPEC.md §12).
+      return null;
+    }
+
+    const counted = await this.#runner.run(
+      ['rev-list', '--left-right', '--count', '@{u}...HEAD'],
+      repositoryRoot,
+    );
+    if (counted.exitCode !== 0) {
+      return null;
+    }
+    const [behind, ahead] = counted.stdout.trim().split(/\s+/u).map(Number);
+    return {
+      upstream: named.stdout.trim(),
+      behind: Number.isFinite(behind) ? (behind as number) : 0,
+      ahead: Number.isFinite(ahead) ? (ahead as number) : 0,
+    };
+  }
+
+  async fetch(repositoryRoot: string): Promise<void> {
+    await this.#run(['fetch'], repositoryRoot);
+  }
+
+  async pull(repositoryRoot: string): Promise<void> {
+    // Never a merge: where a fast-forward is impossible, git refuses and says
+    // so, and that refusal is what the author is shown (SPEC.md §12).
+    await this.#run(['pull', '--ff-only'], repositoryRoot);
   }
 
   async showAtHead(repositoryRoot: string, path: string): Promise<string | null> {

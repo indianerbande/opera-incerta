@@ -41,6 +41,8 @@ export const CHANNELS = {
   gitUnstage: 'opera-incerta:git/unstage',
   gitCommit: 'opera-incerta:git/commit',
   gitPush: 'opera-incerta:git/push',
+  gitFetch: 'opera-incerta:git/fetch',
+  gitPull: 'opera-incerta:git/pull',
   gitDiscard: 'opera-incerta:git/discard',
   gitDiff: 'opera-incerta:git/diff',
   gitVersions: 'opera-incerta:git/versions',
@@ -417,6 +419,18 @@ export type BridgeResult<TValue> = BridgeSuccess<TValue> | BridgeFailure;
 export interface GitReport {
   readonly root: string | null;
   readonly entries: readonly unknown[];
+  /**
+   * What the branch tracks and how far apart the two are, or `null` when it
+   * tracks nothing. SPEC.md §12.
+   */
+  readonly tracking: GitTracking | null;
+}
+
+/** What a branch tracks, and how far it has drifted. SPEC.md §12. */
+export interface GitTracking {
+  readonly upstream: string;
+  readonly behind: number;
+  readonly ahead: number;
 }
 
 /** A request naming paths, relative to the repository root. */
@@ -502,6 +516,10 @@ export interface OperaIncertaBridge {
   gitVersions(request: LibraryPathRequest): Promise<BridgeResult<GitVersions>>;
   gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
   gitPush(): Promise<BridgeResult<null>>;
+  /** Brings the remote's refs up to date. Touches no file. SPEC.md §12. */
+  gitFetch(): Promise<BridgeResult<null>>;
+  /** Fast-forward only: a merge that could conflict is not offered. */
+  gitPull(): Promise<BridgeResult<null>>;
   /**
    * Listens for native menu commands; the returned function stops listening.
    *

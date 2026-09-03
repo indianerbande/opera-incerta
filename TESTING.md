@@ -311,6 +311,13 @@ Tests MUST cover:
   trash rather than being removed, a tracked one is byte-identical to
   `git show HEAD:<path>` afterwards, and the editor's unsaved version of it is
   gone — with no conflict prompt about the change that was just discarded;
+- fetching and pulling against a **real remote** (`SPEC.md` §12), with a second
+  working copy standing in for the other machine: after a fetch the panel says
+  one commit behind and **no file has appeared** in the working tree; after a
+  pull the commit is in and the panel says up to date. The remote is created
+  inside that check rather than in the fixture, because an earlier check needs
+  a push to fail for want of one. That a pull can never merge is checked where
+  it is decided: with diverged histories, git refuses and nothing is written;
 - the live status of `SPEC.md` §12: with the panel on screen, a file written
   behind the application's back appears in the change list without anyone
   asking — and then the watch **stays quiet for three seconds**, counted in the

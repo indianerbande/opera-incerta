@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
+import type { GitTracking } from '@opera-incerta/desktop-contract';
 
 /**
  * The source control panel. SPEC.md §12.
@@ -22,6 +23,31 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
       </p>
     } @else {
       <div class="panel">
+        @if (tracking(); as remote) {
+          <div class="tracking">
+            <div class="remote">
+              <span class="upstream" [title]="'Tracking ' + remote.upstream">{{
+                remote.upstream
+              }}</span>
+              <span class="counts">
+                @if (remote.behind > 0) {
+                  <span class="behind">↓{{ remote.behind }}</span>
+                }
+                @if (remote.ahead > 0) {
+                  <span class="ahead">↑{{ remote.ahead }}</span>
+                }
+                @if (remote.behind === 0 && remote.ahead === 0) {
+                  <span class="even">up to date</span>
+                }
+              </span>
+            </div>
+            <div class="remote-actions">
+              <button type="button" (click)="fetch.emit()">Fetch</button>
+              <button type="button" [disabled]="!canPull()" (click)="pull.emit()">Pull</button>
+            </div>
+          </div>
+        }
+
         <div class="changes-header">
           <input
             type="checkbox"
@@ -138,6 +164,52 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
       min-height: 0;
       font: 12px system-ui, sans-serif;
     }
+    .tracking {
+      /* Two rows: in a narrow navigator a single one truncates the upstream's
+         name to nothing useful. */
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+    }
+    .remote,
+    .remote-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .upstream {
+      overflow: hidden;
+      flex: 1 1 auto;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: rgba(128, 128, 128, 0.95);
+    }
+    .counts {
+      display: flex;
+      flex: none;
+      gap: 4px;
+    }
+    .behind {
+      color: rgb(150, 90, 40);
+    }
+    .even {
+      color: rgba(128, 128, 128, 0.9);
+    }
+    .tracking button {
+      flex: none;
+      padding: 2px 8px;
+      border: 1px solid rgba(128, 128, 128, 0.45);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: default;
+    }
+    .tracking button:disabled {
+      opacity: 0.5;
+    }
     .changes-header {
       display: flex;
       gap: 6px;
@@ -220,6 +292,9 @@ export class SourceControlComponent {
   readonly message = input.required<string>();
   /** What the last Git action reported, if it failed. SPEC.md §12. */
   readonly failure = input<string | null>(null);
+  /** What the branch tracks, or null when it tracks nothing. SPEC.md §12. */
+  readonly tracking = input<GitTracking | null>(null);
+  readonly canPull = input(false);
 
   readonly canCommit = input.required<boolean>();
   readonly root = input.required<string | null>();
@@ -230,6 +305,8 @@ export class SourceControlComponent {
   readonly discard = output<GitFileStatus>();
   /** Asks to see what changed; the shell fetches and shows it. */
   readonly showDiff = output<GitFileStatus>();
+  readonly fetch = output<void>();
+  readonly pull = output<void>();
   readonly toggleAll = output<void>();
   readonly messageChange = output<string>();
   readonly commit = output<void>();
