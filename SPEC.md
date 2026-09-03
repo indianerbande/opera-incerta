@@ -18,10 +18,6 @@ confirmed before code depends on them.
 The terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY express requirement
 strength in this specification.
 
-Two repositories are referenced as templates and are never copied verbatim:
-`thothpad` (functional template, native macOS/Swift) and `c4ml` / C4thedral
-(technical template, Electron/Angular/pnpm monorepo). See `AGENTS.md`.
-
 ## 1. Product statement
 
 **Status: Accepted.**
@@ -78,8 +74,8 @@ explicit decision, because the project had no released artifact, no user file,
 and no stored preference — the only moment at which such an alignment is free.
 That window is now closed: the next product rename does not get to repeat it.
 
-**License.** Opera Incerta is licensed under the Apache License 2.0, the same
-license as the technical template. Third-party dependencies keep their own
+**License.** Opera Incerta is licensed under the Apache License 2.0.
+Third-party dependencies keep their own
 licenses and notices; the repository's license does not relicense them
 (`CONVENTIONS.md` C-L5).
 
@@ -122,10 +118,9 @@ MUST NOT appear inside a manuscript or an exported document.
 - No CloudKit/iCloud/proprietary sync. Git is the synchronization mechanism.
 - No web deployment. The Angular renderer is an Electron renderer, not a hosted
   web application; any development harness exists only for isolated testing.
-- No mobile or tablet platform. The functional template plans an iPadOS/iOS
-  port; Electron cannot deliver that, so the equivalent investment goes into
-  Windows and Linux parity instead (§5.5). A future mobile client would be a
-  separate product sharing only the file format.
+- No mobile or tablet platform. Electron cannot deliver one, so the equivalent
+  investment goes into Windows and Linux parity instead. A future mobile client
+  would be a separate product sharing only the file format.
 - No WYSIWYG editing beyond the specified display model — the file format stays
   plain Markdown.
 - No automatic AI action on the author's text without an explicit user request.
@@ -144,10 +139,12 @@ IDE shell concepts; front matter is a shared Markdown-ecosystem convention.
 The exact object separation, display model, project format, settings contract,
 and implementation are original to this project.
 
-`thothpad` is the user's own prior work and its specification is a legitimate
-requirements source. Its Swift/AppKit implementation is not portable and MUST
-NOT be transliterated: each behavior is re-derived as a platform-neutral
-requirement here and implemented natively for the Electron/Angular stack.
+Part of the requirements comes from the author's own earlier work: a native
+macOS writing application built in Swift and AppKit. Own prior work is a
+legitimate requirements source, but that implementation is not portable and is
+**not transliterated**. Each behaviour is re-derived here as a platform-neutral
+requirement and implemented natively for the Electron/Angular stack. This
+document is the requirement; there is no other document to consult.
 
 All fixtures, sample projects, and visual assets MUST be created for this
 project. Real manuscript content MUST NOT be used as test data.
@@ -271,31 +268,31 @@ switches, an intact paste, and a 6.6 ms p95 keystroke latency in a
 | Git | The locally installed `git` executable via `child_process` | A `GitService` interface; no Git library dependency, no bundled Git |
 | Front matter | Own line-preserving reader/writer (§6.3) | Not a general YAML parser; see the reasoning in §6.3 |
 
-Note on the editing surface: the technical template uses Monaco because it
-edits source code. Opera Incerta displays headings at **different sizes in the
-same document**, which a fixed-line-height code editor does not support well.
+Note on the editing surface: Monaco is the obvious alternative and is built for
+source code. Opera Incerta displays headings at **different sizes in the same
+document**, which a fixed-line-height code editor does not support well.
 CodeMirror 6 supports variable line heights and decoration-based rendering,
 and the spike confirmed every part of that in practice.
 
-### 5.5 Deviations from the functional template
+### 5.5 Where the platform decides
 
-**Status: Accepted.** These are the points where the ThothPad specification
-cannot be carried over unchanged, with the replacement decision.
+**Status: Accepted.** Several requirements have no platform-neutral answer:
+the same behaviour needs a different mechanism here than a native macOS
+application would use. These are the decisions, each stated once and referenced
+from the section that owns it.
 
-| ThothPad (Swift/AppKit) | Opera Incerta (Electron/Angular) |
+| Concern | Decision |
 | --- | --- |
-| `NSTextView` editor | Editor adapter over a web text-editing component (§5.4) |
-| `NSFilePresenter` + `DispatchSource` watching | Main-process watcher with debouncing and coalescing (§10.6) |
-| `FSEventStream` for the Git repository | Same main-process watcher, scoped to the repository root, with the `.git` filter preserved (§12) |
-| `UserDefaults` / `@AppStorage` | One versioned JSON preference record in the Electron user-data directory (§13) |
-| macOS Keychain | Electron `safeStorage` (§5.3) |
-| SF Symbols | Locally packaged, hash-pinned SVG icons with documented license |
-| App Sandbox disabled to run `git` | Electron sandboxed renderer; `git` runs in the main process only |
-| Security-scoped bookmarks not needed | Not applicable; recent projects store plain paths |
-| Swift Packages per module | pnpm workspace packages per module |
-| Swift Testing + XCUITest | Vitest plus a packaged Electron smoke test |
-| iPadOS/iOS as a later target | Not a goal (§3); Windows and Linux parity instead |
-| German as the base language, source strings as keys | English as the base language, symbolic keys, English/German catalogues (§14) |
+| Text editing surface | An editor adapter over a web text-editing component (§5.4) |
+| Watching the library | One main-process watcher with debouncing and coalescing (§10.6) |
+| Watching the repository | The same watcher, scoped to the repository root, with the `.git` filter (§12) |
+| Preferences | One versioned JSON record in the Electron user-data directory (§13) |
+| Secrets | Electron `safeStorage`, never a plain-text preference (§5.3) |
+| Icons | Locally packaged, hash-pinned SVG with documented license — no icon font, no remote fetch |
+| Running `git` | The renderer stays sandboxed; `git` runs in the main process only (§5.3) |
+| Recent projects | Plain paths in the installation-local record (§7.2) |
+| Modules | pnpm workspace packages, one per module (§5.2, §15) |
+| Tests | Vitest plus a packaged Electron smoke test (`TESTING.md`) |
 
 ## 6. Domain model
 
@@ -384,8 +381,8 @@ namespace, the application would silently adopt a foreign `status` as its
 workflow state and write its own meaning back into it — a data error that no
 round-trip rule can catch, because nothing is lost, only reinterpreted.
 
-The functional template left this open because introducing a namespace would
-have changed the format of every file already written. This project has no
+A namespace is cheap here and expensive later: introducing one once files exist
+changes the format of every file already written. This project starts with no
 files, so the namespace is adopted from the first release and there is no
 migration path to build, now or later.
 
@@ -466,8 +463,10 @@ the sheet title, a silent data error.
 verbatim in their original relative order. The round trip MUST be idempotent: saving twice
 produces the same bytes as saving once.
 
-This rule exists because the functional template lost every foreign key on the
-first save until the defect was found. It is covered by mandatory tests
+This rule exists because the obvious implementation loses every foreign key on
+the first save: a reader that ignores unknown keys, paired with a writer that
+rebuilds the block from the known fields, deletes them **silently** — nothing
+is mangled, so nothing looks wrong. It is covered by mandatory tests
 (`TESTING.md` §2.2).
 
 ### 6.4 Display names and explicit order
@@ -803,8 +802,8 @@ mixed tool area, where any content name would eventually be wrong).
 MUST NOT be used for the right-hand region: once AI, outline, and snapshots
 live there too, it would describe one of four contents.
 
-Documentation and code identifiers are both English (§14). Where the
-functional template used German region names, the mapping above is normative.
+Documentation and code identifiers are both English (§14), and the mapping
+above is normative wherever a region is named.
 
 ### 8.2 Zones and column widths
 
@@ -858,10 +857,11 @@ deliberately narrow so the editor remains the dominant column.
 **Every panel has a header, and every header is the same shared component.**
 Hand-built headers are a defect, not a matter of taste.
 
-Reason from the functional template: while each panel built its own header, the
-height depended on the *content* — a segmented control is taller than a text, a
-bordered button taller than an icon button — so the separators of the columns
-sat at different heights and the window looked unfinished.
+Reason: when each panel builds its own header, the height depends on the
+*content* — a segmented control is taller than a text, a bordered button taller
+than an icon button — so the separators of the columns sit at different heights
+and the window looks unfinished. This has been built the other way round and
+looked exactly like that.
 
 The shared component excludes that structurally:
 
@@ -1133,11 +1133,10 @@ about elements or key events.
 **Status: Accepted.**
 
 Heading level is a property of the **whole paragraph** (the line), never a
-character inside the text flow. The functional template first implemented
-headings as an inline attachment (a movable character, like an emoji) and found
-that wrong in practice: such a character can be moved accidentally and behaves
-like a text snippet rather than a format. That approach is rejected and MUST
-NOT return.
+character inside the text flow. The alternative — an inline attachment, a
+movable character like an emoji — was implemented once and proved wrong in
+practice: such a character can be moved accidentally and behaves like a text
+snippet rather than a format. That approach is rejected and MUST NOT return.
 
 The author types a dot command at the start of a line (`.h1` … `.h6`). Once
 recognized, the command text disappears completely from the line, leaving two
@@ -1304,9 +1303,9 @@ only when the display is on.
 **Height: show everything, but at most 10 lines**, then scroll. Each block is
 as tall as its content up to that cap.
 
-**Compute with measured text height, not font metrics.** Two attempts in the
-functional template failed — first a guessed constant, then a measured font
-metric — because the layout engine applies its own line spacing. The rendered
+**Compute with measured text height, not font metrics.** Two attempts at this
+have failed — first a guessed constant, then a measured font metric — because
+the layout engine applies its own line spacing. The rendered
 height MUST be measured and the cap applied **proportionally**. The rule itself
 lives in a pure, unit-tested function, not in the component.
 
@@ -1468,7 +1467,10 @@ manuscript behind, and a failed write removes its temporary file.
 
 ## 12. Source control
 
-**Status: Accepted for the read-only and staged-commit slice.**
+**Status: Accepted and built** — reading, staging, committing, pushing,
+fetching, pulling, merging with conflict resolution, branches, the upstream,
+amending, and `.gitignore`. Creating a repository and the identity question
+below are specified but not built.
 
 Git is the synchronization mechanism (§5.1). Source control is a view in the
 Navigator, implemented as a module (§15) over the **locally installed `git`
@@ -1685,6 +1687,31 @@ where it is and only leaves the change list.
 the project but not to the manuscript, and the editor's rules about headings and
 front matter have nothing to say about a list of patterns.
 
+**Creating a repository.** *Status: specified, not built.* A project without a
+repository is a normal starting point, and the panel says so plainly today
+while offering nothing. It MUST offer to create one: `git init` with `main` as
+the initial branch in the **project root**, followed by an ordinary status
+read. Nothing is committed and nothing is staged by that step — what goes into
+the first commit stays the author's decision.
+
+**The identity git needs.** *Status: decided, not built.* `git commit` fails
+with "Author identity unknown" when `user.name` and `user.email` are unset. For
+a writing application that is the **normal case**, not an edge case: an author
+who has never used git has no global configuration, so creating and staging
+work and only the first commit fails, with a message written for programmers.
+
+- On creating a repository the application checks whether a **global** identity
+  exists. If it does, nothing is asked.
+- If it does not, it asks for a name and an e-mail address and writes them
+  **repository-locally**, into that project's `.git/config`. The author's
+  global configuration is never touched — the same line this application draws
+  everywhere: nothing outside the project is changed.
+- Declining the question still creates the repository. It is useful without an
+  identity, and the answer can be supplied later; a settings entry MUST offer
+  that, otherwise the refusal is a dead end.
+- The e-mail address is written into every commit and travels with the
+  manuscript to whatever remote it is pushed to. The question says so.
+
 **Not goals of this stage:** rebasing, stashing, and anything that rewrites
 more than the last commit.
 
@@ -1751,10 +1778,9 @@ of this.
 ### 14.1 Model
 
 Base language is **English**. The first release ships English and German
-interface catalogues. This differs from the functional template, whose base
-language is German with source strings as keys; the catalogue approach is
-chosen here because the renderer is Angular and because symbolic keys survive
-text changes without producing translation debris.
+interface catalogues. Keys are **symbolic**, never the source text: a
+catalogue keyed by English sentences produces a new key — and translation
+debris — every time the wording is polished.
 
 Keys are **symbolic and stable** (for example `panel.outline.title`), never the
 literal interface text. Plurals MUST use the platform plural rules, never a
@@ -1898,9 +1924,8 @@ original fixtures:
 
 ## 18. Roadmap after the MVP
 
-**Status: Draft — order and scope open.** Derived from the functional
-template's open work; each item needs its own round and its own specification
-update before implementation.
+**Status: Draft — order and scope open.** Each item needs its own round and its
+own specification update before implementation.
 
 **Phase 2 — editing comfort**
 
@@ -1936,6 +1961,22 @@ update before implementation.
   required), and opening a file from the change list (only `.md`, resolved
   against the repository root).
 - Recently edited sheets, per project rather than globally.
+- **Search.** Two separate features that are often confused: finding inside the
+  open sheet (the editor's own find, scoped to one document), and searching the
+  library (across every sheet, with the front matter fields as filters). Both
+  read the files; the local index of Phase 4 is a later performance cache and
+  never the source of truth. Neither is specified in detail yet: what is
+  searched (body only, or metadata too), how results are presented, and whether
+  a search is a temporary list or a saved view are open.
+- **Saved views (filters and favourites).** The domain model names them (§6.1)
+  and nothing implements them. A saved view is a query over the library, never
+  a second copy of the data: what it stores, where it is kept — shared in
+  `.opera-incerta/` or installation-local — and how it appears next to the
+  project tree are open.
+- **Navigation history.** Back and forward through the sheets that were opened,
+  as an IDE offers for files. Cheap to add and easy to get wrong: the history
+  is per project, and a sheet that has been deleted is skipped rather than
+  reopened.
 - Markdown import as a module, including collision and folder-structure rules.
 - Highlighting of special files (project governance and agent-instruction
   files) in the tree and sheet list. This requires a **deliberate scanner
@@ -1948,6 +1989,9 @@ update before implementation.
 **Phase 4 — extension**
 
 - Export modules (PDF, DOCX, EPUB), each independently testable.
+- **Reading the text aloud**, as a module over the platform's speech synthesis:
+  the manuscript is read, never sent anywhere, and the module is absent rather
+  than degraded where no voice is installed.
 - The AI assistant panel over the provider interface (§15).
 - A terminal panel in the bottom region, working directory at the project root.
 - Snapshots with a shared difference view (§11).
@@ -1976,15 +2020,15 @@ depends on them:
 
 ## 20. Sources consulted
 
-Requirements and lessons in this document derive from:
+Requirements and lessons in this document derive from the author's own earlier
+work on a native macOS writing application — re-derived as platform-neutral
+requirements, never transliterated (§4) — and from public documentation of the
+platform technologies named in §5. The engineering measures adopted from that
+earlier work are recorded in `CONVENTIONS.md`.
 
-- `thothpad/SPEC.md`, `thothpad/AGENTS.md`, `thothpad/TODO.md`, and
-  `thothpad/README.md` — the functional template, including its recorded
-  defects and their causes;
-- `c4ml/AGENTS.md`, `c4ml/SPEC.md`, `c4ml/TESTING.md`, `c4ml/SETTINGS.md`,
-  `c4ml/PLATFORMS.md`, `c4ml/PROJECTS.md`, and `c4ml/DEPENDENCIES.md` — the
-  technical template, whose measures are extracted in `CONVENTIONS.md`; and
-- public documentation of the platform technologies named in §5.
+**This document is self-contained.** Every requirement, decision and recorded
+defect stands here; no other repository has to be consulted to build, verify or
+change the product.
 
 No third-party source code, grammar, documentation, fixture, or visual asset
 was copied into this specification.

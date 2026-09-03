@@ -57,7 +57,7 @@ interface OpenProject {
  *
  * Injected rather than imported, because the only implementation that really
  * reaches the trash is Electron's, and this class must stay testable without
- * an Electron process — the same seam the functional template uses. A session
+ * an Electron process. A session
  * that was never given one refuses to delete instead of falling back to
  * something irreversible.
  */

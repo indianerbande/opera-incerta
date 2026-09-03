@@ -110,7 +110,7 @@ export class FrontMatterBlockComponent {
   /**
    * The height the text actually rendered at — what the layout engine
    * produced, which is the only number the cap may be applied to. A guessed
-   * constant and a font metric both failed in the functional template.
+   * constant and a font metric have both been tried, and both failed.
    */
   protected readonly measured = signal(0);
   private readonly measure = viewChild<ElementRef<HTMLElement>>('measure');

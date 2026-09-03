@@ -28,7 +28,7 @@ the built artifacts. §2.4, §2.6, §2.9, and §2.10 await the code they cover.
 | Type safety | `tsc` over source and test projects | Test code is type-checked too |
 | Packaging | Electron Forge per host platform | Host-native; see `SPEC.md` §5.1 |
 
-Planned root scripts, mirroring the technical template's gate structure:
+Planned root scripts, one per gate:
 
 - `build` — build every workspace package;
 - `typecheck` — build sources and type-check test projects;

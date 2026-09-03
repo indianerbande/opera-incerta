@@ -3,10 +3,10 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 /**
  * The header of every panel. SPEC.md §8.3.
  *
- * **Hand-built headers are a defect, not a matter of taste.** In the
- * functional template each panel built its own, so the height followed the
- * content — a segmented control is taller than a text — and the separators of
- * the columns ended up at different heights, which made the window look
+ * **Hand-built headers are a defect, not a matter of taste.** Built the other
+ * way round — each panel with its own header — the height follows the content,
+ * a segmented control being taller than a text, and the separators of the
+ * columns end up at different heights, which makes the window look
  * unfinished.
  *
  * Two things make that impossible here: the height is fixed rather than

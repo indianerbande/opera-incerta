@@ -17,8 +17,13 @@ projects, **722 tests**, plus the desktop and asset checks.
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
-open are the parts of §12 and §15 that this stage deliberately excludes, and
-the decision in §2.1.
+open are the two source-control items below (creating a repository, and the git
+identity), the parts of §15 that this stage deliberately excludes, and the
+decision in §2.1.
+
+The documents are **self-contained** since 2026-09-03: every requirement,
+measure and recorded defect stands in this repository, and no other repository
+has to be consulted to build, verify or change the product.
 
 ---
 
@@ -36,7 +41,17 @@ the decision in §2.1.
    configuration so a clean checkout works in one step, then record it in
    `PLATFORMS.md`.
 
-4. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+4. **Creating a repository for a project that has none** (`SPEC.md` §12). The
+   panel says the project is not inside a Git repository and offers nothing.
+   `git init -b main` in the project root plus an ordinary status read is the
+   whole step; nothing is staged or committed by it.
+5. **The identity git needs** (`SPEC.md` §12), the round after that. Without
+   `user.name` and `user.email` the first commit fails with a message written
+   for programmers, and for an author who has never used git that is the normal
+   case. Ask only when no **global** identity exists, write the answer
+   repository-locally, never touch the global configuration, and offer a place
+   to supply it later for someone who declines.
+6. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Recorded
@@ -84,6 +99,34 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   region**; deciding *within* a region — keeping half of each version — would
   need a merge editor, and is a separate question.
 - **`PLATFORMS.md` and the native build matrix** — written with the first
-  packaging round (`CONVENTIONS.md` C-P5).
+  packaging round (`CONVENTIONS.md` C-P5, C-P6). What that round has to
+  establish, so that it does not have to be rediscovered:
+  - **Host-native, one clean checkout per host.** No cross-compilation is
+    claimed. Install with the lockfile under the pinned Node 24 *before* the
+    release gate: native maker helpers compiled under a different runtime
+    produce an ABI mismatch that only shows up at packaging time, long after
+    the source gate was green.
+  - **One fixed sequence per host**: report the runtime versions, install,
+    `check`, `desktop:smoke`, `desktop:make`, verify the artifact — and write a
+    hash and size manifest per platform and architecture as the evidence.
+  - **macOS**: `.app` plus DMG and ZIP. Development builds are ad-hoc signed;
+    a release needs Developer ID signing and notarization. DMG creation may
+    need the Xcode command line tools.
+  - **Windows**: an application directory plus a Squirrel installer, built from
+    native PowerShell or the command prompt, never from WSL; a release needs
+    code signing. Node 24 belongs in an extracted ZIP invoked by full path —
+    the MSI installers of different major versions replace one another and are
+    useless for a side-by-side build runtime.
+  - **Debian/Ubuntu**: a DEB, deliberately not a portable archive. Chromium's
+    sandbox helper must be `root:root` with mode `4755`, which only a package
+    manager can establish on systems that restrict unprivileged user
+    namespaces. The sandbox is never disabled and the user is never asked to
+    repair application files by hand. The build host needs `sudo`, `dpkg` and
+    `fakeroot`.
+  - **The manual post-install pass**, on a machine with no Node installed:
+    install, launch, open/edit/save/close/reopen, export, exercise source
+    control, confirm it works with no network, and uninstall without leaving
+    project data behind. An artifact built on one operating system is evidence
+    for that operating system only.
 - **Import, export, AI provider, snapshots** — each needs its own decision
   round (`SPEC.md` §15, §19).

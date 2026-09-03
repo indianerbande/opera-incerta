@@ -75,21 +75,12 @@ the installed `electron` package once — see [`TODO.md`](TODO.md) §1.7.
 - [SPEC.md](SPEC.md) — normative product behavior and architectural boundaries
 - [TESTING.md](TESTING.md) — the evidence required to claim that behavior works
 - [AGENTS.md](AGENTS.md) — working process, invariants, and definition of done
-- [CONVENTIONS.md](CONVENTIONS.md) — design and handling measures inherited from
-  the reference repositories, with their sources
+- [CONVENTIONS.md](CONVENTIONS.md) — the design and handling measures this
+  project works by
 - [DEPENDENCIES.md](DEPENDENCIES.md) — dependency purpose, licensing, and
   replacement boundaries
 - [TODO.md](TODO.md) — open work only
 - [DONE.md](DONE.md) — completed work, with reasoning and lessons
-
-## Templates
-
-`thothpad` is the functional template: a native macOS application by the same
-author whose specification defines *what* Opera Incerta must do. `c4ml`
-(C4thedral) is the technical template: its repository layout, process
-boundaries, and documentation discipline define *how* this project is built.
-Neither is copied; see [SPEC.md](SPEC.md) §4 and
-[CONVENTIONS.md](CONVENTIONS.md).
 
 ## License
 

@@ -1,7 +1,7 @@
 /**
  * Coordination for refreshes and writes. SPEC.md §10.6 and §12.
  *
- * Two rules from the functional template, each paid for with a defect:
+ * Two rules, each paid for with a defect:
  *
  * - **Separate guards for reading and writing.** One shared "busy" flag lets a
  *   background refresh swallow a user action, which presents to the user as

@@ -155,8 +155,8 @@ describe('withHeadingLevel', () => {
   });
 
   it('does not carry a level into the next line', () => {
-    // The rule the functional template got wrong: pressing Return after a
-    // heading must start an ordinary paragraph (SPEC.md §10.2).
+    // The rule an earlier implementation of this idea got wrong: pressing
+    // Return after a heading must start an ordinary paragraph (SPEC.md §10.2).
     const heading = withHeadingLevel(plain, 2);
     const next: DisplayLine = {
       level: null,

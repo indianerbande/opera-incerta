@@ -1,8 +1,8 @@
 /**
  * Height of the front matter blocks in the editor. SPEC.md §10.4.
  *
- * Two attempts in the functional template computed this from font metrics and
- * both failed, because the layout engine applies its own line spacing. The
+ * Two attempts computed this from font metrics and both failed, because the
+ * layout engine applies its own line spacing. The
  * rendered height is therefore measured by the view and capped here
  * proportionally, which is independent of any font (CONVENTIONS.md C-U5).
  */

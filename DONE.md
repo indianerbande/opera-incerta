@@ -6,6 +6,67 @@ documents").
 
 ---
 
+## 2026-09-03 — the documents stand on their own
+
+**What changed.** This repository no longer refers to the two projects it drew
+on: a native macOS writing application for *what* the product does, and a
+TypeScript monorepo of the same shape for *how* it is built. Both were the
+author's own work, both were about to be deleted, and every document here cited
+them — `CONVENTIONS.md` alone carried 126 source citations, one per measure.
+
+**What was done about it, in order.** First the gap check, because after the
+deletion a gap can no longer be closed: the functional specification was read
+end to end against `SPEC.md`, section by section, together with its open-work
+list and the engineering documents. Nearly everything was already here, and in
+several places in a better form than the original. Six things were not:
+
+- **Creating a repository** for a project that has none. The panel says the
+  project is not inside a Git repository and offers nothing to do about it.
+- **The identity git needs.** Without `user.name` and `user.email` the first
+  commit fails with a message written for programmers — and for an author who
+  has never used git, that is the normal case, not an edge case. The decision
+  is recorded with it: ask only when no global identity exists, write the
+  answer repository-locally, never touch the author's global configuration.
+- **Search** — finding inside the open sheet and searching the library are two
+  features, and neither was written down.
+- **Saved views (filters and favourites)** — named in the domain model since
+  the first draft, specified nowhere.
+- **Navigation history** — back and forward through the sheets that were open.
+- **Reading the text aloud**, as a module.
+
+All six are now in `SPEC.md`; the first two are also in `TODO.md` as the next
+rounds, because they are small and their absence is felt. The concrete native
+build contract — host-native packaging, the ABI trap when maker helpers are
+built under a different Node, why Linux needs a DEB rather than an archive, and
+the manual post-install pass — went into the `PLATFORMS.md` task, which would
+otherwise have had to rediscover it.
+
+**Then the references went.** Every citation was removed and every sentence
+that leaned on one was rewritten to stand alone. That is more than deleting
+text: a rule like "hand-built headers are a defect" was carried by *where it
+came from*, and now has to carry itself, so what it says is what was seen —
+each panel building its own header makes the separators sit at different
+heights. Lessons kept their weight and lost their footnote. `CONVENTIONS.md`
+was reflowed where the removal left ragged paragraphs.
+
+**What was not done.** `DONE.md` is a log and was not rewritten; only the three
+phrases that pointed outward were reworded. And no functionality was built this
+round — the task was to make sure nothing is lost, not to build what was found.
+
+**Verification.** `pnpm run check` green: **722 tests**. Beyond the gate, two
+mechanical checks: no occurrence of either project name, or of "functional
+template" / "technical template", survives anywhere in the repository outside
+build output; and every `§`-reference in `SPEC.md` and every `C-` measure id
+used in any document still resolves. The `CONVENTIONS.md` rewrap was checked to
+be 80 columns in characters, not bytes — em dashes are three bytes and made a
+byte count lie.
+
+**Lesson.** The order matters and is not obvious: check for gaps *first*, while
+the source is still there to check against. Removing the references is the easy
+half and feels like the whole task; it is the half that cannot lose anything.
+
+---
+
 ## 2026-09-03 — amending the last commit, and keeping files out of the repository
 
 **What exists.** The last commit can be replaced: whatever is staged goes into
@@ -668,8 +729,8 @@ insertion line — because this drop is an into and not a between.
 **What exists.** A sheet or a group is deleted from its context menu, and
 deleting means moving to the **desktop trash** (`SPEC.md` §6.7). The
 application never removes a file itself: without a trash the operation is
-refused rather than falling back to something irreversible. This follows the
-functional template, which uses `FileManager.trashItem` and never `removeItem`.
+refused rather than falling back to something irreversible — the same rule the
+author's earlier writing application held to.
 
 **Why the system trash and not one of our own.** It is the place the author
 already knows how to restore from, and under Git the manuscript has a second,
@@ -1322,8 +1383,8 @@ spike ran (`CONVENTIONS.md` C-T14) and were not touched afterwards.
 
 **Decision.** CodeMirror 6 is accepted as the editing surface (`SPEC.md` §5.4)
 behind an Opera-Incerta-owned `EditorAdapter` interface, with the full
-dependency report in `DEPENDENCIES.md`. Monaco, which the technical template
-uses, was ruled out on the criterion that mattered most: it assumes a uniform
+dependency report in `DEPENDENCIES.md`. Monaco was ruled out on the criterion
+that mattered most: it assumes a uniform
 line height, and this product shows H1 at twice the body size in the same
 document.
 
@@ -1357,8 +1418,7 @@ and the spike stays as evidence until that round carries its own tests.
 
 ## 2026-09-01 — licensed under Apache-2.0
 
-**Decision.** Opera Incerta is licensed under the Apache License 2.0, the same
-license as the technical template.
+**Decision.** Opera Incerta is licensed under the Apache License 2.0.
 
 **What changed.** `LICENSE` at the repository root, and a `license` field in
 all seven manifests. `SPEC.md` §1.1 and §5.1 record it, `SPEC.md` §19 no longer

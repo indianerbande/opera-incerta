@@ -137,7 +137,7 @@ obligations, and those notices ship with the application
   a real rendering engine on 2026-09-01. Run it with `pnpm run spike:editor`;
   the measurements are recorded in `spikes/editor-codemirror/README.md`.
 
-**Why not Monaco**, which the technical template uses: Monaco is built for
+**Why not Monaco**, the obvious alternative: Monaco is built for
 source code and assumes a uniform line height. Opera Incerta shows H1 at 45 px
 next to body text at 22.5 px in the same document, which is the core of its
 display model rather than a decoration on top of it.
@@ -150,7 +150,7 @@ display model rather than a decoration on top of it.
   menus, dialogs, and a Chromium renderer with a process boundary that can be
   locked down.
 - **Why external:** a cross-platform desktop runtime is not something this
-  project can own, and it is the stack the technical template already validates.
+  project can own, and this one is proven in a comparable application.
 - **License:** MIT (the bundled Chromium and Node.js carry their own licenses
   and notices, which ship with the application).
 - **Impact:** large. The runtime is roughly 300 MB unpacked per platform and is

@@ -1,43 +1,34 @@
 # Opera Incerta Agent Instructions
 
-Status: Draft 0.2 — workspace scaffold implemented, product not yet implemented
+Status: Draft 0.3 — the MVP of `SPEC.md` §17 is built and verified
 
-Date: 2026-09-01
+Date: 2026-09-03
 
 This file defines **how** work happens in this repository. `SPEC.md` defines
 **what** is built. `TESTING.md` defines the **evidence** required to claim that
-it works. `CONVENTIONS.md` records the design and handling measures inherited
-from the `c4ml` reference repository.
+it works. `CONVENTIONS.md` records the design and handling measures this
+project works by.
 
 ## Project status
 
-Opera Incerta is a young project. The pnpm workspace scaffold exists and its gate
-is green; the product itself is not implemented. There is no Git repository yet
-and nothing has been committed.
+Opera Incerta is a young project with a working product. Six workspace projects
+(`packages/core`, `packages/desktop-contract`, `packages/project-node`,
+`packages/git-node`, `apps/workbench`, `apps/desktop`), a sandboxed Electron
+shell, the versioned preload bridge with runtime guards, the workbench regions,
+the library, the editor with its display model, and source control up to
+merging and amending are built, tested and committed.
 
-Implemented: the workspace with six projects (`packages/core`,
-`packages/desktop-contract`, `packages/project-node`, `packages/git-node`,
-`apps/workbench`, `apps/desktop`), a sandboxed Electron shell that launches and
-renders, the versioned preload bridge with runtime guards, the region skeleton
-of the workbench, and the first fully specified pure rules. The two Node
-adapters declare their ports and carry no implementation yet.
-See `DONE.md` for what exists and `TODO.md` for what is open.
+`DONE.md` is the record of what exists and why; `TODO.md` is what is open.
+Neither is a summary — read the one that answers the question at hand.
 
-The project has two explicit templates and neither is a codebase to copy:
-
-- **`thothpad` — the functional template.** A native macOS application
-  (Swift, SwiftUI/AppKit, Xcode) for collecting and writing texts and turning
-  them into a structured book. Its `SPEC.md`, `TODO.md`, and `DONE.md` define
-  *what* Opera Incerta must do. Its Swift/AppKit implementation is **not**
-  portable and MUST NOT be transliterated. Every ThothPad behavior is to be
-  re-derived as a platform-neutral requirement and then implemented natively
-  in the Electron/Angular stack.
-- **`c4ml` (C4thedral) — the technical template.** An Apache-2.0
-  pnpm/TypeScript monorepo delivering a local Electron desktop workbench with
-  an Angular renderer, a portable runtime-neutral core, and Node.js adapters.
-  Its repository layout, process boundaries, settings contract, platform build
-  contract, documentation discipline, and testing gates are the accepted
-  pattern for this project.
+Part of what this project knows comes from the author's earlier work — a native
+macOS writing application, and a TypeScript monorepo of the same shape as this
+one. **Both have been read out into this repository**: the product requirements
+into `SPEC.md`, the engineering measures into `CONVENTIONS.md`, the evidence
+rules into `TESTING.md`. Neither is a codebase to copy, neither is available to
+consult, and nothing here may be written as though it were. If a requirement is
+not in these documents, it does not exist yet — decide it, record it, and then
+build it.
 
 Accepted so far: the product intent (below), the runtime stack (Electron shell,
 Node.js main process, Angular renderer, portable TypeScript core in a pnpm
@@ -145,8 +136,9 @@ change:
 Opera Incerta must be an original program, not a clone of an existing writing
 application.
 
-`thothpad` and `c4ml` are the user's own projects and are legitimate sources
-for requirements, decisions, and hard-won lessons. Everything else — Ulysses,
+The author's own earlier work is a legitimate source for requirements,
+decisions, and hard-won lessons, and it has been read into `SPEC.md`,
+`TESTING.md` and `CONVENTIONS.md` in full. Everything else — Ulysses,
 Scrivener, Obsidian, Typora, iA Writer, VS Code, JetBrains IDEs — is prior art
 studied only through public documentation and observable behavior.
 
@@ -238,9 +230,9 @@ Nothing completed stays in `TODO.md` — no ticked checkbox, no "done on …".
 For multi-stage work plans this applies per stage.
 
 New `DONE.md` entries go on **top** (newest first). The reason for this rule:
-in the functional template `TODO.md` had once been both lists at once and grew
-to over 1,200 lines, at which point the actual task list was unreadable. A task
-list is only worth as much as its likelihood of being read.
+a `TODO.md` that was both lists at once once grew past 1,200 lines, at which
+point the actual task list was unreadable. A task list is only worth as much as
+its likelihood of being read.
 
 ## Source and architecture guidance
 
