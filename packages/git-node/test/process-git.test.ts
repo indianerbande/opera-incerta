@@ -274,6 +274,44 @@ describe('against a real repository', () => {
       expect(await git.hasCommit(root)).toBe(true);
     });
   });
+  describe('amending the last commit', () => {
+    beforeEach(async () => {
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'the first message');
+    });
+
+    it('reads the message back, and reports none where there is no commit', async () => {
+      expect(await git.lastCommitMessage(root)).toBe('the first message');
+
+      const empty = await mkdtemp(join(tmpdir(), 'opera-incerta-empty-'));
+      await systemGitRunner.run(['init', '--initial-branch=main'], empty);
+      expect(await git.lastCommitMessage(empty)).toBeNull();
+      await rm(empty, { recursive: true, force: true });
+    });
+
+    it('replaces the message without adding a commit', async () => {
+      await git.amend(root, 'a better message');
+
+      expect(await git.lastCommitMessage(root)).toBe('a better message');
+      const count = await systemGitRunner.run(['rev-list', '--count', 'HEAD'], root);
+      expect(count.stdout.trim()).toBe('1');
+    });
+
+    it('takes what is staged into the commit that is already there', async () => {
+      await writeFile(join(root, 'b.md'), 'forgotten\n', 'utf8');
+      await git.stage(root, ['b.md']);
+
+      await git.amend(root, null);
+
+      // The message is kept, the file joins the commit, and there is still one.
+      expect(await git.lastCommitMessage(root)).toBe('the first message');
+      expect(await git.status(root)).toEqual([]);
+      const listed = await systemGitRunner.run(['ls-tree', '--name-only', 'HEAD'], root);
+      expect(listed.stdout).toContain('b.md');
+    });
+  });
+
   describe('branches', () => {
     beforeEach(async () => {
       await writeFile(join(root, 'a.md'), 'first\n', 'utf8');

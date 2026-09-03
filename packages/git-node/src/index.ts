@@ -95,6 +95,16 @@ export interface GitService {
    */
   showAtHead(repositoryRoot: string, path: string): Promise<string | null>;
   commit(repositoryRoot: string, message: string): Promise<void>;
+  /** The message of the last commit, or null when there is none. */
+  lastCommitMessage(repositoryRoot: string): Promise<string | null>;
+  /**
+   * Replaces the last commit. SPEC.md §12.
+   *
+   * Offered only for a commit that has not been pushed: amending rewrites
+   * history, and a pushed commit could only be published again by force, which
+   * this application does not do.
+   */
+  amend(repositoryRoot: string, message: string | null): Promise<void>;
   push(repositoryRoot: string): Promise<void>;
   /**
    * Where the branch tracks, and how far apart the two are. SPEC.md §12.

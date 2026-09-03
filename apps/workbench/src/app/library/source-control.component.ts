@@ -77,6 +77,10 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
           </div>
         }
 
+        <div class="ignore-row">
+          <button type="button" (click)="editIgnore.emit()">Ignored files…</button>
+        </div>
+
         <div class="changes-header">
           <input
             type="checkbox"
@@ -101,6 +105,17 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
               <span class="status" [title]="statusTitle(entry)">{{ statusCode(entry) }}</span>
               <span class="name">{{ fileName(entry.path) }}</span>
               <span class="directory">{{ directory(entry.path) }}</span>
+              @if (isUntracked(entry)) {
+                <button
+                  type="button"
+                  class="ignore"
+                  [attr.aria-label]="'Ignore ' + entry.path"
+                  title="Add to .gitignore"
+                  (click)="ignore.emit(entry)"
+                >
+                  ⊘
+                </button>
+              }
               @if (isConflicted(entry)) {
                 <button
                   type="button"
@@ -149,6 +164,9 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
         }
 
         <div class="actions">
+          @if (canAmend()) {
+            <button type="button" class="amend" (click)="amend.emit()">Amend last commit…</button>
+          }
           <button type="button" [disabled]="!canCommit()" (click)="commit.emit()">Commit</button>
           <button type="button" [disabled]="!canCommit()" (click)="commitAndPush.emit()">
             Commit and push
@@ -158,10 +176,30 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
     }
   `,
   styles: `
+    .ignore-row {
+      display: flex;
+      justify-content: flex-end;
+      padding-bottom: 6px;
+    }
+    .ignore-row button {
+      padding: 2px 8px;
+      border: 1px solid rgba(128, 128, 128, 0.45);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: default;
+    }
+    .change .ignore,
     .change .show-diff,
     .change .discard {
+      overflow: hidden;
+      /* Out of the way until the row is pointed at, and taking no width with
+         them: in a narrow column they would otherwise shorten the file name
+         for controls nobody can see. */
       flex: none;
-      padding: 0 4px;
+      width: 0;
+      padding: 0;
       border: 0;
       border-radius: 4px;
       background: none;
@@ -170,11 +208,15 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
       cursor: default;
       opacity: 0;
     }
+    .change:hover .ignore,
     .change:hover .show-diff,
     .change:hover .discard,
+    .change .ignore:focus-visible,
     .change .show-diff:focus-visible,
     .change .discard:focus-visible {
       /* Destructive, so it does not sit under the pointer by accident. */
+      width: auto;
+      padding: 0 4px;
       opacity: 1;
     }
     .change .discard:hover {
@@ -393,6 +435,7 @@ export class SourceControlComponent {
   readonly canMerge = input(false);
   readonly merging = input(false);
   readonly canPublish = input(false);
+  readonly canAmend = input(false);
   readonly branch = input<string | null>(null);
 
   readonly canCommit = input.required<boolean>();
@@ -410,6 +453,10 @@ export class SourceControlComponent {
   readonly abortMerge = output<void>();
   readonly publish = output<void>();
   readonly showBranches = output<void>();
+  readonly amend = output<void>();
+  readonly editIgnore = output<void>();
+  /** Asks to add one untracked file to `.gitignore`. SPEC.md §12. */
+  readonly ignore = output<GitFileStatus>();
   /** Asks to decide one file's conflicts; the shell shows the resolver. */
   readonly resolve = output<GitFileStatus>();
   readonly toggleAll = output<void>();
@@ -419,6 +466,11 @@ export class SourceControlComponent {
 
   protected staged(entry: GitFileStatus): boolean {
     return entry.groups.includes('staged');
+  }
+
+  /** Ignoring a file only means anything while git is not yet tracking it. */
+  protected isUntracked(entry: GitFileStatus): boolean {
+    return entry.groups.includes('untracked');
   }
 
   /** A conflict needs a decision, not a checkbox. SPEC.md §12. */

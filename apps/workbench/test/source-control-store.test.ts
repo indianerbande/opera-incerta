@@ -30,6 +30,9 @@ function fakeBridge(
     merge?: () => BridgeResult<null>;
     branches?: () => BridgeResult<readonly { name: string; current: boolean }[]>;
     branchAction?: (name: string) => BridgeResult<null>;
+    amend?: (request: { text: string }) => BridgeResult<null>;
+    readIgnore?: () => BridgeResult<string>;
+    writeIgnore?: (request: { text: string }) => BridgeResult<null>;
     resolve?: (request: { path: string; text: string }) => BridgeResult<null>;
   } = {},
 ): OperaIncertaBridge & Recorder {
@@ -43,7 +46,7 @@ function fakeBridge(
         `${staged.has('b.md') ? 'A ' : '??'} b.md`,
       ),
     );
-    return { ok: true, value: { root: '/repo', entries, tracking: null, merging: false, branch: null, remote: null } };
+    return { ok: true, value: { root: '/repo', entries, tracking: null, merging: false, hasCommit: false, branch: null, remote: null } };
   };
 
   return {
@@ -57,6 +60,9 @@ function fakeBridge(
     gitPull: async () => script.pull?.() ?? { ok: true, value: null },
     gitMerge: async () => script.merge?.() ?? { ok: true, value: null },
     gitBranches: async () => script.branches?.() ?? { ok: true, value: [] },
+    gitAmend: async (request) => script.amend?.(request) ?? { ok: true, value: null },
+    gitReadIgnore: async () => script.readIgnore?.() ?? { ok: true, value: '' },
+    gitWriteIgnore: async (request) => script.writeIgnore?.(request) ?? { ok: true, value: null },
     gitCreateBranch: async (request) =>
       script.branchAction?.(request.name) ?? { ok: true, value: null },
     gitSwitchBranch: async (request) =>
@@ -99,7 +105,7 @@ describe('reading status', () => {
 
   it('treats a project outside a repository as a state, not a failure', async () => {
     const store = new SourceControlStore(
-      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null, merging: false, branch: null, remote: null } }) }),
+      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null, merging: false, hasCommit: false, branch: null, remote: null } }) }),
     );
     await store.refresh();
 
@@ -257,7 +263,7 @@ describe('without a shell', () => {
   });
 
   it('does nothing at all when there is nothing to stage', async () => {
-    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null, merging: false, branch: null, remote: null } }) });
+    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null, merging: false, hasCommit: false, branch: null, remote: null } }) });
     const store = new SourceControlStore(bridge);
     await store.refresh();
     await store.toggleAll();
@@ -275,7 +281,7 @@ describe('watching the repository', () => {
       fakeBridge({
         status: () => {
           reads += 1;
-          return { ok: true, value: { root: '/book', entries: [], tracking: null, merging: false, branch: null, remote: null } };
+          return { ok: true, value: { root: '/book', entries: [], tracking: null, merging: false, hasCommit: false, branch: null, remote: null } };
         },
         onRepositoryChange: (each) => {
           listener = each;
@@ -372,7 +378,7 @@ describe('showing what changed', () => {
 
 describe('a branch that tracks a remote', () => {
   function tracking(behind: number, ahead: number): GitReport {
-    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead }, merging: false, branch: 'main', remote: null };
+    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead }, merging: false, hasCommit: true, branch: 'main', remote: null };
   }
 
   it('offers pulling only when there is something to pull', async () => {
@@ -438,6 +444,7 @@ describe('an unfinished merge', () => {
       entries: parseGitStatus(porcelain('UU a.md', ' M b.md')),
       tracking: { upstream: 'origin/main', behind: 1, ahead: 1 },
       merging: true,
+      hasCommit: true,
       branch: 'main',
       remote: { name: 'origin', url: '/tmp/origin.git' },
     };
@@ -462,6 +469,7 @@ describe('an unfinished merge', () => {
             entries: [],
             tracking: { upstream: 'origin/main', behind: 2, ahead: 0 },
             merging: false,
+            hasCommit: true,
             branch: 'main',
             remote: null,
           },
@@ -569,5 +577,103 @@ describe('branches', () => {
     await store.deleteBranch('draft');
 
     expect(store.failure()).toBe("error: the branch 'draft' is not fully merged");
+  });
+});
+
+describe('amending, and ignoring', () => {
+  function report(over: Partial<GitReport>): GitReport {
+    return {
+      root: '/repo',
+      entries: [],
+      tracking: null,
+      merging: false,
+      hasCommit: true,
+      branch: 'main',
+      remote: null,
+      ...over,
+    };
+  }
+
+  it('offers amending only for a commit that has not been pushed', async () => {
+    const unpublished = new SourceControlStore(fakeBridge({ status: () => ({ ok: true, value: report({}) }) }));
+    await unpublished.refresh();
+    expect(unpublished.canAmend()).toBe(true);
+
+    const pushed = new SourceControlStore(
+      fakeBridge({
+        status: () => ({
+          ok: true,
+          value: report({ tracking: { upstream: 'origin/main', behind: 0, ahead: 0 } }),
+        }),
+      }),
+    );
+    await pushed.refresh();
+    // Rewriting it could only be published again by force, which is not on
+    // offer.
+    expect(pushed.canAmend()).toBe(false);
+
+    const ahead = new SourceControlStore(
+      fakeBridge({
+        status: () => ({
+          ok: true,
+          value: report({ tracking: { upstream: 'origin/main', behind: 0, ahead: 2 } }),
+        }),
+      }),
+    );
+    await ahead.refresh();
+    expect(ahead.canAmend()).toBe(true);
+  });
+
+  it('offers nothing to amend during a merge, or without a commit', async () => {
+    const merging = new SourceControlStore(
+      fakeBridge({ status: () => ({ ok: true, value: report({ merging: true }) }) }),
+    );
+    await merging.refresh();
+    expect(merging.canAmend()).toBe(false);
+
+    const fresh = new SourceControlStore(
+      fakeBridge({ status: () => ({ ok: true, value: report({ hasCommit: false }) }) }),
+    );
+    await fresh.refresh();
+    expect(fresh.canAmend()).toBe(false);
+  });
+
+  it('sends the message it was given, and clears the field', async () => {
+    let sent: unknown = null;
+    const store = new SourceControlStore(
+      fakeBridge({
+        status: () => ({ ok: true, value: report({}) }),
+        amend: (request) => {
+          sent = request;
+          return { ok: true, value: null };
+        },
+      }),
+    );
+    store.setMessage('a better message');
+    await store.amend();
+
+    expect(sent).toEqual({ text: 'a better message' });
+    expect(store.message()).toBe('');
+  });
+
+  it('adds a path to the ignore file, and adds it only once', async () => {
+    const written: string[] = [];
+    let contents = 'build/\n';
+    const store = new SourceControlStore(
+      fakeBridge({
+        readIgnore: () => ({ ok: true, value: contents }),
+        writeIgnore: (request) => {
+          written.push(request.text);
+          contents = request.text;
+          return { ok: true, value: null };
+        },
+      }),
+    );
+
+    await store.ignorePath('notes.txt');
+    await store.ignorePath('notes.txt');
+
+    // The second time changes nothing, so nothing is written.
+    expect(written).toEqual(['build/\nnotes.txt\n']);
   });
 });

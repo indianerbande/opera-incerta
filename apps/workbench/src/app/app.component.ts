@@ -40,6 +40,7 @@ import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
 import type { GitBranch, GitVersions } from '@opera-incerta/desktop-contract';
 import { BranchesComponent } from './library/branches.component.js';
+import { TextEditorComponent } from './shell/text-editor.component.js';
 import { ConflictResolverComponent } from './library/conflict-resolver.component.js';
 import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
@@ -63,6 +64,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     ActivityBarComponent,
     BranchesComponent,
     CategoryManagerComponent,
+    TextEditorComponent,
     ConflictResolverComponent,
     DiffViewComponent,
     ContextMenuComponent,
@@ -133,6 +135,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [canMerge]="sourceControl.canMerge()"
             [merging]="sourceControl.merging()"
             [canPublish]="sourceControl.canPublish()"
+            [canAmend]="sourceControl.canAmend()"
             [branch]="sourceControl.branch()"
             [canCommit]="sourceControl.canCommit()"
             [root]="sourceControl.repositoryRoot()"
@@ -146,6 +149,9 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             (abortMerge)="sourceControl.abortMerge()"
             (publish)="askToPublish()"
             (showBranches)="openBranches()"
+            (amend)="askToAmend()"
+            (editIgnore)="openIgnore()"
+            (ignore)="sourceControl.ignorePath($event.path)"
             (resolve)="openResolver($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
@@ -331,6 +337,16 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         [confirmLabel]="open.confirmLabel"
         (confirm)="confirmPrompt($event)"
         (cancel)="prompt.set(null)"
+      />
+    }
+
+    @if (ignoreText() !== null) {
+      <wi-text-editor
+        title="Ignored files"
+        hint="One path or pattern per line, as git reads them."
+        [text]="ignoreText() ?? ''"
+        (save)="saveIgnore($event)"
+        (close)="ignoreText.set(null)"
       />
     }
 
@@ -773,6 +789,45 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  /** The `.gitignore` being edited, if any. SPEC.md §12. */
+  protected readonly ignoreText = signal<string | null>(null);
+
+  protected async openIgnore(): Promise<void> {
+    this.ignoreText.set(await this.sourceControl.readIgnore());
+  }
+
+  protected async saveIgnore(text: string): Promise<void> {
+    this.ignoreText.set(null);
+    await this.sourceControl.writeIgnore(text);
+  }
+
+  /**
+   * Replacing the last commit. SPEC.md §12.
+   *
+   * The message field is filled with the wording the commit already has, so
+   * that amending to add a forgotten file does not cost the author their
+   * message. The question then quotes that wording rather than pointing at the
+   * field, which is behind the dialog and cannot be typed into while it is
+   * open: to change it, cancel, edit the field, and ask again.
+   */
+  protected async askToAmend(): Promise<void> {
+    if (this.sourceControl.message().trim() === '') {
+      const previous = await this.sourceControl.lastMessage();
+      if (previous !== null) {
+        this.sourceControl.setMessage(previous);
+      }
+    }
+
+    const message = this.sourceControl.message().trim();
+    this.confirmation.set({
+      title: 'Replace the last commit?',
+      warning: `It is rewritten with whatever is staged, and its message becomes “${message}”.`,
+      hint: 'Offered only while it has not been pushed; afterwards it could only be replaced by force.',
+      confirmLabel: 'Amend',
+      action: () => void this.sourceControl.amend(),
+    });
   }
 
   /** The branch list on screen, if any. SPEC.md §12. */

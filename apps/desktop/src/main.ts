@@ -40,6 +40,7 @@ import {
   isGitBranchRequest,
   isGitPathsRequest,
   isGitPublishRequest,
+  isGitTextRequest,
   isGitResolveRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
@@ -650,6 +651,37 @@ privileged(CHANNELS.gitAbortMerge, acceptsNothing, async () => {
 
 privileged(CHANNELS.gitBranches, acceptsNothing, async () => git.branches(await repositoryRoot()));
 
+privileged(CHANNELS.gitLastMessage, acceptsNothing, async () =>
+  git.lastCommitMessage(await repositoryRoot()),
+);
+
+privileged(CHANNELS.gitAmend, isGitTextRequest, async (request) => {
+  const root = await repositoryRoot();
+  // Refused for a commit that is already on the upstream: amending rewrites
+  // history, and republishing it would need force, which this application
+  // does not offer (SPEC.md §12).
+  const tracking = await git.tracking(root);
+  if (tracking !== null && tracking.ahead === 0) {
+    throw new ProjectSessionError('git/already-pushed');
+  }
+  if (await git.isMerging(root)) {
+    throw new ProjectSessionError('git/merging');
+  }
+  await git.amend(root, request.text.trim() === '' ? null : request.text);
+  return null;
+});
+
+privileged(CHANNELS.gitReadIgnore, acceptsNothing, async () => {
+  const root = await repositoryRoot();
+  return readFile(join(root, '.gitignore'), 'utf8').catch(() => '');
+});
+
+privileged(CHANNELS.gitWriteIgnore, isGitTextRequest, async (request) => {
+  const root = await repositoryRoot();
+  await projectFiles.writeSheet(join(root, '.gitignore'), request.text);
+  return null;
+});
+
 privileged(CHANNELS.gitCreateBranch, isGitBranchRequest, async (request) => {
   // Checked before git sees it: a name beginning with `-` would be read as an
   // option, and `git switch --create` accepts no separator (SPEC.md §12).
@@ -815,7 +847,15 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
   const root = await git.repositoryRoot(projectPath);
   // A project outside a repository is a normal state, not a failure.
   if (root === null) {
-    return { root: null, entries: [], tracking: null, merging: false, branch: null, remote: null };
+    return {
+    root: null,
+    entries: [],
+    tracking: null,
+    merging: false,
+    hasCommit: false,
+    branch: null,
+    remote: null,
+  };
   }
   return {
     root,
@@ -825,6 +865,7 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
     tracking: await git.tracking(root),
     merging: await git.isMerging(root),
     branch: await git.currentBranch(root),
+    hasCommit: await git.hasCommit(root),
     remote: await git.defaultRemote(root),
   };
 });
@@ -2426,6 +2467,169 @@ async function checkBranches(window: BrowserWindow): Promise<void> {
     'smoke ok: branches listed, created, switched — with a switch over unsaved work stopping to ' +
       'ask — and an unmerged branch refused deletion in git’s own words',
   );
+
+  await checkAmendAndIgnore(window);
+}
+
+/**
+ * Amending the last commit, and keeping files out of the repository.
+ * SPEC.md §12.
+ */
+async function checkAmendAndIgnore(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+  const project = smokeProjectPath;
+  const headMessage = (): string => runGit(project, ['log', '-1', '--pretty=%B']).trim();
+  const commitCount = (): string => runGit(project, ['rev-list', '--count', 'HEAD']).trim();
+  const ignoreFile = join(project, '.gitignore');
+
+  // A file next to the manuscript that does not belong in it.
+  writeFileSync(join(project, 'scratch.txt'), 'notes to myself\n');
+  await settleWatch(window, async () => rowFor(window, 'scratch.txt'));
+  if (!(await rowFor(window, 'scratch.txt'))) {
+    throw new Error('the untracked file never appeared in the panel');
+  }
+
+  await clickIgnore(window, 'scratch.txt');
+  await settleWatch(window, async () => !(await rowFor(window, 'scratch.txt')));
+
+  const ignored = existsSync(ignoreFile) ? readFileSync(ignoreFile, 'utf8') : '';
+  if (!ignored.split('\n').includes('scratch.txt')) {
+    throw new Error(`the path was not written to .gitignore: ${JSON.stringify(ignored)}`);
+  }
+  if (await rowFor(window, 'scratch.txt')) {
+    throw new Error('the ignored file is still listed as a change');
+  }
+
+  // The file itself stays where it is: ignoring is not deleting.
+  if (!existsSync(join(project, 'scratch.txt'))) {
+    throw new Error('ignoring the file removed it');
+  }
+
+  // The list itself, opened and edited as text.
+  await clickSourceControl(window, '.ignore-row button');
+  await waitForSelector(window, 'wi-text-editor textarea');
+  const shown = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-text-editor textarea')?.value ?? null`,
+  )) as string | null;
+  if (shown === null || !shown.includes('scratch.txt')) {
+    throw new Error(`the ignore editor does not show the file: ${JSON.stringify(shown)}`);
+  }
+
+  // The row shows the whole file name while nothing is pointed at: the
+  // controls take their width only when they are visible.
+  const nameShown = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-source-control .change')]
+         .find((candidate) => candidate.textContent.includes('.gitignore'));
+       const name = row?.querySelector('.name');
+       return name === null || name === undefined
+         ? null
+         : { text: name.textContent.trim(), cut: name.scrollWidth > name.clientWidth + 1 };
+     })()`,
+  )) as { text: string; cut: boolean } | null;
+  if (nameShown === null || nameShown.text !== '.gitignore' || nameShown.cut) {
+    throw new Error(`the file name is cut off at rest: ${JSON.stringify(nameShown)}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const ignoreEvidence = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-ignore.png');
+  writeFileSync(ignoreEvidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${ignoreEvidence}`);
+
+  await window.webContents.executeJavaScript(
+    `(() => {
+       const field = document.querySelector('wi-text-editor textarea');
+       field.value = ${JSON.stringify(['scratch.txt', 'export/', ''].join('\n'))};
+       field.dispatchEvent(new Event('input', { bubbles: true }));
+     })()`,
+  );
+  await clickText(window, 'wi-text-editor button', 'Save');
+  await settleWatch(window, async () => readFileSync(ignoreFile, 'utf8').includes('export/'));
+  const saved = readFileSync(ignoreFile, 'utf8');
+  if (!saved.includes('export/') || !saved.includes('scratch.txt')) {
+    throw new Error(`the edited ignore file was not written: ${JSON.stringify(saved)}`);
+  }
+
+  // Committed, so that there is something to amend.
+  await refreshSourceControl(window);
+  await clickSourceControl(window, '.changes-header input');
+  await fillCommitMessage(window, 'Ignore scratch');
+  await clickText(window, 'wi-source-control .actions button', 'Commit');
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  if (headMessage() !== 'Ignore scratch') {
+    throw new Error(`the commit did not take: ${headMessage()}`);
+  }
+  const before = commitCount();
+
+  await clickText(window, 'wi-source-control .actions button', 'Amend last commit');
+  await waitForSelector(window, 'wi-confirm-prompt button');
+
+  // The wording is carried over, so that amending to add a forgotten file does
+  // not cost the author their message.
+  const carried = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-source-control textarea.message')?.value ?? null`,
+  )) as string | null;
+  if (carried !== 'Ignore scratch') {
+    throw new Error(`the previous message was not offered: ${JSON.stringify(carried)}`);
+  }
+
+  // And the question says which wording it would use: the field is behind the
+  // dialog, so pointing at it would be pointing at something out of reach.
+  const asked = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-confirm-prompt .warning')?.textContent.trim() ?? null`,
+  )) as string | null;
+  if (asked === null || !asked.includes('Ignore scratch')) {
+    throw new Error(`the question does not name the message: ${String(asked)}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const amendEvidence = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-amend.png');
+  writeFileSync(amendEvidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${amendEvidence}`);
+
+  await fillCommitMessage(window, 'Keep scratch notes out of the repository');
+  await clickText(window, 'wi-confirm-prompt button', 'Amend');
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  if (headMessage() !== 'Keep scratch notes out of the repository') {
+    throw new Error(`amending did not replace the message: ${headMessage()}`);
+  }
+  if (commitCount() !== before) {
+    throw new Error(`amending added a commit: ${before} became ${commitCount()}`);
+  }
+
+  // Once it is on the remote it is no longer offered: replacing it there would
+  // take a forced push, which this application does not do.
+  runGit(project, ['push']);
+  await refreshSourceControl(window);
+  if (await isVisible(window, 'wi-source-control button.amend')) {
+    throw new Error('a commit that has been pushed is still offered for amending');
+  }
+
+  console.log(
+    'smoke ok: an untracked file was ignored from its row and the list edited as text, and the ' +
+      'last commit was amended in place — no longer offered once it was pushed',
+  );
+}
+
+/** Clicks the ignore control on one row of the change list. */
+async function clickIgnore(window: BrowserWindow, name: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-source-control .change')]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(name)}));
+       const button = row?.querySelector('button.ignore');
+       if (button === null || button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no ignore control for ${name}`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 900));
 }
 
 /** Opens the branch dialog from the panel. */

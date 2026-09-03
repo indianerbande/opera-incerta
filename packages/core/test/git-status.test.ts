@@ -7,6 +7,7 @@ import {
   isSafeRemoteUrl,
   isValidBranchName,
   touchesWorkingTree,
+  withIgnoredPath,
   type GitFileStatus,
 } from '../src/index.js';
 
@@ -193,5 +194,36 @@ describe('isValidBranchName', () => {
     expect(isValidBranchName('with*star')).toBe(false);
     expect(isValidBranchName('with~tilde')).toBe(false);
     expect(isValidBranchName('with^caret')).toBe(false);
+  });
+});
+
+describe('withIgnoredPath', () => {
+  it('adds a path to an empty file', () => {
+    expect(withIgnoredPath('', '.DS_Store')).toBe('.DS_Store\n');
+  });
+
+  it('adds one to a file that already lists others', () => {
+    expect(withIgnoredPath('build/\n.DS_Store\n', 'notes.txt')).toBe(
+      'build/\n.DS_Store\nnotes.txt\n',
+    );
+  });
+
+  it('adds nothing that is already there', () => {
+    const before = 'build/\n.DS_Store\n';
+    expect(withIgnoredPath(before, '.DS_Store')).toBe(before);
+    // Even where the file lists it with whitespace around it.
+    expect(withIgnoredPath('  .DS_Store  \n', '.DS_Store')).toBe('  .DS_Store  \n');
+  });
+
+  it('copes with a file that does not end in a newline', () => {
+    expect(withIgnoredPath('build/', 'notes.txt')).toBe('build/\nnotes.txt\n');
+  });
+
+  it('keeps the line ending the file already uses', () => {
+    expect(withIgnoredPath('build/\r\n', 'notes.txt')).toBe('build/\r\nnotes.txt\r\n');
+  });
+
+  it('ignores a request to add nothing', () => {
+    expect(withIgnoredPath('build/\n', '   ')).toBe('build/\n');
   });
 });

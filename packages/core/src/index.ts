@@ -130,6 +130,7 @@ export {
   parseGitStatus,
   selectAllState,
   touchesWorkingTree,
+  withIgnoredPath,
 } from './git-status.js';
 export type { GitFileGroup, GitFileStatus, SelectAllState } from './git-status.js';
 

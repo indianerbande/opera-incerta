@@ -325,6 +325,20 @@ Tests MUST cover:
   was. That a *committed* change stays on its branch is checked by reading the
   file after switching — a change that is only saved belongs to no branch and
   follows, which is git's behaviour and not a defect;
+- amending the last commit (`SPEC.md` §12): the panel commits, then amends, and
+  the result is read from git — `git log -1` carries the new message and
+  `git rev-list --count` is unchanged, so the commit was replaced rather than
+  followed by another. The message the commit already had is offered in the
+  field, and the question **quotes it**, because the field is behind the dialog.
+  After a push the control is gone, which is the rule that a published commit is
+  not rewritten;
+- keeping files out of the repository (`SPEC.md` §12): an untracked file is
+  ignored from its row, and `.gitignore` is read from disk to see the path
+  arrive; the list opens as text, takes another pattern, and is read back again.
+  The ignored file is still on disk afterwards — ignoring is not deleting — and
+  its row is gone from the change list. The row's file name must be readable
+  **at rest**: the invisible row controls take no width until the row is
+  pointed at, checked by comparing the name's scroll width against its box;
 - publishing a branch through the interface (`SPEC.md` §12), which is also how
   the remote in the checks below comes to exist: the panel offers it while the
   branch tracks nothing, an address of the command-running kind is **refused

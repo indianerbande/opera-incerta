@@ -51,6 +51,10 @@ export const CHANNELS = {
   gitCreateBranch: 'opera-incerta:git/create-branch',
   gitSwitchBranch: 'opera-incerta:git/switch-branch',
   gitDeleteBranch: 'opera-incerta:git/delete-branch',
+  gitAmend: 'opera-incerta:git/amend',
+  gitLastMessage: 'opera-incerta:git/last-message',
+  gitReadIgnore: 'opera-incerta:git/read-ignore',
+  gitWriteIgnore: 'opera-incerta:git/write-ignore',
   gitDiscard: 'opera-incerta:git/discard',
   gitDiff: 'opera-incerta:git/diff',
   gitVersions: 'opera-incerta:git/versions',
@@ -434,10 +438,21 @@ export interface GitReport {
   readonly tracking: GitTracking | null;
   /** Whether a merge is under way and unfinished. SPEC.md §12. */
   readonly merging: boolean;
+  /** Whether the branch has a commit at all. */
+  readonly hasCommit: boolean;
   /** The checked-out branch, or null on a detached head. */
   readonly branch: string | null;
   /** Where a first publish would go, or null when no remote is recorded. */
   readonly remote: GitRemote | null;
+}
+
+/** Text to write, for the one file the interface edits directly. SPEC.md §12. */
+export interface GitTextRequest {
+  readonly text: string;
+}
+
+export function isGitTextRequest(value: unknown): value is GitTextRequest {
+  return typeof value === 'object' && value !== null && typeof (value as GitTextRequest).text === 'string';
 }
 
 /** A local branch. SPEC.md §12. */
@@ -615,6 +630,16 @@ export interface OperaIncertaBridge {
   gitPublish(request: GitPublishRequest): Promise<BridgeResult<null>>;
   /** Every local branch, and which one is checked out. SPEC.md §12. */
   gitBranches(): Promise<BridgeResult<readonly GitBranch[]>>;
+  /**
+   * Replaces the last commit, keeping its message when none is given.
+   * Offered only for a commit that has not been pushed. SPEC.md §12.
+   */
+  gitAmend(request: GitTextRequest): Promise<BridgeResult<null>>;
+  /** The last commit's message, for filling the field before amending. */
+  gitLastMessage(): Promise<BridgeResult<string | null>>;
+  /** The repository's `.gitignore`, or an empty string when it has none. */
+  gitReadIgnore(): Promise<BridgeResult<string>>;
+  gitWriteIgnore(request: GitTextRequest): Promise<BridgeResult<null>>;
   /** Creates a branch at the current commit and switches to it. */
   gitCreateBranch(request: GitBranchRequest): Promise<BridgeResult<null>>;
   /** Switches to an existing branch. */

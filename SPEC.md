@@ -1660,7 +1660,33 @@ discarded change back on the next save, and would raise the conflict prompt of
 §10.6 in between — asking the author to decide again what they have just
 decided. A re-read that was already in flight must not put them back either.
 
-**Not goals of this stage:** amend, and editing `.gitignore`.
+**Amending the last commit** replaces it: whatever is staged goes into the
+commit that is already there, with the message from the panel. The field is
+filled with the message the commit already carries, so that amending to add a
+forgotten file does not cost the author their wording, and the question names
+the wording it would use — the field is behind the dialog and cannot be typed
+into while it is open.
+
+It is offered only while the commit has **not been pushed**, and never during a
+merge. A commit that is already on the upstream can only be replaced there by a
+forced push, which this application does not do; refusing it here is cheaper
+than explaining afterwards why the remote and the working copy disagree. The
+rule is checked twice: the control is absent when it does not apply, and the
+main process refuses the request in any case (§12, separate guards).
+
+**Keeping files out of the repository** is `.gitignore`, and it is reachable
+two ways. An untracked row carries a control that adds exactly that path, and
+the list itself opens as plain text. The file is the author's: a path that is
+already listed is not added a second time, the line ending in use is kept, and
+nothing else in the file is touched. Ignoring is not deleting — the file stays
+where it is and only leaves the change list.
+
+`.gitignore` is edited as text rather than in the writing surface. It belongs to
+the project but not to the manuscript, and the editor's rules about headings and
+front matter have nothing to say about a list of patterns.
+
+**Not goals of this stage:** rebasing, stashing, and anything that rewrites
+more than the last commit.
 
 ## 13. Settings contract
 

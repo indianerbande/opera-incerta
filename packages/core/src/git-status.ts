@@ -127,6 +127,29 @@ export function canCommit(entries: readonly GitFileStatus[], message: string): b
 }
 
 /**
+ * `.gitignore` with one more path in it. SPEC.md §12.
+ *
+ * Idempotent: a path already listed is not listed twice, whether or not the
+ * file ends with a newline. The file's own line ending is kept, because a
+ * manuscript repository may well have been made on another platform.
+ */
+export function withIgnoredPath(contents: string, path: string): string {
+  const entry = path.trim();
+  if (entry === '') {
+    return contents;
+  }
+
+  const ending = contents.includes('\r\n') ? '\r\n' : '\n';
+  const lines = contents.split(/\r?\n/u);
+  if (lines.some((line) => line.trim() === entry)) {
+    return contents;
+  }
+
+  const body = contents === '' ? [] : lines.filter((line, index) => line !== '' || index !== lines.length - 1);
+  return [...body, entry, ''].join(ending);
+}
+
+/**
  * Whether a branch name is one worth handing to git. SPEC.md §12.
  *
  * Git's own `check-ref-format` is the authority and has the last word; this

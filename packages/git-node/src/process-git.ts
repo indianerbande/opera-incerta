@@ -269,6 +269,19 @@ class ProcessGitService implements GitService {
     await this.#run(['pull', '--ff-only'], repositoryRoot);
   }
 
+  async lastCommitMessage(repositoryRoot: string): Promise<string | null> {
+    const result = await this.#runner.run(['log', '-1', '--pretty=%B'], repositoryRoot);
+    return result.exitCode === 0 ? result.stdout.replace(/\n+$/u, '') : null;
+  }
+
+  async amend(repositoryRoot: string, message: string | null): Promise<void> {
+    const argv =
+      message === null
+        ? ['commit', '--amend', '--no-edit']
+        : ['commit', '--amend', '--message', message];
+    await this.#run(argv, repositoryRoot);
+  }
+
   async merge(repositoryRoot: string): Promise<void> {
     // The plain marker style, so that what lands in the file is the form the
     // parser is tested against rather than whatever the machine is configured

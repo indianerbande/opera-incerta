@@ -13,6 +13,7 @@ import {
   canCommit,
   isConflicted,
   selectAllState,
+  withIgnoredPath,
   type GitFileStatus,
   type SelectAllState,
 } from '@opera-incerta/core';
@@ -34,6 +35,7 @@ export class SourceControlStore {
   readonly #root = signal<string | null>(null);
   readonly #tracking = signal<GitTracking | null>(null);
   readonly #merging = signal(false);
+  readonly #hasCommit = signal(false);
   readonly #branch = signal<string | null>(null);
   readonly #remote = signal<GitRemote | null>(null);
   readonly #message = signal('');
@@ -76,6 +78,20 @@ export class SourceControlStore {
     const tracking = this.#tracking();
     return tracking !== null && tracking.behind > 0 && tracking.ahead > 0;
   });
+  /**
+   * Whether the last commit may be replaced. SPEC.md §12.
+   *
+   * Only what has not left the machine: amending rewrites history, and a
+   * pushed commit could only be published again by force. A merge in progress
+   * is excluded as well — the commit to amend would be the merge.
+   */
+  readonly canAmend = computed(() => {
+    const tracking = this.#tracking();
+    return (
+      this.#hasCommit() && !this.#merging() && (tracking === null || tracking.ahead > 0)
+    );
+  });
+
   /** The files a merge left for the author to decide. */
   readonly conflicted = computed(() => this.#entries().filter((entry) => isConflicted(entry)));
 
@@ -215,6 +231,62 @@ export class SourceControlStore {
     });
   }
 
+  /** Replaces the last commit, with the field's message or the old one. */
+  async amend(): Promise<void> {
+    const message = this.#message();
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitAmend({ text: message }));
+      this.#message.set('');
+    });
+  }
+
+  /** The last commit's message, for filling the field before amending. */
+  async lastMessage(): Promise<string | null> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      return null;
+    }
+    try {
+      return unwrap(await bridge.gitLastMessage());
+    } catch (error: unknown) {
+      this.#failure.set(reasonOf(error));
+      return null;
+    }
+  }
+
+  /** The repository's `.gitignore`. SPEC.md §12. */
+  async readIgnore(): Promise<string | null> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      this.#failure.set('bridge/absent');
+      return null;
+    }
+    try {
+      return unwrap(await bridge.gitReadIgnore());
+    } catch (error: unknown) {
+      this.#failure.set(reasonOf(error));
+      return null;
+    }
+  }
+
+  async writeIgnore(text: string): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitWriteIgnore({ text }));
+    });
+  }
+
+  /** Adds one path to `.gitignore`, leaving it alone if it is already there. */
+  async ignorePath(path: string): Promise<void> {
+    const contents = await this.readIgnore();
+    if (contents === null) {
+      return;
+    }
+    const next = withIgnoredPath(contents, path);
+    if (next !== contents) {
+      await this.writeIgnore(next);
+    }
+  }
+
   /** Every local branch, read when they are about to be shown. SPEC.md §12. */
   async branches(): Promise<readonly GitBranch[]> {
     const bridge = this.#bridge;
@@ -334,6 +406,7 @@ export class SourceControlStore {
       this.#entries.set(report.entries as readonly GitFileStatus[]);
       this.#tracking.set(report.tracking);
       this.#merging.set(report.merging);
+      this.#hasCommit.set(report.hasCommit);
       this.#branch.set(report.branch);
       this.#remote.set(report.remote);
       this.#loaded.set(true);

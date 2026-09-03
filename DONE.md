@@ -6,6 +6,56 @@ documents").
 
 ---
 
+## 2026-09-03 — amending the last commit, and keeping files out of the repository
+
+**What exists.** The last commit can be replaced: whatever is staged goes into
+the commit that is already there, with the message from the panel. The field is
+filled with the message that commit already carries, so amending to add a
+forgotten file does not cost the author their wording. `.gitignore` is
+reachable from an untracked row, which adds exactly that path, and as a plain
+text editor for the list itself.
+
+**Where the line is.** Amending is offered only while the commit has not been
+pushed, and never during a merge. Once it is on the upstream it could only be
+replaced there by a forced push, which this application does not do. The rule
+is checked in both places that matter: the control is absent when it does not
+apply, and the main process refuses the request whatever the interface shows.
+
+**What the screenshot changed.** Two things that no test had asked about. The
+change row read `.git...`: the three row controls are invisible until the row is
+pointed at, but they still held their width, so in a narrow column the file name
+was shortened for controls nobody could see. They now take width only when they
+are visible. And the confirmation said the commit would take "the message
+below" while covering the field it meant — it now quotes the wording it would
+use, which is also the only way to notice a wrong one before confirming. Both
+are now checked: the row's name must not be cut at rest, and the question must
+name the message.
+
+**The ignore rule is the file's, not ours.** A path already listed is not added
+again, the line ending in use is kept, and nothing else in the file is touched.
+Ignoring is not deleting: the file stays where it is and only leaves the change
+list, which the smoke checks separately.
+
+**Verification.** `pnpm run check` green: **722 tests**. The smoke writes an
+untracked file, ignores it from its row, and reads `.gitignore` back from disk;
+opens the list as text, adds a pattern, and reads it back again; commits,
+amends, and confirms against `git log` and `git rev-list --count` that the
+message was replaced and no commit was added; then pushes and finds the control
+gone. Falsified four times, each aimed at one check: the ignore rule returning
+the file unchanged ("the path was not written"), amend as a plain commit ("did
+not replace the message"), amend as an empty commit with the new message
+("added a commit: 7 became 8"), and the pushed gate widened to `ahead >= 0`
+("still offered for amending"). The two screenshot findings were falsified as
+well, by putting the width and the old wording back.
+
+**Lesson.** The first amend falsification was too coarse: a plain `git commit`
+with nothing staged fails, so HEAD did not move and the *message* check caught
+it while the *count* check never ran. Only `--allow-empty` — which does change
+the message and does add a commit — proved that second check. A falsification
+that stops early proves less than it looks like it does.
+
+---
+
 ## 2026-09-03 — branches, and the one rule git cannot enforce
 
 **What exists.** The panel names the branch it is on and opens a list of them:
