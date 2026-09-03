@@ -450,7 +450,13 @@ export class AppComponent {
         void this.store.save();
       }
     });
-    inject(DestroyRef).onDestroy(() => stopListening?.());
+    // A change under the group or the open document arrives without anyone
+    // asking (SPEC.md §10.6). What it means is decided by re-reading.
+    const stopWatching = this.store.listenForExternalChanges();
+    inject(DestroyRef).onDestroy(() => {
+      stopListening?.();
+      stopWatching();
+    });
 
     // Source control reads when its view is shown, and after a save: both are
     // moments when what git reports has just changed.

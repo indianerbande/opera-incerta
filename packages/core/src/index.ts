@@ -100,7 +100,7 @@ export {
   effectiveBlockHeight,
 } from './block-height.js';
 
-export { ExclusiveTask, RefreshCoordinator } from './refresh.js';
+export { ExclusiveTask, RefreshCoordinator, WATCH_DEBOUNCE_MS } from './refresh.js';
 
 export {
   canCommit,

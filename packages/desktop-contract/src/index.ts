@@ -48,6 +48,8 @@ export const CHANNELS = {
   renameGroup: 'opera-incerta:group/rename',
   placeEntry: 'opera-incerta:library/place',
   writeCategories: 'opera-incerta:categories/write',
+  watchTargets: 'opera-incerta:watch/targets',
+  externalChange: 'opera-incerta:watch/changed',
   deleteEntry: 'opera-incerta:library/delete',
   readPreferences: 'opera-incerta:preferences/read',
   writePreferences: 'opera-incerta:preferences/write',
@@ -220,6 +222,28 @@ export function isLibraryEditRequest(value: unknown): value is LibraryEditReques
     typeof candidate.name === 'string' &&
     candidate.name.trim() !== ''
   );
+}
+
+/**
+ * What the main process should watch on the interface's behalf.
+ * SPEC.md §10.6.
+ *
+ * The interface names the targets because only it knows what the author is
+ * looking at. `null` means "nothing of that kind is open".
+ */
+export interface WatchTargetsRequest {
+  readonly group: string | null;
+  readonly sheet: string | null;
+}
+
+export function isWatchTargetsRequest(value: unknown): value is WatchTargetsRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<WatchTargetsRequest>;
+  const relative = (path: unknown): boolean =>
+    path === null || (typeof path === 'string' && path !== '' && !path.startsWith('/'));
+  return relative(candidate.group) && relative(candidate.sheet);
 }
 
 /**
@@ -463,6 +487,16 @@ export interface OperaIncertaBridge {
   writeCategories(categories: readonly unknown[]): Promise<BridgeResult<ProjectSnapshot>>;
   /** Moves an entry to the desktop trash, from where the author can restore it. */
   deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
+  /**
+   * Says what to watch. Replaces whatever was being watched before.
+   * SPEC.md §10.6.
+   */
+  watchTargets(request: WatchTargetsRequest): Promise<BridgeResult<null>>;
+  /**
+   * Something changed under a watched target. A notification is never evidence
+   * on its own: the listener re-reads and compares before it acts (§10.6).
+   */
+  onExternalChange(listener: () => void): () => void;
   /** The installation-local preference record. SPEC.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */

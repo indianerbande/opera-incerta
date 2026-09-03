@@ -1061,3 +1061,121 @@ describe('page categories', () => {
     expect(store.openSheet()?.relativePath).toBe('preface.md');
   });
 });
+
+describe('saying what to watch', () => {
+  /** A bridge that records every set of watch targets it was given. */
+  function watchingBridge(): {
+    readonly targets: unknown[];
+    readonly bridge: OperaIncertaBridge;
+    fire: () => void;
+  } {
+    const targets: unknown[] = [];
+    let listener: (() => void) | null = null;
+    return {
+      targets,
+      fire: () => listener?.(),
+      bridge: fakeBridge({
+        watchTargets: async (request) => {
+          targets.push(request);
+          return { ok: true, value: null };
+        },
+        onExternalChange: (each) => {
+          listener = each;
+          return () => (listener = null);
+        },
+      }),
+    };
+  }
+
+  it('names the group on screen and the open document', async () => {
+    const spy = watchingBridge();
+    const store = new WorkspaceStore(spy.bridge);
+    await store.openProject();
+    store.selectGroup('part-1');
+    await store.selectSheet('part-1/scene.md');
+
+    expect(spy.targets.at(-1)).toEqual({ group: 'part-1', sheet: 'part-1/scene.md' });
+  });
+
+  it('watches the group the *list* shows, not the one the sheet lives in', async () => {
+    const spy = watchingBridge();
+    const store = new WorkspaceStore(spy.bridge);
+    await store.openProject();
+    // Opening a sheet from elsewhere — the outline, a reveal — does not move
+    // the sheet list, so the group on screen is still the root.
+    await store.selectSheet('part-1/scene.md');
+
+    expect(spy.targets.at(-1)).toEqual({ group: '.', sheet: 'part-1/scene.md' });
+  });
+
+  it('follows the selection as it moves', async () => {
+    const spy = watchingBridge();
+    const store = new WorkspaceStore(spy.bridge);
+    await store.openProject();
+    store.selectGroup('part-1/pre');
+
+    expect(spy.targets.at(-1)).toEqual({ group: 'part-1/pre', sheet: null });
+  });
+
+  it('watches nothing once the project is closed', async () => {
+    const spy = watchingBridge();
+    const store = new WorkspaceStore(spy.bridge);
+    await store.openProject();
+    await store.closeProject();
+
+    expect(spy.targets.at(-1)).toEqual({ group: null, sheet: null });
+  });
+
+  it('re-reads when something changed, and says nothing when it did not', async () => {
+    const spy = watchingBridge();
+    const store = new WorkspaceStore(spy.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    const stop = store.listenForExternalChanges();
+
+    spy.fire();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // The file is unchanged, so a notification about it means nothing — which
+    // is the whole point of comparing rather than trusting the message.
+    expect(store.conflict()).toBeNull();
+    expect(store.failure()).toBeNull();
+    stop();
+  });
+});
+
+describe('what survives a re-read', () => {
+  it('keeps the tree open where it was', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.openProject();
+    store.toggleExpanded('part-1');
+    store.toggleExpanded('part-1/pre');
+
+    await store.reloadProject();
+
+    // Once a watcher is running this happens on every save; a tree that folded
+    // itself up each time would be unusable.
+    expect(store.isExpanded('part-1')).toBe(true);
+    expect(store.isExpanded('part-1/pre')).toBe(true);
+  });
+
+  it('forgets a group that is no longer there', async () => {
+    const withoutPart: ProjectSnapshot = {
+      ...snapshot,
+      library: {
+        ...library,
+        children: library.children.filter((child) => child.relativePath !== 'part-1'),
+      },
+    };
+    const store = new WorkspaceStore(
+      fakeBridge({ reopenProject: async () => ({ ok: true, value: withoutPart }) }),
+    );
+    await store.openProject();
+    store.toggleExpanded('part-1');
+
+    await store.reloadProject();
+
+    expect(store.isExpanded('part-1')).toBe(false);
+    expect(store.isExpanded('.')).toBe(true);
+  });
+});

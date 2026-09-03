@@ -8,7 +8,10 @@ export type {
   FolderInspection,
   LibraryWatcher,
   ProjectFilesystem,
+  WatchDirectoryOptions,
 } from './ports.js';
+
+export { createLibraryWatcher } from './node-watcher.js';
 
 export {
   ProjectError,

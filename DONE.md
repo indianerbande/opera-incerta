@@ -6,6 +6,71 @@ documents").
 
 ---
 
+## 2026-09-02 — the filesystem watcher, on `fs.watch` and nothing else
+
+**What exists.** The main process watches the group whose sheet list is on
+screen and the document in the editor, and tells the interface to look again.
+Looking is where the comparison rule of §10.6 decides what the author sees:
+nothing, a silent reload, or the prompt. With that, MVP criteria **§17.13 and
+§17.14** are met — an external change is noticed without anyone asking.
+
+**Measured before it was written.** Three properties of the platform decided
+the adapter's shape, and each one is a rule in it:
+
+- a watch on a **file** goes deaf the moment that file is replaced by a
+  rename — which is exactly how this application saves. A file is therefore
+  watched through its directory, filtered by name;
+- one atomic save produced **seven** events, `rename` for ordinary writes among
+  them, including two for directories that had not changed. The event type
+  carries no information;
+- `.git/index` shows up in a recursive watch, so the filter of §12 is not
+  theoretical.
+
+Two more surfaced while testing: a watch delivers a short **history**, so
+changes made just before it started still arrive; and a non-recursive watch
+reports activity in subdirectories too. Both mean more notifications than
+asked for, never fewer.
+
+**Why no library.** What `chokidar` mostly buys — coalescing, settling,
+normalising quirks — this application already owns and tests. Taking it would
+have meant two answers to the same questions. It stays recorded as the
+replacement if the adapter ever needs to grow its own rescanning; it goes
+behind the same port, and no rule moves.
+
+**Three defects, and none of them in the watcher.** All three were latent, and
+the watcher exposed them by doing what the refresh button had only ever done on
+request:
+
+- **the tree collapsed on every re-read.** Harmless when a re-read meant a
+  button press; unusable once it follows every save. The expansion is kept now,
+  minus whatever no longer exists;
+- **the editor blanked for a moment on every re-read**, because adopting a
+  project cleared the open sheet and the freshly read one arrived a bridge
+  round trip later. A re-read of the *same* project keeps the document until
+  its replacement is there;
+- **closing a project told nobody**, so the watcher kept reporting a project
+  that was no longer open.
+
+Two of the three were found by checks about something else entirely — a drag
+that could no longer find its row, a dirty marker that read `null` — which is
+the argument for keeping the smoke as one long sequence rather than a set of
+isolated cases.
+
+**A note on my own tests.** Two of the watcher's cases passed at first for the
+wrong reason and two failed for the wrong reason: the fixture's own writes were
+still arriving when the watch started, so the tests measured the setup. They
+now let the history drain before acting. A test that measures its own
+preparation is worse than no test, because it reports confidence.
+
+**Verification.** `pnpm run check` green: **612 tests**. The smoke's
+twenty-third check writes a file behind the application's back and confirms
+that it reaches the editor by itself, that it raises the prompt by itself over
+unsaved work, and that a new sheet appears in the list — with nobody pressing
+refresh. Falsified by stopping the notification: the check then reports that
+the change never arrived.
+
+---
+
 ## 2026-09-02 — Node 24, and a warning that had been right all along
 
 **What changed.** The project now insists on Node 24 and refuses to run on

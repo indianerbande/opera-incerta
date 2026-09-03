@@ -45,8 +45,19 @@ const bridge = {
   writeCategories: (categories: unknown) =>
     ipcRenderer.invoke(CHANNELS.writeCategories, categories),
   deleteEntry: (request: unknown) => ipcRenderer.invoke(CHANNELS.deleteEntry, request),
+  watchTargets: (request: unknown) => ipcRenderer.invoke(CHANNELS.watchTargets, request),
   readPreferences: () => ipcRenderer.invoke(CHANNELS.readPreferences),
   writePreferences: (record: unknown) => ipcRenderer.invoke(CHANNELS.writePreferences, record),
+
+  onExternalChange: (listener: () => void) => {
+    const forward = (): void => {
+      listener();
+    };
+    ipcRenderer.on(CHANNELS.externalChange, forward);
+    return () => {
+      ipcRenderer.removeListener(CHANNELS.externalChange, forward);
+    };
+  },
 
   onMenuCommand: (listener: (command: string) => void) => {
     const forward = (_event: unknown, command: unknown): void => {

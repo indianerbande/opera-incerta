@@ -316,6 +316,13 @@ Tests MUST cover:
   visible against what there is to see — rather than as a number: a block whose
   last line sits under a horizontal scrollbar passes a check about pixels and
   fails this one;
+- the same rule again with **nobody pressing anything** (`SPEC.md` §10.6, MVP
+  §17.13 and §17.14): a file written behind the application's back reaches the
+  editor by itself, raises the prompt by itself when work is unsaved, and a
+  sheet appearing in the group on screen shows up in the list — all without a
+  manual refresh. The watcher adapter is checked separately against the real
+  filesystem, including the two cases that decided its shape: a file survives
+  being replaced by a rename, and what Git writes about itself is ignored;
 - the comparison rule of `SPEC.md` §10.6 at the explicit re-read: with unsaved
   work in the editor and the file changed underneath — written from the main
   process, behind the application's back — the reload asks instead of

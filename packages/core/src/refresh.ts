@@ -102,3 +102,14 @@ export class ExclusiveTask {
     }
   }
 }
+
+/**
+ * How long a burst of filesystem events is allowed to settle before it counts
+ * as one change. SPEC.md §12.
+ *
+ * Measured rather than guessed at: one atomic save of a single sheet produced
+ * seven events on macOS, including two for directories that had not changed.
+ * Debouncing is what turns that back into the one thing that happened.
+ */
+export const WATCH_DEBOUNCE_MS = 400;
+

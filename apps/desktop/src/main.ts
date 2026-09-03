@@ -42,6 +42,7 @@ import {
   isLibraryEditRequest,
   isLibraryPathRequest,
   isLibraryPlaceRequest,
+  isWatchTargetsRequest,
   isRecentProjectRequest,
   isWriteSheetRequest,
   type BridgeResult,
@@ -49,9 +50,10 @@ import {
 } from '@opera-incerta/desktop-contract';
 import { projectDirectoryName, readPreferences } from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
-import { createProjectFilesystem } from '@opera-incerta/project-node';
+import { createLibraryWatcher, createProjectFilesystem } from '@opera-incerta/project-node';
 import { MENU_ACCELERATORS, installApplicationMenu, menuItemId } from './application-menu.js';
 import { ProjectSession, ProjectSessionError } from './project-session.js';
+import { ProjectWatch } from './project-watch.js';
 import { RecentProjectsFile } from './recent-projects-file.js';
 import {
   RENDERER_ENTRY_URL,
@@ -574,6 +576,24 @@ privileged(CHANNELS.deleteEntry, isLibraryPathRequest, async (request) =>
     return null;
   }),
 );
+
+/**
+ * What the renderer asked to have watched. SPEC.md §10.6.
+ *
+ * The notification carries nothing: it says "look again", and looking is where
+ * the comparison against the loaded baseline happens. A payload would invite
+ * acting on the message instead of on the file.
+ */
+const projectWatch = new ProjectWatch(createLibraryWatcher(), () => {
+  if (projectWindow !== null && !projectWindow.isDestroyed()) {
+    projectWindow.webContents.send(CHANNELS.externalChange);
+  }
+});
+
+privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
+  projectWatch.set(session.openPath, request);
+  return null;
+});
 
 const git = createGitService();
 
@@ -2198,6 +2218,85 @@ async function checkExternalChange(window: BrowserWindow, projectPath: string): 
     'smoke ok: a file changed under unsaved work asks before anything is lost, and is taken ' +
       'silently when nothing was typed',
   );
+
+  await checkWatchedChange(window, projectPath, sheetPath);
+}
+
+/**
+ * The same rule again, with nobody pressing anything: the watcher of
+ * `SPEC.md` §10.6 is what notices. MVP criteria §17.13 and §17.14.
+ */
+async function checkWatchedChange(
+  window: BrowserWindow,
+  projectPath: string,
+  sheetPath: string,
+): Promise<void> {
+  // Content, with nothing unsaved: the change simply arrives.
+  writeFileSync(sheetPath, `${readFileSync(sheetPath, 'utf8')}\nNoticed without being asked.\n`, 'utf8');
+  await settleWatch(window, () => editorContains(window, 'Noticed without being asked.'));
+  if (!(await editorContains(window, 'Noticed without being asked.'))) {
+    throw new Error('a change on disk never reached the editor by itself');
+  }
+  if (await isVisible(window, 'wi-confirm-prompt')) {
+    throw new Error('an unmodified buffer was asked about instead of reloaded');
+  }
+
+  // Content, with unsaved work: the prompt appears on its own.
+  await placeCursorInEditor(window);
+  await typeText(window, 'Typed while someone else was writing.');
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  writeFileSync(sheetPath, `${readFileSync(sheetPath, 'utf8')}\nAnd again from outside.\n`, 'utf8');
+
+  await settleWatch(window, async () => isVisible(window, 'wi-confirm-prompt'));
+  if (!(await isVisible(window, 'wi-confirm-prompt'))) {
+    throw new Error('a file changed under unsaved work raised no prompt of its own accord');
+  }
+  await pressKey(window, 'Escape');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (!(await editorContains(window, 'Typed while someone else was writing.'))) {
+    throw new Error('the work was gone by the time the prompt appeared');
+  }
+
+  // Structure: a sheet appearing in the group on screen. The root is empty by
+  // now, so one row is the whole answer.
+  await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  writeFileSync(
+    join(projectPath, 'appeared.md'),
+    '---\nopera-incerta:\n  title: Appeared By Itself\n---\nText\n',
+    'utf8',
+  );
+
+  await settleWatch(window, async () => {
+    const titles = (await window.webContents.executeJavaScript(
+      `[...document.querySelectorAll('wi-sheet-list .title')].map((element) => element.textContent.trim())`,
+    )) as readonly string[];
+    return titles.includes('Appeared By Itself');
+  });
+  const shown = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-sheet-list .title')].map((element) => element.textContent.trim())`,
+  )) as readonly string[];
+  if (!shown.includes('Appeared By Itself')) {
+    throw new Error(`a new sheet did not appear by itself: ${JSON.stringify(shown)}`);
+  }
+
+  console.log(
+    'smoke ok: a change made behind the application’s back reached the editor, raised the ' +
+      'prompt over unsaved work, and put a new sheet in the list — with nobody pressing refresh',
+  );
+}
+
+/** Waits for the watcher to have done its work, or gives up. */
+async function settleWatch(
+  window: BrowserWindow,
+  done: () => Promise<boolean>,
+): Promise<void> {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (await done()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
 }
 
 /** Clicks into the last editor line, where an author would carry on typing. */

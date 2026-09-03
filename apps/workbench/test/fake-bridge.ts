@@ -47,6 +47,8 @@ export function baseBridge(): OperaIncertaBridge {
     renameSheet: async () => notScripted(),
     renameGroup: async () => notScripted(),
     placeEntry: async () => notScripted(),
+    watchTargets: async () => ({ ok: true, value: null }) as const,
+    onExternalChange: () => () => undefined,
     writeCategories: async () => notScripted(),
     deleteEntry: async () => notScripted(),
     readPreferences: async () => ({ ok: true, value: null }),

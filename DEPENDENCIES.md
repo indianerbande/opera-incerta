@@ -219,10 +219,18 @@ the runtime the toolchain is held to: `engines` and `devEngines` both say
 `^24.15.0`, and `devEngines.onFail` is `error`, so a wrong runtime stops the
 command instead of printing a line nobody reads.
 
-### Filesystem watching — `chokidar` (candidate)
+### Filesystem watching — no dependency, decided
 
-Node's own `fs.watch` plus a debouncing layer may be sufficient. Whichever wins
-sits behind the `LibraryWatcher` port in `packages/project-node`.
+Node's own `fs.watch`, behind the `LibraryWatcher` port in
+`packages/project-node`. What a watching library mostly buys — coalescing,
+settling, normalising platform quirks — this application already owns and
+tests, so taking one would mean two answers to the same questions. The platform
+behaviour that decided the adapter's shape was measured first and is recorded
+in `SPEC.md` §10.6.
+
+`chokidar` remains the replacement if that adapter ever needs to grow its own
+rescanning or event normalisation: it goes behind the same port, and no rule
+moves.
 
 ### Git — no dependency
 

@@ -10,15 +10,14 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 
 **State 2026-09-02:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
-at every re-read (§10.6) and the committed slice of source control (§12).
-`pnpm run check` green: 6 projects, **592 tests**, plus the desktop and asset
-checks. `pnpm run desktop:smoke` green across twenty-one checks,
-`pnpm run spike:editor` 7/7.
+of §10.6 with the watcher that triggers it, and the committed slice of source
+control (§12). `pnpm run check` green on **Node 24**: 6 projects, **612
+tests**, plus the desktop and asset checks. `pnpm run desktop:smoke` green
+across twenty-three checks, `pnpm run spike:editor` 7/7.
 
-Of the sixteen MVP criteria in `SPEC.md` §17, what is left is **§17.13 and
-§17.14** — an external change noticed *without being asked*, which is the
-watcher in §2.2 below — and the parts of §12 and §15 that this stage
-deliberately excludes. Everything else is built and checked.
+All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
+open are the parts of §12 and §15 that this stage deliberately excludes, and
+the decision in §2.1.
 
 ---
 
@@ -35,9 +34,6 @@ deliberately excludes. Everything else is built and checked.
    running `install.js` in the store directory. Find the correct pnpm 11
    configuration so a clean checkout works in one step, then record it in
    `PLATFORMS.md`.
-3. **Filesystem watching** — the coordination rules exist and are tested
-   (`RefreshCoordinator`, `ExclusiveTask` in the core); the watcher that drives
-   them does not, because the mechanism is an open dependency question (§2.2).
 
 ## 2. To decide before code exists
 
@@ -48,14 +44,6 @@ front matter codec deliberately needs none (`SPEC.md` §6.3). Full GFM rendering
 (`SPEC.md` §18, phase 2) does need one, and so does the independent
 standard-conformance cross-check in §1.1. The candidate and its boundary are
 recorded in `DEPENDENCIES.md`; the decision itself is open.
-
-### 2.2 Filesystem watching mechanism
-
-Node's own `fs.watch` with a debouncing layer may be enough, or `chokidar` may
-be worth its weight — the difference shows up in recursive watching and in
-platform behavior, not in the rules, which are already built and tested. Either
-choice sits behind the `LibraryWatcher` port in `packages/project-node`, so it
-is replaceable; the report in `AGENTS.md` decides it.
 
 ---
 
@@ -84,12 +72,12 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   repository. What `SPEC.md` §12 lists as *not* goals of this stage is still
   open and each needs its own round: "show diff", the destructive "discard
   changes" with its prompt, pull and fetch, upstream creation, and branches.
-  The live watcher of §12 waits on the dependency decision in §2.2.
-- **A watcher to trigger the conflict rule** — the rule itself is built and
-  runs on every re-read (`SPEC.md` §10.6): compare against the loaded baseline,
-  reload silently when nothing was typed, ask when something was. What is
-  missing is the mechanism that notices a change without being asked, and that
-  waits on the dependency decision in §2.2.
+  The live watcher of §12 is the open item above.
+- **The live watcher for source control** (`SPEC.md` §12) — the mechanism now
+  exists and is used for the library and the open document; what is missing is
+  the third target, the repository root watched recursively while the source
+  control panel is visible. The `.git` filter it needs is already built and
+  applied by the adapter.
 - **`PLATFORMS.md` and the native build matrix** — written with the first
   packaging round (`CONVENTIONS.md` C-P5).
 - **Import, export, AI provider, snapshots** — each needs its own decision

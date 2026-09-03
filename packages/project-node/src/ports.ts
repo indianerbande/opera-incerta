@@ -52,8 +52,27 @@ export interface ProjectFilesystem {
  * against its loaded baseline (SPEC.md §10.6, CONVENTIONS.md C-F2).
  */
 export interface LibraryWatcher {
-  watchDirectory(absolutePath: string, onChange: () => void): Disposable;
+  /**
+   * Reports changes under a directory. `recursive` is what source control
+   * needs for the repository root (§12); the selected group needs only its own
+   * level.
+   */
+  watchDirectory(
+    absolutePath: string,
+    onChange: () => void,
+    options?: WatchDirectoryOptions,
+  ): Disposable;
+
+  /**
+   * Reports changes to one file. Implemented over its directory, because a
+   * watch on a file does not survive the file being replaced by a rename —
+   * which is how this application saves (§10.6).
+   */
   watchFile(absolutePath: string, onChange: () => void): Disposable;
+}
+
+export interface WatchDirectoryOptions {
+  readonly recursive?: boolean;
 }
 
 /** Minimal disposal handle, so the port does not depend on a framework type. */

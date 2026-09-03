@@ -246,9 +246,11 @@ export class WorkspaceStore {
       const previousGroup = this.#selectedGroupPath();
       const before = this.#editingState();
 
-      this.#adopt(snapshot);
+      this.#adopt(snapshot, true);
       this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, previousGroup));
-      if (previousSheet !== null) {
+      if (previousSheet === null) {
+        this.#clearOpenSheet();
+      } else {
         await this.selectSheet(previousSheet);
         this.#restoreEditing(before, previousSheet, true);
       }
@@ -269,11 +271,39 @@ export class WorkspaceStore {
     this.#currentForeign.set([]);
       this.#selectedGroupPath.set('.');
       this.#expanded.set(new Set(['.']));
+      // Nothing is open, so nothing is watched: a watcher on a closed project
+      // reports changes nobody can see.
+      this.#watchWhatIsShown();
     });
   }
 
   selectGroup(relativePath: string): void {
     this.#selectedGroupPath.set(relativePath);
+    this.#watchWhatIsShown();
+  }
+
+  /**
+   * Tells the main process what to watch: the group on screen and the open
+   * document. SPEC.md §10.6.
+   *
+   * Sent from here rather than worked out there, because only the interface
+   * knows what the author is looking at. Fire and forget: a watch that could
+   * not be established is a missing convenience, not a failed action, and
+   * reporting it would put an error in front of an author who did nothing.
+   */
+  #watchWhatIsShown(): void {
+    void this.#bridge?.watchTargets({
+      group: this.#project() === null ? null : this.#selectedGroupPath(),
+      sheet: this.#openSheet()?.relativePath ?? null,
+    });
+  }
+
+  /**
+   * Reacts to a change under a watched target by re-reading — where the
+   * comparison rule of §10.6 decides what, if anything, the author sees.
+   */
+  listenForExternalChanges(): () => void {
+    return this.#bridge?.onExternalChange(() => void this.reloadProject()) ?? ((): void => undefined);
   }
 
   toggleExpanded(relativePath: string): void {
@@ -319,6 +349,7 @@ export class WorkspaceStore {
       this.#currentForeign.set(parsed.sheet.foreignLines);
       this.#editorDocument.set({ id: handleId, text: parsed.sheet.body });
       this.#expand(ancestorPaths(relativePath));
+      this.#watchWhatIsShown();
     });
   }
 
@@ -376,9 +407,11 @@ export class WorkspaceStore {
       const previousSheet = this.#openSheet()?.relativePath ?? null;
       const before = this.#editingState();
 
-      this.#adopt(snapshot);
+      this.#adopt(snapshot, true);
       this.#selectedGroupPath.set(nearestGroup(snapshot.library as GroupEntry, previousGroup));
-      if (previousSheet !== null) {
+      if (previousSheet === null) {
+        this.#clearOpenSheet();
+      } else {
         await this.selectSheet(previousSheet);
         this.#restoreEditing(before, previousSheet, false);
       }
@@ -628,8 +661,7 @@ export class WorkspaceStore {
     await this.#withBridge(async (bridge) => {
       const result = unwrap(await operation(bridge));
       const created = result.revealPath;
-      this.#adopt(result.snapshot);
-
+      this.#adopt(result.snapshot, true);
       const library = result.snapshot.library as GroupEntry;
       const ancestors = created === null ? [] : ancestorPaths(created);
       const placed = (options.movedFrom ?? null) !== null;
@@ -666,7 +698,9 @@ export class WorkspaceStore {
         wanted !== null && findSheet(library, wanted) !== null
           ? wanted
           : (options.fallbackSheet ?? null);
-      if (toOpen !== null) {
+      if (toOpen === null) {
+        this.#clearOpenSheet();
+      } else {
         await this.selectSheet(toOpen);
         // The same document, either because it never moved or because this is
         // where it went.
@@ -678,18 +712,44 @@ export class WorkspaceStore {
     });
   }
 
-  #adopt(snapshot: ProjectSnapshot): void {
+  /**
+   * Takes a freshly read project.
+   *
+   * `keepOpen` is for a **re-read of the same project**: the open sheet is
+   * replaced a moment later by the caller, and clearing it in between empties
+   * the editor for exactly as long as one bridge round trip takes. With a
+   * watcher running that happens after every save, and the author watches
+   * their text blink. Opening a *different* project clears it, because the
+   * sheet that was open belongs to the other one.
+   */
+  #adopt(snapshot: ProjectSnapshot, keepOpen = false): void {
     this.#project.set({ id: snapshot.id, displayName: snapshot.displayName });
     this.#library.set(snapshot.library as GroupEntry);
     this.#handles.set(snapshot.handles);
     this.#categories.set(readCategories(snapshot.categories));
     this.#selectedGroupPath.set('.');
+    if (!keepOpen) {
+      this.#clearOpenSheet();
+    }
+    // The tree keeps what it had open, minus whatever no longer exists. A
+    // re-read that collapsed it would do so on every save once a watcher is
+    // running, and the author would watch their tree fold itself up.
+    const kept = new Set<string>(['.']);
+    for (const path of this.#expanded()) {
+      if (findGroup(snapshot.library as GroupEntry, path) !== null) {
+        kept.add(path);
+      }
+    }
+    this.#expanded.set(kept);
+    this.#watchWhatIsShown();
+  }
+
+  #clearOpenSheet(): void {
     this.#openSheet.set(null);
     this.#editorDocument.set(null);
     this.#currentText.set('');
     this.#currentMetadata.set({});
     this.#currentForeign.set([]);
-    this.#expanded.set(new Set(['.']));
   }
 
   #expand(paths: readonly string[]): void {

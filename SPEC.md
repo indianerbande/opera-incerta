@@ -1360,6 +1360,34 @@ Two independent mechanisms observe the filesystem:
 Both live in the main process and report through the versioned bridge. Both are
 debounced and coalescing.
 
+**Built on Node's own `fs.watch`**, with no watching library. What such a
+library mostly provides — coalescing, settling, normalising platform quirks —
+this application already owns and tests: the coordinator, the debounce, and
+above all the comparison rule below. A second answer to those questions would
+be a second place for them to be answered differently. Three properties of the
+platform were measured before the choice and each one is a rule in the adapter:
+
+- **a file is watched through its directory, never by its own path.** A watch
+  on a path stops reporting the moment that path is replaced by a rename —
+  which is exactly how this application saves.
+- **the event type carries no information.** One atomic save produced seven
+  events, `rename` for ordinary writes among them, including events for
+  directories that had not changed. Only "something under here" is usable.
+- **a watch delivers a short history**, so changes made just before it started
+  still arrive, and a non-recursive watch reports activity in subdirectories
+  too. Both mean more notifications than asked for, never fewer — the harmless
+  direction, given that the consumer compares before acting.
+
+**The notification carries nothing.** It says "look again"; looking is where
+the comparison happens. A payload would invite acting on the message instead of
+on the file.
+
+**A re-read leaves the interface where it was**: the tree stays open where it
+was open, and the editor keeps the document it holds until the freshly read one
+replaces it. Neither is cosmetic once a watcher is running — a re-read then
+follows every save, and a tree that folds itself up or an editor that blinks on
+every save is not usable.
+
 **No autosave.** The document is saved on explicit user action. An exception is
 allowed only where the user's action itself implies a write (for example
 "Open with an external application", §18), and that exception MUST be stated in
