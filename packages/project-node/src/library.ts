@@ -23,7 +23,22 @@ import {
 /** Enough lines for the largest density step. SPEC.md §9.2. */
 const PREVIEW_LINE_LIMIT = PREVIEW_DENSITIES.large.totalLines - 1;
 import { isGroupDirectory, isSheetFile } from './node-filesystem.js';
-import type { ProjectFilesystem } from './ports.js';
+import type { DirectoryEntry, ProjectFilesystem } from './ports.js';
+
+/**
+ * The entries of a directory the library shows: groups and sheets, by name,
+ * in no particular order. One rule, used by the scan and by the session when
+ * it places an entry, so the two cannot disagree about what a group holds.
+ */
+export function visibleChildren(entries: readonly DirectoryEntry[]): readonly string[] {
+  return entries
+    .filter(
+      (entry) =>
+        (entry.kind === 'directory' && isGroupDirectory(entry.name)) ||
+        (entry.kind === 'file' && isSheetFile(entry.name)),
+    )
+    .map((entry) => entry.name);
+}
 
 /**
  * Root of the scan. The project directory is itself the top visible node.
@@ -81,21 +96,15 @@ async function scanChildren(
   readTitles: boolean,
 ): Promise<readonly LibraryEntry[]> {
   const absolutePath = relativePath === '.' ? projectPath : join(projectPath, relativePath);
-  const names = await filesystem.listDirectory(absolutePath);
+  const entries = await filesystem.listEntries(absolutePath);
 
-  const visible = names.filter((name) =>
-    name.includes('.') ? isSheetFile(name) || isVisibleDirectoryName(name) : isGroupDirectory(name),
-  );
-
-  // The directory listing does not say what is a directory, so each candidate
-  // is classified by trying to list it. A file lists as empty.
-  const classified: Array<{ name: string; isGroup: boolean }> = [];
-  for (const name of visible) {
-    const isGroup = !isSheetFile(name) && (await isDirectory(filesystem, join(absolutePath, name)));
-    if (isGroup || isSheetFile(name)) {
-      classified.push({ name, isGroup });
-    }
-  }
+  // The listing says what each entry is; nothing has to be opened to find
+  // out. (It used to read every non-Markdown file in full to learn that it
+  // was not a directory.)
+  const classified = visibleChildren(entries).map((name) => ({
+    name,
+    isGroup: entries.find((entry) => entry.name === name)?.kind === 'directory',
+  }));
 
   const order = resolveChildOrder(
     classified.map((entry) => entry.name),
@@ -134,20 +143,6 @@ async function scanChildren(
   }
 
   return children;
-}
-
-/** A directory may contain a dot in its name; only hidden ones are skipped. */
-function isVisibleDirectoryName(name: string): boolean {
-  return !name.startsWith('.');
-}
-
-async function isDirectory(filesystem: ProjectFilesystem, absolutePath: string): Promise<boolean> {
-  try {
-    await filesystem.readSheet(absolutePath);
-    return false;
-  } catch {
-    return true;
-  }
 }
 
 /**

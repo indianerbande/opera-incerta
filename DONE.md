@@ -6,6 +6,62 @@ documents").
 
 ---
 
+## 2026-09-03 — the port is the only way to the disk
+
+**What was open** (`TODO.md` §1.8 until this round). The `ProjectFilesystem`
+port existed "so tests run against an in-memory double", and no double
+existed; the session and the shell reached past it to `node:fs` for what it
+did not offer — a directory to create, a file to move, a kind to know. The
+scan read every non-Markdown file in full to learn it was not a directory.
+`readStructure` and `readCategories` turned every failure into an empty
+record, and the next edit wrote `{}` over the author's arrangement; the
+records were written directly while sheets were written atomically.
+`placeEntry` re-read the whole project twice per drag and re-minted every
+handle, while the comment on `reopen` said handles were kept.
+
+**What changed.**
+
+- **The port is complete**: `listEntries` with each entry's kind,
+  `isDirectory`, `createDirectory`, `moveEntry`. Neither the session nor the
+  shell imports `node:fs` any more; the shell holds one filesystem and hands
+  it to the session.
+- **An in-memory implementation** (`MemoryProjectFilesystem`) with the same
+  rules — a write needs its parent, a move takes a subtree along — and **one
+  contract suite** that runs against both implementations: nine cases, over
+  the disk and in memory. A double that behaves differently from the real
+  thing tests nothing, and the suite is what says whether it does.
+- **The scan classifies from the listing.** `visibleChildren` is the one
+  rule for what a directory shows, used by the scan and by `placeEntry`,
+  which now lists the target once instead of re-reading the project.
+- **Only a missing or malformed record takes the fallback.** A record file
+  that is there and cannot be read fails with `structure/unreadable` or
+  `categories/unreadable`; the test puts a directory where the file should
+  be. Records are written atomically, like sheets.
+- **Handles are kept across a re-read of the same project**, as the comment
+  had claimed: a save in flight during a library edit still names its file.
+  `isProjectDirectory` asks for access rather than reading the record.
+
+**Verification.** `pnpm run check` green: **872 tests** — eighteen in the
+contract suite (nine cases, twice), two for the unreadable record and the
+atomic write, one for the kept handle; every existing session and adapter
+test unchanged. `pnpm run desktop:smoke` green across **thirty checks**,
+twice — the drags, the deletions, the moves, all through the port.
+
+Three falsifications: with the double moving a directory but leaving its
+files behind, exactly the in-memory move case failed and the disk one stayed
+green; with every read failure an empty record again, exactly the
+unreadable-record test failed; with handles minted fresh on every re-read,
+exactly the kept-handle test failed.
+
+**Lesson.** A port that is missing an operation does not stay a port: the
+first caller that needs the operation goes around it, and after that the
+port describes what the code used to do. The way to keep a boundary is to
+make it complete enough that going around it is more work than using it —
+and to have a second implementation, because a boundary with one
+implementation is a boundary nobody has tested.
+
+---
+
 ## 2026-09-03 — one shape for a failure, and a contract that names what it carries
 
 **What was open** (`TODO.md` §1.8 until this round). Four error classes of

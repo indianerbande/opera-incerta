@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -157,6 +157,26 @@ describe('structure.json', () => {
   it('creates the marker directory if writing comes first', async () => {
     await filesystem.writeStructure(root, { '.': { order: [] } });
     expect(await filesystem.readStructure(root)).toEqual({ '.': { order: [] } });
+  });
+
+  it('fails rather than reading an empty record when the file cannot be read', async () => {
+    // A directory where the file should be: exists, cannot be read as a
+    // file. An empty record here would be written back over it on the next
+    // edit.
+    await mkdir(join(root, PROJECT_DIRECTORY, 'structure.json'), { recursive: true });
+    await expect(filesystem.readStructure(root)).rejects.toMatchObject({
+      code: 'structure/unreadable',
+    });
+    await mkdir(join(root, PROJECT_DIRECTORY, 'categories.json'), { recursive: true });
+    await expect(filesystem.readCategories(root)).rejects.toMatchObject({
+      code: 'categories/unreadable',
+    });
+  });
+
+  it('writes the record atomically, leaving no temporary file behind', async () => {
+    await filesystem.writeStructure(root, { '.': { order: ['a.md'] } });
+    const names = await readdir(join(root, PROJECT_DIRECTORY));
+    expect(names).toEqual(['structure.json']);
   });
 });
 

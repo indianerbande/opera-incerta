@@ -7,19 +7,18 @@
  * a forged handle therefore fails a lookup rather than reaching a file.
  */
 import { randomUUID } from 'node:crypto';
-import { mkdir, rename, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MAX_DOCUMENT_BYTES, type ProjectSnapshot } from '@opera-incerta/desktop-contract';
 import {
   CodedError,
   type GroupEntry,
   arrivalName,
-  findGroup,
   moveChild,
   parseSheet,
   projectDirectoryName,
   readCategories,
   reorderChild,
+  resolveChildOrder,
   serializeSheet,
   sheetFileName,
   sheetsOf,
@@ -28,11 +27,12 @@ import {
   withoutChild,
 } from '@opera-incerta/core';
 import {
+  type ProjectFilesystem,
   absolutePathOf,
   createProjectFilesystem,
   isInside,
   scanLibrary,
-  type ProjectFilesystem,
+  visibleChildren,
 } from '@opera-incerta/project-node';
 
 /** A refusal by the session, with a stable code and no words of its own. */
@@ -107,8 +107,10 @@ export class ProjectSession {
   /**
    * Opens a project directory and returns what the renderer needs.
    *
-   * Handles are minted fresh on every open, so a handle from a previous
-   * project cannot address a file in this one.
+   * Handles are minted per project: a handle from a previous project cannot
+   * address a file in this one. A **re-read of the same project** keeps the
+   * handle of every sheet that is still there, so a save in flight during a
+   * library edit still names the file it started with.
    */
   async open(projectPath: string): Promise<ProjectSnapshot> {
     const inspection = await this.#filesystem.inspectFolder(projectPath);
@@ -121,10 +123,16 @@ export class ProjectSession {
     const library = (await scanLibrary(projectPath, record.displayName, this.#filesystem, structure))
       .root;
 
+    const kept = new Map<string, string>();
+    if (this.#open?.path === projectPath) {
+      for (const [id, relativePath] of this.#open.handles) {
+        kept.set(relativePath, id);
+      }
+    }
     const handles = new Map<string, string>();
     const exposed: Record<string, string> = {};
     for (const sheet of sheetsOf(library)) {
-      const id = randomUUID().replaceAll('-', '');
+      const id = kept.get(sheet.relativePath) ?? randomUUID().replaceAll('-', '');
       handles.set(id, sheet.relativePath);
       exposed[sheet.relativePath] = id;
     }
@@ -220,7 +228,7 @@ export class ProjectSession {
     const directoryName = projectDirectoryName(displayName, existing);
     const relativePath = parentPath === '.' ? directoryName : `${parentPath}/${directoryName}`;
 
-    await mkdir(join(parent, directoryName), { recursive: true });
+    await this.#filesystem.createDirectory(join(parent, directoryName));
     await this.#appendToOrder(projectPath, parentPath, directoryName);
 
     // Record the display name only when it differs from the directory name,
@@ -319,7 +327,7 @@ export class ProjectSession {
     if (groupPath === relativePath || groupPath.startsWith(`${relativePath}/`)) {
       throw new ProjectSessionError('group/into-itself');
     }
-    if (!(await stat(target).catch(() => null))?.isDirectory()) {
+    if (!(await this.#filesystem.isDirectory(target))) {
       throw new ProjectSessionError('group/unknown');
     }
 
@@ -330,7 +338,7 @@ export class ProjectSession {
     let arrival = name;
     if (fromGroup !== groupPath) {
       arrival = arrivalName(name, await this.#filesystem.listDirectory(target));
-      await rename(source, join(target, arrival));
+      await this.#filesystem.moveEntry(source, join(target, arrival));
 
       // The record follows the file at once, so that the scan below reads a
       // project whose two halves agree.
@@ -341,14 +349,15 @@ export class ProjectSession {
       );
     }
 
-    // The order comes from a fresh scan rather than from the caller: the
+    // The order comes from the directory rather than from the caller: the
     // renderer says *what* to place and *where*, never what a group contains.
-    const snapshot = await this.reopen();
-    const group = snapshot === null ? null : findGroup(snapshot.library, groupPath);
-    if (group === null) {
-      throw new ProjectSessionError('group/unknown');
-    }
-    const resolved = group.children.map((child) => child.name);
+    // One listing of the target, resolved by the same rule the scan applies —
+    // a full re-read of the project here was the second of two per drag.
+    const structureNow = await this.#filesystem.readStructure(projectPath);
+    const resolved = resolveChildOrder(
+      visibleChildren(await this.#filesystem.listEntries(target)),
+      structureNow[groupPath],
+    );
     if (!resolved.includes(arrival)) {
       throw new ProjectSessionError('entry/unknown');
     }

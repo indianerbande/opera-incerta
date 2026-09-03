@@ -777,6 +777,18 @@ and the shell measures and decides.
 
 **Status: Accepted.**
 
+**The port is the only way to the disk.** `packages/project-node` declares
+one `ProjectFilesystem` port — records, sheets, directory listings with
+their kinds, directories, moves — and every filesystem access of the shell
+and the session goes through it; neither imports `node:fs`. Two
+implementations exist, one over the disk and one in memory, and one contract
+suite runs against both, so the double behaves like the real thing or the
+suite says so. A record file that is **there and cannot be read** is a
+failure, not an empty record: every edit re-reads and rewrites it, and an
+empty record written back would replace the author's arrangement with
+nothing. Only a missing file, or a malformed one, takes the documented
+fallback. Records are written the way sheets are, atomically.
+
 **Base rule:** everything belonging to the **project** lives in the project
 directory and is shared through Git. Everything belonging only to a **device or
 installation** lives in the Electron user-data directory and is never

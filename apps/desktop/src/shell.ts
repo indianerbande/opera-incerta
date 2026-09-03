@@ -13,7 +13,7 @@
  * to the windows. Nothing in this file knows that a smoke exists.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { mkdir, readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -329,7 +329,10 @@ export function startShell(options: ShellOptions = {}): Shell {
   ipcMain.handle(CHANNELS.contractVersion, () => CONTRACT_VERSION);
 
   const trashItem: TrashItem = options.trashItem ?? ((path) => shell.trashItem(path));
-  const session = new ProjectSession(undefined, trashItem);
+  // One filesystem for the shell and the session: every access to the disk
+  // goes through the port, and the two cannot disagree about what is there.
+  const projectFiles = createProjectFilesystem();
+  const session = new ProjectSession(projectFiles, trashItem);
   const recentProjects = new RecentProjectsFile(app.getPath('userData'));
 
   ipcMain.handle(CHANNELS.windowRole, (event) => {
@@ -433,11 +436,14 @@ export function startShell(options: ShellOptions = {}): Shell {
    */
   privileged(CHANNELS.createProject, isCreateProjectRequest, async (request) => {
     const displayName = request.displayName.trim();
-    const directoryName = projectDirectoryName(displayName, await readdir(request.parentPath));
+    const directoryName = projectDirectoryName(
+      displayName,
+      await projectFiles.listDirectory(request.parentPath),
+    );
     const projectPath = join(request.parentPath, directoryName);
 
-    await mkdir(projectPath, { recursive: true });
-    await createProjectFilesystem().createProject(projectPath, displayName);
+    await projectFiles.createDirectory(projectPath);
+    await projectFiles.createProject(projectPath, displayName);
     return openProjectAt(projectPath);
   });
 
@@ -451,10 +457,9 @@ export function startShell(options: ShellOptions = {}): Shell {
    * silently gone (SPEC.md §8.6).
    */
   privileged(CHANNELS.recentProjects, acceptsNothing, async () => {
-    const filesystem = createProjectFilesystem();
     const entries = [];
     for (const project of recentProjects.read()) {
-      const inspection = await filesystem.inspectFolder(project.path);
+      const inspection = await projectFiles.inspectFolder(project.path);
       entries.push({
         path: project.path,
         shortPath: abbreviatePath(project.path),
@@ -631,7 +636,6 @@ export function startShell(options: ShellOptions = {}): Shell {
   });
 
   const git = createGitService();
-  const projectFiles = createProjectFilesystem();
 
   privileged(CHANNELS.gitFetch, acceptsNothing, async () => {
     await git.fetch(await repositoryRoot());

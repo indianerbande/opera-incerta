@@ -6,7 +6,17 @@
  * this module only performs the input and output.
  */
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import {
   CodedError,
@@ -20,6 +30,7 @@ import {
   PROJECT_DIRECTORY,
   PROJECT_FILES,
   SHEET_EXTENSION,
+  type DirectoryEntry,
   type FolderInspection,
   type ProjectFilesystem,
 } from './ports.js';
@@ -112,18 +123,14 @@ class NodeProjectFilesystem implements ProjectFilesystem {
   }
 
   /**
-   * Reads `structure.json`. A missing or malformed file yields an empty
-   * record, so the library falls back to directory names and alphabetical
-   * order rather than failing to open (SPEC.md §6.4, §16).
+   * Reads `categories.json`. A missing file means no categories, and a
+   * malformed one the documented fallback (SPEC.md §6.6, §16); anything else
+   * is a failure, because the next edit would write the fallback over the
+   * author's file.
    */
   async readCategories(projectPath: string): Promise<readonly PageCategory[]> {
-    try {
-      const raw = await readFile(categoriesFilePath(projectPath), 'utf8');
-      return readCategories(JSON.parse(raw) as unknown);
-    } catch {
-      // A missing file means no categories, and is not an error (SPEC.md §6.6).
-      return [];
-    }
+    const raw = await readOptional(categoriesFilePath(projectPath), 'categories/unreadable');
+    return raw === null ? [] : readCategories(parseLeniently(raw));
   }
 
   async writeCategories(projectPath: string, categories: readonly PageCategory[]): Promise<void> {
@@ -131,13 +138,18 @@ class NodeProjectFilesystem implements ProjectFilesystem {
     await writeJson(categoriesFilePath(projectPath), categories);
   }
 
+  /**
+   * Reads `structure.json`. A missing or malformed file yields an empty
+   * record, so the library falls back to directory names and alphabetical
+   * order rather than failing to open (SPEC.md §6.4, §16). A file that exists
+   * and cannot be read — a permission, a device error, a directory in its
+   * place — is a failure, not an empty record: every edit re-reads and
+   * rewrites this file, and an empty record written back would replace the
+   * author's arrangement with nothing.
+   */
   async readStructure(projectPath: string): Promise<StructureRecord> {
-    try {
-      const raw = await readFile(structureFilePath(projectPath), 'utf8');
-      return readStructureRecord(JSON.parse(raw) as unknown);
-    } catch {
-      return {};
-    }
+    const raw = await readOptional(structureFilePath(projectPath), 'structure/unreadable');
+    return raw === null ? {} : readStructureRecord(parseLeniently(raw));
   }
 
   async writeStructure(projectPath: string, structure: StructureRecord): Promise<void> {
@@ -158,20 +170,85 @@ class NodeProjectFilesystem implements ProjectFilesystem {
    * every supported platform.
    */
   async writeSheet(absolutePath: string, text: string): Promise<void> {
-    const temporary = `${absolutePath}.${this.#environment.newId()}.tmp`;
-    try {
-      await writeFile(temporary, text, 'utf8');
-      await rename(temporary, absolutePath);
-    } catch (error: unknown) {
-      await rm(temporary, { force: true });
-      throw error;
-    }
+    await writeAtomically(absolutePath, text, this.#environment.newId());
   }
 
   /** Directory entries, sorted by name. Hidden entries are included. */
   async listDirectory(absolutePath: string): Promise<readonly string[]> {
+    return (await this.listEntries(absolutePath)).map((entry) => entry.name);
+  }
+
+  async listEntries(absolutePath: string): Promise<readonly DirectoryEntry[]> {
     const entries = await safeReaddir(absolutePath);
-    return entries.map((entry) => entry.name).sort();
+    return entries
+      .map((entry) => ({
+        name: entry.name,
+        kind: entry.isDirectory() ? 'directory' : entry.isFile() ? 'file' : 'other',
+      }) as DirectoryEntry)
+      .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+  }
+
+  async isDirectory(absolutePath: string): Promise<boolean> {
+    try {
+      return (await stat(absolutePath)).isDirectory();
+    } catch {
+      return false;
+    }
+  }
+
+  async createDirectory(absolutePath: string): Promise<void> {
+    await mkdir(absolutePath, { recursive: true });
+  }
+
+  async moveEntry(fromAbsolutePath: string, toAbsolutePath: string): Promise<void> {
+    await rename(fromAbsolutePath, toAbsolutePath);
+  }
+}
+
+/**
+ * The content of a file that may be absent, or null when it is. Any other
+ * failure to read is a `ProjectError` with the given code — a file that is
+ * there and cannot be read must not look like a file that is not there.
+ */
+async function readOptional(absolutePath: string, code: string): Promise<string | null> {
+  try {
+    return await readFile(absolutePath, 'utf8');
+  } catch (error: unknown) {
+    if (isNodeError(error) && error.code === 'ENOENT') {
+      return null;
+    }
+    throw new ProjectError(code, absolutePath);
+  }
+}
+
+/** JSON, or `null` for text that is not JSON — the readers' documented fallback. */
+function parseLeniently(raw: string): unknown {
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
+
+/**
+ * Writes a file atomically: content goes to a temporary file in the same
+ * directory and is renamed into place, so an interrupted write cannot leave
+ * half a file behind. A rename within one directory is atomic on every
+ * supported platform. Sheets and the project's own records alike — the
+ * records used to be written directly, and were the less protected for it.
+ */
+async function writeAtomically(absolutePath: string, text: string, token: string): Promise<void> {
+  const temporary = `${absolutePath}.${token}.tmp`;
+  try {
+    await writeFile(temporary, text, 'utf8');
+    await rename(temporary, absolutePath);
+  } catch (error: unknown) {
+    await rm(temporary, { force: true });
+    throw error;
   }
 }
 
@@ -204,7 +281,7 @@ export function categoriesFilePath(projectPath: string): string {
 /** A directory is a project exactly when it holds the marker file. */
 export async function isProjectDirectory(absolutePath: string): Promise<boolean> {
   try {
-    await readFile(projectFilePath(absolutePath), 'utf8');
+    await access(projectFilePath(absolutePath));
     return true;
   } catch {
     return false;
@@ -265,7 +342,7 @@ async function safeReaddir(absolutePath: string) {
 }
 
 async function writeJson(absolutePath: string, value: unknown): Promise<void> {
-  await writeFile(absolutePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  await writeAtomically(absolutePath, `${JSON.stringify(value, null, 2)}\n`, randomUUID());
 }
 
 function readProjectRecord(value: unknown): ProjectRecord | null {

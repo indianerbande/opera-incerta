@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **851 tests**, plus the desktop and asset checks.
+projects, **872 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -66,21 +66,7 @@ has to be consulted to build, verify or change the product.
    suite; the rest of the review's adapter findings are done. Small, and a
    memory question only for a very long session.
 
-8. **The project adapter's port and its error handling**
-    (`packages/project-node`, `apps/desktop/src/project-session.ts`). The
-    `ProjectFilesystem` port exists "so tests run against an in-memory
-    double", and no double exists — session and shell reach past it to
-    `node:fs`. Either the port gains `rename`, `mkdir`, `stat` and one
-    in-memory implementation, or it goes and `node-filesystem.ts` exports
-    functions. In the same place: `library.ts` reads every non-Markdown file
-    to decide whether it is a directory, though `readdir` already said;
-    `readStructure` and `readCategories` turn every error into an empty
-    record and the next edit writes `{}` over the author's arrangement, so
-    only `ENOENT` may degrade and `writeJson` needs the atomic write
-    `writeSheet` has; `placeEntry` reopens the project twice per drag and
-    re-mints every handle, while the comment on `reopen` says handles are
-    kept; and `inspectFolder` reads `project.json` fully to test existence.
-9. **Core rules the review found wrong or loose**, one tidy-up round:
+8. **Core rules the review found wrong or loose**, one tidy-up round:
     - `hasConflictMarkers` is true for a bare `<<<<<<< HEAD` line while
       `parseConflicts` reports no conflict, so the store locks a sheet the
       resolver has nothing to resolve in (`conflict.ts`);

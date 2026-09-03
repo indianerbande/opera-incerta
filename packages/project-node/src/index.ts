@@ -4,12 +4,15 @@ export {
   SHEET_EXTENSION,
 } from './ports.js';
 export type {
+  DirectoryEntry,
   Disposable,
   FolderInspection,
   LibraryWatcher,
   ProjectFilesystem,
   WatchDirectoryOptions,
 } from './ports.js';
+
+export { MemoryProjectFilesystem, createMemoryFilesystem } from './memory-filesystem.js';
 
 export { createLibraryWatcher } from './node-watcher.js';
 
@@ -27,5 +30,5 @@ export {
 } from './node-filesystem.js';
 export type { ProjectEnvironment } from './node-filesystem.js';
 
-export { absolutePathOf, scanLibrary } from './library.js';
+export { absolutePathOf, scanLibrary, visibleChildren } from './library.js';
 export type { Library, ScanOptions } from './library.js';

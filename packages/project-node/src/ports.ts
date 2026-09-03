@@ -28,10 +28,20 @@ export type FolderInspection =
   | { readonly kind: 'single-subproject'; readonly relativePath: string }
   | { readonly kind: 'multiple-subprojects'; readonly relativePaths: readonly string[] };
 
+/** One entry of a directory, with what kind of thing it is. */
+export interface DirectoryEntry {
+  readonly name: string;
+  readonly kind: 'file' | 'directory' | 'other';
+}
+
 /**
- * The port the desktop application implements over the real filesystem.
- * Keeping it an interface allows tests to run against an in-memory double and
- * keeps the boundary replaceable (CONVENTIONS.md C-A3).
+ * The port through which every filesystem access of the application goes.
+ *
+ * Two implementations: the Node one over the real disk, and an in-memory one
+ * for tests that want a tree without a temporary directory. One contract
+ * suite runs against both (`test/filesystem-contract.test.ts`), which is what
+ * keeps the port honest — an operation the session needs that the port does
+ * not offer is how the session came to import `node:fs` past it.
  */
 export interface ProjectFilesystem {
   inspectFolder(absolutePath: string): Promise<FolderInspection>;
@@ -43,7 +53,15 @@ export interface ProjectFilesystem {
   writeStructure(projectPath: string, structure: StructureRecord): Promise<void>;
   readSheet(absolutePath: string): Promise<string>;
   writeSheet(absolutePath: string, text: string): Promise<void>;
+  /** Entry names, sorted. Hidden entries included. Nothing for a missing directory. */
   listDirectory(absolutePath: string): Promise<readonly string[]>;
+  /** Entries with their kind, sorted by name, so a caller never has to probe. */
+  listEntries(absolutePath: string): Promise<readonly DirectoryEntry[]>;
+  isDirectory(absolutePath: string): Promise<boolean>;
+  /** Creates a directory and every missing parent. */
+  createDirectory(absolutePath: string): Promise<void>;
+  /** Moves a file or a directory, subtree and all. */
+  moveEntry(fromAbsolutePath: string, toAbsolutePath: string): Promise<void>;
 }
 
 /**

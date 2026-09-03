@@ -177,7 +177,19 @@ Tests MUST cover:
   deleted category; and
 - path handling: a path that resolves outside the project is rejected, and
   comparisons use canonically resolved paths, because symlinked temporary
-  directories otherwise compare unequal on macOS (`CONVENTIONS.md` C-F1).
+  directories otherwise compare unequal on macOS (`CONVENTIONS.md` C-F1);
+- **the port's contract, against both implementations** (`SPEC.md` §7):
+  creating and reading a project, subprojects one level down, the record
+  fallbacks, round trips of structure, categories and sheets, entries listed
+  with their kind, directories created with their parents, and a file and a
+  directory moved with everything in it — the same suite over the disk and
+  in memory;
+- a record file that is there and cannot be read failing with
+  `structure/unreadable` or `categories/unreadable` rather than reading as
+  empty, and records written atomically with no temporary file left behind;
+  and
+- a sheet keeping its handle across a re-read of the same project, so a save
+  in flight during a library edit still names its file.
 
 ### 2.4 Watching, saving, and conflicts
 

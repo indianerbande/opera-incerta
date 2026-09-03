@@ -108,6 +108,21 @@ describe('resolving handles', () => {
     });
   });
 
+  it('keeps a sheet’s handle across a re-read of the same project', async () => {
+    const session = new ProjectSession();
+    const first = await session.open(root);
+    const before = first.handles['chapter.md'];
+
+    // A library edit re-reads the project; the document that was open must
+    // still answer to the handle the editor holds.
+    await session.createSheet('.', 'Another');
+    const again = await session.reopen();
+
+    expect(again?.handles['chapter.md']).toBe(before);
+    expect(again?.handles['another.md']).toBeDefined();
+    await expect(session.readSheet(before ?? '')).resolves.toContain('Text');
+  });
+
   it('rejects a handle from a previous project', async () => {
     const session = new ProjectSession();
     const first = await session.open(root);
