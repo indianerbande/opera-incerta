@@ -26,6 +26,7 @@
     "desktop:package": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run package",
     "desktop:smoke": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run smoke",
     "desktop:start": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run start",
+    "postinstall": "pnpm --filter @opera-incerta/desktop exec install-electron",
     "spike:editor": "pnpm --filter @opera-incerta/spike-editor-codemirror... run build && pnpm --filter @opera-incerta/spike-editor-codemirror run spike",
     "test": "pnpm --recursive --sort --if-present run test",
     "typecheck": "pnpm run build && pnpm run typecheck:tests",

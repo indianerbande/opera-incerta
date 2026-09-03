@@ -35,13 +35,7 @@ has to be consulted to build, verify or change the product.
    and no parser dependency is accepted yet (§2.1, `DEPENDENCIES.md`). Until
    then the honest claim is "round-trips through our own reader", not "verified
    standard-conformant".
-2. **Electron binary installation** — `pnpm install` did not run Electron's
-   postinstall despite `allowBuilds`, and the binary had to be fetched by
-   running `install.js` in the store directory. Find the correct pnpm 11
-   configuration so a clean checkout works in one step, then record it in
-   `PLATFORMS.md`.
-
-5. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+2. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the
@@ -96,6 +90,9 @@ Everything here waits on a decision from §2, on a user interface, or on both.
     release gate: native maker helpers compiled under a different runtime
     produce an ABI mismatch that only shows up at packaging time, long after
     the source gate was green.
+    The Electron runtime arrives through the root `postinstall`, which runs
+    the package's `install-electron` command (`README.md`); an install with
+    `--ignore-scripts` leaves it out.
   - **One fixed sequence per host**: report the runtime versions, install,
     `check`, `desktop:smoke`, `desktop:make`, verify the artifact — and write a
     hash and size manifest per platform and architecture as the evidence.

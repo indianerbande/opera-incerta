@@ -157,7 +157,9 @@ display model rather than a decoration on top of it.
   the dominant part of every distributable. It requires macOS 13 or newer.
 - **Offline behavior:** the installed application needs no network access. The
   binary download happens once at development installation time and uses the
-  local Electron cache when present.
+  local Electron cache when present. The published package has no install
+  script; the root `postinstall` runs its `install-electron` command
+  (`README.md`), which is why `allowBuilds` alone did not fetch it.
 - **Boundary:** `apps/desktop` owns native behavior only; it MUST NOT own
   document semantics (`SPEC.md` §5.2). The renderer reaches it exclusively
   through the versioned bridge in `packages/desktop-contract`.

@@ -14,6 +14,10 @@ overrides:
 
 allowBuilds:
   esbuild: true
+  # Kept although the published electron package carries no install script:
+  # its binary is fetched by the root `postinstall` (package.json), which runs
+  # the package's `install-electron` command. Should a future version bring
+  # the script back, it is allowed here.
   electron: true
   # Optional native helpers of transitive packaging dependencies. Writers IDE
   # does not use them, and building them would add compiler toolchain

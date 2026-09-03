@@ -55,8 +55,12 @@ pnpm run desktop:start
 renderer end to end; `apps/desktop/src/smoke/README.md` explains it.
 `desktop:start` opens the application window.
 
-If the Electron runtime is missing after installation, run `install.js` inside
-the installed `electron` package once — see [`TODO.md`](TODO.md) §1.7.
+The Electron runtime is fetched by the root `postinstall` script, which runs the
+`install-electron` command of the installed package: the published package has
+no install script of its own, so no pnpm build setting makes it arrive. The
+command is idempotent and skips when `dist/` already holds the right version.
+An install with `--ignore-scripts` leaves the runtime out; run
+`pnpm --filter @opera-incerta/desktop exec install-electron` afterwards.
 
 ## Repository layout
 

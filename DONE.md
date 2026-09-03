@@ -6,6 +6,42 @@ documents").
 
 ---
 
+## 2026-09-03 — the Electron runtime arrives with the install
+
+**What was open** (`TODO.md` §2). A clean checkout did not get the Electron
+binary from `pnpm install`, although `allowBuilds` named the package, and
+the runtime had to be fetched by running `install.js` by hand. The item
+asked for the pnpm 11 setting that makes one step suffice.
+
+**What was found.** There is no such setting, because there is nothing for
+it to allow: the published `electron@44.0.0` package carries no `scripts`
+at all. Its download lives behind a command, `install-electron`, that
+nothing runs unless asked. A fresh clone installed with the lockfile
+reproduced the empty `dist/` exactly, and `pnpm rebuild electron` did
+nothing, for the same reason.
+
+**What changed.** The workspace root has a `postinstall` script that runs
+the command inside the desktop package. It is idempotent — the script
+checks `dist/version` and `path.txt` and exits when they match — so a
+repeated install costs nothing. `allowBuilds` keeps `electron: true` with a
+comment saying why it is not what fetches the binary. `README.md` and
+`DEPENDENCIES.md` say the same; the `PLATFORMS.md` bullet in `TODO.md`
+carries it into the packaging round.
+
+**Verification.** In a fresh clone: `pnpm install --frozen-lockfile` left
+`Electron.app` under the package's `dist/`, and `pnpm run desktop:smoke`
+in that clone ran green across thirty-one checks. The falsification is the
+state before the change, seen in the same clone the same hour: no
+`postinstall`, no binary.
+
+**Lesson.** The item assumed a configuration mistake and asked for the
+right key. Reading the installed package's `package.json` took a minute
+and dissolved the question: a build setting cannot run a script that is
+not there. Look at what the tool is being asked to do before looking for
+the option that would make it do it.
+
+---
+
 ## 2026-09-03 — the identity git needs, asked once and kept local
 
 **What was open** (`TODO.md` §5, decided in `SPEC.md` §12). Without
