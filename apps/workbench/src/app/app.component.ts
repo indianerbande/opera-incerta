@@ -38,7 +38,8 @@ import {
 } from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
-import type { GitVersions } from '@opera-incerta/desktop-contract';
+import type { GitBranch, GitVersions } from '@opera-incerta/desktop-contract';
+import { BranchesComponent } from './library/branches.component.js';
 import { ConflictResolverComponent } from './library/conflict-resolver.component.js';
 import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
@@ -60,6 +61,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ActivityBarComponent,
+    BranchesComponent,
     CategoryManagerComponent,
     ConflictResolverComponent,
     DiffViewComponent,
@@ -143,6 +145,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             (merge)="askToMerge()"
             (abortMerge)="sourceControl.abortMerge()"
             (publish)="askToPublish()"
+            (showBranches)="openBranches()"
             (resolve)="openResolver($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
@@ -328,6 +331,16 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         [confirmLabel]="open.confirmLabel"
         (confirm)="confirmPrompt($event)"
         (cancel)="prompt.set(null)"
+      />
+    }
+
+    @if (branches(); as list) {
+      <wi-branches
+        [branches]="list"
+        (switchTo)="switchBranch($event)"
+        (remove)="askToDeleteBranch($event)"
+        (create)="askForBranchName()"
+        (close)="branches.set(null)"
       />
     }
 
@@ -760,6 +773,65 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  /** The branch list on screen, if any. SPEC.md §12. */
+  protected readonly branches = signal<readonly GitBranch[] | null>(null);
+
+  protected async openBranches(): Promise<void> {
+    this.branches.set(await this.sourceControl.branches());
+  }
+
+  /**
+   * Switching replaces files in the working tree wholesale.
+   *
+   * It is refused while the editor holds unsaved work: git knows nothing about
+   * a buffer, and an author whose text sat under a file that has just become a
+   * different file has no way to make sense of what happened. Saving or
+   * discarding first is one click, and then the question does not arise.
+   */
+  protected async switchBranch(name: string): Promise<void> {
+    if (this.store.dirty()) {
+      this.confirmation.set({
+        title: 'Save or discard first',
+        warning: `“${this.store.openTitle() ?? ''}” has changes that are not saved.`,
+        hint: 'Switching branches replaces files on disk, and unsaved work has nowhere to go.',
+        confirmLabel: 'Save and switch',
+        action: () => void this.saveAndSwitch(name),
+      });
+      return;
+    }
+    this.branches.set(null);
+    await this.sourceControl.switchBranch(name);
+  }
+
+  private async saveAndSwitch(name: string): Promise<void> {
+    await this.store.save();
+    this.branches.set(null);
+    await this.sourceControl.switchBranch(name);
+  }
+
+  protected askForBranchName(): void {
+    this.branches.set(null);
+    this.prompt.set({
+      title: 'New branch',
+      initial: '',
+      placeholder: 'draft/chapter-3',
+      hint: 'It starts at the current commit, and is switched to at once.',
+      confirmLabel: 'Create',
+      action: (value) => void this.sourceControl.createBranch(value),
+    });
+  }
+
+  protected askToDeleteBranch(name: string): void {
+    this.branches.set(null);
+    this.confirmation.set({
+      title: `Delete the branch “${name}”?`,
+      warning: 'Only a branch whose work is already merged can be deleted; git refuses the rest.',
+      hint: 'The commits stay in the repository either way.',
+      confirmLabel: 'Delete',
+      action: () => void this.sourceControl.deleteBranch(name),
+    });
   }
 
   /**

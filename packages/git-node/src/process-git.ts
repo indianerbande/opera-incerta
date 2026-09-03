@@ -8,7 +8,7 @@
  */
 import { execFile } from 'node:child_process';
 import { parseGitStatus, type GitFileStatus } from '@opera-incerta/core';
-import type { GitRemote, GitService, GitTracking } from './index.js';
+import type { GitBranch, GitRemote, GitService, GitTracking } from './index.js';
 
 export interface GitCommandResult {
   readonly stdout: string;
@@ -187,6 +187,43 @@ class ProcessGitService implements GitService {
   async currentBranch(repositoryRoot: string): Promise<string | null> {
     const result = await this.#runner.run(['symbolic-ref', '--short', 'HEAD'], repositoryRoot);
     return result.exitCode === 0 ? result.stdout.trim() : null;
+  }
+
+  async branches(repositoryRoot: string): Promise<readonly GitBranch[]> {
+    const result = await this.#runner.run(
+      ['for-each-ref', '--format=%(refname:short)', 'refs/heads'],
+      repositoryRoot,
+    );
+    if (result.exitCode !== 0) {
+      // A repository without a commit has no branch yet, which is not a
+      // failure.
+      return [];
+    }
+
+    const current = await this.currentBranch(repositoryRoot);
+    return result.stdout
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((name) => name !== '')
+      .map((name) => ({ name, current: name === current }));
+  }
+
+  async createBranch(repositoryRoot: string, name: string): Promise<void> {
+    // No separator here: `git switch --create` reads `--` as the start of
+    // pathspecs and `--end-of-options` as a start point, and refuses both.
+    // The name is checked against `isValidBranchName` before it gets here,
+    // which is what keeps a name beginning with `-` out (SPEC.md §12).
+    await this.#run(['switch', '--create', name], repositoryRoot);
+  }
+
+  async switchBranch(repositoryRoot: string, name: string): Promise<void> {
+    await this.#run(['switch', '--end-of-options', name], repositoryRoot);
+  }
+
+  async deleteBranch(repositoryRoot: string, name: string): Promise<void> {
+    // `-d`, never `-D`: git refuses a branch whose work is not merged, and
+    // that refusal is exactly what the author needs to see (SPEC.md §12).
+    await this.#run(['branch', '--delete', '--end-of-options', name], repositoryRoot);
   }
 
   async defaultRemote(repositoryRoot: string): Promise<GitRemote | null> {

@@ -318,6 +318,13 @@ Tests MUST cover:
   to decide, and applying a decision writes the file with the chosen text and
   **no marker** in it. Committing afterwards produces a commit with two
   parents, checked with `git rev-list --parents`;
+- branches (`SPEC.md` §12): listed with the checked-out one marked, created and
+  switched to, and an unmerged one refused deletion **in git's own words**. The
+  rule the application adds is checked where git cannot help: with unsaved work
+  in the editor a switch stops to ask, and declining leaves the branch as it
+  was. That a *committed* change stays on its branch is checked by reading the
+  file after switching — a change that is only saved belongs to no branch and
+  follows, which is git's behaviour and not a defect;
 - publishing a branch through the interface (`SPEC.md` §12), which is also how
   the remote in the checks below comes to exist: the panel offers it while the
   branch tracks nothing, an address of the command-running kind is **refused

@@ -24,6 +24,13 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
       </p>
     } @else {
       <div class="panel">
+        @if (branch(); as name) {
+          <div class="branch-row">
+            <span class="branch-name" [title]="'On branch ' + name">{{ name }}</span>
+            <button type="button" (click)="showBranches.emit()">Branches…</button>
+          </div>
+        }
+
         @if (canPublish()) {
           <div class="tracking">
             <div class="remote">
@@ -196,6 +203,29 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
       flex-direction: column;
       min-height: 0;
       font: 12px system-ui, sans-serif;
+    }
+    .branch-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding-bottom: 6px;
+    }
+    .branch-name {
+      overflow: hidden;
+      flex: 1 1 auto;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 600;
+    }
+    .branch-row button {
+      flex: none;
+      padding: 2px 8px;
+      border: 1px solid rgba(128, 128, 128, 0.45);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: default;
     }
     .tracking {
       /* Two rows: in a narrow navigator a single one truncates the upstream's
@@ -379,6 +409,7 @@ export class SourceControlComponent {
   readonly merge = output<void>();
   readonly abortMerge = output<void>();
   readonly publish = output<void>();
+  readonly showBranches = output<void>();
   /** Asks to decide one file's conflicts; the shell shows the resolver. */
   readonly resolve = output<GitFileStatus>();
   readonly toggleAll = output<void>();

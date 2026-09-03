@@ -126,6 +126,7 @@ export {
   isConflicted,
   isFullyStaged,
   isSafeRemoteUrl,
+  isValidBranchName,
   parseGitStatus,
   selectAllState,
   touchesWorkingTree,

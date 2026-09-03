@@ -50,6 +50,12 @@ export interface GitTracking {
   readonly ahead: number;
 }
 
+/** A local branch. */
+export interface GitBranch {
+  readonly name: string;
+  readonly current: boolean;
+}
+
 /** A remote, as `git remote -v` reports it. */
 export interface GitRemote {
   readonly name: string;
@@ -99,6 +105,17 @@ export interface GitService {
   tracking(repositoryRoot: string): Promise<GitTracking | null>;
   /** The checked-out branch, or null on a detached head. */
   currentBranch(repositoryRoot: string): Promise<string | null>;
+  /** Every local branch, and which one is checked out. SPEC.md §12. */
+  branches(repositoryRoot: string): Promise<readonly GitBranch[]>;
+  /** Creates a branch at the current commit and switches to it. */
+  createBranch(repositoryRoot: string, name: string): Promise<void>;
+  /** Switches to an existing branch. Git refuses where work would be lost. */
+  switchBranch(repositoryRoot: string, name: string): Promise<void>;
+  /**
+   * Deletes a branch, the safe way: git refuses one whose work is not merged,
+   * and that refusal is the answer the author gets.
+   */
+  deleteBranch(repositoryRoot: string, name: string): Promise<void>;
   /**
    * The remote a first publish would go to, or null when there is none.
    * `origin` where it exists, otherwise whichever is first.

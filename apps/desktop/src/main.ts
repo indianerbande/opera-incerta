@@ -37,6 +37,7 @@ import {
   CONTRACT_VERSION,
   isDocumentHandle,
   isGitCommitRequest,
+  isGitBranchRequest,
   isGitPathsRequest,
   isGitPublishRequest,
   isGitResolveRequest,
@@ -51,7 +52,12 @@ import {
   type BridgeResult,
   type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
-import { isSafeRemoteUrl, projectDirectoryName, readPreferences } from '@opera-incerta/core';
+import {
+  isSafeRemoteUrl,
+  isValidBranchName,
+  projectDirectoryName,
+  readPreferences,
+} from '@opera-incerta/core';
 import { createGitService } from '@opera-incerta/git-node';
 import {
   canonicalPath,
@@ -639,6 +645,28 @@ privileged(CHANNELS.gitMerge, acceptsNothing, async () => {
 
 privileged(CHANNELS.gitAbortMerge, acceptsNothing, async () => {
   await git.abortMerge(await repositoryRoot());
+  return null;
+});
+
+privileged(CHANNELS.gitBranches, acceptsNothing, async () => git.branches(await repositoryRoot()));
+
+privileged(CHANNELS.gitCreateBranch, isGitBranchRequest, async (request) => {
+  // Checked before git sees it: a name beginning with `-` would be read as an
+  // option, and `git switch --create` accepts no separator (SPEC.md §12).
+  if (!isValidBranchName(request.name)) {
+    throw new ProjectSessionError('git/invalid-branch-name');
+  }
+  await git.createBranch(await repositoryRoot(), request.name.trim());
+  return null;
+});
+
+privileged(CHANNELS.gitSwitchBranch, isGitBranchRequest, async (request) => {
+  await git.switchBranch(await repositoryRoot(), request.name);
+  return null;
+});
+
+privileged(CHANNELS.gitDeleteBranch, isGitBranchRequest, async (request) => {
+  await git.deleteBranch(await repositoryRoot(), request.name);
   return null;
 });
 
@@ -2304,6 +2332,112 @@ async function checkMergeAndResolve(window: BrowserWindow, elsewhere: string): P
     'smoke ok: a real conflict was shown with both versions, decided per region, written back ' +
       'without a marker, and committed as a merge',
   );
+
+  await checkBranches(window);
+}
+
+/**
+ * Branches: listing, creating, switching, deleting — and the one rule git
+ * cannot enforce, that a switch waits for unsaved work. SPEC.md §12.
+ */
+async function checkBranches(window: BrowserWindow): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+  const branchOf = (): string => runGit(smokeProjectPath, ['branch', '--show-current']).trim();
+
+  await openBranches(window);
+  const listed = await branchNames(window);
+  if (listed.length !== 1 || !listed[0]?.includes('main')) {
+    throw new Error(`the branch list is wrong: ${JSON.stringify(listed)}`);
+  }
+
+  await clickText(window, 'wi-branches button', 'New branch');
+  await waitForSelector(window, 'wi-text-prompt input');
+  await fillPrompt(window, 'draft/chapter-3');
+  await settleWatch(window, async () => branchOf() === 'draft/chapter-3');
+  if (branchOf() !== 'draft/chapter-3') {
+    throw new Error(`creating a branch did not switch to it: ${branchOf()}`);
+  }
+
+  // A switch with unsaved work waits: git knows nothing about the editor.
+  await placeCursorInEditor(window);
+  await typeText(window, 'Unsaved, and in the way.');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  await openBranches(window);
+  await clickText(window, 'wi-branches button', 'Switch');
+  await waitForSelector(window, 'wi-confirm-prompt button');
+  const asked = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-confirm-prompt h2')?.textContent.trim() ?? null`,
+  )) as string | null;
+  if (asked === null || !asked.includes('Save or discard')) {
+    throw new Error(`switching over unsaved work did not stop to ask: ${String(asked)}`);
+  }
+  await pressKey(window, 'Escape');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (branchOf() !== 'draft/chapter-3') {
+    throw new Error('the branch changed although the question was declined');
+  }
+
+  // Saving first, and then it goes through.
+  clickMenuItem('sheet/save');
+  await new Promise((resolve) => setTimeout(resolve, 800));
+
+  // Committed here, so that it belongs to this branch: a change that is only
+  // saved is not on any branch yet, and follows a switch as git intends.
+  await clickSourceControl(window, '.changes-header input');
+  await fillCommitMessage(window, 'Written on the draft branch');
+  await clickText(window, 'wi-source-control .actions button', 'Commit');
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  await openBranches(window);
+  await clickText(window, 'wi-branches button', 'Switch');
+  await settleWatch(window, async () => branchOf() === 'main');
+  if (branchOf() !== 'main') {
+    throw new Error(`switching branches did not take: ${branchOf()}`);
+  }
+
+  // The committed work stayed on the branch it was made on, and the working
+  // tree followed.
+  if (readFileSync(join(smokeProjectPath, 'part-1', 'scene.md'), 'utf8').includes('in the way')) {
+    throw new Error('the other branch’s work followed the switch');
+  }
+
+  await openBranches(window);
+  await clickText(window, 'wi-branches button', 'Delete');
+  await waitForSelector(window, 'wi-confirm-prompt button');
+  await clickText(window, 'wi-confirm-prompt button', 'Delete');
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // Refused, and rightly: that branch carries a commit main has never seen.
+  const remaining = runGit(smokeProjectPath, ['branch', '--format=%(refname:short)']).trim();
+  if (!remaining.includes('draft/chapter-3')) {
+    throw new Error('a branch whose work is not merged was deleted anyway');
+  }
+  const refusal = (await window.webContents.executeJavaScript(
+    "document.querySelector('wi-source-control .failure')?.textContent?.trim() ?? null",
+  )) as string | null;
+  if (refusal === null || !refusal.includes('not fully merged')) {
+    throw new Error(`the refusal was not reported: ${String(refusal)}`);
+  }
+
+  console.log(
+    'smoke ok: branches listed, created, switched — with a switch over unsaved work stopping to ' +
+      'ask — and an unmerged branch refused deletion in git’s own words',
+  );
+}
+
+/** Opens the branch dialog from the panel. */
+async function openBranches(window: BrowserWindow): Promise<void> {
+  await clickText(window, 'wi-source-control .branch-row button', 'Branches');
+  await waitForSelector(window, 'wi-branches .list');
+}
+
+async function branchNames(window: BrowserWindow): Promise<readonly string[]> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-branches li')].map((row) => row.textContent.replace(/\\s+/gu, ' ').trim())`,
+  )) as readonly string[];
 }
 
 /** Presses the navigator's refresh, which source control shares. */

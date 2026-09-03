@@ -6,6 +6,42 @@ documents").
 
 ---
 
+## 2026-09-03 — branches, and the one rule git cannot enforce
+
+**What exists.** The panel names the branch it is on and opens a list of them:
+create, switch, delete. Creating starts at the current commit and switches at
+once; deleting is the safe delete, so git refuses a branch whose work is not
+merged and that refusal is the answer.
+
+**The rule the application adds.** A switch is refused while the editor holds
+unsaved work, offering to save first. Git knows nothing about a buffer, and an
+author whose text sat under a file that has just become a different file has no
+way to make sense of what happened. Saving is one click, and then the question
+does not arise.
+
+**What is deliberately left as git has it:** work that is saved but not
+committed belongs to no branch and follows a switch. My first version of the
+check asserted the opposite and failed, correctly — the assertion was wrong,
+not the behaviour. Committing first makes the check say something true: the
+committed change stays on its branch, and the working tree follows.
+
+**A separator that is not a separator.** `git switch --create -- name` reads
+`--` as the start of pathspecs and refuses the name; `--end-of-options` there
+makes git look for a start point instead. Both were measured rather than
+assumed. So switching and deleting pass `--end-of-options`, and creating passes
+nothing — which is why the name is validated in the core before it ever reaches
+git, and why that validation refuses anything beginning with `-`.
+
+**Verification.** `pnpm run check` green: **709 tests**. The smoke lists the
+branches, creates one and confirms with `git branch --show-current` that it was
+switched to, types into the editor and finds the switch stopping to ask,
+declines and finds the branch unchanged, commits and switches and finds the
+work left behind, then tries to delete the unmerged branch and finds git's own
+refusal in the panel. Falsified by removing the unsaved-work check: the switch
+then happens without asking, and the smoke says so.
+
+---
+
 ## 2026-09-03 — publishing a branch, and refusing an address that would run
 
 **What exists.** A repository whose branch tracks nothing offers to publish it.

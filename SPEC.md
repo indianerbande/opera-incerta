@@ -1515,6 +1515,23 @@ changes and a non-empty message.
 freshly created project is in. There the path is removed from the index
 instead, which is the same outcome for content that was never committed.
 
+**Branches** are listed with the one that is checked out marked, and can be
+created, switched to and deleted.
+
+- **Creating** starts at the current commit and switches to it at once. The
+  name is checked before git sees it — a name beginning with `-` would be read
+  as an option, and `git switch --create` accepts no separator that would
+  prevent it — with git's own `check-ref-format` having the last word.
+- **Switching is refused while the editor holds unsaved work**, and offers to
+  save first. This is the application's rule, not git's: git knows nothing
+  about a buffer, and an author whose text sat under a file that has just
+  become a different file has no way to make sense of what happened. Work that
+  is saved but not committed belongs to no branch and follows a switch, which
+  is git's behaviour and is left alone.
+- **Deleting** is the safe delete only. Git refuses a branch whose work is not
+  merged anywhere, and that refusal is the answer the author gets: losing a
+  chapter to a click is not something this application does.
+
 **Publishing a branch** is offered where a repository has a branch that tracks
 nothing, and only there. With a remote already recorded, the address is known
 and the action is **confirmed**, naming it: this is the moment the manuscript
@@ -1643,7 +1660,7 @@ discarded change back on the next save, and would raise the conflict prompt of
 §10.6 in between — asking the author to decide again what they have just
 decided. A re-read that was already in flight must not put them back either.
 
-**Not goals of this stage:** branches, amend, and editing `.gitignore`.
+**Not goals of this stage:** amend, and editing `.gitignore`.
 
 ## 13. Settings contract
 

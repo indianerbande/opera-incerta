@@ -274,6 +274,67 @@ describe('against a real repository', () => {
       expect(await git.hasCommit(root)).toBe(true);
     });
   });
+  describe('branches', () => {
+    beforeEach(async () => {
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+    });
+
+    it('lists what there is, and which one is checked out', async () => {
+      expect(await git.branches(root)).toEqual([{ name: 'main', current: true }]);
+    });
+
+    it('creates one at the current commit and switches to it', async () => {
+      await git.createBranch(root, 'draft/chapter-3');
+
+      expect(await git.currentBranch(root)).toBe('draft/chapter-3');
+      expect(await git.branches(root)).toEqual([
+        { name: 'draft/chapter-3', current: true },
+        { name: 'main', current: false },
+      ]);
+      // Branched from here, so the file is still there.
+      expect(await readFile(join(root, 'a.md'), 'utf8')).toBe('first\n');
+    });
+
+    it('switches between them, and the working tree follows', async () => {
+      await git.createBranch(root, 'draft');
+      await writeFile(join(root, 'b.md'), 'only on the draft\n', 'utf8');
+      await git.stage(root, ['b.md']);
+      await git.commit(root, 'on the draft');
+
+      await git.switchBranch(root, 'main');
+      expect(existsSync(join(root, 'b.md'))).toBe(false);
+
+      await git.switchBranch(root, 'draft');
+      expect(existsSync(join(root, 'b.md'))).toBe(true);
+    });
+
+    it('refuses to delete work that is not merged', async () => {
+      await git.createBranch(root, 'draft');
+      await writeFile(join(root, 'b.md'), 'only on the draft\n', 'utf8');
+      await git.stage(root, ['b.md']);
+      await git.commit(root, 'on the draft');
+      await git.switchBranch(root, 'main');
+
+      // The safe delete only: losing a chapter to a click is not a thing this
+      // application does.
+      await expect(git.deleteBranch(root, 'draft')).rejects.toMatchObject({
+        code: 'git/command-failed',
+      });
+      expect((await git.branches(root)).map((branch) => branch.name)).toContain('draft');
+    });
+
+    it('deletes one whose work is already merged', async () => {
+      await git.createBranch(root, 'spike');
+      await git.switchBranch(root, 'main');
+
+      await git.deleteBranch(root, 'spike');
+
+      expect((await git.branches(root)).map((branch) => branch.name)).toEqual(['main']);
+    });
+  });
+
   describe('publishing a branch', () => {
     it('reports the branch, and no remote before there is one', async () => {
       await writeFile(join(root, 'a.md'), 'first\n', 'utf8');

@@ -28,6 +28,8 @@ function fakeBridge(
     fetch?: () => BridgeResult<null>;
     pull?: () => BridgeResult<null>;
     merge?: () => BridgeResult<null>;
+    branches?: () => BridgeResult<readonly { name: string; current: boolean }[]>;
+    branchAction?: (name: string) => BridgeResult<null>;
     resolve?: (request: { path: string; text: string }) => BridgeResult<null>;
   } = {},
 ): OperaIncertaBridge & Recorder {
@@ -54,6 +56,13 @@ function fakeBridge(
     gitFetch: async () => script.fetch?.() ?? { ok: true, value: null },
     gitPull: async () => script.pull?.() ?? { ok: true, value: null },
     gitMerge: async () => script.merge?.() ?? { ok: true, value: null },
+    gitBranches: async () => script.branches?.() ?? { ok: true, value: [] },
+    gitCreateBranch: async (request) =>
+      script.branchAction?.(request.name) ?? { ok: true, value: null },
+    gitSwitchBranch: async (request) =>
+      script.branchAction?.(request.name) ?? { ok: true, value: null },
+    gitDeleteBranch: async (request) =>
+      script.branchAction?.(request.name) ?? { ok: true, value: null },
     gitResolve: async (request) => script.resolve?.(request) ?? { ok: true, value: null },
     gitDiff: async () => script.diff?.() ?? { ok: true, value: '' },
     gitDiscard: async (request) =>
@@ -498,5 +507,67 @@ describe('an unfinished merge', () => {
 
     // The merge began; what git reported is what the author is told.
     expect(store.failure()).toBe('CONFLICT (content): Merge conflict in a.md');
+  });
+});
+
+describe('branches', () => {
+  it('reads them when they are about to be shown', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        branches: () => ({
+          ok: true,
+          value: [
+            { name: 'main', current: true },
+            { name: 'draft', current: false },
+          ],
+        }),
+      }),
+    );
+
+    expect((await store.branches()).map((branch) => branch.name)).toEqual(['main', 'draft']);
+  });
+
+  it('reports a refusal and lists nothing', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        branches: () => ({ ok: false, code: 'git/command-failed', message: 'not a repository' }),
+      }),
+    );
+
+    expect(await store.branches()).toEqual([]);
+    expect(store.failure()).toBe('not a repository');
+  });
+
+  it('names the branch it is asked to act on', async () => {
+    const asked: string[] = [];
+    const store = new SourceControlStore(
+      fakeBridge({
+        branchAction: (name) => {
+          asked.push(name);
+          return { ok: true, value: null };
+        },
+      }),
+    );
+
+    await store.createBranch('draft/chapter-3');
+    await store.switchBranch('main');
+    await store.deleteBranch('spike');
+
+    expect(asked).toEqual(['draft/chapter-3', 'main', 'spike']);
+  });
+
+  it('reports what git says when a branch cannot be deleted', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        branchAction: () => ({
+          ok: false,
+          code: 'git/command-failed',
+          message: "error: the branch 'draft' is not fully merged",
+        }),
+      }),
+    );
+    await store.deleteBranch('draft');
+
+    expect(store.failure()).toBe("error: the branch 'draft' is not fully merged");
   });
 });

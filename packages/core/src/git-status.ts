@@ -127,6 +127,26 @@ export function canCommit(entries: readonly GitFileStatus[], message: string): b
 }
 
 /**
+ * Whether a branch name is one worth handing to git. SPEC.md §12.
+ *
+ * Git's own `check-ref-format` is the authority and has the last word; this
+ * catches the shapes that would be misread rather than refused — a name
+ * beginning with `-` reads as an option — and the everyday mistakes, so the
+ * author gets an answer before a command runs.
+ */
+export function isValidBranchName(value: string): boolean {
+  const name = value.trim();
+  if (name === '' || name.startsWith('-') || name.endsWith('/') || name.endsWith('.lock')) {
+    return false;
+  }
+  if (name.includes('..') || name.includes('//') || name.startsWith('/')) {
+    return false;
+  }
+  // Space, and the characters git names in its own refusal.
+  return !/[\s~^:?*[\\]/u.test(name);
+}
+
+/**
  * Whether a remote's address is one this application will accept.
  * SPEC.md §12.
  *

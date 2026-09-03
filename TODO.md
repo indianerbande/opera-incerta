@@ -11,9 +11,9 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 **State 2026-09-02:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and the committed slice of source
-control (§12). `pnpm run check` green on **Node 24**: 6 projects, **697
+control (§12). `pnpm run check` green on **Node 24**: 6 projects, **709
 tests**, plus the desktop and asset checks. `pnpm run desktop:smoke` green
-across twenty-seven checks, `pnpm run spike:editor` 7/7.
+across twenty-eight checks, `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
 open are the parts of §12 and §15 that this stage deliberately excludes, and
@@ -78,8 +78,7 @@ Everything here waits on a decision from §2, on a user interface, or on both.
 - **Source control beyond the committed slice** — the panel, the tri-state
   select-all, committing and pushing are built and checked against a real
   repository. What `SPEC.md` §12 lists as *not* goals of this stage is still
-  open and each needs its own round: branches, amend, and editing
-  `.gitignore`. Conflict resolution decides **per region**; deciding
+  open and each needs its own round: amend, and editing `.gitignore`. Conflict resolution decides **per region**; deciding
   *within* a region — keeping half of each version — would need a merge editor,
   and is a separate question.
   The live watcher of §12 is the open item above.

@@ -47,6 +47,10 @@ export const CHANNELS = {
   gitAbortMerge: 'opera-incerta:git/abort-merge',
   gitResolve: 'opera-incerta:git/resolve',
   gitPublish: 'opera-incerta:git/publish',
+  gitBranches: 'opera-incerta:git/branches',
+  gitCreateBranch: 'opera-incerta:git/create-branch',
+  gitSwitchBranch: 'opera-incerta:git/switch-branch',
+  gitDeleteBranch: 'opera-incerta:git/delete-branch',
   gitDiscard: 'opera-incerta:git/discard',
   gitDiff: 'opera-incerta:git/diff',
   gitVersions: 'opera-incerta:git/versions',
@@ -436,6 +440,25 @@ export interface GitReport {
   readonly remote: GitRemote | null;
 }
 
+/** A local branch. SPEC.md §12. */
+export interface GitBranch {
+  readonly name: string;
+  readonly current: boolean;
+}
+
+/** A request naming one branch. */
+export interface GitBranchRequest {
+  readonly name: string;
+}
+
+export function isGitBranchRequest(value: unknown): value is GitBranchRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<GitBranchRequest>;
+  return typeof candidate.name === 'string' && candidate.name.trim() !== '';
+}
+
 /** A remote, as git reports it. */
 export interface GitRemote {
   readonly name: string;
@@ -590,6 +613,14 @@ export interface OperaIncertaBridge {
    * SPEC.md §12.
    */
   gitPublish(request: GitPublishRequest): Promise<BridgeResult<null>>;
+  /** Every local branch, and which one is checked out. SPEC.md §12. */
+  gitBranches(): Promise<BridgeResult<readonly GitBranch[]>>;
+  /** Creates a branch at the current commit and switches to it. */
+  gitCreateBranch(request: GitBranchRequest): Promise<BridgeResult<null>>;
+  /** Switches to an existing branch. */
+  gitSwitchBranch(request: GitBranchRequest): Promise<BridgeResult<null>>;
+  /** Deletes a branch, the safe way. */
+  gitDeleteBranch(request: GitBranchRequest): Promise<BridgeResult<null>>;
   /**
    * Listens for native menu commands; the returned function stops listening.
    *

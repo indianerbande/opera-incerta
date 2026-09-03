@@ -5,6 +5,7 @@ import {
   parseGitStatus,
   selectAllState,
   isSafeRemoteUrl,
+  isValidBranchName,
   touchesWorkingTree,
   type GitFileStatus,
 } from '../src/index.js';
@@ -162,5 +163,35 @@ describe('isSafeRemoteUrl', () => {
     expect(isSafeRemoteUrl('   ')).toBe(false);
     expect(isSafeRemoteUrl('book.git')).toBe(false);
     expect(isSafeRemoteUrl('../book.git')).toBe(false);
+  });
+});
+
+describe('isValidBranchName', () => {
+  it('accepts the names people give chapters and drafts', () => {
+    expect(isValidBranchName('main')).toBe(true);
+    expect(isValidBranchName('draft/chapter-3')).toBe(true);
+    expect(isValidBranchName('überarbeitung')).toBe(true);
+    expect(isValidBranchName('  trimmed  ')).toBe(true);
+  });
+
+  it('refuses a name git would read as an option', () => {
+    expect(isValidBranchName('-f')).toBe(false);
+    expect(isValidBranchName('--force')).toBe(false);
+  });
+
+  it('refuses the shapes git itself refuses', () => {
+    expect(isValidBranchName('')).toBe(false);
+    expect(isValidBranchName('   ')).toBe(false);
+    expect(isValidBranchName('two words')).toBe(false);
+    expect(isValidBranchName('a..b')).toBe(false);
+    expect(isValidBranchName('a//b')).toBe(false);
+    expect(isValidBranchName('/leading')).toBe(false);
+    expect(isValidBranchName('trailing/')).toBe(false);
+    expect(isValidBranchName('draft.lock')).toBe(false);
+    expect(isValidBranchName('with:colon')).toBe(false);
+    expect(isValidBranchName('with?question')).toBe(false);
+    expect(isValidBranchName('with*star')).toBe(false);
+    expect(isValidBranchName('with~tilde')).toBe(false);
+    expect(isValidBranchName('with^caret')).toBe(false);
   });
 });

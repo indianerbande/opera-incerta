@@ -17,6 +17,7 @@ import {
   type SelectAllState,
 } from '@opera-incerta/core';
 import type {
+  GitBranch,
   GitRemote,
   GitTracking,
   GitVersions,
@@ -211,6 +212,39 @@ export class SourceControlStore {
   async pull(): Promise<void> {
     await this.#runWrite(async (bridge) => {
       unwrap(await bridge.gitPull());
+    });
+  }
+
+  /** Every local branch, read when they are about to be shown. SPEC.md §12. */
+  async branches(): Promise<readonly GitBranch[]> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      this.#failure.set('bridge/absent');
+      return [];
+    }
+    try {
+      return unwrap(await bridge.gitBranches());
+    } catch (error: unknown) {
+      this.#failure.set(reasonOf(error));
+      return [];
+    }
+  }
+
+  async createBranch(name: string): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitCreateBranch({ name }));
+    });
+  }
+
+  async switchBranch(name: string): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitSwitchBranch({ name }));
+    });
+  }
+
+  async deleteBranch(name: string): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitDeleteBranch({ name }));
     });
   }
 
