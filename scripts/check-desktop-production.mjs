@@ -77,6 +77,23 @@ if (main !== null) {
     !/loadFile\(/.test(main),
     'built main process uses loadFile; the renderer must be served through the owned protocol',
   );
+
+  // The smoke is bundled to `dist/smoke.cjs`, separately. Nothing of it may
+  // reach the production bundle: no harness, no fixture path, no driving of
+  // the renderer from the main process.
+  for (const needle of ['executeJavaScript', 'smoke-project', 'smoke ok', 'sendInputEvent']) {
+    check(!main.includes(needle), `built main process carries smoke code: ${needle}`);
+  }
+}
+
+// --- smoke bundle ---------------------------------------------------------
+const smoke = read('apps/desktop/dist/smoke.cjs');
+if (smoke !== null) {
+  // The smoke starts the same shell with the same window options; a smoke
+  // that loosened them would test a different application.
+  for (const needle of ['contextIsolation: true', 'sandbox: true', 'nodeIntegration: false']) {
+    check(smoke.includes(needle), `built smoke bundle is missing: ${needle}`);
+  }
 }
 
 // --- preload ------------------------------------------------------------

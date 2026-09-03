@@ -51,8 +51,8 @@ pnpm run desktop:start
 ```
 
 `check` builds every package, type-checks test code, and runs all suites.
-`desktop:smoke` launches the shell headlessly, verifies that the renderer
-rendered and the bridge answers, and writes `build/desktop/smoke.png`.
+`desktop:smoke` launches the shell through its smoke entry and drives the real
+renderer end to end; `apps/desktop/src/smoke/README.md` explains it.
 `desktop:start` opens the application window.
 
 If the Electron runtime is missing after installation, run `install.js` inside

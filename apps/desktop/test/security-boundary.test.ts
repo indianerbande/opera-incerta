@@ -7,7 +7,8 @@ function readSource(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8');
 }
 
-const mainSource = readSource('../src/main.ts');
+// The shell is where the windows are made; `main.ts` only starts it.
+const mainSource = readSource('../src/shell.ts');
 const preloadSource = readSource('../src/preload.ts');
 
 describe('renderer window options', () => {

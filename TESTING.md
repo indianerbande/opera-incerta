@@ -267,6 +267,16 @@ itself falsified by a test: a deliberately broken adapter must fail it.
 
 ### 2.7 Desktop shell and packaging
 
+The shell is checked by the desktop smoke: `apps/desktop/src/smoke/`, run
+by `pnpm run desktop:smoke`. It starts the real shell through `startShell`
+with a copy of the fixture in place of the directory chooser, a directory in
+place of the desktop trash, and a temporary user-data directory, and drives
+the real renderer with real input events. `apps/desktop/src/smoke/README.md`
+says how a check is written, why the order of the run matters, and how a
+failure is debugged; `main.ts` there holds the whole order, top to bottom.
+The smoke is bundled to `dist/smoke.cjs`, separately from the production
+entry, and the production check fails if any of it reaches `dist/main.cjs`.
+
 Tests MUST cover:
 
 - runtime validation of **every** privileged renderer request, not merely its

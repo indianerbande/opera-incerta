@@ -6,6 +6,72 @@ documents").
 
 ---
 
+## 2026-09-03 — the smoke has an entry of its own, and a README
+
+**What was found.** `apps/desktop/src/main.ts` was 4,113 lines, and 3,164 of
+them were the smoke: sixty check functions, ninety `setTimeout` sleeps, a
+hundred `executeJavaScript` strings — all bundled into `dist/main.cjs` and
+shipped with the application, and all reachable only through one chain: each
+check called the next at its last line, so the order of the run was spread
+across thirty function tails and nowhere written down. The production
+handlers branched on smoke variables in two places. A newcomer who wanted to
+know what the smoke checked, or in what order, had to read the whole file.
+
+**What changed.**
+
+- **`shell.ts`** is the production main process, unchanged in behaviour,
+  wrapped in one function: `startShell(options)`. The options are the five
+  things a test needs to substitute — the directory chooser, the parent
+  chooser for a new project, the trash, the user-data path, and a callback
+  for the launcher window — and the handle it returns is the four things a
+  test needs to see: both windows, the repository-watch count, and `exit`.
+  Nothing in the file knows that a smoke exists. **`main.ts`** is now ten
+  lines: it starts the shell with no options.
+- **`smoke/`** holds the smoke: `main.ts` (the entry, and **the whole order
+  of the run** in one function, top to bottom), `context.ts` (the one object
+  every check receives), `harness.ts` (the helpers that do what a hand does),
+  and `checks/` in six files by area — launcher, bridge, editor, panes,
+  source control, library. Every check takes `smoke` first and `window`
+  second; the three places where one check handed data to the next now
+  **return** it instead of calling onward.
+- The smoke is bundled to **`dist/smoke.cjs`**, separately, and run with
+  `electron dist/smoke.cjs`. The environment variable is gone. The production
+  check now fails if `dist/main.cjs` carries a harness string, a fixture
+  path, or a `smoke ok`, and checks that `dist/smoke.cjs` starts the same
+  sandboxed windows.
+- **`smoke/README.md`** is written for someone who has never seen the code:
+  how to run it, what is where, how a check is shaped and the six rules it
+  follows, why the order is part of the check, the two kinds of waiting and
+  why one is preferred, how to debug a failure in five steps, how to add a
+  check in six, and the things that are easy to get wrong.
+
+**What did not change.** Every check. The split was done by slicing the file
+at function boundaries with a script, substituting the shell's globals with
+the context object, deleting the chain calls, and letting the type checker
+name every seam that was left: five, all expected. The thirty `smoke ok`
+lines come out in the same order with the same words.
+
+**Verification.** `pnpm run check` green: **770 tests**, unchanged; the
+security-boundary test reads `shell.ts` now, and would fail against the
+ten-line `main.ts`. `pnpm run desktop:smoke` green across **thirty checks**.
+The
+new production assertion was falsified twice, and the first attempt taught
+something: a bare `import './smoke/harness.js'` in the production entry left
+the check green, because esbuild drops an import nothing uses. With a check
+function actually referenced from `main.ts`, the check failed on both
+`executeJavaScript` and `smoke ok` — and the falsification itself is the
+reason the assertion looks for strings the harness cannot avoid, rather than
+for a file name.
+
+**Lesson.** A test that lives inside the thing it tests cannot be read
+without it, and cannot be left out of it. The split cost an afternoon; the
+chain of tail calls had cost every reader before that. And the order of an
+end-to-end run is a fact about the system — that committing needs the edit,
+that the merge needs the remote — and a fact deserves a place where it is
+written down, not thirty places where it is implied.
+
+---
+
 ## 2026-09-03 — the codec refuses what it cannot read, instead of writing around it
 
 **What was found.** The architecture review ran hand-picked inputs through

@@ -311,14 +311,16 @@ succeeded in this checkout. The following have:
   notice, and that no packaged SVG can reach out or execute;
 - `pnpm run check:desktop-production` verifies the built desktop artifacts:
   pinned dependencies, the sandboxed window options, the absence of `loadFile`,
-  a preload limited to one global and to declared channels, and the renderer
-  document's content-security policy;
+  a production bundle that carries nothing of the smoke, a smoke bundle that
+  starts the same sandboxed shell, a preload limited to one global and to
+  declared channels, and the renderer document's content-security policy;
 - `pnpm run workbench:build` produces the Angular renderer bundle under
   `build/workbench/browser/`;
 - `pnpm run desktop:build` builds the renderer and bundles the Electron main and
   preload files;
-- `pnpm run desktop:smoke` launches the shell, verifies that the renderer
-  rendered and the bridge answers, and writes `build/desktop/smoke.png`;
+- `pnpm run desktop:smoke` launches the shell through its smoke entry
+  (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
+  renderer through thirty checks, and writes `build/desktop/smoke*.png`;
 - `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
   real rendering engine and exits non-zero on any failed criterion.
 
