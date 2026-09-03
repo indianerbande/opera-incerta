@@ -44,6 +44,28 @@ export class ProjectSessionError extends Error {
   }
 }
 
+/**
+ * Resolves a relative path against a root, and refuses one that ends up
+ * outside it. SPEC.md §5.3.
+ *
+ * The second line of defense: the contract has already refused a path that
+ * *looks* like traversal, and this catches one that *is* — a symlink inside
+ * the project pointing out of it, a root that resolves differently from how
+ * it was named. One function for every caller (CONVENTIONS.md C-U7): the
+ * handler that skipped this check was the one that could read any file.
+ */
+export async function containedPath(
+  root: string,
+  relativePath: string,
+  code: string,
+): Promise<string> {
+  const absolute = absolutePathOf(root, relativePath);
+  if (!(await isInside(root, absolute))) {
+    throw new ProjectSessionError(code);
+  }
+  return absolute;
+}
+
 interface OpenProject {
   readonly path: string;
   readonly id: string;
@@ -147,11 +169,7 @@ export class ProjectSession {
       throw new ProjectSessionError('handle/unknown');
     }
 
-    const absolute = absolutePathOf(current.path, relativePath);
-    if (!(await isInside(current.path, absolute))) {
-      throw new ProjectSessionError('handle/outside-project');
-    }
-    return absolute;
+    return containedPath(current.path, relativePath, 'handle/outside-project');
   }
 
   async readSheet(handleId: string): Promise<string> {
@@ -172,10 +190,7 @@ export class ProjectSession {
    */
   async createSheet(groupPath: string, title: string): Promise<string> {
     const projectPath = this.#requireOpen().path;
-    const directory = absolutePathOf(projectPath, groupPath);
-    if (!(await isInside(projectPath, directory))) {
-      throw new ProjectSessionError('group/outside-project');
-    }
+    const directory = await containedPath(projectPath, groupPath, 'group/outside-project');
 
     const existing = await this.#filesystem.listDirectory(directory);
     const fileName = sheetFileName(title, existing);
@@ -200,10 +215,7 @@ export class ProjectSession {
   /** Creates a subgroup. Its directory name is a slug of the display name. */
   async createGroup(parentPath: string, displayName: string): Promise<string> {
     const projectPath = this.#requireOpen().path;
-    const parent = absolutePathOf(projectPath, parentPath);
-    if (!(await isInside(projectPath, parent))) {
-      throw new ProjectSessionError('group/outside-project');
-    }
+    const parent = await containedPath(projectPath, parentPath, 'group/outside-project');
 
     const existing = await this.#filesystem.listDirectory(parent);
     const directoryName = projectDirectoryName(displayName, existing);
@@ -234,10 +246,7 @@ export class ProjectSession {
    */
   async renameSheet(relativePath: string, title: string): Promise<void> {
     const projectPath = this.#requireOpen().path;
-    const absolute = absolutePathOf(projectPath, relativePath);
-    if (!(await isInside(projectPath, absolute))) {
-      throw new ProjectSessionError('sheet/outside-project');
-    }
+    const absolute = await containedPath(projectPath, relativePath, 'sheet/outside-project');
 
     const parsed = parseSheet(await this.#filesystem.readSheet(absolute));
     if (!parsed.writable) {
@@ -303,11 +312,8 @@ export class ProjectSession {
       throw new ProjectSessionError('project/root');
     }
 
-    const source = absolutePathOf(projectPath, relativePath);
-    const target = absolutePathOf(projectPath, groupPath);
-    if (!(await isInside(projectPath, source)) || !(await isInside(projectPath, target))) {
-      throw new ProjectSessionError('entry/outside-project');
-    }
+    const source = await containedPath(projectPath, relativePath, 'entry/outside-project');
+    const target = await containedPath(projectPath, groupPath, 'entry/outside-project');
     // A group cannot be put inside itself, and the check has to cover every
     // depth: a directory moved into its own child would take the child along
     // and both would be unreachable.
@@ -382,10 +388,7 @@ export class ProjectSession {
       throw new ProjectSessionError('trash/unavailable');
     }
 
-    const absolute = absolutePathOf(projectPath, relativePath);
-    if (!(await isInside(projectPath, absolute))) {
-      throw new ProjectSessionError('entry/outside-project');
-    }
+    const absolute = await containedPath(projectPath, relativePath, 'entry/outside-project');
 
     const segments = relativePath.split('/');
     const name = segments[segments.length - 1] ?? '';

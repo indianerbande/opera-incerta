@@ -237,6 +237,13 @@ filesystem, the process table, the network, or the DOM.
   Silently resolving it would serve a different file than the one requested,
   which is contained but wrong. Containment is verified again after resolution,
   as a second line of defense.
+- That rule applies to **every relative path a request carries** — a library
+  entry, a watch target, a repository path for a diff, a resolution, a discard
+  — not only to document handles. The contract applies it in one guard that
+  every request type with a path calls, so no request type can leave it out;
+  the main process resolves every such path through one containment check,
+  so no handler can leave that out either. A handler that skipped the second
+  check once let `git diff --no-index` read any file the author can.
 - IPC from untrusted pages is rejected; external navigation, new windows,
   permission requests, and webviews are denied.
 - A local content-security policy applies to all renderer content.

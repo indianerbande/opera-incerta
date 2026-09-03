@@ -220,6 +220,39 @@ export function isCreateProjectRequest(value: unknown): value is CreateProjectRe
 }
 
 /**
+ * The one rule for every path a request carries. SPEC.md §5.3.
+ *
+ * A path from the renderer is relative to the project or repository root and
+ * names something inside it. Anything that looks like a way out — an absolute
+ * path, a drive letter, a `..` segment, a percent-encoded spelling of either,
+ * a NUL byte — is refused here, before a handler joins it to a root. The
+ * handler checks containment again after resolution; this is the first line,
+ * and it is one function so that no request type can forget it. `.` is
+ * accepted, because the root is a place a request can legitimately name;
+ * whether a particular request may name it is that request's decision.
+ */
+export function isRelativeEntryPath(value: unknown): value is string {
+  if (typeof value !== 'string' || value === '') {
+    return false;
+  }
+  if (value === '.') {
+    return true;
+  }
+  if (value.includes('\0') || /%(2e|2f|5c|00)/i.test(value)) {
+    return false;
+  }
+  if (value.startsWith('/') || value.startsWith('\\') || /^[A-Za-z]:/.test(value)) {
+    return false;
+  }
+  // One trailing separator is how git names an untracked directory
+  // (`?? part-1/`), and staging it is an ordinary request.
+  return value
+    .replace(/\/$/, '')
+    .split(/[/\\]/)
+    .every((segment) => segment !== '' && segment !== '..');
+}
+
+/**
  * Creating or renaming a library entry. SPEC.md §6.4, §6.5.
  *
  * `path` is relative to the project root: for a creation it is the group that
@@ -236,8 +269,7 @@ export function isLibraryEditRequest(value: unknown): value is LibraryEditReques
   }
   const candidate = value as Partial<LibraryEditRequest>;
   return (
-    typeof candidate.path === 'string' &&
-    candidate.path !== '' &&
+    isRelativeEntryPath(candidate.path) &&
     typeof candidate.name === 'string' &&
     candidate.name.trim() !== ''
   );
@@ -265,9 +297,8 @@ export function isWatchTargetsRequest(value: unknown): value is WatchTargetsRequ
     return false;
   }
   const candidate = value as Partial<WatchTargetsRequest>;
-  const relative = (path: unknown): boolean =>
-    path === null || (typeof path === 'string' && path !== '' && !path.startsWith('/'));
-  return relative(candidate.group) && relative(candidate.sheet);
+  const target = (path: unknown): boolean => path === null || isRelativeEntryPath(path);
+  return target(candidate.group) && target(candidate.sheet);
 }
 
 /**
@@ -283,7 +314,7 @@ export function isLibraryPathRequest(value: unknown): value is LibraryPathReques
   }
   const candidate = value as Partial<LibraryPathRequest>;
   // The project root is a path, and deleting it is not an operation.
-  return typeof candidate.path === 'string' && candidate.path !== '' && candidate.path !== '.';
+  return isRelativeEntryPath(candidate.path) && candidate.path !== '.';
 }
 
 /** The two versions of a file that a comparison needs. SPEC.md §12. */
@@ -318,11 +349,9 @@ export function isLibraryPlaceRequest(value: unknown): value is LibraryPlaceRequ
   }
   const candidate = value as Partial<LibraryPlaceRequest>;
   return (
-    typeof candidate.path === 'string' &&
-    candidate.path !== '' &&
+    isRelativeEntryPath(candidate.path) &&
     candidate.path !== '.' &&
-    typeof candidate.into === 'string' &&
-    candidate.into !== '' &&
+    isRelativeEntryPath(candidate.into) &&
     (candidate.before === null || (typeof candidate.before === 'string' && candidate.before !== ''))
   );
 }
@@ -522,9 +551,7 @@ export function isGitResolveRequest(value: unknown): value is GitResolveRequest 
     return false;
   }
   const candidate = value as Partial<GitResolveRequest>;
-  return (
-    typeof candidate.path === 'string' && candidate.path !== '' && typeof candidate.text === 'string'
-  );
+  return isRelativeEntryPath(candidate.path) && typeof candidate.text === 'string';
 }
 
 /** A request naming paths, relative to the repository root. */
@@ -537,10 +564,7 @@ export function isGitPathsRequest(value: unknown): value is GitPathsRequest {
     return false;
   }
   const candidate = value as Partial<GitPathsRequest>;
-  return (
-    Array.isArray(candidate.paths) &&
-    candidate.paths.every((path) => typeof path === 'string' && path !== '')
-  );
+  return Array.isArray(candidate.paths) && candidate.paths.every(isRelativeEntryPath);
 }
 
 /** A commit request. An empty message is refused before Git ever sees it. */

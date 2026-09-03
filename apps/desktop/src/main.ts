@@ -64,10 +64,9 @@ import {
   canonicalPath,
   createLibraryWatcher,
   createProjectFilesystem,
-  isInside,
 } from '@opera-incerta/project-node';
 import { MENU_ACCELERATORS, installApplicationMenu, menuItemId } from './application-menu.js';
-import { ProjectSession, ProjectSessionError } from './project-session.js';
+import { ProjectSession, ProjectSessionError, containedPath } from './project-session.js';
 import { ProjectWatch } from './project-watch.js';
 import { RecentProjectsFile } from './recent-projects-file.js';
 import {
@@ -622,7 +621,17 @@ function notifyRenderer(channel: string): void {
 }
 
 privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
-  projectWatch.set(session.openPath, request);
+  const projectPath = session.openPath;
+  if (projectPath !== null) {
+    // Notification only, but a watch is still a read of a place the renderer
+    // named, and it gets the same containment check as every other one.
+    for (const target of [request.group, request.sheet]) {
+      if (target !== null) {
+        await containedPath(projectPath, target, 'entry/outside-project');
+      }
+    }
+  }
+  projectWatch.set(projectPath, request);
   return null;
 });
 
@@ -726,12 +735,22 @@ privileged(CHANNELS.gitPublish, isGitPublishRequest, async (request) => {
   return null;
 });
 
-privileged(CHANNELS.gitResolve, isGitResolveRequest, async (request) => {
+/**
+ * A file the renderer named, resolved against the repository root and checked
+ * to be inside it. SPEC.md §5.3.
+ *
+ * Every handler that turns a repository-relative path into a filesystem path
+ * goes through here, so none can skip the check. The one that did was the
+ * one that could read any file: `git diff --no-index` takes any path at all.
+ */
+async function repositoryFile(relativePath: string): Promise<{ root: string; absolute: string }> {
   const root = await repositoryRoot();
-  const absolute = join(root, request.path);
-  if (!(await isInside(root, absolute))) {
-    throw new ProjectSessionError('entry/outside-project');
-  }
+  const absolute = await containedPath(root, relativePath, 'entry/outside-repository');
+  return { root, absolute };
+}
+
+privileged(CHANNELS.gitResolve, isGitResolveRequest, async (request) => {
+  const { root, absolute } = await repositoryFile(request.path);
   // The same atomic write every sheet gets: an interrupted resolution must not
   // leave half a manuscript behind.
   await projectFiles.writeSheet(absolute, request.text);
@@ -740,12 +759,7 @@ privileged(CHANNELS.gitResolve, isGitResolveRequest, async (request) => {
 });
 
 privileged(CHANNELS.gitVersions, isLibraryPathRequest, async (request) => {
-  const root = await repositoryRoot();
-  const absolute = join(root, request.path);
-  if (!(await isInside(root, absolute))) {
-    throw new ProjectSessionError('entry/outside-project');
-  }
-
+  const { root, absolute } = await repositoryFile(request.path);
   return {
     committed: await git.showAtHead(root, request.path),
     // A file the working tree no longer has is a normal answer: that is what a
@@ -755,7 +769,7 @@ privileged(CHANNELS.gitVersions, isLibraryPathRequest, async (request) => {
 });
 
 privileged(CHANNELS.gitDiff, isLibraryPathRequest, async (request) => {
-  const root = await repositoryRoot();
+  const { root } = await repositoryFile(request.path);
   // Whether it is tracked is read from git, not assumed from the path: an
   // untracked file has nothing to compare against and is shown as all added.
   const tracked = (await git.status(root)).some(
@@ -3979,6 +3993,58 @@ async function waitForProjectWindow(): Promise<BrowserWindow> {
 }
 
 /**
+ * The bridge refuses a path that leaves the project, on every channel that
+ * carries one. SPEC.md §5.3.
+ *
+ * Asked through the real bridge from the real renderer, because the guards
+ * are unit-tested in the contract and the containment in the session — and
+ * neither of those proves that the handler in *this* process calls them. The
+ * one that did not was `gitDiff`, whose `--no-index` fallback would return
+ * any file the author can read. The expected answer is the contract's
+ * refusal, not a git error: the request must never reach git.
+ */
+async function checkBridgeRefusesTraversal(window: BrowserWindow): Promise<void> {
+  const answers = (await window.webContents.executeJavaScript(
+    `(async () => {
+       const bridge = window.${BRIDGE_GLOBAL};
+       const escape = '../../../../../../../etc/hosts';
+       const attempts = {
+         diffUp: bridge.gitDiff({ path: escape }),
+         diffAbsolute: bridge.gitDiff({ path: '/etc/hosts' }),
+         diffEncoded: bridge.gitDiff({ path: '%2e%2e/%2e%2e/etc/hosts' }),
+         versions: bridge.gitVersions({ path: escape }),
+         resolve: bridge.gitResolve({ path: escape, text: '' }),
+         discard: bridge.gitDiscard({ paths: ['opening.md', escape] }),
+         watch: bridge.watchTargets({ group: escape, sheet: null }),
+         del: bridge.deleteEntry({ path: escape }),
+         create: bridge.createSheet({ path: escape, name: 'Nope' }),
+         place: bridge.placeEntry({ path: 'opening.md', into: escape, before: null }),
+       };
+       const out = {};
+       for (const [name, promise] of Object.entries(attempts)) {
+         out[name] = await promise;
+       }
+       return out;
+     })()`,
+  )) as Record<string, { ok: boolean; code?: string; value?: unknown }>;
+
+  for (const [name, answer] of Object.entries(answers)) {
+    if (answer.ok) {
+      throw new Error(`the bridge answered a traversal on ${name}: ${JSON.stringify(answer)}`);
+    }
+    if (answer.code !== 'bridge/invalid-request') {
+      throw new Error(`a traversal on ${name} reached a handler: ${JSON.stringify(answer)}`);
+    }
+  }
+
+  console.log(
+    `smoke ok: the bridge refused a path out of the project on ${String(
+      Object.keys(answers).length,
+    )} channels, before any handler saw it`,
+  );
+}
+
+/**
  * Verifies the two things a shell smoke test can prove without a user: the
  * renderer rendered, and the versioned bridge answers through IPC.
  */
@@ -4027,6 +4093,8 @@ async function runSmokeCheck(launcher: BrowserWindow): Promise<void> {
     if (bridgeVersion !== CONTRACT_VERSION) {
       throw new Error(`bridge answered ${JSON.stringify(bridgeVersion)}`);
     }
+
+    await checkBridgeRefusesTraversal(window);
 
     // The editor is the part most likely to render as an empty box, so the
     // smoke asks for evidence that it laid out: a heading line taller than

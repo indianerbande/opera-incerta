@@ -6,6 +6,69 @@ documents").
 
 ---
 
+## 2026-09-03 — one rule for every path a request carries
+
+**What was found.** An architecture review of the whole repository turned up
+one handler that trusted its input: `gitDiff` took a repository-relative path
+from the renderer and, for an untracked file, ran `git diff --no-index --
+/dev/null <path>` against it without checking that the path stayed inside the
+repository. `git diff --no-index` takes any path at all, so a renderer could
+read every file the author can — confirmed with `../outside/secret.txt` and
+`/etc/hosts`, both returned as a "new file" diff. `gitVersions` and
+`gitResolve` beside it did the check; `watchTargets` skipped it too, for a
+notification-only watch. The contract's request guards were uneven in the same
+way: one refused a leading `/`, another only an empty string, none a `..`.
+
+**What changed.** The rule of `SPEC.md` §5.3 — a request that looks like
+traversal is refused, not corrected, and containment is verified again after
+resolution — now has one implementation per line of defense, so no request
+type and no handler can leave it out (`CONVENTIONS.md` C-U7):
+
+- **`isRelativeEntryPath`** in the contract, called by every request guard
+  that carries a path: library edits, single paths, placements (both halves),
+  watch targets, resolutions, and batches of git paths. It refuses an absolute
+  path, a drive letter, a `..` segment, the percent-encoded spelling of a dot
+  or a separator, a NUL byte, and an empty segment; it accepts `.` (whether a
+  request may name the root is that request's decision) and one trailing
+  separator, which is how git names an untracked directory.
+- **`containedPath`** in the desktop shell, resolving a relative path against
+  a root and refusing one that ends up outside. The session's six copies of
+  the same four lines now call it; so do `gitResolve`, `gitVersions`, the
+  repaired `gitDiff`, and `watchTargets`. The three git handlers share a
+  `repositoryFile` helper and report `entry/outside-repository`, which is the
+  boundary they actually check.
+
+**Verification.** `pnpm run check` green: **734 tests** (12 new — the guard
+against every kind of escape and against every request type that carries a
+path; the helper against a climb and against a symlink inside the project that
+points out of it). `pnpm run desktop:smoke` green across **thirty checks**: the
+new one asks the real bridge from the real renderer to diff, version, resolve,
+discard, watch, delete, create, and place a path out of the project, and
+expects the contract's refusal on each — not a git error, because the request
+must never reach git.
+
+All three new checks were falsified. With the guard letting `..` through, seven
+contract tests failed. With the helper never refusing, five session tests
+failed, three of them older ones. With the `gitDiff` handler wired past the
+contract guard, the smoke stopped at the second check with "a traversal on
+diffUp reached a handler" — and the answer it reported was
+`entry/outside-repository`, which is the second line of defense doing its job
+on its own.
+
+**The first run of the smoke failed** at staging: the guard refused
+`part-1/` and `.opera-incerta/`, the trailing-separator form git uses for an
+untracked directory, and the tri-state header's batch was rejected whole. A
+rule written for traversal had been written stricter than traversal, and the
+smoke — not the unit tests, which only asked about escapes — was what said so.
+
+**Lesson.** A check that several handlers must apply is a check that one of
+them will skip. The three git handlers were written in one round with the same
+pattern; the fourth was written later and looked like the others from the
+outside. Put the rule in one function and make the handlers unable to reach the
+filesystem without it.
+
+---
+
 ## 2026-09-03 — the documents stand on their own
 
 **What changed.** This repository no longer refers to the two projects it drew

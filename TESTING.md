@@ -253,7 +253,13 @@ Tests MUST cover:
   windows, permission requests, and webviews;
 - context isolation, renderer sandboxing, disabled Node.js integration, and a
   preload surface limited to the versioned bridge;
-- path-traversal rejection and containment for every document handle;
+- path-traversal rejection and containment for every document handle, and for
+  **every relative path a request carries**: the contract guard is tested
+  against each request type that has one, the containment helper against a
+  symlink that leaves the project, and the smoke asks the real bridge to diff,
+  version, resolve, discard, watch, delete, create, and place a path out of the
+  project and expects the contract's refusal on each — not a git error, because
+  the request must never reach git;
 - opaque document handles and the configured source-size limit;
 - the heading gestures of `SPEC.md` §10.2, driven by real input events rather
   than by calling the adapter: typing `.h3 ` converts the line and removes the

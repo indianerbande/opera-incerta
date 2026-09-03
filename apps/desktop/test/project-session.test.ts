@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -12,6 +12,7 @@ import {
 import {
   ProjectSession,
   ProjectSessionError,
+  containedPath,
   libraryOf,
   type TrashItem,
 } from '../src/project-session.js';
@@ -707,5 +708,41 @@ describe('page categories', () => {
     ) as unknown;
     // Whatever the renderer sends is checked here, where the filesystem is.
     expect(written).toEqual([{ id: 'a', name: 'Draft', color: '#ff0000' }]);
+  });
+});
+
+describe('containedPath', () => {
+  // The second line of defense of SPEC.md §5.3: the contract refuses a path
+  // that looks like a way out; this refuses one that is.
+  it('resolves a path inside the root', async () => {
+    await expect(containedPath(root, 'part-1/scene.md', 'x/outside')).resolves.toBe(
+      join(root, 'part-1', 'scene.md'),
+    );
+    await expect(containedPath(root, '.', 'x/outside')).resolves.toBe(root);
+  });
+
+  it('refuses a path that climbs out, with the code the caller chose', async () => {
+    await expect(containedPath(root, '../escape', 'group/outside-project')).rejects.toMatchObject({
+      code: 'group/outside-project',
+    });
+    await expect(containedPath(root, 'part-1/../../escape', 'x/outside')).rejects.toMatchObject({
+      code: 'x/outside',
+    });
+  });
+
+  it('refuses a path that leaves through a symlink inside the project', async () => {
+    // Looks contained — no `..`, no leading slash — and is not: only
+    // resolution can tell, which is why the check happens after it.
+    const elsewhere = await mkdtemp(join(tmpdir(), 'opera-incerta-elsewhere-'));
+    try {
+      await writeFile(join(elsewhere, 'secret.md'), 'not yours\n', 'utf8');
+      await symlink(elsewhere, join(root, 'door'));
+
+      await expect(containedPath(root, 'door/secret.md', 'x/outside')).rejects.toMatchObject({
+        code: 'x/outside',
+      });
+    } finally {
+      await rm(elsewhere, { recursive: true, force: true });
+    }
   });
 });
