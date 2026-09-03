@@ -7,13 +7,13 @@
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.24.0",
   "engines": {
-    "node": "^24.15.0 || >=26.0.0"
+    "node": "^24.15.0"
   },
   "devEngines": {
     "runtime": {
       "name": "node",
-      "version": "24.15.0",
-      "onFail": "warn"
+      "version": "^24.15.0",
+      "onFail": "error"
     }
   },
   "scripts": {

@@ -288,6 +288,24 @@ Follow `TESTING.md`. In particular:
 - visually inspect every intentional user-interface change; and
 - keep generated output out of source directories.
 
+**Node 24, and nothing else.** Electron 44 carries Node 24.18.1 inside it, so
+24 is the runtime the application actually runs on; building and testing on
+anything else means checking against a runtime that is never shipped. All three
+declarations say so — `.node-version`, `engines`, and `devEngines` with
+`onFail: "error"` — and pnpm refuses to run on anything else rather than
+warning about it. An earlier version warned, on *every* Node 24 as well because
+the version was pinned exactly, and a warning that is always there is a warning
+nobody reads: forty runs of this project happened on Node 26 before anyone
+looked.
+
+This machine has no version manager, so nothing reads `.node-version` by
+itself. Homebrew keeps the runtimes side by side, and the one to use is
+selected per shell:
+
+```
+export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
+```
+
 No command may be listed as approved in this file until it has actually
 succeeded in this checkout. The following have:
 

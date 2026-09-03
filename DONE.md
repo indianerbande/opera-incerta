@@ -6,6 +6,48 @@ documents").
 
 ---
 
+## 2026-09-02 — Node 24, and a warning that had been right all along
+
+**What changed.** The project now insists on Node 24 and refuses to run on
+anything else. `engines` and `devEngines` both say `^24.15.0`, and
+`devEngines.onFail` went from `warn` to `error`.
+
+**Why 24 is not a preference.** Electron 44.0.0 carries Node **24.18.1** inside
+it — measured with `ELECTRON_RUN_AS_NODE=1`, alongside Chrome 152 and V8 15.2.
+That is the runtime the application runs on. Building and testing the toolchain
+on a different major means checking against a runtime that is never shipped.
+
+**How this came to light.** Every command in this checkout printed
+
+    [WARN] This project requires Node.js 24.15.0. Your current Node.js is v26.4.0
+
+and I read past it around forty times, because the machine's `node` on the PATH
+is 26 and no version manager here reads `.node-version`. The three declarations
+disagreed with each other as well: `.node-version` said 24, `devEngines` pinned
+the exact 24.15.0, and `engines` allowed `>=26.0.0` outright — so the runtime I
+happened to have was formally permitted.
+
+**The warning was also broken in a way that guaranteed it would be ignored.**
+Because `devEngines.version` was an exact version rather than a range, it fired
+on Node **24** too: `requires 24.15.0 … your current is v24.20.0`. A warning
+that is always there is a warning nobody reads. That is the lesson worth
+keeping, and it is not about Node: a check that cannot be satisfied trains
+people to skip it, and then it cannot warn about anything.
+
+**Did it matter?** Measured rather than assumed: `pnpm run check` and the smoke
+were run on both runtimes. Node 26.4.0 and Node 24.20.0 both give **592 tests
+green and twenty-two smoke checks**, and the filesystem-watcher probe answers
+identically on both. Nothing built so far is in question — but "nothing was
+wrong this time" is not the same as "it was checked", and the difference is
+exactly what the guard now enforces.
+
+**Verification.** On Node 24: `pnpm run check` green with 592 tests, the smoke
+green across twenty-two checks, and no warning line at all any more.
+Falsified the other way round, which is the half that matters: on Node 26 the
+same command now exits 1 with `[ERROR] This project requires Node.js ^24.15.0`.
+
+---
+
 ## 2026-09-02 — four rounds towards the MVP, and the entries they should have had
 
 Written after the fact, together: four rounds went in without their `DONE.md`

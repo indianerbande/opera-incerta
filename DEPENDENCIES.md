@@ -211,6 +211,14 @@ public model (`CONVENTIONS.md` C-A6). Front matter handling is deliberately
 **not** delegated to it: foreign keys are preserved as raw lines, which needs no
 YAML parser at all (`SPEC.md` §6.3).
 
+### Node — 24, because Electron says so
+
+Electron 44.0.0 bundles Node **24.18.1** (Chrome 152, V8 15.2), measured with
+`ELECTRON_RUN_AS_NODE=1`. That is the runtime the application runs on, so it is
+the runtime the toolchain is held to: `engines` and `devEngines` both say
+`^24.15.0`, and `devEngines.onFail` is `error`, so a wrong runtime stops the
+command instead of printing a line nobody reads.
+
 ### Filesystem watching — `chokidar` (candidate)
 
 Node's own `fs.watch` plus a debouncing layer may be sufficient. Whichever wins
