@@ -127,6 +127,17 @@ export function canCommit(entries: readonly GitFileStatus[], message: string): b
 }
 
 /**
+ * Whether an entry is an unresolved merge conflict. SPEC.md §12.
+ *
+ * It counts as unstaged for the purpose of the change list — it is certainly
+ * not ready to commit — but it needs a decision rather than a checkbox, and
+ * the panel has to tell the two apart.
+ */
+export function isConflicted(entry: GitFileStatus): boolean {
+  return CONFLICT_PAIRS.has(`${entry.indexStatus}${entry.worktreeStatus}`);
+}
+
+/**
  * Whether a filesystem event should trigger a status refresh.
  *
  * `git status` opportunistically writes inside `.git`; without this filter

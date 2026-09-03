@@ -63,7 +63,13 @@ export type SheetDiagnosticCode =
   /** The owned key appears more than once; which one is ours is unknowable. */
   | 'front-matter/namespace-duplicated'
   /** The owned key carries a scalar or a sequence instead of a mapping. */
-  | 'front-matter/namespace-not-a-mapping';
+  | 'front-matter/namespace-not-a-mapping'
+  /**
+   * A merge has left both versions in the file, with markers between them.
+   * Not a parse problem, but the same consequence: the sheet is shown and
+   * never written back (SPEC.md §12).
+   */
+  | 'merge/conflicted';
 
 export interface SheetDiagnostic {
   readonly code: SheetDiagnosticCode;

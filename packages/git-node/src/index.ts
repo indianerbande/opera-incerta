@@ -102,6 +102,17 @@ export interface GitService {
    * refusal is what the author is shown.
    */
   pull(repositoryRoot: string): Promise<void>;
+  /**
+   * Merges the upstream in, which may leave conflicts. SPEC.md §12.
+   *
+   * Separate from `pull` and never automatic: this is the operation that can
+   * write markers into a manuscript, so the author asks for it explicitly.
+   */
+  merge(repositoryRoot: string): Promise<void>;
+  /** Whether a merge is under way and unfinished. */
+  isMerging(repositoryRoot: string): Promise<boolean>;
+  /** Puts everything back as it was before the merge began. */
+  abortMerge(repositoryRoot: string): Promise<void>;
 }
 
 export { GitError, createGitService, systemGitRunner } from './process-git.js';

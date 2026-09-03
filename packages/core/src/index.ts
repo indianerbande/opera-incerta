@@ -106,10 +106,24 @@ export { diffLineKind, readDiff } from './diff.js';
 export type { DiffLine, DiffLineKind } from './diff.js';
 
 export { MAX_PROSE_EDITS, diffProse, tokenizeProse } from './prose-diff.js';
+
+export {
+  countConflicts,
+  hasConflictMarkers,
+  parseConflicts,
+  resolveConflicts,
+} from './conflict.js';
+export type {
+  ConflictChoice,
+  ConflictPart,
+  ConflictRegion,
+  SettledText,
+} from './conflict.js';
 export type { ProseSegment, ProseSegmentKind } from './prose-diff.js';
 
 export {
   canCommit,
+  isConflicted,
   isFullyStaged,
   parseGitStatus,
   selectAllState,

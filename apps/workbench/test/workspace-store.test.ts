@@ -1242,3 +1242,51 @@ describe('a buffer dropped on purpose stays dropped', () => {
     expect(store.dirty()).toBe(false);
   });
 });
+
+describe('a sheet a merge has not finished with', () => {
+  const conflicted = [
+    '---',
+    'opera-incerta:',
+    '  title: Preface',
+    '---',
+    '<<<<<<< HEAD',
+    'The bell rang twice.',
+    '=======',
+    'The bell rang once.',
+    '>>>>>>> origin/main',
+    '',
+  ].join('\n');
+
+  it('is shown, and never written back', async () => {
+    const bridge = fakeBridge({ readSheet: async () => ({ ok: true, value: conflicted }) });
+    const store = new WorkspaceStore(bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+
+    // An author typing around markers would save a file that is neither
+    // version, so the sheet is read-only until the merge is decided.
+    expect(store.diagnostics().map((diagnostic) => diagnostic.code)).toContain('merge/conflicted');
+    expect(store.canSave()).toBe(false);
+
+    store.noteText('typed anyway');
+    await store.save();
+    expect(bridge.writes).toEqual([]);
+  });
+
+  it('is writable again once the markers are gone', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        readSheet: async () => ({
+          ok: true,
+          value: '---\nopera-incerta:\n  title: Preface\n---\nThe bell rang twice.\n',
+        }),
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+
+    expect(store.diagnostics()).toEqual([]);
+    store.noteText('an edit');
+    expect(store.canSave()).toBe(true);
+  });
+});

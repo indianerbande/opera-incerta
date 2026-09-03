@@ -27,6 +27,8 @@ function fakeBridge(
     diff?: () => BridgeResult<string>;
     fetch?: () => BridgeResult<null>;
     pull?: () => BridgeResult<null>;
+    merge?: () => BridgeResult<null>;
+    resolve?: (request: { path: string; text: string }) => BridgeResult<null>;
   } = {},
 ): OperaIncertaBridge & Recorder {
   const calls: string[] = [];
@@ -39,7 +41,7 @@ function fakeBridge(
         `${staged.has('b.md') ? 'A ' : '??'} b.md`,
       ),
     );
-    return { ok: true, value: { root: '/repo', entries, tracking: null } };
+    return { ok: true, value: { root: '/repo', entries, tracking: null, merging: false } };
   };
 
   return {
@@ -51,6 +53,8 @@ function fakeBridge(
     gitStatus: async () => (script.status ?? status)(),
     gitFetch: async () => script.fetch?.() ?? { ok: true, value: null },
     gitPull: async () => script.pull?.() ?? { ok: true, value: null },
+    gitMerge: async () => script.merge?.() ?? { ok: true, value: null },
+    gitResolve: async (request) => script.resolve?.(request) ?? { ok: true, value: null },
     gitDiff: async () => script.diff?.() ?? { ok: true, value: '' },
     gitDiscard: async (request) =>
       script.discard?.(request) ?? { ok: true, value: [] as readonly string[] },
@@ -86,7 +90,7 @@ describe('reading status', () => {
 
   it('treats a project outside a repository as a state, not a failure', async () => {
     const store = new SourceControlStore(
-      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null } }) }),
+      fakeBridge({ status: () => ({ ok: true, value: { root: null, entries: [], tracking: null, merging: false } }) }),
     );
     await store.refresh();
 
@@ -244,7 +248,7 @@ describe('without a shell', () => {
   });
 
   it('does nothing at all when there is nothing to stage', async () => {
-    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null } }) });
+    const bridge = fakeBridge({ status: () => ({ ok: true, value: { root: '/repo', entries: [], tracking: null, merging: false } }) });
     const store = new SourceControlStore(bridge);
     await store.refresh();
     await store.toggleAll();
@@ -262,7 +266,7 @@ describe('watching the repository', () => {
       fakeBridge({
         status: () => {
           reads += 1;
-          return { ok: true, value: { root: '/book', entries: [], tracking: null } };
+          return { ok: true, value: { root: '/book', entries: [], tracking: null, merging: false } };
         },
         onRepositoryChange: (each) => {
           listener = each;
@@ -359,7 +363,7 @@ describe('showing what changed', () => {
 
 describe('a branch that tracks a remote', () => {
   function tracking(behind: number, ahead: number): GitReport {
-    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead } };
+    return { root: '/repo', entries: [], tracking: { upstream: 'origin/main', behind, ahead }, merging: false };
   }
 
   it('offers pulling only when there is something to pull', async () => {
@@ -415,5 +419,80 @@ describe('a branch that tracks a remote', () => {
 
     expect(calls).toEqual(['fetch']);
     expect(store.failure()).toBeNull();
+  });
+});
+
+describe('an unfinished merge', () => {
+  function conflicted(): GitReport {
+    return {
+      root: '/repo',
+      entries: parseGitStatus(porcelain('UU a.md', ' M b.md')),
+      tracking: { upstream: 'origin/main', behind: 1, ahead: 1 },
+      merging: true,
+    };
+  }
+
+  it('tells a conflict apart from an ordinary change', async () => {
+    const store = new SourceControlStore(fakeBridge({ status: () => ({ ok: true, value: conflicted() }) }));
+    await store.refresh();
+
+    // A conflict needs a decision, not a checkbox.
+    expect(store.conflicted().map((entry) => entry.path)).toEqual(['a.md']);
+    expect(store.merging()).toBe(true);
+  });
+
+  it('offers merging only where the two have actually drifted apart', async () => {
+    const behindOnly = new SourceControlStore(
+      fakeBridge({
+        status: () => ({
+          ok: true,
+          value: {
+            root: '/repo',
+            entries: [],
+            tracking: { upstream: 'origin/main', behind: 2, ahead: 0 },
+            merging: false,
+          },
+        }),
+      }),
+    );
+    await behindOnly.refresh();
+    // That case is a fast-forward, which pull already does without merging.
+    expect(behindOnly.canMerge()).toBe(false);
+
+    const diverged = new SourceControlStore(fakeBridge({ status: () => ({ ok: true, value: conflicted() }) }));
+    await diverged.refresh();
+    expect(diverged.canMerge()).toBe(true);
+  });
+
+  it('writes a decided file and stages it', async () => {
+    let asked: unknown = null;
+    const store = new SourceControlStore(
+      fakeBridge({
+        status: () => ({ ok: true, value: conflicted() }),
+        resolve: (request) => {
+          asked = request;
+          return { ok: true, value: null };
+        },
+      }),
+    );
+    await store.resolve('a.md', 'The bell rang once.\n');
+
+    expect(asked).toEqual({ path: 'a.md', text: 'The bell rang once.\n' });
+  });
+
+  it('reports what git says when a merge conflicts', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        merge: () => ({
+          ok: false,
+          code: 'git/command-failed',
+          message: 'CONFLICT (content): Merge conflict in a.md',
+        }),
+      }),
+    );
+    await store.merge();
+
+    // The merge began; what git reported is what the author is told.
+    expect(store.failure()).toBe('CONFLICT (content): Merge conflict in a.md');
   });
 });

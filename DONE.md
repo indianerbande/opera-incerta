@@ -6,6 +6,59 @@ documents").
 
 ---
 
+## 2026-09-03 — merging, and deciding a conflict without ever showing a marker
+
+**What exists.** Merge is a separate action, offered only where the two sides
+have actually drifted apart, and confirmed before it runs. While it is
+unfinished the panel says so and offers to abandon it. A conflicted file is
+decided in a resolver that shows both versions side by side, with the words
+that differ marked, and writes the file back with the chosen text.
+
+**The two decisions this round rested on**, both of which I said needed making
+before any code:
+
+**Markers never reach the editor.** A merge writes both versions into the file
+with `<<<<<<<` between them. A sheet in that state is shown and marked
+read-only — the same mechanism a malformed front matter already used — because
+an author typing around markers would save a file that is neither version.
+
+**Per region, never per file.** This one changed my mind while thinking it
+through. Choosing "keep mine" for a whole file sounds simpler, and it is
+*worse than doing nothing*: git has already merged everything the two sides did
+not both touch, and taking one side wholesale throws that away. So each region
+is decided on its own, and a region left undecided keeps this copy's version —
+silently preferring what came in would be a decision the author did not make.
+
+**What the word comparison from the last round bought here.** Each region shows
+its two versions with the differing words marked. Two paragraphs of prose that
+differ in four words are otherwise indistinguishable at a glance, and this is
+exactly the moment an author has to tell them apart.
+
+**A falsification that failed to falsify, and what it showed.** Removing the
+`writable` half of the read-only guard left the smoke green: the badge the
+smoke looks at is driven by the *diagnostic*, and saving is refused by
+`writable`. Two halves, one checked by the smoke and the other by a unit test,
+and my falsification had aimed at the half the smoke does not see. Aimed at the
+diagnostic instead, it fails as it should. The lesson is the one that keeps
+recurring: a falsification proves the check, not the code, and it has to hit
+the same thing the check does.
+
+**Verification.** `pnpm run check` green: **690 tests**. The smoke makes a real
+conflict by changing the same passage on both sides, confirms the merge, finds
+the sheet read-only, opens the resolver and reads both versions out of it,
+decides the one region, and confirms the written file carries the chosen text
+and **no marker** — then commits and checks with `git rev-list --parents` that
+what came out is a merge commit with two parents. Falsified twice: by dropping
+the conflict diagnostic, and by writing the markers back out instead of the
+decision.
+
+**And once more the picture earned its place**: git labels the incoming side of
+a pulled merge with a 40-character commit hash, which tells an author nothing.
+Where the upstream's name is known it is shown instead — `origin/main` rather
+than `82b5660f8108…`.
+
+---
+
 ## 2026-09-03 — fetch, and a pull that cannot merge
 
 **What exists.** The panel shows what the branch tracks and how far apart the

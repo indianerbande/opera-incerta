@@ -39,6 +39,7 @@ import {
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
 import type { GitVersions } from '@opera-incerta/desktop-contract';
+import { ConflictResolverComponent } from './library/conflict-resolver.component.js';
 import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
@@ -60,6 +61,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   imports: [
     ActivityBarComponent,
     CategoryManagerComponent,
+    ConflictResolverComponent,
     DiffViewComponent,
     ContextMenuComponent,
     DensitySwitchComponent,
@@ -126,6 +128,8 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [failure]="sourceControl.failure()"
             [tracking]="sourceControl.tracking()"
             [canPull]="sourceControl.canPull()"
+            [canMerge]="sourceControl.canMerge()"
+            [merging]="sourceControl.merging()"
             [canCommit]="sourceControl.canCommit()"
             [root]="sourceControl.repositoryRoot()"
             [loaded]="sourceControl.loaded()"
@@ -134,6 +138,9 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             (showDiff)="showDiff($event)"
             (fetch)="sourceControl.fetch()"
             (pull)="sourceControl.pull()"
+            (merge)="askToMerge()"
+            (abortMerge)="sourceControl.abortMerge()"
+            (resolve)="openResolver($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
             (commit)="sourceControl.commit()"
@@ -318,6 +325,16 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         [confirmLabel]="open.confirmLabel"
         (confirm)="confirmPrompt($event)"
         (cancel)="prompt.set(null)"
+      />
+    }
+
+    @if (resolving(); as conflict) {
+      <wi-conflict-resolver
+        [path]="conflict.path"
+        [text]="conflict.text"
+        [incoming]="sourceControl.tracking()?.upstream ?? null"
+        (resolved)="applyResolution(conflict.path, $event)"
+        (close)="resolving.set(null)"
       />
     }
 
@@ -740,6 +757,35 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  /** The conflicted file being decided, if any. SPEC.md §12. */
+  protected readonly resolving = signal<{ path: string; text: string } | null>(null);
+
+  /**
+   * Merging is confirmed, because it is the one Git operation here that can
+   * leave the manuscript in a state the author has to sort out.
+   */
+  protected askToMerge(): void {
+    this.confirmation.set({
+      title: 'Merge the changes from the remote?',
+      warning: 'Where both sides changed the same passage, you decide which version stays.',
+      hint: 'A merge can be abandoned afterwards, putting everything back as it was.',
+      confirmLabel: 'Merge',
+      action: () => void this.sourceControl.merge(),
+    });
+  }
+
+  protected async openResolver(entry: GitFileStatus): Promise<void> {
+    const versions = await this.sourceControl.versions(entry.path);
+    if (versions?.current != null) {
+      this.resolving.set({ path: entry.path, text: versions.current });
+    }
+  }
+
+  protected async applyResolution(path: string, text: string): Promise<void> {
+    this.resolving.set(null);
+    await this.sourceControl.resolve(path, text);
   }
 
   /** The diff on screen, if any. SPEC.md §12. */

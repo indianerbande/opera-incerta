@@ -11,6 +11,7 @@ import {
   ExclusiveTask,
   RefreshCoordinator,
   canCommit,
+  isConflicted,
   selectAllState,
   type GitFileStatus,
   type SelectAllState,
@@ -30,6 +31,7 @@ export class SourceControlStore {
   readonly #entries = signal<readonly GitFileStatus[]>([]);
   readonly #root = signal<string | null>(null);
   readonly #tracking = signal<GitTracking | null>(null);
+  readonly #merging = signal(false);
   readonly #message = signal('');
   readonly #failure = signal<string | null>(null);
   readonly #loaded = signal(false);
@@ -50,6 +52,18 @@ export class SourceControlStore {
   readonly tracking = this.#tracking.asReadonly();
   /** Pulling is offered only when there is something to pull. */
   readonly canPull = computed(() => (this.#tracking()?.behind ?? 0) > 0);
+  /** A merge is under way and unfinished. SPEC.md §12. */
+  readonly merging = this.#merging.asReadonly();
+  /**
+   * Merging is offered only when the two have actually drifted apart — the
+   * case a fast-forward pull refuses.
+   */
+  readonly canMerge = computed(() => {
+    const tracking = this.#tracking();
+    return tracking !== null && tracking.behind > 0 && tracking.ahead > 0;
+  });
+  /** The files a merge left for the author to decide. */
+  readonly conflicted = computed(() => this.#entries().filter((entry) => isConflicted(entry)));
 
   /** All, none, or some staged — the tri-state of the select-all box. */
   readonly selectAll = computed<SelectAllState>(() => selectAllState(this.#entries()));
@@ -187,6 +201,34 @@ export class SourceControlStore {
     });
   }
 
+  /**
+   * Merges the upstream in. SPEC.md §12.
+   *
+   * It may leave conflicts, which is the whole reason it is a separate action
+   * that the author asks for. Git reporting a conflict is not a failure of the
+   * operation — the merge began, and the panel now shows what has to be
+   * decided — so the refusal is recorded and the status re-read either way.
+   */
+  async merge(): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitMerge());
+    });
+  }
+
+  /** Puts everything back as it was before the merge began. */
+  async abortMerge(): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitAbortMerge());
+    });
+  }
+
+  /** Writes a file the author has decided, and stages it. */
+  async resolve(path: string, text: string): Promise<void> {
+    await this.#runWrite(async (bridge) => {
+      unwrap(await bridge.gitResolve({ path, text }));
+    });
+  }
+
   async commit(): Promise<void> {
     if (!this.canCommit()) {
       return;
@@ -231,6 +273,7 @@ export class SourceControlStore {
       this.#root.set(report.root);
       this.#entries.set(report.entries as readonly GitFileStatus[]);
       this.#tracking.set(report.tracking);
+      this.#merging.set(report.merging);
       this.#loaded.set(true);
       this.#failure.set(null);
     } catch (error: unknown) {

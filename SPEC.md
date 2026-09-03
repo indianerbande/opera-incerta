@@ -1521,12 +1521,37 @@ authentication surfaces the Git error message; it never crashes. If the commit
 succeeds and the push fails, the commit stands, the message field is cleared
 (it was committed), and only the push error is shown.
 
-**Fetch and pull, with pull restricted to a fast-forward.** A merge can
-conflict, and resolving conflicts is not part of this stage — conflict markers
-written into a manuscript would be the worst outcome this application could
-produce. `git pull --ff-only` cannot reach that state: where the histories have
-diverged git refuses, and its refusal is what the author is shown. Fetching is
-unrestricted because it touches no file in the working tree.
+**Fetch and pull, with pull restricted to a fast-forward.** `git pull --ff-only`
+cannot leave the manuscript in a state anyone has to sort out: where the
+histories have diverged git refuses, and its refusal is what the author is
+shown. Fetching is unrestricted because it touches no file in the working tree.
+
+**Merging is a separate action, asked for and confirmed.** It is offered only
+where the two have actually drifted apart — the case a fast-forward refuses —
+and it is the one operation here that can leave work to be done. A merge can be
+**abandoned** at any point, putting everything back as it was.
+
+**Conflict markers never reach the editor.** A merge writes both versions into
+the file with markers between them; a sheet in that state is shown and marked
+**read-only**, and is never written back. An author typing around markers would
+save a file that is neither version.
+
+**Conflicts are decided per region, never per file.** Git has already merged
+everything the two sides did not both touch. Taking one version of the whole
+file would throw that away and leave the author worse off than git left them.
+Each region is shown with both versions and the difference between them word by
+word (as in the prose comparison above), because two paragraphs differing in
+four words are otherwise indistinguishable at a glance. A region with no
+decision keeps *this* copy's version: silently preferring what came in would be
+a decision the author did not make.
+
+Applying a decision writes the file — atomically, like every other write — with
+the chosen text and **no marker left**, and stages it. Committing then finishes
+the merge in the ordinary way.
+
+Reading and resolving the markers is a pure, unit-tested rule. A marker that
+never closes is treated as ordinary text: inventing a region out of a broken
+file would be a guess, and the file is the author's.
 
 The panel shows what the branch tracks and how far apart the two are, read with
 the status so that the two are never a moment out of step. Pull is offered only
@@ -1603,8 +1628,8 @@ discarded change back on the next save, and would raise the conflict prompt of
 §10.6 in between — asking the author to decide again what they have just
 decided. A re-read that was already in flight must not put them back either.
 
-**Not goals of this stage:** upstream creation, branches, merge and conflict
-resolution, amend, and editing `.gitignore`.
+**Not goals of this stage:** upstream creation, branches, amend, and editing
+`.gitignore`.
 
 ## 13. Settings contract
 

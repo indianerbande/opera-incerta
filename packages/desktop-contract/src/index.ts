@@ -43,6 +43,9 @@ export const CHANNELS = {
   gitPush: 'opera-incerta:git/push',
   gitFetch: 'opera-incerta:git/fetch',
   gitPull: 'opera-incerta:git/pull',
+  gitMerge: 'opera-incerta:git/merge',
+  gitAbortMerge: 'opera-incerta:git/abort-merge',
+  gitResolve: 'opera-incerta:git/resolve',
   gitDiscard: 'opera-incerta:git/discard',
   gitDiff: 'opera-incerta:git/diff',
   gitVersions: 'opera-incerta:git/versions',
@@ -424,6 +427,8 @@ export interface GitReport {
    * tracks nothing. SPEC.md §12.
    */
   readonly tracking: GitTracking | null;
+  /** Whether a merge is under way and unfinished. SPEC.md §12. */
+  readonly merging: boolean;
 }
 
 /** What a branch tracks, and how far it has drifted. SPEC.md §12. */
@@ -431,6 +436,27 @@ export interface GitTracking {
   readonly upstream: string;
   readonly behind: number;
   readonly ahead: number;
+}
+
+/**
+ * A file resolved by hand, and the text to put in its place. SPEC.md §12.
+ *
+ * The choice is made in the interface and the text is assembled there, from
+ * the same pure rule that read the markers; this only writes it and stages it.
+ */
+export interface GitResolveRequest {
+  readonly path: string;
+  readonly text: string;
+}
+
+export function isGitResolveRequest(value: unknown): value is GitResolveRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Partial<GitResolveRequest>;
+  return (
+    typeof candidate.path === 'string' && candidate.path !== '' && typeof candidate.text === 'string'
+  );
 }
 
 /** A request naming paths, relative to the repository root. */
@@ -520,6 +546,15 @@ export interface OperaIncertaBridge {
   gitFetch(): Promise<BridgeResult<null>>;
   /** Fast-forward only: a merge that could conflict is not offered. */
   gitPull(): Promise<BridgeResult<null>>;
+  /**
+   * Merges the upstream in. May leave conflicts, which is why it is asked for
+   * explicitly and never happens on its own. SPEC.md §12.
+   */
+  gitMerge(): Promise<BridgeResult<null>>;
+  /** Puts everything back as it was before the merge began. */
+  gitAbortMerge(): Promise<BridgeResult<null>>;
+  /** Writes a resolved file and stages it. */
+  gitResolve(request: GitResolveRequest): Promise<BridgeResult<null>>;
   /**
    * Listens for native menu commands; the returned function stops listening.
    *

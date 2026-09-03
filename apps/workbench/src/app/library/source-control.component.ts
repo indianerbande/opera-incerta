@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { isConflicted } from '@opera-incerta/core';
 import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
 import type { GitTracking } from '@opera-incerta/desktop-contract';
 
@@ -44,7 +45,17 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
             <div class="remote-actions">
               <button type="button" (click)="fetch.emit()">Fetch</button>
               <button type="button" [disabled]="!canPull()" (click)="pull.emit()">Pull</button>
+              @if (canMerge()) {
+                <button type="button" (click)="merge.emit()">Merge…</button>
+              }
             </div>
+          </div>
+        }
+
+        @if (merging()) {
+          <div class="merging" role="status">
+            <span>Merge in progress. Decide each conflict, then commit.</span>
+            <button type="button" (click)="abortMerge.emit()">Abort merge</button>
           </div>
         }
 
@@ -72,6 +83,17 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
               <span class="status" [title]="statusTitle(entry)">{{ statusCode(entry) }}</span>
               <span class="name">{{ fileName(entry.path) }}</span>
               <span class="directory">{{ directory(entry.path) }}</span>
+              @if (isConflicted(entry)) {
+                <button
+                  type="button"
+                  class="resolve"
+                  [attr.aria-label]="'Resolve ' + entry.path"
+                  title="Resolve this conflict"
+                  (click)="resolve.emit(entry)"
+                >
+                  Resolve…
+                </button>
+              }
               <button
                 type="button"
                 class="show-diff"
@@ -210,6 +232,38 @@ import type { GitTracking } from '@opera-incerta/desktop-contract';
     .tracking button:disabled {
       opacity: 0.5;
     }
+    .merging {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 6px;
+      border-radius: 4px;
+      background: rgba(190, 140, 60, 0.16);
+      color: rgb(130, 90, 30);
+    }
+    .merging span {
+      flex: 1 1 auto;
+    }
+    .merging button {
+      flex: none;
+      padding: 2px 8px;
+      border: 1px solid rgba(130, 90, 30, 0.5);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: default;
+    }
+    .change .resolve {
+      flex: none;
+      padding: 0 6px;
+      border: 1px solid rgba(190, 140, 60, 0.6);
+      border-radius: 4px;
+      background: none;
+      color: rgb(130, 90, 30);
+      font: inherit;
+      cursor: default;
+    }
     .changes-header {
       display: flex;
       gap: 6px;
@@ -295,6 +349,8 @@ export class SourceControlComponent {
   /** What the branch tracks, or null when it tracks nothing. SPEC.md §12. */
   readonly tracking = input<GitTracking | null>(null);
   readonly canPull = input(false);
+  readonly canMerge = input(false);
+  readonly merging = input(false);
 
   readonly canCommit = input.required<boolean>();
   readonly root = input.required<string | null>();
@@ -307,6 +363,10 @@ export class SourceControlComponent {
   readonly showDiff = output<GitFileStatus>();
   readonly fetch = output<void>();
   readonly pull = output<void>();
+  readonly merge = output<void>();
+  readonly abortMerge = output<void>();
+  /** Asks to decide one file's conflicts; the shell shows the resolver. */
+  readonly resolve = output<GitFileStatus>();
   readonly toggleAll = output<void>();
   readonly messageChange = output<string>();
   readonly commit = output<void>();
@@ -314,6 +374,11 @@ export class SourceControlComponent {
 
   protected staged(entry: GitFileStatus): boolean {
     return entry.groups.includes('staged');
+  }
+
+  /** A conflict needs a decision, not a checkbox. SPEC.md §12. */
+  protected isConflicted(entry: GitFileStatus): boolean {
+    return isConflicted(entry);
   }
 
   protected statusCode(entry: GitFileStatus): string {

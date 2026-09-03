@@ -38,6 +38,7 @@ import {
   isDocumentHandle,
   isGitCommitRequest,
   isGitPathsRequest,
+  isGitResolveRequest,
   isCreateProjectRequest,
   isLibraryEditRequest,
   isBooleanRequest,
@@ -618,6 +619,7 @@ privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
 });
 
 const git = createGitService();
+const projectFiles = createProjectFilesystem();
 
 privileged(CHANNELS.gitFetch, acceptsNothing, async () => {
   await git.fetch(await repositoryRoot());
@@ -626,6 +628,29 @@ privileged(CHANNELS.gitFetch, acceptsNothing, async () => {
 
 privileged(CHANNELS.gitPull, acceptsNothing, async () => {
   await git.pull(await repositoryRoot());
+  return null;
+});
+
+privileged(CHANNELS.gitMerge, acceptsNothing, async () => {
+  await git.merge(await repositoryRoot());
+  return null;
+});
+
+privileged(CHANNELS.gitAbortMerge, acceptsNothing, async () => {
+  await git.abortMerge(await repositoryRoot());
+  return null;
+});
+
+privileged(CHANNELS.gitResolve, isGitResolveRequest, async (request) => {
+  const root = await repositoryRoot();
+  const absolute = join(root, request.path);
+  if (!(await isInside(root, absolute))) {
+    throw new ProjectSessionError('entry/outside-project');
+  }
+  // The same atomic write every sheet gets: an interrupted resolution must not
+  // leave half a manuscript behind.
+  await projectFiles.writeSheet(absolute, request.text);
+  await git.stage(root, [request.path]);
   return null;
 });
 
@@ -737,7 +762,7 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
   const root = await git.repositoryRoot(projectPath);
   // A project outside a repository is a normal state, not a failure.
   if (root === null) {
-    return { root: null, entries: [], tracking: null };
+    return { root: null, entries: [], tracking: null, merging: false };
   }
   return {
     root,
@@ -745,6 +770,7 @@ privileged(CHANNELS.gitStatus, acceptsNothing, async () => {
     // Read with the status, so the panel never shows one from a moment ago
     // beside the other.
     tracking: await git.tracking(root),
+    merging: await git.isMerging(root),
   };
 });
 
@@ -2083,6 +2109,156 @@ async function checkFetchAndPull(window: BrowserWindow): Promise<void> {
     'smoke ok: fetching reported one commit behind without touching a file, and pulling brought ' +
       'it in by fast-forward',
   );
+
+  await checkMergeAndResolve(window, elsewhere);
+}
+
+/**
+ * A real conflict, decided in the interface. SPEC.md §12.
+ *
+ * Both sides change the same passage of the same sheet, which is the case a
+ * fast-forward pull refuses and the only one where an author has to decide
+ * anything.
+ */
+async function checkMergeAndResolve(window: BrowserWindow, elsewhere: string): Promise<void> {
+  if (smokeProjectPath === null) {
+    throw new Error('no smoke project');
+  }
+  const sheet = join(smokeProjectPath, 'part-1', 'scene.md');
+  const front = readFileSync(sheet, 'utf8').split('---\n')[1] ?? '';
+
+  // The other machine rewrites the passage…
+  const theirSheet = join(elsewhere, 'part-1', 'scene.md');
+  writeFileSync(theirSheet, `---\n${front}---\n## The Second Bell\n\nThe bell rang once.\n`, 'utf8');
+  runGit(elsewhere, ['commit', '-am', 'the bell rang once']);
+  runGit(elsewhere, ['push']);
+
+  // …and so does this one, differently.
+  writeFileSync(sheet, `---\n${front}---\n## The Second Bell\n\nThe bell rang twice.\n`, 'utf8');
+  runGit(smokeProjectPath, ['commit', '-am', 'the bell rang twice']);
+  runGit(smokeProjectPath, ['fetch']);
+
+  await refreshSourceControl(window);
+  await settleWatch(window, async () => (await trackingLine(window))?.includes('↑1') === true);
+
+  // Merging is asked for, and confirmed: it is the one operation here that can
+  // leave the manuscript needing attention.
+  await clickText(window, 'wi-source-control .tracking button', 'Merge');
+  await waitForSelector(window, 'wi-confirm-prompt button');
+  await clickText(window, 'wi-confirm-prompt button', 'Merge');
+
+  await settleWatch(window, async () => isVisible(window, 'wi-source-control .merging'));
+  if (!(await isVisible(window, 'wi-source-control .merging'))) {
+    throw new Error('a conflicted merge is not shown as being in progress');
+  }
+  if (!readFileSync(sheet, 'utf8').includes('<<<<<<<')) {
+    throw new Error('the merge did not leave the two versions in the file');
+  }
+
+  // The sheet is shown and not editable: markers must never be typed around.
+  await settleWatch(window, async () => isVisible(window, '.read-only'));
+  if (!(await isVisible(window, '.read-only'))) {
+    throw new Error('a sheet full of conflict markers is offered for editing');
+  }
+
+  // Decide it: one region, both versions in front of the author.
+  await clickText(window, 'wi-source-control .change button.resolve', 'Resolve');
+  await waitForSelector(window, 'wi-conflict-resolver .region');
+  const shown = (await window.webContents.executeJavaScript(
+    `(() => {
+       const region = document.querySelector('wi-conflict-resolver .region');
+       if (region === null) { return null; }
+       return {
+         regions: document.querySelectorAll('wi-conflict-resolver .region').length,
+         sides: [...region.querySelectorAll('.side .text')].map((e) => e.textContent.trim()),
+         count: document.querySelector('wi-conflict-resolver .count')?.textContent.trim() ?? null,
+       };
+     })()`,
+  )) as { regions: number; sides: string[]; count: string | null } | null;
+
+  if (shown === null || shown.regions !== 1) {
+    throw new Error(`the resolver does not show the one conflict: ${JSON.stringify(shown)}`);
+  }
+  if (shown.sides[0] !== 'The bell rang twice.' || shown.sides[1] !== 'The bell rang once.') {
+    throw new Error(`the two versions are not both shown: ${JSON.stringify(shown.sides)}`);
+  }
+  if (shown.count !== '0 of 1 decided') {
+    throw new Error(`the resolver does not count what is left: ${String(shown.count)}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const mergeImage = await window.webContents.capturePage();
+  const mergeEvidence = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-merge.png');
+  writeFileSync(mergeEvidence, mergeImage.toPNG());
+  console.log(`smoke evidence: ${mergeEvidence}`);
+
+  // Take theirs, and apply.
+  const chose = (await window.webContents.executeJavaScript(
+    `(() => {
+       const sides = [...document.querySelectorAll('wi-conflict-resolver .side')];
+       const theirs = sides[1]?.querySelector('input[type="radio"]');
+       if (theirs === null || theirs === undefined) { return false; }
+       theirs.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!chose) {
+    throw new Error('the resolver offers no choice to make');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  await clickText(window, 'wi-conflict-resolver button.apply', 'Apply');
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+
+  const decided = readFileSync(sheet, 'utf8');
+  if (decided.includes('<<<<<<<') || decided.includes('>>>>>>>')) {
+    throw new Error('the resolved file still carries markers');
+  }
+  if (!decided.includes('The bell rang once.') || decided.includes('rang twice')) {
+    throw new Error(`the chosen version is not what was written: ${JSON.stringify(decided)}`);
+  }
+
+  // Committing finishes the merge.
+  await fillCommitMessage(window, 'Merge the other machine');
+  await clickText(window, 'wi-source-control .actions button', 'Commit');
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // `rev-parse --verify` exits non-zero when there is nothing to verify, which
+  // here is the outcome being checked for.
+  let stillMerging = true;
+  try {
+    runGit(smokeProjectPath, ['rev-parse', '--quiet', '--verify', 'MERGE_HEAD']);
+  } catch {
+    stillMerging = false;
+  }
+  if (stillMerging) {
+    throw new Error('the merge is still unfinished after committing');
+  }
+  const parents = runGit(smokeProjectPath, ['rev-list', '--parents', '-n', '1', 'HEAD']).trim();
+  if (parents.split(/\s+/u).length !== 3) {
+    throw new Error(`the commit is not a merge commit: ${parents}`);
+  }
+
+  console.log(
+    'smoke ok: a real conflict was shown with both versions, decided per region, written back ' +
+      'without a marker, and committed as a merge',
+  );
+}
+
+/** Presses the navigator's refresh, which source control shares. */
+async function refreshSourceControl(window: BrowserWindow): Promise<void> {
+  const refreshed = (await window.webContents.executeJavaScript(
+    `(() => {
+       const button = [...document.querySelectorAll('wi-panel-header button')]
+         .find((candidate) => candidate.getAttribute('title') === 'Refresh');
+       if (button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!refreshed) {
+    throw new Error('no refresh button in the source control header');
+  }
+  await new Promise((resolve) => setTimeout(resolve, 600));
 }
 
 /** What the panel says about the upstream, or null when it says nothing. */

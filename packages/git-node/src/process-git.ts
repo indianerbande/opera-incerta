@@ -194,6 +194,29 @@ class ProcessGitService implements GitService {
     await this.#run(['pull', '--ff-only'], repositoryRoot);
   }
 
+  async merge(repositoryRoot: string): Promise<void> {
+    // The plain marker style, so that what lands in the file is the form the
+    // parser is tested against rather than whatever the machine is configured
+    // for. `--no-edit` because the message is git's own and there is no editor
+    // to open here.
+    await this.#run(
+      ['-c', 'merge.conflictStyle=merge', 'pull', '--no-rebase', '--no-edit'],
+      repositoryRoot,
+    );
+  }
+
+  async isMerging(repositoryRoot: string): Promise<boolean> {
+    const result = await this.#runner.run(
+      ['rev-parse', '--quiet', '--verify', 'MERGE_HEAD'],
+      repositoryRoot,
+    );
+    return result.exitCode === 0;
+  }
+
+  async abortMerge(repositoryRoot: string): Promise<void> {
+    await this.#run(['merge', '--abort'], repositoryRoot);
+  }
+
   async showAtHead(repositoryRoot: string, path: string): Promise<string | null> {
     // A path the commit does not carry is a normal answer, not a failure: it
     // is what a new file looks like.

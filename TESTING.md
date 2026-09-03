@@ -311,6 +311,13 @@ Tests MUST cover:
   trash rather than being removed, a tracked one is byte-identical to
   `git show HEAD:<path>` afterwards, and the editor's unsaved version of it is
   gone — with no conflict prompt about the change that was just discarded;
+- a **real conflict**, made by changing the same passage on both sides
+  (`SPEC.md` §12): the merge is confirmed, the panel reports it as in progress,
+  the sheet full of markers is marked read-only in the editor, the resolver
+  shows both versions with the differing words marked and counts what is left
+  to decide, and applying a decision writes the file with the chosen text and
+  **no marker** in it. Committing afterwards produces a commit with two
+  parents, checked with `git rev-list --parents`;
 - fetching and pulling against a **real remote** (`SPEC.md` §12), with a second
   working copy standing in for the other machine: after a fetch the panel says
   one commit behind and **no file has appeared** in the working tree; after a

@@ -341,6 +341,62 @@ describe('against a real repository', () => {
       expect(await git.tracking(root)).toEqual({ upstream: 'origin/main', behind: 0, ahead: 0 });
     });
 
+    it('merges when asked explicitly, leaving the conflicts marked', async () => {
+      await writeFile(join(clone, 'a.md'), 'from elsewhere\n', 'utf8');
+      await systemGitRunner.run(['commit', '-am', 'from elsewhere'], clone);
+      await systemGitRunner.run(['push'], clone);
+
+      await writeFile(join(root, 'a.md'), 'from here\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'from here');
+      await git.fetch(root);
+
+      await expect(git.merge(root)).rejects.toMatchObject({ code: 'git/command-failed' });
+
+      // The merge is under way and unfinished: the file carries both versions.
+      expect(await git.isMerging(root)).toBe(true);
+      const merged = await readFile(join(root, 'a.md'), 'utf8');
+      expect(merged).toContain('from here');
+      expect(merged).toContain('from elsewhere');
+      expect(merged).toContain('<<<<<<<');
+    });
+
+    it('puts everything back when the merge is abandoned', async () => {
+      await writeFile(join(clone, 'a.md'), 'from elsewhere\n', 'utf8');
+      await systemGitRunner.run(['commit', '-am', 'from elsewhere'], clone);
+      await systemGitRunner.run(['push'], clone);
+
+      await writeFile(join(root, 'a.md'), 'from here\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'from here');
+      await git.fetch(root);
+      await git.merge(root).catch(() => undefined);
+
+      await git.abortMerge(root);
+
+      expect(await git.isMerging(root)).toBe(false);
+      expect(await readFile(join(root, 'a.md'), 'utf8')).toBe('from here\n');
+      expect(await git.status(root)).toEqual([]);
+    });
+
+    it('merges cleanly when the two sides touched different files', async () => {
+      await writeFile(join(clone, 'b.md'), 'from elsewhere\n', 'utf8');
+      await systemGitRunner.run(['add', 'b.md'], clone);
+      await systemGitRunner.run(['commit', '-m', 'from elsewhere'], clone);
+      await systemGitRunner.run(['push'], clone);
+
+      await writeFile(join(root, 'c.md'), 'from here\n', 'utf8');
+      await git.stage(root, ['c.md']);
+      await git.commit(root, 'from here');
+      await git.fetch(root);
+
+      await git.merge(root);
+
+      expect(await git.isMerging(root)).toBe(false);
+      expect(existsSync(join(root, 'b.md'))).toBe(true);
+      expect(existsSync(join(root, 'c.md'))).toBe(true);
+    });
+
     it('refuses rather than merging when the histories have diverged', async () => {
       await writeFile(join(clone, 'b.md'), 'from elsewhere\n', 'utf8');
       await systemGitRunner.run(['add', 'b.md'], clone);

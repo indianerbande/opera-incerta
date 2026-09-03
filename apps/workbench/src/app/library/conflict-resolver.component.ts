@@ -1,0 +1,254 @@
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  countConflicts,
+  diffProse,
+  parseConflicts,
+  resolveConflicts,
+  type ConflictChoice,
+  type ConflictRegion,
+} from '@opera-incerta/core';
+
+/**
+ * Deciding a merge, one conflict at a time. SPEC.md §12.
+ *
+ * **Per region, never per file.** Git has already merged everything the two
+ * sides did not both touch; choosing one version of the whole file would throw
+ * that away and leave the author worse off than Git left them.
+ *
+ * **The markers never reach the editor.** They are read here, both versions
+ * are shown as text, and the file is written back with the chosen text and no
+ * marker in it. An author who typed around markers would save a file that is
+ * neither version.
+ *
+ * Each region also shows the difference between the two versions word by word,
+ * because two paragraphs of prose that differ in four words are otherwise
+ * indistinguishable at a glance.
+ */
+@Component({
+  selector: 'wi-conflict-resolver',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'close.emit()' },
+  template: `
+    <div class="backdrop" (mousedown)="close.emit()"></div>
+    <div class="resolver" role="dialog" aria-modal="true" [attr.aria-label]="'Resolve ' + path()">
+      <header>
+        <h2>{{ path() }}</h2>
+        <span class="count">{{ decided() }} of {{ total() }} decided</span>
+        <button type="button" (click)="close.emit()">Cancel</button>
+        <button type="button" class="apply" [disabled]="decided() !== total()" (click)="apply()">
+          Apply
+        </button>
+      </header>
+
+      <div class="regions">
+        @for (region of regions(); track $index) {
+          <section class="region" [class.decided]="choiceAt($index) !== null">
+            <div class="side" [class.chosen]="choiceAt($index) === 'ours'">
+              <label>
+                <input
+                  type="radio"
+                  [name]="'region-' + $index"
+                  [checked]="choiceAt($index) === 'ours'"
+                  (change)="choose($index, 'ours')"
+                />
+                Keep mine
+                <span class="label">{{ shorten(region.oursLabel) }}</span>
+              </label>
+              <p class="text">@for (part of mine($index); track $index) {<span
+                  [class.only-here]="part.kind === 'removed'"
+                >{{ part.text }}</span>}</p>
+            </div>
+
+            <div class="side" [class.chosen]="choiceAt($index) === 'theirs'">
+              <label>
+                <input
+                  type="radio"
+                  [name]="'region-' + $index"
+                  [checked]="choiceAt($index) === 'theirs'"
+                  (change)="choose($index, 'theirs')"
+                />
+                Take theirs
+                <span class="label">{{ incoming() ?? shorten(region.theirsLabel) }}</span>
+              </label>
+              <p class="text">@for (part of theirs($index); track $index) {<span
+                  [class.only-there]="part.kind === 'added'"
+                >{{ part.text }}</span>}</p>
+            </div>
+          </section>
+        }
+      </div>
+    </div>
+  `,
+  styles: `
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.2);
+    }
+    .resolver {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: min(880px, calc(100vw - 64px));
+      max-height: min(76vh, 700px);
+      padding: 12px 14px;
+      border: 1px solid rgba(128, 128, 128, 0.4);
+      border-radius: 8px;
+      background: Canvas;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+      font: 13px system-ui, sans-serif;
+      transform: translate(-50%, -50%);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2 {
+      overflow: hidden;
+      flex: 1 1 auto;
+      margin: 0;
+      font-size: 13px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .count {
+      flex: none;
+      color: rgba(128, 128, 128, 0.95);
+    }
+    button {
+      flex: none;
+      padding: 3px 10px;
+      border: 1px solid rgba(128, 128, 128, 0.45);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      cursor: default;
+    }
+    button:disabled {
+      opacity: 0.5;
+    }
+    .regions {
+      overflow: auto;
+      flex: 1 1 auto;
+      border-top: 1px solid rgba(128, 128, 128, 0.25);
+    }
+    .region {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    }
+    .side {
+      padding: 6px 8px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+    }
+    .side.chosen {
+      border-color: rgba(128, 128, 128, 0.5);
+      background: rgba(128, 128, 128, 0.08);
+    }
+    label {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      font-weight: 600;
+    }
+    .label {
+      overflow: hidden;
+      font-weight: 400;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: rgba(128, 128, 128, 0.95);
+    }
+    .text {
+      margin: 6px 0 0;
+      font: 13px/1.5 Georgia, 'Times New Roman', serif;
+      white-space: pre-wrap;
+      user-select: text;
+    }
+    .only-here {
+      background: rgba(180, 70, 70, 0.14);
+    }
+    .only-there {
+      background: rgba(60, 150, 90, 0.18);
+    }
+  `,
+})
+export class ConflictResolverComponent {
+  readonly path = input.required<string>();
+  /** The file as the merge left it, markers and all. */
+  readonly text = input.required<string>();
+  /**
+   * Where the incoming version came from, when that is known.
+   *
+   * Git labels the other side of a pulled merge with a commit hash, which
+   * tells an author nothing; `origin/main` tells them where it came from.
+   */
+  readonly incoming = input<string | null>(null);
+
+  /** The file to write, with every conflict decided and no marker in it. */
+  readonly resolved = output<string>();
+  readonly close = output<void>();
+
+  protected readonly parts = computed(() => parseConflicts(this.text()));
+  protected readonly regions = computed(() =>
+    this.parts().filter((part): part is ConflictRegion => part.kind === 'conflict'),
+  );
+  protected readonly total = computed(() => countConflicts(this.parts()));
+
+  private readonly choices = signal<ReadonlyArray<ConflictChoice | null>>([]);
+  protected readonly decided = computed(
+    () => this.choices().filter((choice) => choice !== null).length,
+  );
+
+  /**
+   * The two versions, differing word by word.
+   *
+   * Computed once per region and read from both sides, so the same comparison
+   * decides what is highlighted on the left and on the right.
+   */
+  private readonly comparison = computed(() =>
+    this.regions().map((region) => diffProse(region.ours, region.theirs)),
+  );
+
+  /** A bare commit hash, cut to the length people actually read. */
+  protected shorten(label: string): string {
+    return /^[0-9a-f]{40}$/u.test(label) ? label.slice(0, 7) : label;
+  }
+
+  protected choiceAt(index: number): ConflictChoice | null {
+    return this.choices()[index] ?? null;
+  }
+
+  protected mine(index: number): ReadonlyArray<{ kind: string; text: string }> {
+    return (this.comparison()[index] ?? []).filter((segment) => segment.kind !== 'added');
+  }
+
+  protected theirs(index: number): ReadonlyArray<{ kind: string; text: string }> {
+    return (this.comparison()[index] ?? []).filter((segment) => segment.kind !== 'removed');
+  }
+
+  protected choose(index: number, choice: ConflictChoice): void {
+    const next = [...this.choices()];
+    while (next.length < this.total()) {
+      next.push(null);
+    }
+    next[index] = choice;
+    this.choices.set(next);
+  }
+
+  protected apply(): void {
+    this.resolved.emit(
+      resolveConflicts(
+        this.parts(),
+        this.choices().map((choice) => choice ?? 'ours'),
+      ),
+    );
+  }
+}

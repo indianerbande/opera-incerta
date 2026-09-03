@@ -12,6 +12,7 @@ import {
   findCategory,
   findGroup,
   findSheet,
+  hasConflictMarkers,
   markdownToDisplay,
   outlineOf,
   ownedFrontMatterLines,
@@ -343,6 +344,11 @@ export class WorkspaceStore {
         await bridge.readSheet({ handle: { kind: 'opera-incerta/document', id: handleId } }),
       );
       const parsed = parseSheet(text);
+      // A file a merge has not finished with carries both versions and the
+      // markers between them. It is shown, and it is **not** writable: an
+      // author typing around markers would save a file that is neither
+      // version (SPEC.md §12).
+      const conflicted = hasConflictMarkers(text);
 
       this.#openSheet.set({
         relativePath,
@@ -350,8 +356,10 @@ export class WorkspaceStore {
         displayName: sheet.displayName,
         sheet: parsed.sheet,
         savedBody: parsed.sheet.body,
-        diagnostics: parsed.diagnostics,
-        writable: parsed.writable,
+        diagnostics: conflicted
+          ? [{ code: 'merge/conflicted' as const, line: 1 }, ...parsed.diagnostics]
+          : parsed.diagnostics,
+        writable: parsed.writable && !conflicted,
       });
       this.#currentText.set(parsed.sheet.body);
       this.#currentMetadata.set(parsed.sheet.metadata);
