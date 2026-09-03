@@ -310,6 +310,11 @@ says how a check is written, why the order of the run matters, and how a
 failure is debugged; `main.ts` there holds the whole order, top to bottom.
 The smoke is bundled to `dist/smoke.cjs`, separately from the production
 entry, and the production check fails if any of it reaches `dist/main.cjs`.
+It waits for **consequences, never for time**: every wait after an action
+names the file, row, dialog, or commit it waits for and fails naming it, and
+the wait after an input event is one rendered frame. The only fixed waits are
+the measurement in the live-status check, where the watch must stay quiet for
+three seconds. A run takes about half a minute.
 
 Tests MUST cover:
 

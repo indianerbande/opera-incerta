@@ -11,8 +11,12 @@ import {
   activateSidebar,
   clickMenuItem,
   clickText,
+  headerTitle,
+  isVisible,
+  rendered,
   toggleSwitch,
   waitForSelector,
+  waitUntil,
 } from '../harness.js';
 import type { Smoke } from '../context.js';
 
@@ -53,7 +57,10 @@ export async function checkPanes(window: BrowserWindow): Promise<void> {
   if (dirtied !== 'ok') {
     throw new Error(`could not edit a metadata field: ${dirtied}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await waitUntil(
+    'the dirty marker',
+    async () => (await headerTitle(window, 'A Scene'))?.endsWith('•') === true,
+  );
 
   const marker = (await window.webContents.executeJavaScript(
     `[...document.querySelectorAll('wi-panel-header .title')]
@@ -96,7 +103,8 @@ export async function checkPanes(window: BrowserWindow): Promise<void> {
   if (switched !== 'ok') {
     throw new Error(`could not switch the navigator: ${switched}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // The panel reads the status over the bridge before it has a change list.
+  await waitForSelector(window, 'wi-source-control .changes');
 
   const sourceControl = (await window.webContents.executeJavaScript(
     `(() => {
@@ -223,7 +231,7 @@ export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): 
   await clickText(window, 'wi-inspector button', 'Manage');
   await waitForSelector(window, 'wi-category-manager');
   await clickText(window, 'wi-category-manager button', 'Add');
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await waitForSelector(window, 'wi-category-manager li input.name');
 
   // A dark colour, so the computed text colour has to be white.
   const named = (await window.webContents.executeJavaScript(
@@ -245,11 +253,20 @@ export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): 
     throw new Error('the category manager offered no row to fill in');
   }
   await clickText(window, 'wi-category-manager button', 'Save');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  const categoriesPath = join(smoke.projectPath, '.opera-incerta', 'categories.json');
+  await waitUntil('the category to reach categories.json', () => {
+    try {
+      return (JSON.parse(readFileSync(categoriesPath, 'utf8')) as unknown[]).length === 1;
+    } catch {
+      return false;
+    }
+  });
 
-  const defined = JSON.parse(
-    readFileSync(join(smoke.projectPath, '.opera-incerta', 'categories.json'), 'utf8'),
-  ) as Array<{ id: string; name: string; color: string }>;
+  const defined = JSON.parse(readFileSync(categoriesPath, 'utf8')) as Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
   if (defined.length !== 1 || defined[0]?.name !== 'Review' || defined[0]?.color !== '#102040') {
     throw new Error(`the category was not written: ${JSON.stringify(defined)}`);
   }
@@ -268,7 +285,7 @@ export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): 
   if (!assigned) {
     throw new Error('the inspector offers no category to assign');
   }
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil('the badge', () => isVisible(window, 'wi-sheet-list .badge'));
 
   const badge = (await window.webContents.executeJavaScript(
     `(() => {
@@ -292,8 +309,11 @@ export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): 
   console.log(`smoke evidence: ${evidencePath}`);
 
   clickMenuItem('sheet/save');
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  const sheet = readFileSync(join(smoke.projectPath, 'part-1', 'scene.md'), 'utf8');
+  const sheetPath = join(smoke.projectPath, 'part-1', 'scene.md');
+  await waitUntil('the save to reach the file', () =>
+    readFileSync(sheetPath, 'utf8').includes('category: '),
+  );
+  const sheet = readFileSync(sheetPath, 'utf8');
   if (!sheet.includes(`category: ${String(defined[0]?.id)}`)) {
     throw new Error('the assignment did not reach the file');
   }
@@ -332,7 +352,7 @@ export async function checkColumnDragging(smoke: Smoke, window: BrowserWindow): 
   window.webContents.sendInputEvent({ type: 'mouseDown', x: before.x, y: before.y, clickCount: 1 });
   for (let offset = 10; offset <= 40; offset += 10) {
     window.webContents.sendInputEvent({ type: 'mouseMove', x: before.x + offset, y: before.y });
-    await new Promise((resolve) => setTimeout(resolve, 40));
+    await rendered(window);
   }
   window.webContents.sendInputEvent({
     type: 'mouseUp',
@@ -340,11 +360,16 @@ export async function checkColumnDragging(smoke: Smoke, window: BrowserWindow): 
     y: before.y,
     clickCount: 1,
   });
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  const navigatorWidth = async (): Promise<number | null> =>
+    (await window.webContents.executeJavaScript(
+      "document.querySelector('.navigator')?.getBoundingClientRect().width ?? null",
+    )) as number | null;
+  await waitUntil(
+    'the column to widen',
+    async () => (await navigatorWidth()) !== null && (await navigatorWidth())! > before.width,
+  );
 
-  const after = (await window.webContents.executeJavaScript(
-    "document.querySelector('.navigator')?.getBoundingClientRect().width ?? null",
-  )) as number | null;
+  const after = await navigatorWidth();
   if (after === null) {
     throw new Error('the navigator disappeared while dragging');
   }
@@ -370,9 +395,20 @@ export async function checkColumnDragging(smoke: Smoke, window: BrowserWindow): 
   const applied = (await window.webContents.executeJavaScript(
     `Number.parseFloat(document.querySelector('.navigator')?.style.width ?? '0')`,
   )) as number;
-  const stored = JSON.parse(readFileSync(smoke.preferencesPath, 'utf8')) as {
-    columnWidths: { navigator: number };
+  const readStored = (): { columnWidths: { navigator: number } } | null => {
+    try {
+      return JSON.parse(readFileSync(smoke.preferencesPath, 'utf8')) as {
+        columnWidths: { navigator: number };
+      };
+    } catch {
+      return null;
+    }
   };
+  await waitUntil(
+    'the width to reach the preference file',
+    () => readStored()?.columnWidths.navigator === applied,
+  );
+  const stored = readStored() as { columnWidths: { navigator: number } };
   if (stored.columnWidths.navigator !== applied) {
     throw new Error(`stored ${stored.columnWidths.navigator}, applied ${applied}`);
   }

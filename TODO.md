@@ -54,10 +54,10 @@ has to be consulted to build, verify or change the product.
 6. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
-   immediately afterwards — two clean, two falsified — were green. Recorded
-   rather than explained away: if it returns, the trail starts here, and the
-   suspicion to test first is a race between the menu save and the
-   watcher-driven re-read.
+   immediately afterwards — two clean, two falsified — were green. Since the
+   sleeps went (DONE.md, the same day) that check waits for the edit to reach
+   the disk rather than for half a second, so the likeliest cause is gone;
+   the entry stays until a few days of green runs have passed.
 
 7. **The CodeMirror adapter keeps an `EditorState` per document id for as
    long as the adapter lives** (`codemirror-editor-adapter.ts`, `#states`),
@@ -66,13 +66,7 @@ has to be consulted to build, verify or change the product.
    suite; the rest of the review's adapter findings are done. Small, and a
    memory question only for a very long session.
 
-8. **The smoke sleeps** — ninety `setTimeout` waits across
-   `apps/desktop/src/smoke/checks/`, thirty-six of them in source control.
-   Each is a place a slower machine fails; the README names them as the first
-   suspect for §1.6. Replace them with conditions (`waitForSelector`,
-   `settleWatch`) file by file, and keep a sleep only where nothing observable
-   marks completion, with a comment saying what it waits for.
-9. **One error shape and typed contract payloads.** `ProjectError`,
+8. **One error shape and typed contract payloads.** `ProjectError`,
     `ProjectSessionError`, `GitError`, and the renderer's `BridgeFailure`
     are four classes of the same shape; `GitError.code` is always
     `git/command-failed`, so the renderer cannot tell "not fast-forwardable"
@@ -87,7 +81,7 @@ has to be consulted to build, verify or change the product.
     gain the response guards they lack; and `preload.ts` should be typed
     against the contract with `satisfies OperaIncertaBridge`, so a method
     added to the interface but not to the preload fails to compile.
-10. **The project adapter's port and its error handling**
+9. **The project adapter's port and its error handling**
     (`packages/project-node`, `apps/desktop/src/project-session.ts`). The
     `ProjectFilesystem` port exists "so tests run against an in-memory
     double", and no double exists — session and shell reach past it to
@@ -101,7 +95,7 @@ has to be consulted to build, verify or change the product.
     `writeSheet` has; `placeEntry` reopens the project twice per drag and
     re-mints every handle, while the comment on `reopen` says handles are
     kept; and `inspectFolder` reads `project.json` fully to test existence.
-11. **Core rules the review found wrong or loose**, one tidy-up round:
+10. **Core rules the review found wrong or loose**, one tidy-up round:
     - `hasConflictMarkers` is true for a bare `<<<<<<< HEAD` line while
       `parseConflicts` reports no conflict, so the store locks a sheet the
       resolver has nothing to resolve in (`conflict.ts`);

@@ -12,6 +12,83 @@ import { type BrowserWindow, Menu } from 'electron';
 import { MENU_ACCELERATORS, menuItemId } from './../application-menu.js';
 import type { Smoke } from './context.js';
 
+/**
+ * Waits until a condition holds, and fails saying what it waited for.
+ *
+ * The one way a check waits for a **consequence** — a file on disk, a row in
+ * a list, a dialog gone. It polls, so a fast machine moves on at once and a
+ * slow one is given its time; a fixed sleep gives both the same, and is wrong
+ * for one of them.
+ */
+export async function waitUntil(
+  what: string,
+  done: () => Promise<boolean> | boolean,
+  timeoutMs = 8000,
+): Promise<void> {
+  const started = Date.now();
+  for (;;) {
+    if (await done()) {
+      return;
+    }
+    if (Date.now() - started > timeoutMs) {
+      throw new Error(`gave up waiting for ${what}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+/**
+ * Lets the renderer take what it was just sent and paint it: a macrotask, so
+ * an input event already delivered is handled, then two frames, so the change
+ * detection that followed has rendered.
+ *
+ * The wait after an **input** — a click, a key, a pointer move — where the
+ * consequence is not one thing a check can name. Where it is, `waitUntil`
+ * names it instead. Also the wait before a screenshot: an element is in the
+ * DOM before the compositor has drawn it.
+ */
+export async function rendered(window: BrowserWindow): Promise<void> {
+  await window.webContents.executeJavaScript(
+    'new Promise((resolve) => setTimeout(() => ' +
+      'requestAnimationFrame(() => requestAnimationFrame(resolve)), 0))',
+  );
+}
+
+/** The panel-header title starting with `prefix`, dirty marker included, or null. */
+export async function headerTitle(window: BrowserWindow, prefix: string): Promise<string | null> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-panel-header .title')]
+       .map((element) => element.textContent.trim())
+       .find((text) => text.startsWith(${JSON.stringify(prefix)})) ?? null`,
+  )) as string | null;
+}
+
+/** The titles the sheet list shows, in order. */
+export async function sheetTitles(window: BrowserWindow): Promise<readonly string[]> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-sheet-list .title')].map((e) => e.textContent.trim())`,
+  )) as readonly string[];
+}
+
+/** The name of the selected group in the tree, or null. */
+export async function selectedGroupName(window: BrowserWindow): Promise<string | null> {
+  return (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-explorer-node .row.selected .name')?.textContent.trim() ?? null`,
+  )) as string | null;
+}
+
+/** Whether an element matching `selector` carries `text`. */
+export async function rowShown(
+  window: BrowserWindow,
+  selector: string,
+  text: string,
+): Promise<boolean> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll(${JSON.stringify(selector)})]
+       .some((candidate) => candidate.textContent.includes(${JSON.stringify(text)}))`,
+  )) as boolean;
+}
+
 export async function waitForSelector(
   window: BrowserWindow,
   selector: string,
@@ -70,7 +147,7 @@ export async function clickText(window: BrowserWindow, selector: string, text: s
   if (!clicked) {
     throw new Error(`no ${selector} containing ${text}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await rendered(window);
 }
 
 /** Types into the open prompt and confirms it. */
@@ -102,7 +179,7 @@ export async function rightClick(window: BrowserWindow, selector: string): Promi
     button: 'right',
     clickCount: 1,
   });
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await rendered(window);
 }
 
 /** Clicks the first element matching a selector whose text contains `text`. */
@@ -135,7 +212,7 @@ export async function rightClickNodeContaining(window: BrowserWindow, text: stri
     button: 'right',
     clickCount: 1,
   });
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await rendered(window);
 }
 
 /** Right-clicks the sheet-list row containing the given text. */
@@ -168,7 +245,7 @@ export async function rightClickRowContaining(window: BrowserWindow, text: strin
     button: 'right',
     clickCount: 1,
   });
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await rendered(window);
 }
 
 /** Right-clicks the first element matching a selector. */
@@ -186,7 +263,7 @@ export async function fillPrompt(window: BrowserWindow, value: string): Promise<
   if (!filled) {
     throw new Error('no prompt to fill');
   }
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  await rendered(window);
 
   const confirmed = (await window.webContents.executeJavaScript(
     `(() => {
@@ -210,7 +287,7 @@ export async function typeText(window: BrowserWindow, text: string): Promise<voi
     window.webContents.sendInputEvent({ type: 'char', keyCode: character });
     window.webContents.sendInputEvent({ type: 'keyUp', keyCode: character });
   }
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await rendered(window);
 }
 
 export async function pressKey(
@@ -228,7 +305,7 @@ export async function pressKey(
     keyCode,
     modifiers: [...modifiers] as never,
   });
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await rendered(window);
 }
 
 /** Text of the line containing `needle`, and whether it is a heading. */
@@ -266,7 +343,7 @@ export async function activateSidebar(window: BrowserWindow, label: string): Pro
   if (!clicked) {
     throw new Error(`no activity bar entry named ${label}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await rendered(window);
 }
 
 /** Renderer errors are otherwise invisible from here. */
@@ -293,7 +370,7 @@ export async function toggleSwitch(window: BrowserWindow, label: string): Promis
   if (!clicked) {
     throw new Error(`no switch labelled ${label}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await rendered(window);
 }
 
 /**
@@ -340,7 +417,8 @@ export async function selectSmokeSheet(window: BrowserWindow): Promise<void> {
   if (!selected) {
     throw new Error('could not select the sheet');
   }
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // The document arrives over the bridge; its first heading is the sign.
+  await waitForSelector(window, '.cm-heading-1');
 
   console.log('smoke ok: project opened, tree and sheet list populated, sheet selected');
 }
@@ -360,7 +438,9 @@ export async function reloadFromDisk(window: BrowserWindow): Promise<void> {
   if (!pressed) {
     throw new Error('no reload button in the navigator');
   }
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  // What the re-read leads to is the caller's to wait for: a prompt, or a
+  // changed editor.
+  await rendered(window);
 }
 
 /**

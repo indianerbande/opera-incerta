@@ -20,16 +20,22 @@ import {
   clickText,
   editorContains,
   fillPrompt,
+  headerTitle,
   isVisible,
   placeCursorInEditor,
   pressKey,
   reloadFromDisk,
+  rendered,
   rightClick,
   rightClickNodeContaining,
   rightClickRowContaining,
+  rowShown,
+  selectedGroupName,
   settleWatch,
+  sheetTitles,
   typeText,
   waitForSelector,
+  waitUntil,
 } from '../harness.js';
 import type { Smoke } from '../context.js';
 
@@ -63,9 +69,14 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
   await waitForSelector(window, 'wi-text-prompt input');
 
   await fillPrompt(window, 'A Brand New Scene');
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  const createdPath = join(smoke.projectPath, 'a-brand-new-scene.md');
+  await waitUntil('the new sheet on disk', () => existsSync(createdPath));
+  await waitUntil(
+    'the created sheet to open',
+    async () => (await headerTitle(window, 'A Brand New Scene')) !== null,
+  );
 
-  const created = readFileSync(join(smoke.projectPath, 'a-brand-new-scene.md'), 'utf8');
+  const created = readFileSync(createdPath, 'utf8');
   if (!created.includes('title: A Brand New Scene')) {
     throw new Error(`the new sheet lacks its title: ${JSON.stringify(created)}`);
   }
@@ -88,7 +99,9 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'Rename');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'Renamed In Place');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil('the rename to reach the file', () =>
+    readFileSync(join(smoke.projectPath, 'opening.md'), 'utf8').includes('title: Renamed In Place'),
+  );
 
   const files = readdirSync(smoke.projectPath).filter((name) => name.endsWith('.md')).sort();
   // The rule that makes the library survive: the title changed, the file name
@@ -108,7 +121,10 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'Rename');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'Renamed While Open');
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await waitUntil(
+    'the open sheet to be renamed in the header',
+    async () => (await headerTitle(window, 'Renamed While Open')) !== null,
+  );
 
   const onDisk = readFileSync(join(smoke.projectPath, 'a-brand-new-scene.md'), 'utf8');
   if (onDisk.includes('Renamed While Open')) {
@@ -131,9 +147,13 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'Part Two');
-  await new Promise((resolve) => setTimeout(resolve, 700));
-
   const groupPath = join(smoke.projectPath, 'part-two');
+  await waitUntil('the group directory', () =>
+    statSync(groupPath, { throwIfNoEntry: false })?.isDirectory() === true,
+  );
+  await waitUntil('the new group to be selected', async () =>
+    (await selectedGroupName(window)) === 'Part Two',
+  );
   if (!statSync(groupPath, { throwIfNoEntry: false })?.isDirectory()) {
     throw new Error('the group directory was not created under its slug');
   }
@@ -165,7 +185,9 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'Rename');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'The Second Part');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil('the rename to reach structure.json', () =>
+    displayNameOf(smoke.projectPath, 'part-two') === 'The Second Part',
+  );
 
   if (!statSync(groupPath, { throwIfNoEntry: false })?.isDirectory()) {
     throw new Error('renaming a group moved its directory');
@@ -188,7 +210,9 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
 export async function checkReordering(smoke: Smoke, window: BrowserWindow, projectPath: string): Promise<void> {
   // Back to the root group, whose sheet list holds two sheets.
   await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil('the root group\'s sheets', async () =>
+    (await sheetTitles(window)).includes('Renamed In Place'),
+  );
 
   const first = await rowPoint(window, 'wi-sheet-list li', 'Renamed In Place');
   const second = await rowPoint(window, 'wi-sheet-list li', 'Renamed While Open');
@@ -201,6 +225,14 @@ export async function checkReordering(smoke: Smoke, window: BrowserWindow, proje
     'smoke-drag.png',
   );
 
+  await waitUntil('the new order to reach structure.json', () => {
+    const order = orderOf(projectPath, '.');
+    return order.includes('a-brand-new-scene.md') &&
+      order.indexOf('a-brand-new-scene.md') < order.indexOf('opening.md');
+  });
+  await waitUntil('the list to show the new order', async () =>
+    (await sheetTitles(window))[0] === 'Renamed While Open',
+  );
   const sheetOrder = orderOf(projectPath, '.');
   if (sheetOrder.indexOf('a-brand-new-scene.md') > sheetOrder.indexOf('opening.md')) {
     throw new Error(`the sheet did not move: ${JSON.stringify(sheetOrder)}`);
@@ -230,6 +262,15 @@ export async function checkReordering(smoke: Smoke, window: BrowserWindow, proje
   // Into the upper band of Part One, which means "before that row".
   await dragTo(smoke, window, second_, { x: second_.x, y: partOne.y - Math.round(partOne.height * 0.4) });
 
+  await waitUntil('the group order to reach structure.json', () => {
+    const order = orderOf(projectPath, '.');
+    return order.includes('part-two') && order.indexOf('part-two') < order.indexOf('part-1');
+  });
+  await waitUntil('the tree to show the new order', async () =>
+    ((await window.webContents.executeJavaScript(
+      `[...document.querySelectorAll('wi-explorer-node .name')].map((e) => e.textContent.trim())[1]`,
+    )) as string | undefined) === 'The Second Part',
+  );
   const groupOrder = orderOf(projectPath, '.');
   if (groupOrder.indexOf('part-two') > groupOrder.indexOf('part-1')) {
     throw new Error(`the group did not move: ${JSON.stringify(groupOrder)}`);
@@ -267,7 +308,9 @@ export async function checkDeletion(smoke: Smoke, window: BrowserWindow, project
     }
 
     await pressKey(window, key);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await waitUntil(`${key} to close the confirmation`, async () =>
+      !(await isVisible(window, 'wi-confirm-prompt')),
+    );
 
     const stillOpen = (await window.webContents.executeJavaScript(
       "document.querySelector('wi-confirm-prompt') !== null",
@@ -283,7 +326,13 @@ export async function checkDeletion(smoke: Smoke, window: BrowserWindow, project
   // Aimed at, it deletes.
   await openDeleteDialog(window, 'wi-sheet-list .row', 'Renamed In Place', 'Delete Sheet');
   await clickText(window, 'wi-confirm-prompt button', 'Delete');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil(
+    'the sheet to leave the project',
+    () => !existsSync(join(projectPath, 'opening.md')),
+  );
+  await waitUntil('the list to drop the sheet', async () =>
+    !(await sheetTitles(window)).includes('Renamed In Place'),
+  );
 
   if (existsSync(join(projectPath, 'opening.md'))) {
     throw new Error('the sheet is still in the project');
@@ -320,7 +369,7 @@ export async function checkDeletion(smoke: Smoke, window: BrowserWindow, project
   console.log(`smoke evidence: ${evidencePath}`);
 
   await clickText(window, 'wi-confirm-prompt button', 'Delete');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil('the group to leave the project', () => !existsSync(join(projectPath, 'part-1')));
 
   if (existsSync(join(projectPath, 'part-1'))) {
     throw new Error('the group is still in the project');
@@ -347,17 +396,28 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'Part Three');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil('the group directory', () => existsSync(join(projectPath, 'part-three')));
+  await waitUntil('the tree to show the group', () =>
+    rowShown(window, 'wi-explorer-node .row', 'Part Three'),
+  );
 
   // Creating one selects it, and its sheet list is empty; the sheet to be
   // moved is in the root.
   await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil('the root group\'s sheets', async () =>
+    (await sheetTitles(window)).includes('Renamed While Open'),
+  );
 
   // The open sheet, from the sheet list into a group in the tree.
   const sheet = await rowPoint(window, 'wi-sheet-list .row', 'Renamed While Open');
   const partThree = await rowPoint(window, 'wi-explorer-node .row', 'Part Three');
   await dragTo(smoke, window, sheet, { x: partThree.x, y: partThree.y }, 'smoke-move.png');
+  await waitUntil('the sheet to arrive in the group', () =>
+    existsSync(join(projectPath, 'part-three', 'a-brand-new-scene.md')),
+  );
+  await waitUntil('the editor to follow the sheet', async () =>
+    (await headerTitle(window, 'Renamed While Open')) !== null,
+  );
 
   if (existsSync(join(projectPath, 'a-brand-new-scene.md'))) {
     throw new Error('the sheet is still in the group it was dragged out of');
@@ -380,6 +440,12 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
   const source = await rowPoint(window, 'wi-explorer-node .row', 'Part Three');
   const target = await rowPoint(window, 'wi-explorer-node .row', 'The Second Part');
   await dragTo(smoke, window, source, { x: target.x, y: target.y });
+  await waitUntil('the group to arrive with its sheet', () =>
+    existsSync(join(projectPath, 'part-two', 'part-three', 'a-brand-new-scene.md')),
+  );
+  await waitUntil('the editor to follow the group', async () =>
+    (await headerTitle(window, 'Renamed While Open')) !== null,
+  );
 
   if (!existsSync(join(projectPath, 'part-two', 'part-three', 'a-brand-new-scene.md'))) {
     throw new Error('the group did not arrive with its sheet inside');
@@ -406,11 +472,17 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'Part Four');
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil('the group directory', () => existsSync(join(projectPath, 'part-four')));
+  await waitUntil('the tree to show the group', () =>
+    rowShown(window, 'wi-explorer-node .row', 'Part Four'),
+  );
 
   const four = await rowPoint(window, 'wi-explorer-node .row', 'Part Four');
   const three = await rowPoint(window, 'wi-explorer-node .row', 'Part Three');
   await dragTo(smoke, window, four, { x: three.x, y: three.y - Math.round(three.height * 0.4) });
+  await waitUntil('the group to travel and be placed', () =>
+    existsSync(join(projectPath, 'part-two', 'part-four')) && orderOf(projectPath, 'part-two')[0] === 'part-four',
+  );
 
   if (!existsSync(join(projectPath, 'part-two', 'part-four'))) {
     throw new Error('the group did not travel into the other group');
@@ -441,11 +513,12 @@ export async function checkExternalChange(
 
   await placeCursorInEditor(window);
   await typeText(window, 'Typed but never saved.');
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await waitUntil('the typed text', () => editorContains(window, 'Typed but never saved.'));
 
   // Someone else writes the file while the author has unsaved work in it.
   writeFileSync(sheetPath, `${original}\nWritten by someone else.\n`, 'utf8');
   await reloadFromDisk(window);
+  await waitUntil('the conflict prompt', () => isVisible(window, 'wi-confirm-prompt'));
 
   if (!(await isVisible(window, 'wi-confirm-prompt'))) {
     throw new Error('a file that changed under unsaved work raised no prompt');
@@ -456,7 +529,10 @@ export async function checkExternalChange(
   }
 
   await pressKey(window, 'Escape');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil(
+    'Escape to close the prompt',
+    async () => !(await isVisible(window, 'wi-confirm-prompt')),
+  );
   if (await isVisible(window, 'wi-confirm-prompt')) {
     throw new Error('Escape left the conflict prompt open');
   }
@@ -470,9 +546,15 @@ export async function checkExternalChange(
   // With nothing unsaved, the same change is simply taken. Saving first is
   // what makes the buffer clean.
   clickMenuItem('sheet/save');
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  await waitUntil(
+    'the save',
+    () => readFileSync(sheetPath, 'utf8').includes('Typed but never saved.'),
+  );
   writeFileSync(sheetPath, `${original}\nWritten again, with nothing unsaved.\n`, 'utf8');
   await reloadFromDisk(window);
+  await waitUntil('the reload to take the file', () =>
+    editorContains(window, 'Written again, with nothing unsaved.'),
+  );
 
   if (await isVisible(window, 'wi-confirm-prompt')) {
     throw new Error('an unmodified buffer was asked about instead of reloaded');
@@ -512,7 +594,9 @@ export async function checkWatchedChange(
   // Content, with unsaved work: the prompt appears on its own.
   await placeCursorInEditor(window);
   await typeText(window, 'Typed while someone else was writing.');
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await waitUntil('the typed text', () =>
+    editorContains(window, 'Typed while someone else was writing.'),
+  );
   writeFileSync(sheetPath, `${readFileSync(sheetPath, 'utf8')}\nAnd again from outside.\n`, 'utf8');
 
   await settleWatch(window, async () => isVisible(window, 'wi-confirm-prompt'));
@@ -520,7 +604,10 @@ export async function checkWatchedChange(
     throw new Error('a file changed under unsaved work raised no prompt of its own accord');
   }
   await pressKey(window, 'Escape');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil(
+    'Escape to close the prompt',
+    async () => !(await isVisible(window, 'wi-confirm-prompt')),
+  );
   if (!(await editorContains(window, 'Typed while someone else was writing.'))) {
     throw new Error('the work was gone by the time the prompt appeared');
   }
@@ -528,7 +615,9 @@ export async function checkWatchedChange(
   // Structure: a sheet appearing in the group on screen. The root is empty by
   // now, so one row is the whole answer.
   await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  await waitUntil('the root to be selected', async () =>
+    (await selectedGroupName(window)) === 'Smoke Project',
+  );
   writeFileSync(
     join(projectPath, 'appeared.md'),
     '---\nopera-incerta:\n  title: Appeared By Itself\n---\nText\n',
@@ -644,7 +733,7 @@ export async function dragTo(
     const x = Math.round(from.x + ((to.x - from.x) * step) / steps);
     const y = Math.round(from.y + ((to.y - from.y) * step) / steps);
     window.webContents.sendInputEvent({ type: 'mouseMove', x, y });
-    await new Promise((resolve) => setTimeout(resolve, 40));
+    await rendered(window);
   }
 
   if (evidence !== undefined) {
@@ -657,7 +746,9 @@ export async function dragTo(
   }
 
   window.webContents.sendInputEvent({ type: 'mouseUp', x: to.x, y: to.y, clickCount: 1 });
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  // The drop goes over the bridge and comes back as a re-read project; what
+  // it should have done is the caller's to wait for.
+  await rendered(window);
 }
 
 /** The display name `structure.json` records for a group, if any. */

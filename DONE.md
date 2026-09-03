@@ -6,6 +6,60 @@ documents").
 
 ---
 
+## 2026-09-03 — the smoke waits for consequences, not for time
+
+**What was open** (`TODO.md` §1.8 until this round). Ninety `setTimeout`
+waits across the smoke's checks and helpers, thirty-six of them in source
+control: after a click, 250 ms; after a commit, 1,200 ms; after a drag, 700
+ms. Each one gave a fast machine and a slow one the same time, and was wrong
+for one of them — and `TODO.md` §1.6 records the one run in which it was
+wrong for this one.
+
+**What changed.** Two primitives in `harness.ts`, and no third kind of wait:
+
+- **`waitUntil(what, condition)`** polls until the condition holds and fails
+  naming what it waited for. Every wait for a *consequence* — a file on
+  disk, a row in a list, a dialog gone, a commit in the log, a box checked —
+  is one of these now, and every one names its consequence. Four small
+  readers came with it (`headerTitle`, `sheetTitles`, `selectedGroupName`,
+  `rowShown`), and the source control checks got theirs (`allStaged`,
+  `rowStaged`, `branchShown`, `stagedPaths`, `logIncludes`).
+- **`rendered(window)`** lets the renderer take what it was just sent and
+  paint it: a macrotask, then two frames. Every harness helper that sends an
+  input event ends with it, and it is the wait before a screenshot.
+
+Eighty-eight sleeps are gone. The two that remain, in the live-status check,
+are the measurement itself — the watch must stay quiet for three seconds —
+and say so. The five other `setTimeout` calls in the tree are the poll
+intervals of the waits.
+
+**What the first run without sleeps found.** Four times, a check that waited
+for **git** to report a write done and then clicked again found its click
+refused: the store re-reads the status after every write, behind the same
+guard that refuses the next click while it runs, and git says "staged"
+before that re-read has finished. The sleeps had been hiding it. The rule is
+now in the README: wait for what the **panel** shows — a box checked, a row
+gone, a branch named — and the guard is free by the time you click. One more
+was a wait for `git log` before the first commit exists, where git fails
+rather than answering with nothing; the condition reads that as "not yet".
+
+**Verification.** `pnpm run check` green: **829 tests**, unchanged — nothing
+outside the smoke was touched. `pnpm run desktop:smoke` green across
+**thirty checks**, four runs in a row, each in about thirty seconds where the
+sleeps had made it about a minute. Falsified by giving every `waitUntil` no
+time at all: the run stopped at the first consequence that takes a bridge
+round trip — "gave up waiting for the editor to load the other sheet" —
+which is the wait doing its job, on the check where it is needed.
+
+**Lesson.** A sleep is a guess about a duration written down as a fact, and
+the guess is wrong exactly when it matters. Naming the consequence instead
+costs a line and returns two things: a run that is as fast as the machine,
+and a failure that says what never happened. And it found a class of race
+the sleeps had been papering over from the first day — which is what a wait
+that is too generous does: it makes every race look like it was won.
+
+---
+
 ## 2026-09-03 — one git command at a time, and a machine without git
 
 **What was open** (`TODO.md` §1.8 until this round). Every bridge handler

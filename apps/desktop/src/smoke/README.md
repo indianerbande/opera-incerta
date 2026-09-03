@@ -23,8 +23,8 @@ pnpm run desktop:smoke
 That builds the renderer, the production bundle, and the smoke bundle, then
 runs `electron dist/smoke.cjs`. It prints one `smoke ok: …` line per check
 and exits 0, or prints `smoke failed: …` with the error and exits 1.
-Screenshots land in `build/desktop/smoke*.png`. A green run takes about a
-minute.
+Screenshots land in `build/desktop/smoke*.png`. A green run takes about
+half a minute.
 
 The smoke needs `git` on the path and a display server (it runs windowed;
 on macOS and Windows that is always there, on Linux use `xvfb-run`).
@@ -138,19 +138,32 @@ of them closes the window everything else needed.
 ## Waiting
 
 The renderer is asynchronous and the smoke is not inside it, so every action
-is followed by a wait. Two kinds exist, and the first is always preferred:
+is followed by a wait. There are two kinds, and there is no third:
 
-- **`waitForSelector(window, selector)`** and **`settleWatch(window, until)`**
-  poll a condition every 100 ms and fail after a bound. Use these whenever
-  the consequence is visible in the DOM or on disk.
-- **`await new Promise((resolve) => setTimeout(resolve, ms))`** sleeps. It
-  exists where nothing observable marks completion — a debounce, a watcher
-  settling. It is the reason a check can be flaky: a machine slower than the
-  sleep fails. Prefer a condition; when a sleep is the only option, say in a
-  comment what it waits for.
+- **`waitUntil(what, condition)`** polls until the condition holds and fails
+  naming `what` it waited for. This is the wait for a **consequence**: a
+  file on disk, a row in a list, a dialog gone, a commit in the log. Every
+  check names its consequence this way. `waitForSelector` and `settleWatch`
+  are the same thing with a fixed condition.
+- **`rendered(window)`** lets the renderer take what it was just sent and
+  paint it — a macrotask, then two frames. This is the wait after an
+  **input** (a click, a key, a pointer move) whose consequence is not one
+  thing a check can name, and the wait before a screenshot. Every harness
+  helper that sends input ends with it.
 
-`TODO.md` records one unreproduced failure in the save check; the suspect is a
-sleep of this second kind.
+There is no fixed sleep. Ninety of them were replaced on 2026-09-03; a
+fixed sleep gives a fast machine and a slow one the same time, and is wrong
+for one of them. The two `setTimeout` calls that remain, in the live-status
+check, are the **measurement** itself — the watch must stay quiet for three
+seconds — and are commented as such.
+
+**Wait for the panel, not for git.** After a click that writes through the
+store, the store re-reads the status behind the same guard that refuses the
+next click while it runs. Git reports the write done *before* that re-read
+has finished, so a check that waits for git and then clicks again finds its
+click refused as busy. Wait for what the panel shows — a box checked, a row
+gone, a branch named — and the guard is free by the time you click. The
+first run without sleeps found this four times.
 
 ## Debugging a failure
 
@@ -166,8 +179,10 @@ sleep of this second kind.
 4. **Run the failing check alone.** Comment out the checks after it in
    `run()`. Do not comment out the ones before it — they build the state it
    needs.
-5. **Distrust a sleep first.** If the failure is intermittent, find the
-   `setTimeout` nearest the assertion and replace it with a condition.
+5. **Read the `gave up waiting for …` message.** It names the consequence
+   that never came. If the consequence did happen but the check moved on too
+   early elsewhere, look for a wait on git state that should be a wait on
+   the panel (see "Waiting").
 
 ## Adding a check
 

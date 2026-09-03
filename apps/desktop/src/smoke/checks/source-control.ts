@@ -17,11 +17,69 @@ import {
   isVisible,
   placeCursorInEditor,
   pressKey,
+  rendered,
   settleWatch,
   typeText,
   waitForSelector,
+  waitUntil,
 } from '../harness.js';
 import type { Smoke } from '../context.js';
+
+/** What the panel reports as a failure, or null while it reports nothing. */
+async function failureText(window: BrowserWindow): Promise<string | null> {
+  return (await window.webContents.executeJavaScript(
+    "document.querySelector('wi-source-control .failure')?.textContent?.trim() ?? null",
+  )) as string | null;
+}
+
+/**
+ * Whether the panel shows every change as staged.
+ *
+ * The panel, not git: the store re-reads the status after a write, behind the
+ * same guard that refuses the next click while it runs. Git says "staged"
+ * before that refresh has finished, and a check that moves on then finds its
+ * next click refused as busy.
+ */
+async function allStaged(window: BrowserWindow): Promise<boolean> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const boxes = [...document.querySelectorAll('wi-source-control .change input')];
+       return boxes.length > 0 && boxes.every((box) => box.checked);
+     })()`,
+  )) as boolean;
+}
+
+/**
+ * Whether the log carries a commit with this text. Before the first commit
+ * `git log` fails rather than answering with nothing, and that is "not yet".
+ */
+function logIncludes(smoke: Smoke, text: string): boolean {
+  try {
+    return smoke.git(smoke.projectPath, ['log', '--oneline']).includes(text);
+  } catch {
+    return false;
+  }
+}
+
+/** Whether the panel shows the row for a file as staged. */
+async function rowStaged(window: BrowserWindow, name: string): Promise<boolean | null> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-source-control .change')]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(name)}));
+       const box = row?.querySelector('input');
+       return box === null || box === undefined ? null : box.checked;
+     })()`,
+  )) as boolean | null;
+}
+
+/** The paths in the index, as git lists them. */
+function stagedPaths(smoke: Smoke): readonly string[] {
+  return smoke
+    .git(smoke.projectPath, ['diff', '--cached', '--name-only'])
+    .split('\n')
+    .filter((line) => line !== '');
+}
 
 /**
  * Checks the commit model of `SPEC.md` §12 against a real repository: stage
@@ -39,7 +97,8 @@ export async function checkCommitting(smoke: Smoke, window: BrowserWindow): Prom
 
   // Everything at once, through the tri-state header — one batch, one guard.
   await clickSourceControl(window, '.changes-header input');
-  const staged = smoke.git(smoke.projectPath, ['diff', '--cached', '--name-only']).trim().split('\n');
+  await waitUntil('the panel to show everything staged', () => allStaged(window));
+  const staged = stagedPaths(smoke);
   if (staged.length < 2) {
     throw new Error(`staging all left ${JSON.stringify(staged)} in the index`);
   }
@@ -59,14 +118,27 @@ export async function checkCommitting(smoke: Smoke, window: BrowserWindow): Prom
   if (removed === null) {
     throw new Error('no row for opening.md to unstage');
   }
-  await new Promise((resolve) => setTimeout(resolve, 700));
+  await waitUntil('the file to leave the index', () => !stagedPaths(smoke).includes('opening.md'));
+  // And the panel to have re-read it: the next click waits behind the same
+  // guard as that re-read, and would otherwise be refused as busy.
+  await waitUntil(
+    'the panel to show it unstaged',
+    async () => (await rowStaged(window, 'opening.md')) === false,
+  );
   if (smoke.git(smoke.projectPath, ['diff', '--cached', '--name-only']).includes('opening.md')) {
     throw new Error('unstaging without a HEAD left the file in the index');
   }
 
   await fillCommitMessage(window, 'The first commit, from the smoke');
   await clickText(window, 'wi-source-control button', 'Commit');
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await waitUntil('the commit', () => logIncludes(smoke, 'The first commit, from the smoke'));
+  await waitUntil(
+    'the panel to show only the file that was left out',
+    async () =>
+      ((await window.webContents.executeJavaScript(
+        "document.querySelectorAll('wi-source-control .change').length",
+      )) as number) === 1,
+  );
 
   const log = smoke.git(smoke.projectPath, ['log', '--oneline']).trim();
   if (!log.includes('The first commit, from the smoke')) {
@@ -79,17 +151,19 @@ export async function checkCommitting(smoke: Smoke, window: BrowserWindow): Prom
 
   // A push with no remote must surface the error and keep the commit.
   await clickSourceControl(window, '.changes-header input');
+  await waitUntil('the panel to show everything staged', () => allStaged(window));
   await fillCommitMessage(window, 'The second commit, which cannot be pushed');
   await clickText(window, 'wi-source-control button', 'Commit and push');
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  await waitUntil(
+    'the failed push to be reported',
+    async () => (await failureText(window)) !== null,
+  );
 
   const after = smoke.git(smoke.projectPath, ['log', '--oneline']).trim().split('\n');
   if (after.length !== 2) {
     throw new Error(`the commit did not stand through a failed push: ${JSON.stringify(after)}`);
   }
-  const reported = (await window.webContents.executeJavaScript(
-    "document.querySelector('wi-source-control .failure, .failure')?.textContent?.trim() ?? null",
-  )) as string | null;
+  const reported = await failureText(window);
   if (reported === null || reported === '') {
     throw new Error('a failed push reported nothing');
   }
@@ -133,6 +207,10 @@ export async function checkLiveStatus(smoke: Smoke, window: BrowserWindow): Prom
   // And now the part `CONVENTIONS.md` C-F4 exists for: `git status` writes
   // inside `.git` on every read, so without the filter each refresh would
   // trigger the next one, for as long as the panel stays open.
+  //
+  // These two waits are the measurement itself, not a guess at a duration:
+  // first the refresh the new file caused is given time to finish, then the
+  // count is taken, and three seconds later it must not have moved.
   await new Promise((resolve) => setTimeout(resolve, 1500));
   const quiet = smoke.shell.repositoryReports();
   await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -175,7 +253,7 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
     throw new Error('an untracked file cannot have removed lines');
   }
   await pressKey(window, 'Escape');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil('the diff to close', async () => !(await isVisible(window, 'wi-diff-view')));
 
   await openDiscard(window, 'written-by-someone-else.txt');
   const warning = (await window.webContents.executeJavaScript(
@@ -187,21 +265,26 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
 
   // A frame, so the picture has the dialog in it: the element is in the DOM
   // before the compositor has drawn it.
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const image = await window.webContents.capturePage();
   const evidencePath = join(smoke.evidenceDirectory, 'smoke-discard.png');
   writeFileSync(evidencePath, image.toPNG());
   console.log(`smoke evidence: ${evidencePath}`);
 
   await pressKey(window, 'Escape');
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  await waitUntil(
+    'the confirmation to close',
+    async () => !(await isVisible(window, 'wi-confirm-prompt')),
+  );
   if (!existsSync(untracked)) {
     throw new Error('cancelling the confirmation discarded the file anyway');
   }
 
   await openDiscard(window, 'written-by-someone-else.txt');
   await clickText(window, 'wi-confirm-prompt button', 'Discard');
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await waitUntil('the file to reach the trash', () =>
+    existsSync(join(smoke.trashPath, 'written-by-someone-else.txt')),
+  );
 
   if (existsSync(untracked)) {
     throw new Error('the untracked file is still in the project');
@@ -217,7 +300,7 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
 
   // Save what the inspector changed earlier, so there is something to discard.
   clickMenuItem('sheet/save');
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  await waitUntil('the save', () => readFileSync(sheet, 'utf8') !== committed);
   if (readFileSync(sheet, 'utf8') === committed) {
     throw new Error('nothing was saved, so there is nothing to discard');
   }
@@ -255,7 +338,7 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
     throw new Error('the word view does not show the text it is comparing');
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const proseImage = await window.webContents.capturePage();
   const proseEvidence = join(smoke.evidenceDirectory, 'smoke-prose-diff.png');
   writeFileSync(proseEvidence, proseImage.toPNG());
@@ -263,7 +346,7 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
 
   // Git's own reading is still one click away.
   await clickText(window, 'wi-diff-view .mode', 'Lines');
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await waitForSelector(window, 'wi-diff-view pre');
   const changed = await diffLines(window);
   if (!changed.some((line) => line.kind === 'added' && line.text.includes('status: review'))) {
     throw new Error(`the diff does not show what was saved: ${JSON.stringify(changed)}`);
@@ -275,14 +358,14 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
     throw new Error(`the diff is not read as a diff: ${JSON.stringify(changed.slice(0, 6))}`);
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const diffImage = await window.webContents.capturePage();
   const diffEvidence = join(smoke.evidenceDirectory, 'smoke-diff.png');
   writeFileSync(diffEvidence, diffImage.toPNG());
   console.log(`smoke evidence: ${diffEvidence}`);
 
   await pressKey(window, 'Escape');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil('the diff to close', async () => !(await isVisible(window, 'wi-diff-view')));
   if (await isVisible(window, 'wi-diff-view')) {
     throw new Error('Escape left the diff open');
   }
@@ -290,11 +373,17 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
   // And type something on top, unsaved.
   await placeCursorInEditor(window);
   await typeText(window, 'Typed, and about to be discarded.');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil(
+    'the typed text',
+    () => editorContains(window, 'Typed, and about to be discarded.'),
+  );
 
   await openDiscard(window, 'scene.md');
   await clickText(window, 'wi-confirm-prompt button', 'Discard');
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  await waitUntil('the file to go back', () => readFileSync(sheet, 'utf8') === committed);
+  await waitUntil('the editor to drop the discarded text', async () =>
+    !(await editorContains(window, 'Typed, and about to be discarded.')),
+  );
 
   if (readFileSync(sheet, 'utf8') !== committed) {
     throw new Error('the file did not go back to its committed state');
@@ -344,11 +433,12 @@ export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Pr
   await clickText(window, 'wi-source-control .tracking button', 'Publish');
   await waitForSelector(window, 'wi-text-prompt input');
   await fillPrompt(window, 'ext::sh -c "touch /tmp/opera-incerta-should-not-exist"');
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  await waitUntil(
+    'the refusal',
+    async () => ((await failureText(window)) ?? '').includes('unsafe-remote'),
+  );
 
-  const refused = (await window.webContents.executeJavaScript(
-    "document.querySelector('wi-source-control .failure')?.textContent?.trim() ?? null",
-  )) as string | null;
+  const refused = await failureText(window);
   if (refused === null || !refused.includes('unsafe-remote')) {
     throw new Error(`a command-running address was not refused: ${String(refused)}`);
   }
@@ -399,7 +489,6 @@ export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Pr
   if (!refreshed) {
     throw new Error('no refresh button in the source control header');
   }
-  await new Promise((resolve) => setTimeout(resolve, 600));
   await settleWatch(window, async () => (await trackingLine(window)) !== null);
   const before = await trackingLine(window);
   if (before === null || !before.includes('origin/main') || !before.includes('up to date')) {
@@ -417,7 +506,7 @@ export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Pr
     throw new Error('fetching brought a file into the working tree');
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const pullImage = await window.webContents.capturePage();
   const pullEvidence = join(smoke.evidenceDirectory, 'smoke-pull.png');
   writeFileSync(pullEvidence, pullImage.toPNG());
@@ -515,7 +604,7 @@ export async function checkMergeAndResolve(smoke: Smoke, window: BrowserWindow, 
     throw new Error(`the resolver does not count what is left: ${String(shown.count)}`);
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const mergeImage = await window.webContents.capturePage();
   const mergeEvidence = join(smoke.evidenceDirectory, 'smoke-merge.png');
   writeFileSync(mergeEvidence, mergeImage.toPNG());
@@ -534,9 +623,18 @@ export async function checkMergeAndResolve(smoke: Smoke, window: BrowserWindow, 
   if (!chose) {
     throw new Error('the resolver offers no choice to make');
   }
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await waitUntil(
+    'Apply to be offered',
+    async () =>
+      (await window.webContents.executeJavaScript(
+        "document.querySelector('wi-conflict-resolver button.apply')?.disabled === false",
+      )) as boolean,
+  );
   await clickText(window, 'wi-conflict-resolver button.apply', 'Apply');
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await waitUntil('the decided file', () => !readFileSync(sheet, 'utf8').includes('<<<<<<<'));
+  await waitUntil('the panel to show the conflict decided', async () =>
+    !(await isVisible(window, 'wi-source-control .change button.resolve')),
+  );
 
   const decided = readFileSync(sheet, 'utf8');
   if (decided.includes('<<<<<<<') || decided.includes('>>>>>>>')) {
@@ -549,16 +647,22 @@ export async function checkMergeAndResolve(smoke: Smoke, window: BrowserWindow, 
   // Committing finishes the merge.
   await fillCommitMessage(window, 'Merge the other machine');
   await clickText(window, 'wi-source-control .actions button', 'Commit');
-  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   // `rev-parse --verify` exits non-zero when there is nothing to verify, which
-  // here is the outcome being checked for.
-  let stillMerging = true;
-  try {
-    smoke.git(smoke.projectPath, ['rev-parse', '--quiet', '--verify', 'MERGE_HEAD']);
-  } catch {
-    stillMerging = false;
-  }
+  // here is the outcome being waited for.
+  const merging = (): boolean => {
+    try {
+      smoke.git(smoke.projectPath, ['rev-parse', '--quiet', '--verify', 'MERGE_HEAD']);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  await waitUntil('the merge commit', () => !merging());
+  await waitUntil('the panel to leave the merge', async () =>
+    !(await isVisible(window, 'wi-source-control .merging')),
+  );
+  const stillMerging = merging();
   if (stillMerging) {
     throw new Error('the merge is still unfinished after committing');
   }
@@ -594,11 +698,12 @@ export async function checkBranches(smoke: Smoke, window: BrowserWindow): Promis
   if (branchOf() !== 'draft/chapter-3') {
     throw new Error(`creating a branch did not switch to it: ${branchOf()}`);
   }
+  await waitUntil('the panel to show the new branch', () => branchShown(window, 'draft/chapter-3'));
 
   // A switch with unsaved work waits: git knows nothing about the editor.
   await placeCursorInEditor(window);
   await typeText(window, 'Unsaved, and in the way.');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil('the typed text', () => editorContains(window, 'Unsaved, and in the way.'));
 
   await openBranches(window);
   await clickText(window, 'wi-branches button', 'Switch');
@@ -610,21 +715,29 @@ export async function checkBranches(smoke: Smoke, window: BrowserWindow): Promis
     throw new Error(`switching over unsaved work did not stop to ask: ${String(asked)}`);
   }
   await pressKey(window, 'Escape');
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await waitUntil(
+    'the question to close',
+    async () => !(await isVisible(window, 'wi-confirm-prompt')),
+  );
   if (branchOf() !== 'draft/chapter-3') {
     throw new Error('the branch changed although the question was declined');
   }
 
   // Saving first, and then it goes through.
   clickMenuItem('sheet/save');
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  await waitUntil('the save', () =>
+    readFileSync(join(smoke.projectPath, 'part-1', 'scene.md'), 'utf8').includes('in the way'),
+  );
 
   // Committed here, so that it belongs to this branch: a change that is only
   // saved is not on any branch yet, and follows a switch as git intends.
+  await settleWatch(window, async () => rowFor(window, 'scene.md'));
   await clickSourceControl(window, '.changes-header input');
+  await waitUntil('the panel to show everything staged', () => allStaged(window));
   await fillCommitMessage(window, 'Written on the draft branch');
   await clickText(window, 'wi-source-control .actions button', 'Commit');
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await waitUntil('the commit', () => logIncludes(smoke, 'Written on the draft branch'));
+  await settleWatch(window, async () => !(await rowFor(window, 'scene.md')));
 
   await openBranches(window);
   await clickText(window, 'wi-branches button', 'Switch');
@@ -632,6 +745,7 @@ export async function checkBranches(smoke: Smoke, window: BrowserWindow): Promis
   if (branchOf() !== 'main') {
     throw new Error(`switching branches did not take: ${branchOf()}`);
   }
+  await waitUntil('the panel to show main', () => branchShown(window, 'main'));
 
   // The committed work stayed on the branch it was made on, and the working
   // tree followed.
@@ -643,16 +757,17 @@ export async function checkBranches(smoke: Smoke, window: BrowserWindow): Promis
   await clickText(window, 'wi-branches button', 'Delete');
   await waitForSelector(window, 'wi-confirm-prompt button');
   await clickText(window, 'wi-confirm-prompt button', 'Delete');
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await waitUntil(
+    'the refusal',
+    async () => ((await failureText(window)) ?? '').includes('not fully merged'),
+  );
 
   // Refused, and rightly: that branch carries a commit main has never seen.
   const remaining = smoke.git(smoke.projectPath, ['branch', '--format=%(refname:short)']).trim();
   if (!remaining.includes('draft/chapter-3')) {
     throw new Error('a branch whose work is not merged was deleted anyway');
   }
-  const refusal = (await window.webContents.executeJavaScript(
-    "document.querySelector('wi-source-control .failure')?.textContent?.trim() ?? null",
-  )) as string | null;
+  const refusal = await failureText(window);
   if (refusal === null || !refusal.includes('not fully merged')) {
     throw new Error(`the refusal was not reported: ${String(refusal)}`);
   }
@@ -723,7 +838,7 @@ export async function checkAmendAndIgnore(smoke: Smoke, window: BrowserWindow): 
     throw new Error(`the file name is cut off at rest: ${JSON.stringify(nameShown)}`);
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const ignoreEvidence = join(smoke.evidenceDirectory, 'smoke-ignore.png');
   writeFileSync(ignoreEvidence, (await window.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${ignoreEvidence}`);
@@ -744,10 +859,13 @@ export async function checkAmendAndIgnore(smoke: Smoke, window: BrowserWindow): 
 
   // Committed, so that there is something to amend.
   await refreshSourceControl(window);
+  await settleWatch(window, async () => rowFor(window, '.gitignore'));
   await clickSourceControl(window, '.changes-header input');
+  await waitUntil('the panel to show everything staged', () => allStaged(window));
   await fillCommitMessage(window, 'Ignore scratch');
   await clickText(window, 'wi-source-control .actions button', 'Commit');
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await waitUntil('the commit', () => headMessage() === 'Ignore scratch');
+  await settleWatch(window, async () => !(await rowFor(window, '.gitignore')));
   if (headMessage() !== 'Ignore scratch') {
     throw new Error(`the commit did not take: ${headMessage()}`);
   }
@@ -774,14 +892,14 @@ export async function checkAmendAndIgnore(smoke: Smoke, window: BrowserWindow): 
     throw new Error(`the question does not name the message: ${String(asked)}`);
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await rendered(window);
   const amendEvidence = join(smoke.evidenceDirectory, 'smoke-amend.png');
   writeFileSync(amendEvidence, (await window.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${amendEvidence}`);
 
   await fillCommitMessage(window, 'Keep scratch notes out of the repository');
   await clickText(window, 'wi-confirm-prompt button', 'Amend');
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+  await waitUntil('the amend', () => headMessage() === 'Keep scratch notes out of the repository');
 
   if (headMessage() !== 'Keep scratch notes out of the repository') {
     throw new Error(`amending did not replace the message: ${headMessage()}`);
@@ -794,6 +912,9 @@ export async function checkAmendAndIgnore(smoke: Smoke, window: BrowserWindow): 
   // take a forced push, which this application does not do.
   smoke.git(project, ['push']);
   await refreshSourceControl(window);
+  await waitUntil('the amend control to go', async () =>
+    !(await isVisible(window, 'wi-source-control button.amend')),
+  );
   if (await isVisible(window, 'wi-source-control button.amend')) {
     throw new Error('a commit that has been pushed is still offered for amending');
   }
@@ -820,7 +941,9 @@ export async function clickIgnore(window: BrowserWindow, name: string): Promise<
   if (!clicked) {
     throw new Error(`no ignore control for ${name}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  // The row leaves the list once `.gitignore` is written and re-read; the
+  // caller waits for that.
+  await rendered(window);
 }
 
 /** Opens the branch dialog from the panel. */
@@ -851,7 +974,16 @@ export async function refreshSourceControl(window: BrowserWindow): Promise<void>
   if (!refreshed) {
     throw new Error('no refresh button in the source control header');
   }
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  // The status arrives over the bridge; what it should show is the caller's
+  // to wait for.
+  await rendered(window);
+}
+
+/** Whether the panel names this branch as the checked-out one. */
+export async function branchShown(window: BrowserWindow, name: string): Promise<boolean> {
+  return (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-source-control .branch-name')?.textContent.trim() === ${JSON.stringify(name)}`,
+  )) as boolean;
 }
 
 /** What the panel says about the upstream, or null when it says nothing. */
@@ -945,7 +1077,7 @@ export async function clickSourceControl(window: BrowserWindow, selector: string
   if (!clicked) {
     throw new Error(`nothing to click at ${selector}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  await rendered(window);
 }
 
 export async function fillCommitMessage(window: BrowserWindow, message: string): Promise<void> {
@@ -961,5 +1093,5 @@ export async function fillCommitMessage(window: BrowserWindow, message: string):
   if (!filled) {
     throw new Error('no commit message field');
   }
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await rendered(window);
 }

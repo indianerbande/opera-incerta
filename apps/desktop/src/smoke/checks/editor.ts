@@ -8,7 +8,18 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserWindow, clipboard } from 'electron';
-import { clickMenuItem, pressKey, typeText } from '../harness.js';
+import {
+  clickMenuItem,
+  editorContains,
+  headerTitle,
+  isVisible,
+  pressKey,
+  rendered,
+  sheetTitles,
+  typeText,
+  waitForSelector,
+  waitUntil,
+} from '../harness.js';
 import type { Smoke } from '../context.js';
 
 /**
@@ -36,7 +47,7 @@ export async function checkHeadingGestures(window: BrowserWindow): Promise<void>
 
   window.webContents.sendInputEvent({ type: 'mouseDown', x: placed.x, y: placed.y, clickCount: 1 });
   window.webContents.sendInputEvent({ type: 'mouseUp', x: placed.x, y: placed.y, clickCount: 1 });
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await rendered(window);
 
   // Start a fresh line at the very end, the way an author would before
   // writing. The fixture's last line closes a fenced block, where a dot
@@ -84,7 +95,7 @@ export async function checkHeadingGestures(window: BrowserWindow): Promise<void>
 
   window.webContents.sendInputEvent({ type: 'mouseDown', x: marker.x, y: marker.y, clickCount: 1 });
   window.webContents.sendInputEvent({ type: 'mouseUp', x: marker.x, y: marker.y, clickCount: 1 });
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  await waitForSelector(window, 'wi-heading-menu [role="menu"]');
 
   const menu = (await window.webContents.executeJavaScript(
     `(() => {
@@ -129,7 +140,10 @@ export async function checkHeadingGestures(window: BrowserWindow): Promise<void>
     y: menu.target.y,
     clickCount: 1,
   });
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  await waitUntil(
+    'the menu to close after the choice',
+    async () => !(await isVisible(window, 'wi-heading-menu [role="menu"]')),
+  );
 
   const afterMenu = (await window.webContents.executeJavaScript(
     `(() => {
@@ -181,7 +195,7 @@ export async function checkHeadingCursorRules(window: BrowserWindow): Promise<vo
 
   window.webContents.sendInputEvent({ type: 'mouseDown', x: target.x, y: target.y, clickCount: 1 });
   window.webContents.sendInputEvent({ type: 'mouseUp', x: target.x, y: target.y, clickCount: 1 });
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await rendered(window);
 
   // Home, then select to the end, then copy: the clipboard must hold Markdown,
   // which also proves the cursor landed on the first *visible* character.
@@ -189,9 +203,10 @@ export async function checkHeadingCursorRules(window: BrowserWindow): Promise<vo
   await pressKey(window, lineEndKey, [...lineStartModifiers, 'shift']);
   clipboard.clear();
   window.webContents.copy();
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // Electron 44's clipboard mirrors the asynchronous W3C API, and the copy
+  // lands in it a moment after the command.
+  await waitUntil('the clipboard to fill', async () => (await clipboard.readText()) !== '');
 
-  // Electron 44's clipboard mirrors the asynchronous W3C API.
   const copied = await clipboard.readText();
   if (copied !== '##### Typed heading') {
     throw new Error(`the clipboard should hold Markdown, held ${JSON.stringify(copied)}`);
@@ -269,7 +284,7 @@ export async function checkCutTakesPrefix(
   await pressKey(window, lineEndKey, [...lineStartModifiers, 'shift']);
   clipboard.clear();
   window.webContents.cut();
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await waitUntil('the clipboard to fill', async () => (await clipboard.readText()) !== '');
 
   const cutText = await clipboard.readText();
   if (cutText !== '## Cut me') {
@@ -307,6 +322,10 @@ export async function checkCutTakesPrefix(
 export async function checkDocumentFlow(smoke: Smoke, window: BrowserWindow): Promise<void> {
   const marker = `Written by the smoke at line ${Date.now() % 100000}`;
   await typeText(window, marker);
+  await waitUntil(
+    'the dirty marker',
+    async () => (await headerTitle(window, 'Opening'))?.endsWith('•') === true,
+  );
 
   const dirty = (await window.webContents.executeJavaScript(
     `(() => {
@@ -330,9 +349,12 @@ export async function checkDocumentFlow(smoke: Smoke, window: BrowserWindow): Pr
   // event reaches the page directly and bypasses the accelerator, so the menu
   // item itself is triggered — which is also the path an author takes.
   clickMenuItem('sheet/save');
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const sheetPath = join(smoke.projectPath, 'opening.md');
+  await waitUntil('the save to reach the disk', () =>
+    readFileSync(sheetPath, 'utf8').includes(marker),
+  );
 
-  const onDisk = readFileSync(join(smoke.projectPath, 'opening.md'), 'utf8');
+  const onDisk = readFileSync(sheetPath, 'utf8');
   if (!onDisk.includes(marker)) {
     throw new Error('the saved file does not contain the edit');
   }
@@ -340,6 +362,10 @@ export async function checkDocumentFlow(smoke: Smoke, window: BrowserWindow): Pr
     throw new Error(`saving damaged the front matter: ${JSON.stringify(onDisk.slice(0, 80))}`);
   }
 
+  await waitUntil(
+    'the dirty marker to go',
+    async () => (await headerTitle(window, 'Opening')) === 'Opening',
+  );
   const clean = (await window.webContents.executeJavaScript(
     `(() => {
        const title = [...document.querySelectorAll('wi-panel-header .title')]
@@ -376,7 +402,9 @@ export async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
   if (switched !== 'ok') {
     throw new Error(`could not select the nested group: ${switched}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await waitUntil('the sheet list to follow the group', async () =>
+    (await sheetTitles(window)).includes('A Scene in Part One'),
+  );
 
   const listed = (await window.webContents.executeJavaScript(
     `[...document.querySelectorAll('wi-sheet-list .title')].map((element) => element.textContent.trim())`,
@@ -396,7 +424,9 @@ export async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
   if (opened !== 'ok') {
     throw new Error('could not open the nested sheet');
   }
-  await new Promise((resolve) => setTimeout(resolve, 350));
+  await waitUntil('the editor to load the other sheet', () =>
+    editorContains(window, 'The Second Bell'),
+  );
 
   const editor = (await window.webContents.executeJavaScript(
     `(() => {

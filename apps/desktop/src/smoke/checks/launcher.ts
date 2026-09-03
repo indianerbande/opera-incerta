@@ -13,6 +13,7 @@ import {
   forwardConsole,
   waitForProjectWindow,
   waitForSelector,
+  waitUntil,
 } from '../harness.js';
 import type { Smoke } from '../context.js';
 
@@ -69,7 +70,7 @@ export async function checkLauncherAndOpen(smoke: Smoke, launcher: BrowserWindow
 
   const window = await waitForProjectWindow(smoke);
   await waitForSelector(window, 'wi-root .workbench');
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  await waitUntil('the launcher to give way', () => smoke.shell.welcomeWindow() === null);
 
   if (smoke.shell.welcomeWindow() !== null) {
     throw new Error('the launcher stayed open after the project appeared');
@@ -153,7 +154,16 @@ export async function checkCreateProject(smoke: Smoke, launcher: BrowserWindow):
   if (typed !== 'ok') {
     throw new Error(`could not fill the dialog: ${typed}`);
   }
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // The location comes back over the bridge; the preview follows the name.
+  await waitUntil(
+    'the folder preview and a chosen location',
+    async () =>
+      (await launcher.webContents.executeJavaScript(
+        `document.querySelector('wi-new-project-dialog code') !== null &&
+         ![...document.querySelectorAll('wi-new-project-dialog button')]
+           .find((button) => button.textContent.trim() === 'Create')?.disabled`,
+      )) as boolean,
+  );
 
   const preview = (await launcher.webContents.executeJavaScript(
     `(() => {
