@@ -214,6 +214,39 @@ describe('against a real repository', () => {
     });
   });
 
+  describe('showing what changed', () => {
+    it('reports the change against the last commit', async () => {
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+      await writeFile(join(root, 'a.md'), 'second\n', 'utf8');
+
+      const diff = await git.diff(root, 'a.md', true);
+
+      expect(diff).toContain('-first');
+      expect(diff).toContain('+second');
+    });
+
+    it('shows a file with nothing behind it as entirely added', async () => {
+      await writeFile(join(root, 'new.md'), 'a new line\n', 'utf8');
+
+      // `--no-index` reports a difference with exit code 1; that is the normal
+      // outcome here, not a failure.
+      const diff = await git.diff(root, 'new.md', false);
+
+      expect(diff).toContain('+a new line');
+      expect(diff).not.toContain('-a new line');
+    });
+
+    it('says nothing about a file that has not changed', async () => {
+      await writeFile(join(root, 'a.md'), 'first\n', 'utf8');
+      await git.stage(root, ['a.md']);
+      await git.commit(root, 'first');
+
+      expect(await git.diff(root, 'a.md', true)).toBe('');
+    });
+  });
+
   describe('discarding a change', () => {
     it('puts a tracked file back to its last committed state', async () => {
       await writeFile(join(root, 'a.md'), 'first\n', 'utf8');

@@ -6,6 +6,40 @@ documents").
 
 ---
 
+## 2026-09-03 — showing what changed
+
+**What exists.** Each row in source control can show its diff: **Git's own
+output**, unchanged, in a read-only viewer. Colour is the only thing added, and
+colour is presentation — the words, the paths and the line numbers are Git's,
+because this is tool output and is never localized (§14.2).
+
+**Three decisions the specification left open, now written into it.** Against
+the **last commit**, so one view answers "what would committing this change"
+instead of making the author hold the index and the working tree apart in their
+head. A file with nothing behind it is shown as entirely added, because that is
+what it is — which also covers every file in a repository without a `HEAD`.
+And reading a diff waits behind no write: it changes nothing, and a read that
+queues behind a write presents as "the click did nothing" (C-F3).
+
+**The rule worth having as a rule.** `--- a/scene.md` and `+++ b/scene.md`
+begin with the same characters as a removed and an added line. Everything
+before the first `@@` is a header, whatever it starts with — a pure function in
+the core, so the viewer only paints what it is told.
+
+**Verification.** `pnpm run check` green: **637 tests**. The smoke opens the
+diff of a tracked file and finds the saved line marked added and its four
+header lines marked header, then opens an untracked one and finds additions and
+**no** removals at all. Falsified by removing the header rule: the untracked
+file then appears to have removed lines, and two core tests fail as well. The
+screenshot shows Git's text with the header grey, the hunk blue and the added
+line green.
+
+**What a writer would want instead** is recorded in `TODO.md`: a word-level
+diff of prose rather than Git's line-based one. That is its own decision — it
+needs an algorithm, and possibly a dependency.
+
+---
+
 ## 2026-09-03 — discarding a change, confirmed first
 
 **What exists.** Each row in source control can throw its change away, and

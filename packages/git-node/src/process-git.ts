@@ -136,6 +136,28 @@ class ProcessGitService implements GitService {
     await this.#run(['restore', '--staged', '--worktree', '--', ...paths], repositoryRoot);
   }
 
+  async diff(repositoryRoot: string, path: string, tracked: boolean): Promise<string> {
+    // `--no-ext-diff` because a configured difftool would otherwise decide
+    // what this returns, and `--no-color` because the colours are the
+    // interface's business, not Git's.
+    const common = ['--no-ext-diff', '--no-color', '--'];
+    if (tracked && (await this.#hasCommit(repositoryRoot))) {
+      return (await this.#run(['diff', 'HEAD', ...common, path], repositoryRoot)).stdout;
+    }
+
+    // Nothing to compare against: the whole file is the change. `--no-index`
+    // reports a difference with exit code 1, which here is the normal outcome
+    // rather than a failure.
+    const result = await this.#runner.run(
+      ['diff', '--no-ext-diff', '--no-color', '--no-index', '--', '/dev/null', path],
+      repositoryRoot,
+    );
+    if (result.exitCode > 1) {
+      throw new GitError(['diff', '--no-index', path], result);
+    }
+    return result.stdout;
+  }
+
   async hasCommit(repositoryRoot: string): Promise<boolean> {
     return this.#hasCommit(repositoryRoot);
   }

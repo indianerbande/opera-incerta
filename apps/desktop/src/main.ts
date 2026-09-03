@@ -618,6 +618,16 @@ privileged(CHANNELS.watchTargets, isWatchTargetsRequest, async (request) => {
 
 const git = createGitService();
 
+privileged(CHANNELS.gitDiff, isLibraryPathRequest, async (request) => {
+  const root = await repositoryRoot();
+  // Whether it is tracked is read from git, not assumed from the path: an
+  // untracked file has nothing to compare against and is shown as all added.
+  const tracked = (await git.status(root)).some(
+    (entry) => entry.path === request.path && !entry.groups.includes('untracked'),
+  );
+  return git.diff(root, request.path, tracked);
+});
+
 privileged(CHANNELS.gitDiscard, isGitPathsRequest, async (request) => {
   if (session.openPath === null) {
     throw new ProjectSessionError('project/none-open');
@@ -1792,6 +1802,18 @@ async function checkDiscarding(window: BrowserWindow): Promise<void> {
     throw new Error('the untracked file the live check wrote is gone');
   }
 
+  // A file with nothing behind it is shown as entirely added.
+  await openDiff(window, 'written-by-someone-else.txt');
+  const asAdded = await diffLines(window);
+  if (!asAdded.some((line) => line.kind === 'added' && line.text.includes('Not a sheet.'))) {
+    throw new Error(`an untracked file is not shown as added: ${JSON.stringify(asAdded)}`);
+  }
+  if (asAdded.some((line) => line.kind === 'removed')) {
+    throw new Error('an untracked file cannot have removed lines');
+  }
+  await pressKey(window, 'Escape');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
   await openDiscard(window, 'written-by-someone-else.txt');
   const warning = (await window.webContents.executeJavaScript(
     `document.querySelector('wi-confirm-prompt .warning')?.textContent.trim() ?? null`,
@@ -1838,6 +1860,31 @@ async function checkDiscarding(window: BrowserWindow): Promise<void> {
   }
   await settleWatch(window, async () => rowFor(window, 'scene.md'));
 
+  // What changed against the last commit, in Git's own words.
+  await openDiff(window, 'scene.md');
+  const changed = await diffLines(window);
+  if (!changed.some((line) => line.kind === 'added' && line.text.includes('status: review'))) {
+    throw new Error(`the diff does not show what was saved: ${JSON.stringify(changed)}`);
+  }
+  // The header is a header: `--- a/…` and `+++ b/…` start like a change and
+  // are not one.
+  const header = changed.slice(0, 4).every((line) => line.kind === 'meta');
+  if (!header || !changed.some((line) => line.kind === 'hunk')) {
+    throw new Error(`the diff is not read as a diff: ${JSON.stringify(changed.slice(0, 6))}`);
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const diffImage = await window.webContents.capturePage();
+  const diffEvidence = join(currentDirectory, '..', '..', '..', 'build', 'desktop', 'smoke-diff.png');
+  writeFileSync(diffEvidence, diffImage.toPNG());
+  console.log(`smoke evidence: ${diffEvidence}`);
+
+  await pressKey(window, 'Escape');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (await isVisible(window, 'wi-diff-view')) {
+    throw new Error('Escape left the diff open');
+  }
+
   // And type something on top, unsaved.
   await placeCursorInEditor(window);
   await typeText(window, 'Typed, and about to be discarded.');
@@ -1878,6 +1925,44 @@ async function rowFor(window: BrowserWindow, name: string): Promise<boolean> {
     `[...document.querySelectorAll('wi-source-control .change')]
        .some((row) => row.textContent.includes(${JSON.stringify(name)}))`,
   )) as boolean;
+}
+
+/** Opens the diff for one row. */
+async function openDiff(window: BrowserWindow, name: string): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const row = [...document.querySelectorAll('wi-source-control .change')]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(name)}));
+       const button = row?.querySelector('button.show-diff');
+       if (button === null || button === undefined) { return false; }
+       button.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no diff control for ${name}`);
+  }
+  await waitForSelector(window, 'wi-diff-view pre');
+}
+
+/** The diff as the author sees it: each line with the kind it was given. */
+async function diffLines(
+  window: BrowserWindow,
+): Promise<Array<{ text: string; kind: string }>> {
+  return (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-diff-view .line')].map((element) => ({
+       text: element.textContent,
+       kind: element.classList.contains('added')
+         ? 'added'
+         : element.classList.contains('removed')
+           ? 'removed'
+           : element.classList.contains('hunk')
+             ? 'hunk'
+             : element.classList.contains('meta')
+               ? 'meta'
+               : 'context',
+     }))`,
+  )) as Array<{ text: string; kind: string }>;
 }
 
 /** Opens the discard confirmation for one row. */

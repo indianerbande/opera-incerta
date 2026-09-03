@@ -38,6 +38,7 @@ import {
 } from './shell/layout-state.js';
 import { PanelHeaderComponent } from './shell/panel-header.component.js';
 import { ResizeDividerComponent } from './shell/resize-divider.component.js';
+import { DiffViewComponent } from './library/diff-view.component.js';
 import { CategoryManagerComponent } from './sidebar/category-manager.component.js';
 import { InspectorComponent } from './sidebar/inspector.component.js';
 import { OutlineComponent } from './sidebar/outline.component.js';
@@ -58,6 +59,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   imports: [
     ActivityBarComponent,
     CategoryManagerComponent,
+    DiffViewComponent,
     ContextMenuComponent,
     DensitySwitchComponent,
     EditorComponent,
@@ -126,6 +128,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             [loaded]="sourceControl.loaded()"
             (toggle)="sourceControl.toggle($event)"
             (discard)="askToDiscard($event)"
+            (showDiff)="showDiff($event)"
             (toggleAll)="sourceControl.toggleAll()"
             (messageChange)="sourceControl.setMessage($event)"
             (commit)="sourceControl.commit()"
@@ -311,6 +314,10 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         (confirm)="confirmPrompt($event)"
         (cancel)="prompt.set(null)"
       />
+    }
+
+    @if (diff(); as shown) {
+      <wi-diff-view [path]="shown.path" [text]="shown.text" (close)="diff.set(null)" />
     }
 
     @if (managingCategories()) {
@@ -723,6 +730,16 @@ export class AppComponent {
     const open = this.prompt();
     this.prompt.set(null);
     open?.action(value);
+  }
+
+  /** The diff on screen, if any. SPEC.md §12. */
+  protected readonly diff = signal<{ path: string; text: string } | null>(null);
+
+  protected async showDiff(entry: GitFileStatus): Promise<void> {
+    const text = await this.sourceControl.diff(entry.path);
+    if (text !== null) {
+      this.diff.set({ path: entry.path, text });
+    }
   }
 
   /**

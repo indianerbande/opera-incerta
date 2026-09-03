@@ -42,6 +42,7 @@ export const CHANNELS = {
   gitCommit: 'opera-incerta:git/commit',
   gitPush: 'opera-incerta:git/push',
   gitDiscard: 'opera-incerta:git/discard',
+  gitDiff: 'opera-incerta:git/diff',
   menuCommand: 'opera-incerta:menu/command',
   createSheet: 'opera-incerta:sheet/create',
   createGroup: 'opera-incerta:group/create',
@@ -481,6 +482,11 @@ export interface OperaIncertaBridge {
    * to the repository root, which is not the same place.
    */
   gitDiscard(request: GitPathsRequest): Promise<BridgeResult<readonly string[]>>;
+  /**
+   * Git's own diff for one path, as text. Shown unchanged: it is tool output
+   * (SPEC.md §12, §14.2).
+   */
+  gitDiff(request: LibraryPathRequest): Promise<BridgeResult<string>>;
   gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
   gitPush(): Promise<BridgeResult<null>>;
   /**

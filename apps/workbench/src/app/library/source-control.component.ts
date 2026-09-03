@@ -48,6 +48,15 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
               <span class="directory">{{ directory(entry.path) }}</span>
               <button
                 type="button"
+                class="show-diff"
+                [attr.aria-label]="'Show changes to ' + entry.path"
+                title="Show changes"
+                (click)="showDiff.emit(entry)"
+              >
+                ⤢
+              </button>
+              <button
+                type="button"
                 class="discard"
                 [attr.aria-label]="'Discard changes to ' + entry.path"
                 title="Discard changes"
@@ -83,6 +92,7 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
     }
   `,
   styles: `
+    .change .show-diff,
     .change .discard {
       flex: none;
       padding: 0 4px;
@@ -94,7 +104,9 @@ import type { GitFileStatus, SelectAllState } from '@opera-incerta/core';
       cursor: default;
       opacity: 0;
     }
+    .change:hover .show-diff,
     .change:hover .discard,
+    .change .show-diff:focus-visible,
     .change .discard:focus-visible {
       /* Destructive, so it does not sit under the pointer by accident. */
       opacity: 1;
@@ -216,6 +228,8 @@ export class SourceControlComponent {
   readonly toggle = output<GitFileStatus>();
   /** Asks to throw a change away; the shell confirms it first. */
   readonly discard = output<GitFileStatus>();
+  /** Asks to see what changed; the shell fetches and shows it. */
+  readonly showDiff = output<GitFileStatus>();
   readonly toggleAll = output<void>();
   readonly messageChange = output<string>();
   readonly commit = output<void>();

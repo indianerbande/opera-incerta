@@ -102,6 +102,9 @@ export {
 
 export { ExclusiveTask, RefreshCoordinator, WATCH_DEBOUNCE_MS } from './refresh.js';
 
+export { diffLineKind, readDiff } from './diff.js';
+export type { DiffLine, DiffLineKind } from './diff.js';
+
 export {
   canCommit,
   isFullyStaged,

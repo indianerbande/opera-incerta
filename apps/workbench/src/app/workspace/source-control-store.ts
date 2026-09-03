@@ -104,6 +104,26 @@ export class SourceControlStore {
   }
 
   /**
+   * Git's own diff for one file, as text. SPEC.md §12.
+   *
+   * A read, so it goes through neither guard: it changes nothing, and making
+   * it wait behind a write would present as "the click did nothing" (C-F3).
+   */
+  async diff(path: string): Promise<string | null> {
+    const bridge = this.#bridge;
+    if (bridge === null) {
+      this.#failure.set('bridge/absent');
+      return null;
+    }
+    try {
+      return unwrap(await bridge.gitDiff({ path }));
+    } catch (error: unknown) {
+      this.#failure.set(reasonOf(error));
+      return null;
+    }
+  }
+
+  /**
    * Throws away the changes to one file. SPEC.md §12.
    *
    * Destructive, so the caller confirms first — this only carries it out. What

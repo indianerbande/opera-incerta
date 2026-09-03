@@ -294,6 +294,10 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
+- showing what changed (`SPEC.md` §12): the diff of a tracked file carries the
+  saved line as **added** and its four header lines as header — the case where
+  `--- a/…` would otherwise read as a removal — while an untracked file shows
+  additions and **no** removals at all;
 - discarding a change (`SPEC.md` §12), in both kinds and with the confirmation
   refused first: cancelling keeps the file, an untracked file arrives in the
   trash rather than being removed, a tracked one is byte-identical to

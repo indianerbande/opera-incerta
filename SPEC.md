@@ -1524,6 +1524,24 @@ shown.
 
 Git output is tool output and is never localized (§14.2).
 
+**Showing what changed** is offered per file, from its row: **Git's own diff**,
+shown unchanged in a read-only viewer. It is tool output and is never localized
+(§14.2); the only thing the application adds is colour, which is presentation.
+The comparison is against the **last commit**, so one view answers "what would
+committing this file change" rather than making the author reason about the
+index and the working tree separately. A file with nothing behind it — an
+untracked one, or any file in a repository without a `HEAD` — is shown as
+entirely added, because that is what it is.
+
+Reading a diff is deliberately **not** guarded against a running write: it
+changes nothing, and making it wait behind one presents as "the click did
+nothing" (§12, separate guards).
+
+The classification of a diff line into added, removed, hunk, header and context
+is a pure, unit-tested rule. `--- a/…` and `+++ b/…` start with the same
+characters as a change and are not one; everything before the first `@@` is a
+header, whatever it begins with.
+
 **Discarding a change** is offered per file, from its row, and is always
 confirmed. What the confirmation says differs, because the two cases end
 differently:

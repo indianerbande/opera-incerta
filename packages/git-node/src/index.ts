@@ -60,6 +60,13 @@ export interface GitService {
    * Only meaningful where there is a commit to go back to.
    */
   restore(repositoryRoot: string, paths: readonly string[]): Promise<void>;
+  /**
+   * Git's own diff for one path, against the last commit.
+   *
+   * A file with no commit behind it — untracked, or in a repository without a
+   * `HEAD` — is shown as entirely added, because that is what it is.
+   */
+  diff(repositoryRoot: string, path: string, tracked: boolean): Promise<string>;
   commit(repositoryRoot: string, message: string): Promise<void>;
   /** Deliberately without upstream creation, pull, or fetch. SPEC.md §12. */
   push(repositoryRoot: string): Promise<void>;

@@ -20,6 +20,7 @@ function fakeBridge(
     push?: () => BridgeResult<null>;
     onRepositoryChange?: (listener: () => void) => () => void;
     discard?: (request: { paths: readonly string[] }) => BridgeResult<readonly string[]>;
+    diff?: () => BridgeResult<string>;
   } = {},
 ): OperaIncertaBridge & Recorder {
   const calls: string[] = [];
@@ -42,6 +43,7 @@ function fakeBridge(
       : { onRepositoryChange: script.onRepositoryChange }),
     calls,
     gitStatus: async () => (script.status ?? status)(),
+    gitDiff: async () => script.diff?.() ?? { ok: true, value: '' },
     gitDiscard: async (request) =>
       script.discard?.(request) ?? { ok: true, value: [] as readonly string[] },
     gitStage: async (request) => {
@@ -307,5 +309,42 @@ describe('discarding a change', () => {
 
     expect(await store.discard(['a.md'])).toEqual([]);
     expect(store.failure()).toBe('is not tracked');
+  });
+});
+
+describe('showing what changed', () => {
+  it('hands Git’s text back unchanged', async () => {
+    const text = 'diff --git a/a.md b/a.md\n@@ -1 +1 @@\n-one\n+two\n';
+    const store = new SourceControlStore(fakeBridge({ diff: () => ({ ok: true, value: text }) }));
+
+    expect(await store.diff('a.md')).toBe(text);
+  });
+
+  it('reports a refusal and shows nothing', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        diff: () => ({ ok: false, code: 'git/command-failed', message: 'unknown revision' }),
+      }),
+    );
+
+    expect(await store.diff('a.md')).toBeNull();
+    expect(store.failure()).toBe('unknown revision');
+  });
+
+  it('does not wait behind a write, because it changes nothing', async () => {
+    const store = new SourceControlStore(
+      fakeBridge({
+        commit: () => ({ ok: true, value: null }),
+        diff: () => ({ ok: true, value: 'read while a write was running' }),
+      }),
+    );
+    await store.refresh();
+    store.setMessage('a commit');
+
+    // Started but not awaited: a shared guard would make the read below wait
+    // for it, which presents as "the click did nothing" (C-F3).
+    const committing = store.commit();
+    expect(await store.diff('a.md')).toBe('read while a write was running');
+    await committing;
   });
 });
