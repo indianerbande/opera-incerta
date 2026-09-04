@@ -1302,6 +1302,29 @@ describe('what survives a re-read', () => {
 });
 
 describe('forgetting edits after a discard', () => {
+  it('takes down a conflict prompt about the version it drops', async () => {
+    // The discard's own re-read can raise the prompt a moment before the
+    // discard forgets the edits; the prompt then asked about nothing.
+    let text = '---\nopera-incerta:\n  title: Preface\n---\n# Preface\n';
+    const store = new WorkspaceStore(
+      fakeBridge({
+        readSheet: async (request) =>
+          request.handle.id === 'a'.repeat(32) ? { ok: true, value: text } : { ok: true, value: 'Other\n' },
+      }),
+    );
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.noteText('# Preface\n\nTyped, about to be discarded.\n');
+    text = '# Preface, as committed\n';
+    await store.reloadProject();
+    expect(store.conflict()).toBe('preface.md');
+
+    store.forgetEdits(['preface.md']);
+
+    expect(store.conflict()).toBeNull();
+    expect(store.dirty()).toBe(false);
+  });
+
   it('drops what the editor held for the discarded sheet', async () => {
     const store = new WorkspaceStore(fakeBridge());
     await store.openProject();

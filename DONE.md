@@ -6,6 +6,41 @@ documents").
 
 ---
 
+## 2026-09-04 — a prompt about nothing, and a chain that stops
+
+**What was open.** The previous entry's smoke was red once at the
+discarding check — "discarding raised a prompt about the change it had
+just discarded" — and the commit went out regardless, because the command
+that ran gate, smoke, and commit in one line did not stop on the smoke's
+result. One run in two showed it.
+
+**What was found.** A race in the discard flow. The discard writes the
+file through git, refreshes the status, and then forgets the editor's
+version. The watcher reports the write after its debounce, and when that
+re-read runs before the forgetting, it finds the sheet dirty — the typed
+text — and the disk changed — the committed file — and raises the conflict
+prompt, rightly by its rule. A moment later the discard forgets the edits,
+and the prompt stays up, asking whether to keep a version that no longer
+exists.
+
+**What changed.** Dropping the editor's version on purpose takes down a
+conflict prompt about that sheet: the prompt asks about the author's
+version, and without one there is nothing to ask. One rule in
+`#dropEditing`, which both the discard and "load the file" go through. The
+smoke command chain stops on a red smoke before the commit.
+
+**Verification.** `pnpm run check` green: **945 tests** — a conflict
+raised, then the edits forgotten, the prompt gone. Falsified by removing
+the rule: red. `pnpm run desktop:smoke` green three times in a row.
+
+**Lesson.** Two lessons, one each. The prompt: a rule that fires correctly
+at its moment can still be wrong a moment later, when the thing it asked
+about is taken away by another flow; the taking-away has to know about the
+asking. The chain: a verification whose result nothing reads is a
+verification that did not happen. `&&` on every step, and the commit last.
+
+---
+
 ## 2026-09-04 — a re-read that came too late, coalesced
 
 **What was open** (`TODO.md` §1, from the previous round). The merge check
@@ -27,7 +62,11 @@ never overtaken by it. One line in the store, plus the constructor.
 **Verification.** `pnpm run check` green: **944 tests** — a test with two
 reloads in flight whose reads resolve newest first, ending on the newer
 file. Falsified by calling the re-read directly again: the test ends on
-the older file. `pnpm run desktop:smoke` green across thirty-two checks.
+the older file. `pnpm run desktop:smoke`: **red once**, at the discarding
+check, with a prompt about the change it had just discarded — and the
+commit went out before that result was read, because the command chain
+did not stop on it. Recorded here as it happened; the fix-forward is the
+next entry, and the chain now stops.
 
 **Lesson.** A rule that exists in one store and not in its neighbour is a
 rule that will be needed in the neighbour. The coordinator was written for

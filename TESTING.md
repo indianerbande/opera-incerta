@@ -337,7 +337,7 @@ Component and state tests MUST cover:
   answering it reaches the bridge with the right request; deleting warns of
   unsaved work on the open sheet and of what a group carries; discarding
   words its warning by tracked or untracked and forgets the editor's version
-  afterwards; a branch switch over unsaved work stops to ask and saves before
+  afterwards, taking down a conflict prompt about that version with it; a branch switch over unsaved work stops to ask and saves before
   switching on confirmation; publishing asks for an address only when no
   remote is recorded; amending fills the field from the last commit and
   quotes it; the diff, the resolver, and the ignore editor open on what was

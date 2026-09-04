@@ -676,6 +676,13 @@ export class WorkspaceStore {
     this.#currentMetadata.set(open.sheet.metadata);
     this.#currentForeign.set(open.sheet.foreignLines);
     this.#editorDocument.set({ id: open.handleId, text: open.savedBody });
+    // A conflict prompt asks whether to keep the author's version. Dropped on
+    // purpose, that version is gone, and the question with it: a discard's
+    // own re-read once raised the prompt a moment before the discard forgot
+    // the edits, and the prompt stayed up asking about nothing (2026-09-04).
+    if (this.#conflict() === open.relativePath) {
+      this.#conflict.set(null);
+    }
   }
 
   dismissFailure(): void {
