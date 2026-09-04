@@ -1,8 +1,10 @@
 # Parser spike — CommonMark/GFM candidates
 
 Status: Run 2026-09-04. No candidate passed every criterion of `TESTING.md`
-§2.11; the decision is recorded in `SPEC.md` §5.4 and the options in
-`TODO.md` §2.1.
+§2.11. Decided the same day (`TODO.md` §2.1): the gate is read as two;
+commonmark.js and `yaml` are the accepted test-time oracle
+(`packages/core/test/standard-oracle.test.ts`), the runtime parser waits for
+the GFM display round.
 
 This spike answers one question: which Markdown parser can serve as the
 standard-conformance oracle that `TESTING.md` §2.2 requires, and later as the

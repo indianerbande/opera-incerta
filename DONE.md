@@ -6,6 +6,51 @@ documents").
 
 ---
 
+## 2026-09-04 — the standard oracle joins the gate, and finds a seventh thing
+
+**What was decided** (`TODO.md` §2.1, by the author the same day). The
+parser gate is read as two: commonmark.js, the reference implementation of
+CommonMark, and `yaml` are accepted as the test-time oracle, development
+dependencies of `packages/core` only. The runtime parser for the GFM
+display is decided in that round.
+
+**What changed.** `test/standard-oracle.test.ts` makes the spike's
+criterion 7 and criterion 3 permanent, without the fetched specification:
+236 generated sheets are written by the codec and read by `yaml` to the
+same strings, foreign lines of every shape stay readable across a round
+trip; and 400 seeded documents built from heading, fence, indented-code and
+text lines are read by the reference parser, which must mark the same
+top-level ATX headings at the same level, put in code blocks exactly the
+lines the transform shows verbatim, and read back a heading the author set
+as that heading. The oracle's types stop at the file's edge
+(`CONVENTIONS.md` C-A6). `DEPENDENCIES.md`, `SPEC.md` §5.4 and `TESTING.md`
+§2.2 record the acceptance.
+
+The generated documents found what the specification's examples had not:
+the transform started indented code **after a blank line only**, while
+CommonMark starts it wherever a paragraph is not running — after a heading,
+a thematic break, a setext underline, a fence. `# Title` followed by four
+spaces of code showed the code as a paragraph. The rule now tracks whether a
+paragraph is running; setext headings themselves stay paragraphs to the
+transform, and that limit is written into `SPEC.md` §10.1 beside the
+others.
+
+**Verification.** `pnpm run check` green: **934 tests** — the oracle's
+three Markdown properties and two YAML properties, and five unit cases for
+where indented code may start. Falsified against the oracle itself: the old
+comment stripping put back turned the YAML property red, the old fence rule
+put back turned the Markdown property red. `pnpm run spike:parser`
+criterion 3 unchanged at the four recorded limits.
+
+**Lesson.** Four hundred random documents found in a minute what 652
+curated examples had missed, because the examples show each rule alone and
+the random documents show the rules colliding. Both belong: the examples
+name the rule that broke, the random documents find the collision. The
+oracle now runs on every `pnpm run check`, so the next collision is found
+before it is committed.
+
+---
+
 ## 2026-09-04 — two fence rules the oracle found, and two limits written down
 
 **What was open** (`TODO.md` §1, from the parser spike). Criterion 3 of the

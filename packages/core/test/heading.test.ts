@@ -261,3 +261,23 @@ describe('fence rules the standard oracle found (TESTING.md §2.11)', () => {
     expect(lines[3]?.level).toBe(1);
   });
 });
+
+describe('where indented code may start, by CommonMark (TESTING.md §2.2)', () => {
+  const verbatim = (text: string): readonly boolean[] =>
+    markdownToDisplay(text).map((line) => line.verbatim);
+
+  it('starts after a heading, a thematic break, a fence, and a setext underline', () => {
+    expect(verbatim('# Title\n    code\n')).toEqual([false, true, false]);
+    expect(verbatim('text\n\n---\n    code\n')).toEqual([false, false, false, true, false]);
+    expect(verbatim('```\nx\n```\n    code\n')).toEqual([true, true, true, true, false]);
+    expect(verbatim('Setext\n===\n    code\n')).toEqual([false, false, true, false]);
+    expect(verbatim('Setext\n---\n    code\n')).toEqual([false, false, true, false]);
+  });
+
+  it('does not start as the continuation of a paragraph', () => {
+    expect(verbatim('text\n    continued\n')).toEqual([false, false, false]);
+    expect(verbatim('#5 bolt\n    continued\n')).toEqual([false, false, false]);
+    // `===` after a blank line is a paragraph of its own, not an underline.
+    expect(verbatim('\n===\n    continued\n')).toEqual([false, false, false, false]);
+  });
+});

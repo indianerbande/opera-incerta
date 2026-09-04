@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **927 tests**, plus the desktop and asset checks.
+projects, **934 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -29,12 +29,7 @@ has to be consulted to build, verify or change the product.
 
 ## 1. Next — small enough to start immediately
 
-1. **Independent parser cross-check for the codec** — `TESTING.md` §2.2 requires
-   proof that written output is standard-conformant and readable by an
-   independent Markdown/YAML parser. The spike of 2026-09-04 is that check,
-   run by hand; making it a test needs the dependency decision in §2.1.
-   Until then the honest claim stays "round-trips through our own reader".
-2. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+1. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the
@@ -46,26 +41,15 @@ has to be consulted to build, verify or change the product.
 
 ### 2.1 Markdown parser dependency
 
-Measured on 2026-09-04 against the gate of `TESTING.md` §2.11
-(`spikes/parser-markdown/README.md`): no candidate passes every criterion, so
-none is accepted. The measurements show the parser has two jobs no single
-package fits, and the decision is whether the gate is read as two:
-
-- **For the test-time oracle** (`TESTING.md` §2.2): **commonmark.js** — the
-  reference implementation, 652 of 652, source positions, 4 packages under
-  BSD-2/MIT — together with **`yaml`** (ISC, no dependencies) for the front
-  matter. As devDependencies of `packages/core` they reach no installed
-  application. They fail criterion 4 (GFM), which a test oracle does not
-  need. *Recommended.*
-- **For the GFM display** (`SPEC.md` §18, a later round): **markdown-it** —
-  652 of 652, positions, 15 ms, 7 packages — with two deviations to accept
-  or refuse: task list items are not built in (a small rule in the
-  translation layer, or a third-party plugin), and its `argparse` dependency
-  is PSF-2.0, an OSI-approved permissive license outside the gate's list,
-  used only by markdown-it's command-line tool. *Recommended when that round
-  comes; not needed before.*
-- Not recommended: marked (587 of 652 — cannot be an oracle), micromark
-  (43 packages, 164 ms).
+**Decided 2026-09-04**, on the measurements of `spikes/parser-markdown`
+(`TESTING.md` §2.11): the gate is read as two. commonmark.js and `yaml` are
+accepted as the test-time oracle, development dependencies of `packages/core`
+only, with the cross-check a fixed test of the gate (`TESTING.md` §2.2). The
+runtime parser for the GFM display is decided in that round (`SPEC.md` §18);
+markdown-it leads — 652 of 652, positions, 15 ms, 7 packages — with two
+deviations to weigh then: task list items are not built in, and its
+`argparse` dependency is PSF-2.0. Not recommended: marked (587 of 652),
+micromark (43 packages, 164 ms). Until that round, nothing here is open.
 
 ---
 

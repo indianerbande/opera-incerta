@@ -255,9 +255,10 @@ filesystem, the process table, the network, or the DOM.
 
 ### 5.4 Dependency decisions
 
-**Status: The editing surface is accepted; the Markdown parser was measured
-on 2026-09-04 and is not yet accepted (see below); the remaining entries are
-draft and each requires the report in `AGENTS.md` before acceptance.**
+**Status: The editing surface and the test-time standard oracle are
+accepted; the runtime Markdown parser waits for the GFM display round (see
+below); the remaining entries are draft and each requires the report in
+`AGENTS.md` before acceptance.**
 
 **CodeMirror 6 is the accepted editing surface (2026-09-01).** It passed all six
 criteria of the spike gate in `TESTING.md` §2.8, measured in a real rendering
@@ -271,7 +272,7 @@ switches, an intact paste, and a 6.6 ms p95 keystroke latency in a
 | Capability | Candidate | Boundary that keeps it replaceable |
 | --- | --- | --- |
 | Text editing surface | CodeMirror 6 (**accepted**) | An Opera-Incerta-owned `EditorAdapter` interface; the display model stays in the core, and the component only renders it |
-| Markdown parsing | Measured 2026-09-04 (`TESTING.md` §2.11): commonmark.js and `yaml` for the test-time oracle, markdown-it for the later GFM display — neither accepted yet, see below | The parser produces a syntax representation that is translated into Opera-Incerta-owned domain types; parser AST types MUST NOT become the public model |
+| Markdown parsing | commonmark.js and `yaml` as the test-time oracle (**accepted 2026-09-04**, tests only); markdown-it the leading candidate for the GFM display, decided in that round | The parser produces a syntax representation that is translated into Opera-Incerta-owned domain types; parser AST types MUST NOT become the public model |
 | Filesystem watching | Node.js `fs.watch` with a debouncing layer, or `chokidar` | One `LibraryWatcher` interface in the Node adapter |
 | Git | The locally installed `git` executable via `child_process` | A `GitService` interface; no Git library dependency, no bundled Git |
 | Front matter | Own line-preserving reader/writer (§6.3) | Not a general YAML parser; see the reasoning in §6.3 |
@@ -286,10 +287,15 @@ and a small footprint, and no GFM — commonmark.js, the reference
 implementation, with `yaml` beside it for the front matter; the **GFM
 display** of §18 needs tables, strikethrough, and task lists at runtime —
 markdown-it, short of task list items and carrying one PSF-2.0 dependency.
-Both would need the gate read as two gates, which is a decision, not a
-measurement; it is put to the author in `TODO.md` §2.1. The cross-check
-itself has already paid: it found two fence defects in the display
-transform and four defects in the codec (`TODO.md` §1).
+Both need the gate read as two gates, which is a decision, not a
+measurement — **taken on 2026-09-04**: the test oracle is accepted as two
+development dependencies of the core, with the cross-check a fixed test of
+the gate (`TESTING.md` §2.2); the runtime parser is decided in the GFM
+display round, where markdown-it's two deviations — task list items in the
+translation layer, the PSF-2.0 license of its command-line dependency — are
+weighed then. The cross-check paid before the decision: it found two fence
+defects in the display transform and four in the codec, all fixed the same
+day (`DONE.md`).
 
 Note on the editing surface: Monaco is the obvious alternative and is built for
 source code. Opera Incerta displays headings at **different sizes in the same
@@ -1252,7 +1258,9 @@ contains a backtick is not a fence, and a closing fence may be followed by
 spaces only (measured against the specification's examples, `TESTING.md`
 §2.11).
 
-**Known limits of the line-based transform.** It models no containers. An
+**Known limits of the line-based transform.** It models no containers, and
+no setext headings: `Title` over `===` is two paragraph lines to it (the
+underline counts only for where indented code may start). An
 indented line after a blank line inside a list item is that item's paragraph
 to CommonMark and indented code to this transform, which shows it verbatim
 (specification examples 108 and 109); and a whitespace-only line at the edge

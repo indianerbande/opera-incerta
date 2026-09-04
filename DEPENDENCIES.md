@@ -1,7 +1,8 @@
 # Opera Incerta Dependency Record
 
-Status: Accepted toolchain, shell stack, and editing surface; the Markdown
-parser candidates were measured on 2026-09-04 and none is accepted yet
+Status: Accepted toolchain, shell stack, editing surface, and the test-time
+standard oracle (2026-09-04); the runtime Markdown parser waits for the GFM
+display round
 
 Date: 2026-09-01
 
@@ -142,6 +143,43 @@ source code and assumes a uniform line height. Opera Incerta shows H1 at 45 px
 next to body text at 22.5 px in the same document, which is the core of its
 display model rather than a decoration on top of it.
 
+## Accepted — the standard oracle (tests only)
+
+### commonmark.js 0.31.2 (with `@types/commonmark` 0.27.10)
+
+- **Capability:** the reference implementation of CommonMark, used as the
+  oracle the display transform is checked against (`TESTING.md` §2.2).
+- **Why external:** a conformance check needs an implementation the core
+  did not write; the core's own tests can only show that its writer and
+  reader agree with each other.
+- **License:** BSD-2-Clause; `entities` BSD-2-Clause, `mdurl` and `minimist`
+  MIT. Four packages.
+- **Impact:** a devDependency of `packages/core` only; nothing reaches the
+  installed application. 652 of 652 specification examples, source
+  positions, 9.5 ms for 112,854 characters (`spikes/parser-markdown`).
+- **Offline behavior:** fully local; the test uses generated documents, not
+  the fetched specification.
+- **Boundary:** `test/standard-oracle.test.ts` translates its nodes into
+  line numbers before comparing; no type of it appears outside that file.
+- **Evidence:** the oracle test itself, and the spike gate of `TESTING.md`
+  §2.11 read as two gates by decision of 2026-09-04: for a test oracle,
+  criterion 4 (GFM) does not apply.
+
+### yaml 2.9.0
+
+- **Capability:** an independent YAML 1.2 reader for the front matter the
+  codec writes.
+- **Why external:** same reason; and the codec deliberately owns no YAML
+  parser of its own (`SPEC.md` §6.3), so this is the only way to check its
+  output against the standard.
+- **License:** ISC. No dependencies.
+- **Impact:** a devDependency of `packages/core` only.
+- **Offline behavior:** fully local.
+- **Boundary:** the test compares parsed plain values; nothing of the
+  library's document model is kept.
+- **Evidence:** the oracle test; on its first run in the spike it found four
+  defects in the codec (`DONE.md`, 2026-09-04).
+
 ## Accepted — desktop shell
 
 ### Electron 44.0.0
@@ -206,10 +244,10 @@ recurring installation prompt.
 These are named in `SPEC.md` §5.4 and require the full report above, plus a
 spike, before they may be added.
 
-### Markdown parser — CommonMark/GFM family (candidates, measured 2026-09-04)
+### Markdown parser for the GFM display (candidates, measured 2026-09-04)
 
-Wanted for the standard-conformance oracle of `TESTING.md` §2.2 and, later,
-the GFM display of `SPEC.md` §18. Its AST MUST NOT become the public model
+The test-time oracle above is accepted; what remains open is the runtime
+parser for the GFM display of `SPEC.md` §18, decided in that round. Its AST MUST NOT become the public model
 (`CONVENTIONS.md` C-A6). Front matter handling is deliberately **not**
 delegated to it: foreign keys are preserved as raw lines, which needs no YAML
 parser at all (`SPEC.md` §6.3).

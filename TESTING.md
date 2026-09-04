@@ -160,8 +160,10 @@ Tests MUST prove:
   treated as a heading — and the fence rules as CommonMark has them: a
   fence closes only on one at least as long and of the same character and
   followed by spaces only, a backtick fence whose info string contains a
-  backtick is no fence at all, and four-space indented code after a blank
-  line is verbatim while an indented continuation of a paragraph is not;
+  backtick is no fence at all, and four-space indented code is verbatim
+  wherever a paragraph is not running — after a blank line, a heading, a
+  thematic break, a setext underline, a fence — while an indented
+  continuation of a paragraph is not;
 - the flanking rule of emphasis: an asterisk followed by a space opens
   nothing, so `2 * 3 * 4` stays arithmetic, and one preceded by a space closes
   nothing;
@@ -176,8 +178,17 @@ Tests MUST prove:
 - a category colour stored as `#RRGGBB` whatever the file spelled;
 - the refresh coordinator running the follow-up it coalesced even when the run
   before it failed, and the exclusive task saying explicitly whether it ran;
-- that display-to-Markdown output is standard-conformant and readable by an
-  independent Markdown parser; and
+- **the standard oracle** (`test/standard-oracle.test.ts`, accepted
+  2026-09-04 after the spike gate of §2.11): every generated sheet's front
+  matter read by an independent YAML reader to the same strings the codec
+  wrote, and foreign lines of every shape still readable after a round
+  trip; and, over several hundred seeded documents built from heading,
+  fence, indented-code and text lines, the display transform marking the
+  same top-level ATX headings at the same level as the CommonMark reference
+  parser, showing verbatim exactly the lines it puts in code blocks, and
+  writing back Markdown the reference reads as the heading the author set.
+  The oracle's types never reach the core: the test translates them to
+  line numbers and plain values first; and
 - that a read failure prevents any write to the same file (`SPEC.md` §16).
 
 Negative tests MUST assert stable diagnostic codes, not message text.

@@ -52,20 +52,31 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 /** An indented code line: four spaces or a tab, per CommonMark. */
 const INDENTED_CODE = /^(?: {4}|\t)/;
 
+/** A thematic break — which, after a paragraph, is a setext underline instead. */
+const THEMATIC_BREAK = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
+
+/** The `=` underline of a setext heading; only ever one after a paragraph. */
+const SETEXT_EQUALS = /^ {0,3}=+[ \t]*$/;
+
 /**
  * Converts Markdown text into display lines.
  *
  * Lines inside a fenced code block are never headings, however they begin.
  * A fence closes only on a fence of the same character and at least the
  * same length, as CommonMark has it — a shorter one is content. An indented
- * code block, four spaces or a tab after a blank line, is verbatim too: its
- * `#` and `**` are literally that.
+ * code block, four spaces or a tab, is verbatim too: its `#` and `**` are
+ * literally that. It may start anywhere a paragraph is not running — after
+ * a blank line, a heading, a thematic break, a setext underline, or a fence
+ * — and never as the indented continuation of a paragraph. The standard
+ * oracle found the earlier rule, "after a blank line only", short of
+ * CommonMark (`TESTING.md` §2.2).
  */
 export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
   const lines = markdown.split('\n');
   const display: DisplayLine[] = [];
   let openFence: { readonly marker: string; readonly length: number } | null = null;
-  let previousBlank = true;
+  /** Whether an indented line here would start code rather than continue a paragraph. */
+  let codeMayStart = true;
   let inIndentedCode = false;
 
   for (const line of lines) {
@@ -77,7 +88,7 @@ export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
         if (run.charAt(0) === '~' || !rest.includes('`')) {
           openFence = { marker: run.charAt(0), length: run.length };
           display.push(plainLine(line, true));
-          previousBlank = false;
+          codeMayStart = true;
           continue;
         }
       } else if (
@@ -87,7 +98,7 @@ export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
       ) {
         openFence = null;
         display.push(plainLine(line, true));
-        previousBlank = false;
+        codeMayStart = true;
         continue;
       }
     }
@@ -97,14 +108,20 @@ export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
     }
 
     const blank = line.trim() === '';
-    if (INDENTED_CODE.test(line) && (previousBlank || inIndentedCode)) {
+    if (INDENTED_CODE.test(line) && (codeMayStart || inIndentedCode)) {
       inIndentedCode = true;
       display.push(plainLine(line, true));
+      codeMayStart = true;
     } else {
       inIndentedCode = blank && inIndentedCode;
-      display.push(readLine(line));
+      const read = readLine(line);
+      display.push(read);
+      codeMayStart =
+        blank ||
+        read.level !== null ||
+        THEMATIC_BREAK.test(line) ||
+        (!codeMayStart && SETEXT_EQUALS.test(line));
     }
-    previousBlank = blank;
   }
 
   return display;
