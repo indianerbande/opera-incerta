@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **941 tests**, plus the desktop and asset checks.
+projects, **943 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -29,24 +29,26 @@ has to be consulted to build, verify or change the product.
 
 ## 1. Next — small enough to start immediately
 
-1. **A conflict prompt that nobody asked for**, seen 2026-09-04 in the
-   screenshot of the settings check: when the check begins, right after the
-   page-categories check saved the sheet through the menu, the prompt "This
-   sheet changed on disk while you were editing it" is already up, and the
-   title carries the dirty marker. Nothing in the smoke dismisses it, and
-   every later check clicks through it, so it stayed unseen. Likeliest cause:
-   the watcher reports the application's own save, and the re-read races the
-   save's own bookkeeping — `before.dirty` still true, the baseline still the
-   pre-save one — so the comparison rule of `SPEC.md` §10.6 sees a foreign
-   change. To be reproduced in a unit test of the store first, then fixed;
-   and the smoke should fail on a prompt it did not expect.
-2. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+1. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the
    sleeps went (DONE.md, the same day) that check waits for the edit to reach
    the disk rather than for half a second, so the likeliest cause is gone;
-   the entry stays until a few days of green runs have passed.
+   the entry stays until a few days of green runs have passed. A second
+   kind, seen once on 2026-09-04: the heading-cursor check found the
+   clipboard holding `##### Typed headingr` — one keystroke too many in a
+   typed sequence — and the next run was green. Both look like input events
+   delivered out of step with the renderer; if a third appears, the typing
+   helper should wait for each character to land rather than for a frame.
+   A third kind, seen once the same day, is different in nature: the merge
+   check found no `read-only` notice within six seconds of the merge leaving
+   conflict markers in the open sheet, and two runs afterwards were green.
+   The store's `reloadProject` is neither serialised nor coalesced: two
+   watch reports in quick succession — the smoke's own write of the sheet,
+   then the merge — start two overlapping re-reads, and the earlier one can
+   finish last with the older file. The stale-result rule of `TESTING.md`
+   §2.6 applies here and is not yet enforced for reloads. Its own round.
 
 ## 2. To decide before code exists
 

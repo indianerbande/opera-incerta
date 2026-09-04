@@ -6,6 +6,54 @@ documents").
 
 ---
 
+## 2026-09-04 — a conflict prompt nobody asked for, and the smoke that now looks
+
+**What was open** (`TODO.md` §1, from the settings round's screenshot). Behind
+the settings dialog stood "This sheet changed on disk while you were editing
+it", up before the check began, and the title carried a dirty marker that
+never went away.
+
+**What was found.** Not the watcher, not the save. The inspector's output
+was named `change` — the name of the DOM event that the fields inside it
+raise, which bubbles up to the component's own element. Angular calls a
+handler bound to `(change)` for both: once with the emitted
+`{ status: 'review' }`, once with the native Event. The store spread the
+Event into the metadata, and an Event has exactly one enumerable property:
+`isTrusted`. From then on the sheet's metadata carried a seventh field no
+file ever has, so the sheet was dirty for good, and the next re-read of the
+file — any re-read — found the disk different from the baseline and asked
+the author about a change nobody had made.
+
+**What changed.** The output is `metadataChange`. The store takes no field
+it does not own, so a template binding, untyped at runtime, cannot put an
+object that is not metadata into the record again. And the smoke calls
+`expectNoStrayDialog` after every check: a dialog up at a boundary fails
+the run, naming the check before it. That guard is what found the check;
+the dirty marker clearing after a save through the menu is what now proves
+the cause is gone.
+
+**Verification.** `pnpm run check` green: **943 tests** — the store's
+own-fields rule, and the save-then-edit-then-reload sequence that does not
+ask. `pnpm run desktop:smoke` green across **thirty-two checks** with the
+boundary guard between each. Found by the guard at `panes:source-control`,
+then by one line printed from the store — `metaBase` with `isTrusted` —
+after two hypotheses about the watcher had failed to reproduce in a unit
+test. Falsified by putting the old output name back with the store's guard
+still in place: the run failed at the discarding check with a prompt
+nobody asked for — the guard alone is not enough, the name matters. Two
+flakes seen on the way, one keystroke too many and a merge re-read that
+came too late, are in `TODO.md` §1 with what they look like.
+
+**Lesson.** The bug was in a *name*. Nothing in the type system objected,
+because the second call arrives through a template binding, and nothing in
+the behaviour looked wrong to a smoke that clicks through dialogs by script.
+Two guards came out of it: one in the store, which refuses what it does not
+own, and one in the smoke, which refuses a dialog it did not open. The
+second is the more general one — it turns "nobody looked" into "something
+looks", for every future round.
+
+---
+
 ## 2026-09-04 — the settings dialog, for the settings that exist
 
 **What was open** (`TODO.md` §3, `SPEC.md` §13). The preference record

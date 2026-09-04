@@ -473,3 +473,45 @@ export async function settleWatch(
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
 }
+
+/**
+ * Fails when a dialog is up that no check asked for. Called between checks:
+ * every check closes what it opens, so a prompt standing at a boundary is a
+ * prompt the application raised on its own — which is how a conflict prompt
+ * stood unseen through twenty checks of every run until 2026-09-04.
+ */
+export async function expectNoStrayDialog(window: BrowserWindow, after: string): Promise<void> {
+  if (window.isDestroyed()) {
+    return;
+  }
+  const stray = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-dialog .panel')]
+       .map((panel) => panel.getAttribute('aria-label') ?? panel.querySelector('h2')?.textContent?.trim() ?? '?')`,
+  )) as readonly string[];
+  if (stray.length > 0) {
+    throw new Error(`after ${after}, a dialog nobody asked for is up: ${JSON.stringify(stray)}`);
+  }
+}
+
+/** Types a value into one of the inspector's fields, by its label, and commits it. */
+export async function setInspectorField(
+  window: BrowserWindow,
+  label: string,
+  value: string,
+): Promise<void> {
+  const edited = (await window.webContents.executeJavaScript(
+    `(() => {
+       const field = [...document.querySelectorAll('wi-inspector label')]
+         .find((candidate) => candidate.textContent.trim().startsWith(${JSON.stringify(label)}));
+       const input = field?.querySelector('input, textarea');
+       if (input === undefined || input === null) { return false; }
+       input.value = ${JSON.stringify(value)};
+       input.dispatchEvent(new Event('change', { bubbles: true }));
+       return true;
+     })()`,
+  )) as boolean;
+  if (!edited) {
+    throw new Error(`the inspector has no field labelled ${label}`);
+  }
+  await rendered(window);
+}

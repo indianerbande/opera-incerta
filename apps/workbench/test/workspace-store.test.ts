@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GroupEntry, SheetEntry } from '@opera-incerta/core';
+import type { GroupEntry, SheetEntry, SheetMetadata } from '@opera-incerta/core';
 import type {
   BridgeResult,
   OperaIncertaBridge,
@@ -932,18 +932,28 @@ describe('re-reading a project with unsaved work', () => {
   const changed = '---\nopera-incerta:\n  title: Preface\n---\n# Changed elsewhere\n';
 
   /** A bridge whose file for `preface.md` can be changed *after* it was read. */
-  function mutableDisk(): { readonly bridge: OperaIncertaBridge; change: (text: string) => void } {
+  function mutableDisk(): {
+    readonly bridge: OperaIncertaBridge;
+    change: (text: string) => void;
+    written: () => string | null;
+  } {
     let text = onDisk;
+    let lastWritten: string | null = null;
     return {
       bridge: fakeBridge({
         readSheet: async (request) =>
           request.handle.id === 'a'.repeat(32)
             ? { ok: true, value: text }
             : { ok: true, value: 'Other\n' },
+        writeSheet: async (request) => {
+          lastWritten = request.text;
+          return { ok: true, value: null };
+        },
       }),
       change: (next: string) => {
         text = next;
       },
+      written: () => lastWritten,
     };
   }
 
@@ -1009,6 +1019,40 @@ describe('re-reading a project with unsaved work', () => {
     expect(store.conflict()).toBeNull();
     expect(store.dirty()).toBe(false);
     expect(store.editorDocument()?.text).toBe('# Changed elsewhere\n');
+  });
+
+  it('does not take its own save for a foreign change, even with a later edit pending', async () => {
+    // The smoke of 2026-09-04 found the prompt up after a save through the
+    // menu: the watcher reports the application's own write, and a field
+    // edited in the meantime makes the sheet dirty again by the time the
+    // debounced re-read arrives.
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(disk.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+    store.updateMetadata({ category: 'memory-1' });
+    await store.save();
+    disk.change(disk.written() ?? '');
+    store.updateMetadata({ status: 'review' });
+
+    await store.reloadProject();
+
+    expect(store.conflict()).toBeNull();
+    expect(store.dirty()).toBe(true);
+    expect(store.metadata().status).toBe('review');
+  });
+
+  it('takes no field it does not own, so a stray object cannot dirty the sheet', async () => {
+    const disk = mutableDisk();
+    const store = new WorkspaceStore(disk.bridge);
+    await store.openProject();
+    await store.selectSheet('preface.md');
+
+    // What a DOM Event looks like to Object.entries: one enumerable property.
+    store.updateMetadata({ isTrusted: false } as unknown as Partial<SheetMetadata>);
+
+    expect(store.dirty()).toBe(false);
+    expect(Object.keys(store.metadata())).not.toContain('isTrusted');
   });
 
   it('does not raise a conflict for a library edit, which touches no file', async () => {

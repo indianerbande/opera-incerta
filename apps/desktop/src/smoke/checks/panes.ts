@@ -12,6 +12,7 @@ import {
   clickMenuItem,
   clickText,
   headerTitle,
+  setInspectorField,
   isVisible,
   rendered,
   toggleSwitch,
@@ -20,7 +21,7 @@ import {
 } from '../harness.js';
 import type { Smoke } from '../context.js';
 
-export async function checkPanes(window: BrowserWindow): Promise<void> {
+export async function checkPanes(smoke: Smoke, window: BrowserWindow): Promise<void> {
 
   // The inspector shows the metadata of the open sheet and its progress.
   const inspector = (await window.webContents.executeJavaScript(
@@ -43,20 +44,7 @@ export async function checkPanes(window: BrowserWindow): Promise<void> {
   }
 
   // Editing a field marks the sheet dirty, exactly as editing the body does.
-  const dirtied = (await window.webContents.executeJavaScript(
-    `(() => {
-       const label = [...document.querySelectorAll('wi-inspector label')]
-         .find((candidate) => candidate.textContent.trim().startsWith('Status'));
-       const input = label?.querySelector('input');
-       if (input === undefined || input === null) { return 'no field'; }
-       input.value = 'review';
-       input.dispatchEvent(new Event('change', { bubbles: true }));
-       return 'ok';
-     })()`,
-  )) as string;
-  if (dirtied !== 'ok') {
-    throw new Error(`could not edit a metadata field: ${dirtied}`);
-  }
+  await setInspectorField(window, 'Status', 'review');
   await waitUntil(
     'the dirty marker',
     async () => (await headerTitle(window, 'A Scene'))?.endsWith('•') === true,
@@ -70,6 +58,19 @@ export async function checkPanes(window: BrowserWindow): Promise<void> {
   if (marker === null || !marker.endsWith('•')) {
     throw new Error(`editing metadata did not mark the sheet dirty: ${JSON.stringify(marker)}`);
   }
+
+  // And saving clears it. It did not, once: the inspector's output was named
+  // like the DOM event bubbling beneath it, and the Event's `isTrusted` sat in
+  // the metadata as a field no file carries — dirty for good, and a conflict
+  // prompt on the next re-read (2026-09-04).
+  clickMenuItem('sheet/save');
+  await waitUntil('the status to reach the file', () =>
+    readFileSync(join(smoke.projectPath, 'part-1', 'scene.md'), 'utf8').includes('status: review'),
+  );
+  await waitUntil(
+    'the dirty marker to clear after the save',
+    async () => (await headerTitle(window, 'A Scene'))?.endsWith('•') === false,
+  );
 
   // The outline lists the headings of the open sheet.
   await activateSidebar(window, 'Outline');

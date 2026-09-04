@@ -120,6 +120,10 @@ Rules that every check follows:
   happened. A confirmation that ignores a key would otherwise pass a check
   that only asks whether the file is still there.
 - **One `smoke ok:` line per check**, at the end, saying what was proven.
+- **Close what you open.** `run()` calls `expectNoStrayDialog` after every
+  check: a dialog up at a boundary fails the run, naming the check before
+  it. A conflict prompt once stood through twenty checks of every run
+  because nothing looked; now something does.
 
 ## The order is part of the check
 

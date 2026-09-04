@@ -28,7 +28,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
           <input
             type="text"
             [value]="metadata().title ?? ''"
-            (change)="change.emit({ title: value($event) })"
+            (change)="metadataChange.emit({ title: value($event) })"
           />
         </label>
 
@@ -38,7 +38,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
             type="text"
             placeholder="one short label"
             [value]="metadata().topic ?? ''"
-            (change)="change.emit({ topic: value($event) })"
+            (change)="metadataChange.emit({ topic: value($event) })"
           />
         </label>
 
@@ -48,7 +48,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
             type="text"
             placeholder="comma separated"
             [value]="(metadata().keywords ?? []).join(', ')"
-            (change)="change.emit({ keywords: keywords($event) })"
+            (change)="metadataChange.emit({ keywords: keywords($event) })"
           />
         </label>
 
@@ -57,7 +57,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
           <input
             type="text"
             [value]="metadata().status ?? ''"
-            (change)="change.emit({ status: value($event) })"
+            (change)="metadataChange.emit({ status: value($event) })"
           />
         </label>
 
@@ -66,7 +66,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
           <span class="row">
             <select
               [value]="metadata().category ?? ''"
-              (change)="change.emit({ category: value($event) })"
+              (change)="metadataChange.emit({ category: value($event) })"
             >
               <option value="">None</option>
               @for (category of categories(); track category.id) {
@@ -85,7 +85,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
             rows="6"
             placeholder="research, open questions, reminders"
             [value]="metadata().notes ?? ''"
-            (change)="change.emit({ notes: value($event) })"
+            (change)="metadataChange.emit({ notes: value($event) })"
           ></textarea>
         </label>
       </div>
@@ -152,7 +152,15 @@ export class InspectorComponent {
   readonly available = input.required<boolean>();
   readonly categories = input.required<readonly PageCategory[]>();
 
-  readonly change = output<Partial<SheetMetadata>>();
+  /**
+   * Not `change`: the native `change` events of the fields inside bubble up
+   * to this element, and a listener bound to an output of that name is
+   * called for both — the second time with a DOM Event, whose one enumerable
+   * property, `isTrusted`, then sat in the metadata as a seventh field. The
+   * sheet stayed dirty for good and every re-read raised a conflict prompt
+   * (found by the smoke's screenshot, 2026-09-04).
+   */
+  readonly metadataChange = output<Partial<SheetMetadata>>();
   /** Asks for the category manager; the shell owns the dialog. */
   readonly manage = output<void>();
 

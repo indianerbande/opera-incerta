@@ -253,7 +253,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 [available]="store.openSheet() !== null"
                 [categories]="store.categories()"
                 (manage)="libraryActions.manageCategories()"
-                (change)="store.updateMetadata($event)"
+                (metadataChange)="store.updateMetadata($event)"
               />
             }
             @case ('outline') {

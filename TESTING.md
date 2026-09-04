@@ -318,7 +318,8 @@ Component and state tests MUST cover:
   rescan (`CONVENTIONS.md` C-U3);
 - outline: listing, jumping, and the deeper-levels toggle;
 - inspector: reading and writing owned metadata fields and computing progress
-  figures;
+  figures — and the store taking no field it does not own, so an object that
+  is not metadata (a DOM Event, once) cannot dirty the sheet;
 - the settings registry (`SPEC.md` §13): every preference of the record that
   is not layout registered exactly once, ids stable and unique, defaults
   taken from the record, the density steps exactly those of the preview,
@@ -421,6 +422,10 @@ Tests MUST cover:
   pointed `GIT_CONFIG_GLOBAL` at an empty file first, the identity question
   follows, its answer is read back with `git config --local`, and the global
   file is still empty;
+- **no dialog nobody asked for**: between any two checks, no dialog is up —
+  every check closes what it opens, so a prompt standing at a boundary is
+  one the application raised on its own; and the dirty marker clearing when
+  an inspector edit is saved through the menu;
 - the settings dialog (`SPEC.md` §13): opened through the native menu item
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the

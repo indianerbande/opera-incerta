@@ -381,10 +381,21 @@ export class WorkspaceStore {
     this.#currentText.set(text);
   }
 
-  /** Changes one or more metadata fields. Marks the sheet dirty, saves nothing. */
+  /**
+   * Changes one or more metadata fields. Marks the sheet dirty, saves nothing.
+   *
+   * Only the owned fields are taken. The type says as much, but a template
+   * binding is untyped at runtime, and a DOM Event once arrived here through
+   * an output named like the event that bubbled beneath it: its `isTrusted`
+   * became a field the file would never carry, so the sheet was dirty for
+   * good and every re-read a conflict.
+   */
   updateMetadata(change: Partial<SheetMetadata>): void {
     const next: Record<string, unknown> = { ...this.#currentMetadata() };
     for (const [key, value] of Object.entries(change)) {
+      if (!METADATA_FIELDS.has(key)) {
+        continue;
+      }
       if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
         // An emptied field is an absent field: writing `topic: ""` would put a
         // meaningless key into the author's file.
@@ -855,6 +866,16 @@ export class WorkspaceStore {
     }
   }
 }
+
+/** The fields of `SheetMetadata`, for the runtime check the type cannot make. */
+const METADATA_FIELDS: ReadonlySet<string> = new Set<keyof SheetMetadata>([
+  'title',
+  'topic',
+  'keywords',
+  'status',
+  'category',
+  'notes',
+]);
 
 /** Field-by-field comparison; two metadata records with the same values are equal. */
 function sameMetadata(left: SheetMetadata, right: SheetMetadata): boolean {

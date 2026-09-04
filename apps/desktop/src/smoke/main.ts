@@ -58,6 +58,7 @@ import {
   checkPanes,
 } from './checks/panes.js';
 import { checkSettings } from './checks/settings.js';
+import { expectNoStrayDialog } from './harness.js';
 import {
   checkAmendAndIgnore,
   checkBranches,
@@ -144,38 +145,64 @@ async function run(launcher: BrowserWindow): Promise<void> {
     forwardConsole(window);
 
     await checkWorkbenchRendered(window);
+    await expectNoStrayDialog(window, 'checkWorkbenchRendered');
     await checkBridgeAnswers(window);
+    await expectNoStrayDialog(window, 'checkBridgeAnswers');
     await checkBridgeRefusesTraversal(window);
+    await expectNoStrayDialog(window, 'checkBridgeRefusesTraversal');
 
     await selectSmokeSheet(window);
     await checkEditorLaidOut(window);
+    await expectNoStrayDialog(window, 'checkEditorLaidOut');
     await checkHeadingGestures(window);
+    await expectNoStrayDialog(window, 'checkHeadingGestures');
     await checkHeadingCursorRules(window);
+    await expectNoStrayDialog(window, 'checkHeadingCursorRules');
     await checkDocumentFlow(smoke, window);
+    await expectNoStrayDialog(window, 'checkDocumentFlow');
     await checkSheetSwitch(window);
+    await expectNoStrayDialog(window, 'checkSheetSwitch');
 
     await checkFrontMatterArea(smoke, window);
+    await expectNoStrayDialog(window, 'checkFrontMatterArea');
     await checkPageCategories(smoke, window);
-    await checkPanes(window);
+    await expectNoStrayDialog(window, 'checkPageCategories');
+    await checkPanes(smoke, window);
+    await expectNoStrayDialog(window, 'checkPanes');
     await checkSettings(smoke, window);
+    await expectNoStrayDialog(window, 'checkSettings');
 
     await checkCommitting(smoke, window);
+    await expectNoStrayDialog(window, 'checkCommitting');
     await checkLiveStatus(smoke, window);
+    await expectNoStrayDialog(window, 'checkLiveStatus');
     await checkDiscarding(smoke, window);
+    await expectNoStrayDialog(window, 'checkDiscarding');
     const elsewhere = await checkFetchAndPull(smoke, window);
+    await expectNoStrayDialog(window, 'checkFetchAndPull');
     await checkMergeAndResolve(smoke, window, elsewhere);
+    await expectNoStrayDialog(window, 'checkMergeAndResolve');
     await checkBranches(smoke, window);
+    await expectNoStrayDialog(window, 'checkBranches');
     await checkAmendAndIgnore(smoke, window);
+    await expectNoStrayDialog(window, 'checkAmendAndIgnore');
 
     checkMenuState();
     await checkColumnDragging(smoke, window);
+    await expectNoStrayDialog(window, 'checkColumnDragging');
 
     await checkLibraryEdits(smoke, window);
+    await expectNoStrayDialog(window, 'checkLibraryEdits');
     await checkReordering(smoke, window, projectPath);
+    await expectNoStrayDialog(window, 'checkReordering');
     await checkDeletion(smoke, window, projectPath);
+    await expectNoStrayDialog(window, 'checkDeletion');
     await checkMovingBetweenGroups(smoke, window, projectPath);
+    await expectNoStrayDialog(window, 'checkMovingBetweenGroups');
     const sheetPath = await checkExternalChange(window, projectPath);
+    await expectNoStrayDialog(window, 'checkExternalChange');
     await checkWatchedChange(window, projectPath, sheetPath);
+    await expectNoStrayDialog(window, 'checkWatchedChange');
 
     const image = await window.webContents.capturePage();
     const evidencePath = join(evidenceDirectory, 'smoke.png');

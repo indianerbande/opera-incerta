@@ -18,6 +18,7 @@ import {
   placeCursorInEditor,
   pressKey,
   rendered,
+  setInspectorField,
   settleWatch,
   typeText,
   waitForSelector,
@@ -298,7 +299,9 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
   const sheet = join(smoke.projectPath, 'part-1', 'scene.md');
   const committed = smoke.git(smoke.projectPath, ['show', 'HEAD:part-1/scene.md']);
 
-  // Save what the inspector changed earlier, so there is something to discard.
+  // Change the status again and save, so there is something to discard: the
+  // earlier edit went into the commit.
+  await setInspectorField(window, 'Status', 'final');
   clickMenuItem('sheet/save');
   await waitUntil('the save', () => readFileSync(sheet, 'utf8') !== committed);
   if (readFileSync(sheet, 'utf8') === committed) {
@@ -309,6 +312,9 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
   // What changed against the last commit. A sheet opens word by word — the
   // whole point: Git would report the entire line twice.
   await openDiff(window, 'scene.md');
+  // The two versions arrive a moment after the diff text; wait for the view
+  // that needs them, not for the dialog.
+  await waitForSelector(window, 'wi-diff-view .prose');
   const wordwise = (await window.webContents.executeJavaScript(
     `(() => {
        const prose = document.querySelector('wi-diff-view .prose');
@@ -327,11 +333,11 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
   }
   // The inserted run is the words plus the whitespace that follows them: the
   // whitespace *before* them was already there, in front of the next line.
-  if (wordwise.added.join('').trim() !== 'status: review') {
+  if (wordwise.added.join('').trim() !== 'final') {
     throw new Error(`the word view marks more than what changed: ${JSON.stringify(wordwise.added)}`);
   }
-  if (wordwise.removed.length !== 0) {
-    throw new Error(`nothing was removed, yet: ${JSON.stringify(wordwise.removed)}`);
+  if (wordwise.removed.join('').trim() !== 'review') {
+    throw new Error(`the word view marks more than what was replaced: ${JSON.stringify(wordwise.removed)}`);
   }
   // Nothing invented and nothing lost: what it shows is the file itself.
   if (!wordwise.text.includes('## The Second Bell')) {
@@ -348,7 +354,7 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
   await clickText(window, 'wi-diff-view .mode', 'Lines');
   await waitForSelector(window, 'wi-diff-view pre');
   const changed = await diffLines(window);
-  if (!changed.some((line) => line.kind === 'added' && line.text.includes('status: review'))) {
+  if (!changed.some((line) => line.kind === 'added' && line.text.includes('status: final'))) {
     throw new Error(`the diff does not show what was saved: ${JSON.stringify(changed)}`);
   }
   // The header is a header: `--- a/…` and `+++ b/…` start like a change and
