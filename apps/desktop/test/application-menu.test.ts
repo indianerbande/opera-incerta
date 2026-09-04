@@ -27,6 +27,7 @@ describe('menu commands', () => {
     expect(MENU_ACCELERATORS['project/open']).toBe('CmdOrCtrl+O');
     expect(MENU_ACCELERATORS['project/close']).toBe('CmdOrCtrl+Shift+W');
     expect(MENU_ACCELERATORS['sheet/save']).toBe('CmdOrCtrl+S');
+    expect(MENU_ACCELERATORS['settings/open']).toBe('CmdOrCtrl+,');
   });
 
   it('declares the same accelerator in the menu that it documents', () => {

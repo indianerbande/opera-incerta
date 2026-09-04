@@ -17,10 +17,11 @@ import {
   SheetListComponent,
 } from './library/sheet-list.component.js';
 import { SourceControlComponent } from './library/source-control.component.js';
-import { ActivityBarComponent } from './shell/activity-bar.component.js';
+import { ActivityBarComponent, type ActivityItem } from './shell/activity-bar.component.js';
 import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
 import { IdentityPromptComponent } from './shell/identity-prompt.component.js';
+import { SettingsComponent } from './shell/settings.component.js';
 import type { GitIdentity } from '@opera-incerta/desktop-contract';
 import { LibraryDrag, describeListEnd, describeRow, type OverRow } from './shell/library-drag.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
@@ -80,6 +81,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     SourceControlComponent,
     ConfirmPromptComponent,
     IdentityPromptComponent,
+    SettingsComponent,
     TextPromptComponent,
   ],
   // The whole library drag lives here, because this is the one element that
@@ -97,7 +99,9 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         [style.width.px]="activityBarWidth"
         [items]="navigatorItems"
         [activeId]="layout.navigatorView()"
+        [tools]="toolItems"
         (activate)="layout.showNavigator($event)"
+        (tool)="overlay.set({ kind: 'settings', opener: 'activityBar' })"
       />
 
       <section class="navigator" [style.width.px]="layout.columnWidths().navigator">
@@ -350,6 +354,15 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           (close)="overlay.set(null)"
         />
       }
+      @if (open.kind === 'settings') {
+        <wi-settings
+          [identity]="sourceControl.identity()"
+          [opener]="open.opener"
+          (close)="overlay.set(null)"
+          (manageCategories)="overlay.set({ kind: 'categories' })"
+          (saveIdentityRequest)="sourceControl.setIdentity($event)"
+        />
+      }
       @if (open.kind === 'categories') {
         <wi-category-manager
           [categories]="store.categories()"
@@ -498,6 +511,8 @@ export class AppComponent {
     const stopListening = this.#bridge?.onMenuCommand((command) => {
       if (command === 'sheet/save') {
         void this.store.save();
+      } else if (command === 'settings/open') {
+        this.overlay.set({ kind: 'settings', opener: 'menu' });
       }
     });
     // A change under the group or the open document arrives without anyone
@@ -525,6 +540,10 @@ export class AppComponent {
   }
 
   protected readonly activityBarWidth = ACTIVITY_BAR_WIDTH;
+  /** The one tool of the leading bar: the settings dialog (SPEC.md §13). */
+  protected readonly toolItems: readonly ActivityItem[] = [
+    { id: 'settings', icon: 'icon-settings', label: 'Settings' },
+  ];
 
   /** The dirty marker follows the document name, as in every editor. */
   protected editorTitle(): string | null {

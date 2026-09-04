@@ -22,6 +22,7 @@ const PINNED = {
   'history.svg': 'da9d54de7bb88c58d3db5369cdd30e70854e7a6f7c89757cfb5cae357d911e67',
   'info.svg': '5e398f5f1271d1112fa68c7775a8408cbb974d1d83bc0bd120c1cc1cc319fcdb',
   'neurology.svg': '437e7788f570e366a7ab0e77be125d68471cced5cf54737a01051188bb0d7d93',
+  'settings.svg': 'f3a6366b98528acfbd05ea67f4c0ee2e7d33c0fc278fdc885d5f95c431e3c2bb',
   'toc.svg': '067e4f3c6dd2e65f716210b25523ebce30bf407cf9b4c0ffe65c42910a7c8fc9',
 };
 

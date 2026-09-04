@@ -64,6 +64,18 @@ export function installApplicationMenu(actions: MenuActions): void {
         enabled: hasProject,
         click: rendererCommand('sheet/save'),
       },
+      ...(process.platform === 'darwin'
+        ? []
+        : ([
+            { type: 'separator' },
+            {
+              id: 'menu:settings/open',
+              label: 'Settings…',
+              accelerator: 'CmdOrCtrl+,',
+              enabled: hasProject,
+              click: rendererCommand('settings/open'),
+            },
+          ] as MenuItemConstructorOptions[])),
       { type: 'separator' },
       {
         id: 'menu:project/close',
@@ -112,6 +124,16 @@ export function installApplicationMenu(actions: MenuActions): void {
             submenu: [
               { role: 'about' },
               { type: 'separator' },
+              {
+                // Where macOS keeps it; the dialog lives in the workbench,
+                // so the item needs a project window to send to.
+                id: 'menu:settings/open',
+                label: 'Settings…',
+                accelerator: 'CmdOrCtrl+,',
+                enabled: hasProject,
+                click: rendererCommand('settings/open'),
+              },
+              { type: 'separator' },
               { role: 'services' },
               { type: 'separator' },
               { role: 'hide' },
@@ -146,4 +168,5 @@ export const MENU_ACCELERATORS: Readonly<Record<MenuCommand, string>> = {
   'project/open': 'CmdOrCtrl+O',
   'project/close': 'CmdOrCtrl+Shift+W',
   'sheet/save': 'CmdOrCtrl+S',
+  'settings/open': 'CmdOrCtrl+,',
 };

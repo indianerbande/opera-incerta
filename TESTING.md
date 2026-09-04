@@ -318,7 +318,14 @@ Component and state tests MUST cover:
   rescan (`CONVENTIONS.md` C-U3);
 - outline: listing, jumping, and the deeper-levels toggle;
 - inspector: reading and writing owned metadata fields and computing progress
-  figures; and
+  figures;
+- the settings registry (`SPEC.md` §13): every preference of the record that
+  is not layout registered exactly once, ids stable and unique, defaults
+  taken from the record, the density steps exactly those of the preview,
+  and the two entries that hold no preference marked by their scope; and
+  the layout state's way in for the dialog — a switch set by key and
+  stored, and a reset restoring the complete default record, layout
+  included; and
 - rejection of stale asynchronous results: a slow scan or search that completes
   after a newer one MUST NOT overwrite the newer result; and
 - **the flows** (`SPEC.md` §8.7), driven without a component: each context
@@ -414,6 +421,12 @@ Tests MUST cover:
   pointed `GIT_CONFIG_GLOBAL` at an empty file first, the identity question
   follows, its answer is read back with `git config --local`, and the global
   file is still empty;
+- the settings dialog (`SPEC.md` §13): opened through the native menu item
+  and through the tool entry of the activity bar; a switch changed in it
+  reaching the preference file; Escape closing it with focus back on the
+  entry that opened it; the repository's identity shown, changed, and read
+  back with `git config --local`; and Reset restoring the defaults in the
+  preference file;
 - the native menu of `SPEC.md` §8.5: every declared command has an item with
   its specified accelerator, the items are enabled only when their command is
   possible, saving and closing are exercised **through the menu item** rather

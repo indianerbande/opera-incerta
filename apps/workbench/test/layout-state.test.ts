@@ -222,3 +222,29 @@ describe('the activity bar inventories', () => {
     );
   });
 });
+
+describe('the settings dialog’s way in (SPEC.md §13)', () => {
+  it('sets a switch by key and stores it', () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    expect(layout.switchValue('showBlankLines')).toBe(false);
+    layout.setSwitch('showBlankLines', true);
+    expect(layout.showBlankLines()).toBe(true);
+    expect(layout.switchValue('showBlankLines')).toBe(true);
+    expect((bridge.written.at(-1) as { showBlankLines: boolean }).showBlankLines).toBe(true);
+  });
+
+  it('resets the complete record to its defaults, layout included', () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    layout.setSwitch('showDeeperOutline', true);
+    layout.setDensity('large');
+    layout.showNavigator('sourceControl');
+    layout.resizeColumn('navigator', 40);
+
+    layout.resetPreferences();
+
+    expect(layout.snapshot()).toEqual(DEFAULT_PREFERENCES);
+    expect(bridge.written.at(-1)).toEqual(DEFAULT_PREFERENCES);
+  });
+});

@@ -43,6 +43,17 @@ export interface ActivityItem<TId extends string = string> {
         <span class="icon" [class]="item.icon" aria-hidden="true"></span>
       </button>
     }
+    @for (item of tools(); track item.id) {
+      <button
+        type="button"
+        class="item tool"
+        [attr.aria-label]="item.label"
+        [title]="item.label"
+        (click)="tool.emit(item.id)"
+      >
+        <span class="icon" [class]="item.icon" aria-hidden="true"></span>
+      </button>
+    }
   `,
   styles: `
     :host {
@@ -90,6 +101,17 @@ export interface ActivityItem<TId extends string = string> {
     .icon-snapshots {
       mask-image: url('/icons/history.svg');
     }
+    .icon-settings {
+      mask-image: url('/icons/settings.svg');
+    }
+    /* A tool opens something; it selects no view, so it sits apart, at the foot. */
+    .tool {
+      margin-block-start: auto;
+      margin-block-end: 6px;
+    }
+    .tool ~ .tool {
+      margin-block-start: 0;
+    }
     .item:hover {
       background: rgba(128, 128, 128, 0.14);
     }
@@ -107,4 +129,11 @@ export class ActivityBarComponent<TId extends string = string> {
 
   /** The id of the chosen entry — a member of the region's own view union. */
   readonly activate = output<TId>();
+
+  /**
+   * Entries at the foot that open something rather than select a view — the
+   * settings dialog. They carry no active state. SPEC.md §13.
+   */
+  readonly tools = input<readonly ActivityItem[]>([]);
+  readonly tool = output<string>();
 }

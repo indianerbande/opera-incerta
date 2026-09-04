@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **934 tests**, plus the desktop and asset checks.
+projects, **941 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -29,7 +29,18 @@ has to be consulted to build, verify or change the product.
 
 ## 1. Next — small enough to start immediately
 
-1. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+1. **A conflict prompt that nobody asked for**, seen 2026-09-04 in the
+   screenshot of the settings check: when the check begins, right after the
+   page-categories check saved the sheet through the menu, the prompt "This
+   sheet changed on disk while you were editing it" is already up, and the
+   title carries the dirty marker. Nothing in the smoke dismisses it, and
+   every later check clicks through it, so it stayed unseen. Likeliest cause:
+   the watcher reports the application's own save, and the re-read races the
+   save's own bookkeeping — `before.dirty` still true, the baseline still the
+   pre-save one — so the comparison rule of `SPEC.md` §10.6 sees a foreign
+   change. To be reproduced in a unit test of the store first, then fixed;
+   and the smoke should fail on a prompt it did not expect.
+2. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the
@@ -69,10 +80,10 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   today: in the file manager, by putting it back. An in-application list of
   what was deleted would need its own storage decision, and the desktop trash
   plus Git already cover the case.
-- **The settings panel and localization** (`SPEC.md` §13, §14). The record
-  exists and persists the workbench layout; what is missing is the category
-  panel that lets the author change the rest of it, and the English/German
-  catalogues.
+- **Localization** (`SPEC.md` §14) — the English/German catalogues and the
+  language setting, which is the first entry of the settings dialog's
+  *Appearance* category (§13, built 2026-09-04 for the categories that have
+  settings).
 - **Source control beyond this stage** — the panel, the tri-state select-all,
   committing, pushing, fetch and pull, merge with conflict resolution,
   branches, the upstream, amend and `.gitignore` are built and checked against

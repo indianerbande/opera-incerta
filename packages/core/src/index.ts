@@ -90,6 +90,16 @@ export {
   previewLines,
 } from './preview.js';
 export type { PreviewDensity, PreviewDensitySpec } from './preview.js';
+export { LAYOUT_PREFERENCE_KEYS, SETTINGS, SETTINGS_CATEGORIES, settingsOf } from './settings.js';
+export type {
+  BooleanPreferenceKey,
+  DensitySetting,
+  Setting,
+  SettingScope,
+  SettingsCategory,
+  SettingsCategoryId,
+  SwitchSetting,
+} from './settings.js';
 
 export { ExclusiveTask, RefreshCoordinator, WATCH_DEBOUNCE_MS } from './refresh.js';
 export type { ExclusiveOutcome } from './refresh.js';

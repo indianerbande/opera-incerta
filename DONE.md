@@ -6,6 +6,56 @@ documents").
 
 ---
 
+## 2026-09-04 — the settings dialog, for the settings that exist
+
+**What was open** (`TODO.md` §3, `SPEC.md` §13). The preference record
+existed and persisted the workbench layout and a handful of switches, each
+changed from wherever it happened to sit; there was no place that listed
+them, no reset, no way in from the menu, and the identity question of §12
+had promised "a settings entry" that did not exist.
+
+**What changed.** A settings registry in the core — categories and, per
+installation-local preference, one entry with a stable id, its record key,
+its default — which a test holds complete: a preference that is not layout
+and not registered fails the build. The dialog renders the registry: a
+category list, one content region, a switch or the density steps per entry,
+changes applied at once and stored like every other preference, and **Reset
+all settings** restoring the complete default record. Two categories hold no
+preference and are listed because an author looks there: *Page categories*
+opens the manager of §6.6, *Source control* edits the commit identity in
+place — the entry §12 promised — and writes it into this repository only.
+
+Two ways in: `Settings…` in the native menu with `Cmd/Ctrl+,`, under the
+application menu on macOS and under File elsewhere, enabled with a project
+open because the dialog lives in the workbench; and one tool entry at the
+foot of the leading activity bar, apart from the view entries because it
+selects no view. Escape closes; Tab stays inside; focus returns to the entry
+that opened it — told to the dialog, because a click does not focus a button
+on macOS and the document cannot say what was clicked. The gear is the
+seventh Material Symbol, from the same package version, hash-pinned beside
+the others.
+
+**Verification.** `pnpm run check` green: **941 tests** — the registry
+complete and consistent, the layout state's switch by key and reset, the
+menu's accelerator. `pnpm run desktop:smoke` green across **thirty-two
+checks**: the dialog opened from the menu item and from the gear, a switch
+reaching the preference file, Escape returning focus to the gear, the
+fixture's identity shown, changed, and read back with `git config --local`,
+Reset reaching the file. Screenshot looked at. Falsified by a dialog that
+did not name its opener: the smoke reported focus returned to `body`.
+
+**What the screenshot also showed** — a conflict prompt nobody asked for,
+up before the check began, from the save two checks earlier. Recorded in
+`TODO.md` §1 with its likeliest cause; it is the next round.
+
+**Lesson.** The first screenshot of the round was of the wrong thing: the
+dialog not yet painted, and behind it a prompt that had been standing there
+through twenty checks of every previous run. Looking at a picture found what
+no assertion had asked about. The smoke should fail on a dialog it did not
+expect; that is now on the list.
+
+---
+
 ## 2026-09-04 — the standard oracle joins the gate, and finds a seventh thing
 
 **What was decided** (`TODO.md` §2.1, by the author the same day). The

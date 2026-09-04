@@ -233,6 +233,7 @@ export const MENU_COMMANDS = [
   'project/open',
   'project/close',
   'sheet/save',
+  'settings/open',
 ] as const;
 
 export type MenuCommand = (typeof MENU_COMMANDS)[number];

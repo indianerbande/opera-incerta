@@ -1,10 +1,11 @@
-import { computed, signal } from '@angular/core';
+import { computed, signal, type WritableSignal } from '@angular/core';
 import {
   COLUMN_BOUNDS,
   COLUMN_IDEAL_WIDTH,
   DEFAULT_PREFERENCES,
   clampColumnWidth,
   readPreferences,
+  type BooleanPreferenceKey,
   type ColumnWidths,
   type NavigatorView,
   type PreviewDensity,
@@ -195,6 +196,34 @@ export class LayoutState {
   toggleDeeperOutline(): void {
     this.#showDeeperOutline.set(!this.#showDeeperOutline());
     this.#store();
+  }
+
+  /** The current value of a switch, by the key the settings registry names. */
+  switchValue(key: BooleanPreferenceKey): boolean {
+    return this.#switches()[key]();
+  }
+
+  /** Sets a switch by key — the settings dialog's way in. SPEC.md §13. */
+  setSwitch(key: BooleanPreferenceKey, value: boolean): void {
+    this.#switches()[key].set(value);
+    this.#store();
+  }
+
+  /** Reset restores the complete default record, layout included. SPEC.md §13. */
+  resetPreferences(): void {
+    this.apply(DEFAULT_PREFERENCES);
+    this.#store();
+  }
+
+  #switches(): Record<BooleanPreferenceKey, WritableSignal<boolean>> {
+    return {
+      secondaryVisible: this.#secondaryVisible,
+      showBlankLines: this.#showBlankLines,
+      showDeeperOutline: this.#showDeeperOutline,
+      showFrontMatter: this.#showFrontMatter,
+      frontMatterWritable: this.#frontMatterWritable,
+      showOwnedFrontMatter: this.#showOwnedFrontMatter,
+    };
   }
 
   /** Stores immediately; a dropped preference is not worth a prompt. */

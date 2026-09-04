@@ -64,6 +64,8 @@ export type Overlay =
     }
   /** The category manager. SPEC.md §6.6. */
   | { readonly kind: 'categories' }
+  /** The settings dialog, and what opened it — focus goes back there. SPEC.md §13. */
+  | { readonly kind: 'settings'; readonly opener: 'activityBar' | 'menu' }
   /** The name and e-mail address commits are by. SPEC.md §12. */
   | {
       readonly kind: 'identity';

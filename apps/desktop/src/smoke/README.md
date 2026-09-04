@@ -40,6 +40,7 @@ on macOS and Windows that is always there, on Linux use `xvfb-run`).
 | `checks/bridge.ts` | The workbench rendered, the bridge answers, the bridge refuses a path out of the project, the editor laid out. |
 | `checks/editor.ts` | Dot commands, the gutter menu, cursor rules around hidden heading syntax, saving through the menu, switching sheets. |
 | `checks/panes.ts` | Front matter area, page categories, inspector, outline, sidebar collapse, column dividers. |
+| `checks/settings.ts` | The settings dialog: from the menu and the activity bar, a switch reaching the preference file, Escape and focus, the identity in place, reset. |
 | `checks/source-control.ts` | Committing, live status, discarding, fetch and pull against a real remote, a real conflict, branches, amend, `.gitignore`. |
 | `checks/library.ts` | Create, rename, reorder by drag, delete into the trash, move between groups, a change made behind the application's back. |
 

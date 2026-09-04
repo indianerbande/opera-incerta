@@ -57,6 +57,7 @@ import {
   checkPageCategories,
   checkPanes,
 } from './checks/panes.js';
+import { checkSettings } from './checks/settings.js';
 import {
   checkAmendAndIgnore,
   checkBranches,
@@ -156,6 +157,7 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await checkFrontMatterArea(smoke, window);
     await checkPageCategories(smoke, window);
     await checkPanes(window);
+    await checkSettings(smoke, window);
 
     await checkCommitting(smoke, window);
     await checkLiveStatus(smoke, window);

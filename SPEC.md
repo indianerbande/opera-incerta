@@ -1030,6 +1030,7 @@ during shutdown.
 | Open Project… | `Cmd/Ctrl+O` | always |
 | Save | `Cmd/Ctrl+S` | with a project open |
 | Close Project | `Cmd/Ctrl+Shift+W` | with a project open |
+| Settings… | `Cmd/Ctrl+,` | with a project open — the dialog lives in the workbench (§13); on macOS under the application menu, elsewhere under File |
 
 Two rules govern it:
 
@@ -1880,8 +1881,9 @@ work and only the first commit fails, with a message written for programmers.
   everywhere: nothing outside the project is changed.
 - Declining the question still creates the repository. It is useful without an
   identity, and the answer can be supplied later; a settings entry MUST offer
-  that, otherwise the refusal is a dead end. Until the settings dialog (§13)
-  exists, that place is a row in the source control panel, shown only while
+  that, otherwise the refusal is a dead end. That place is the *Source
+  control* category of the settings dialog (§13), where the identity is
+  edited in place; the source control panel additionally shows a row while
   neither scope has an identity, whose button opens the same question.
 - The e-mail address is written into every commit and travels with the
   manuscript to whatever remote it is pushed to. The question says so.
@@ -1891,7 +1893,9 @@ more than the last commit.
 
 ## 13. Settings contract
 
-**Status: Accepted structure; individual values draft.**
+**Status: Accepted structure, built 2026-09-04 for the categories that have
+settings; the categories below whose settings do not exist yet arrive with
+their features.**
 
 Settings use a category list and one focused content region. Every setting has a
 stable identifier, one owner, a bounded value type, a default, and an explicit
@@ -1913,15 +1917,30 @@ dirty, or change file content.**
 Later, deliberately unimplemented categories: backup, styles, keyboard,
 accessibility, updates.
 
+**What the dialog holds today** (`packages/core/src/settings.ts`, the
+registry the dialog renders): *Sheet list* — preview size and blank lines;
+*Outline* — the deeper levels; *Front matter* — the three switches of §10.4;
+*Page categories* — a way into the manager of §6.6, because an author looks
+here for it, marked as project data; *Source control* — the commit identity
+of §12, edited in place and written into this repository only. Every
+installation-local preference that is not workbench layout MUST be in the
+registry, and a test enforces it, so a preference cannot appear without a
+place in the dialog. Appearance, Editor, Markup, and Privacy are listed in
+the table above and arrive with §14, §10.2, and §15.
+
 Heading sizes H1–H6 scale proportionally with the editor base size, keeping
 fixed ratios to the base hierarchy.
 
 **Behavior.** Changes apply immediately and are stored installation-locally.
 Unsupported versions, malformed values, and unavailable storage MUST fall back
 safely without blocking the editor. Reset restores the complete default record.
-The settings dialog is reachable from the workbench and from the native
-`Cmd/Ctrl+,` menu shortcut. Escape and an explicit close dismiss it; keyboard
-focus stays inside the modal and returns to the invoking control.
+The settings dialog is reachable from the workbench — the one tool entry at
+the foot of the leading activity bar, apart from the view entries because it
+selects no view (§8.4) — and from the native `Settings…` item with
+`Cmd/Ctrl+,` (§8.5). Escape and an explicit close dismiss it; keyboard focus
+stays inside the modal and returns to the invoking control. A click does not
+focus a button on macOS, so the dialog is told what opened it rather than
+reading it from the document.
 
 **Persistence and evolution.** The record is one versioned JSON document under a
 stable key, validated at the application boundary. Unknown fields are
