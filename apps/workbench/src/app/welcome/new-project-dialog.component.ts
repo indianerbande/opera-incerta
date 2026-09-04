@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal, inject } from '@angular/core';
 import { slugify } from '@opera-incerta/core';
 import type { ChosenLocation } from '@opera-incerta/desktop-contract';
 import { DialogComponent } from '../shell/dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Naming a new project and choosing where it goes. SPEC.md §6.1, §8.6.
@@ -20,15 +21,15 @@ import { DialogComponent } from '../shell/dialog.component.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DialogComponent],
   template: `
-    <wi-dialog label="New project" (dismiss)="cancel.emit()">
-      <h2>New project</h2>
+    <wi-dialog [label]="i18n.t('newProject.title')" (dismiss)="cancel.emit()">
+      <h2>{{ i18n.t('newProject.title') }}</h2>
 
       <label>
-        Name
+        {{ i18n.t('newProject.name') }}
         <input
           type="text"
           autofocus
-          placeholder="The Harbour Novel"
+          [placeholder]="i18n.t('newProject.namePlaceholder')"
           [value]="name()"
           (input)="name.set(value($event))"
           (keydown.enter)="submit()"
@@ -36,29 +37,28 @@ import { DialogComponent } from '../shell/dialog.component.js';
       </label>
 
       <label>
-        Location
+        {{ i18n.t('newProject.location') }}
         <div class="location">
           <span class="path" [title]="location()?.path ?? ''">
-            {{ location()?.shortPath ?? 'No folder chosen' }}
+            {{ location()?.shortPath ?? i18n.t('newProject.noFolder') }}
           </span>
-          <button type="button" (click)="chooseLocation.emit()">Choose…</button>
+          <button type="button" (click)="chooseLocation.emit()">{{ i18n.t('newProject.choose') }}</button>
         </div>
       </label>
 
       @if (folderName(); as folder) {
         <p class="preview">
-          Creates the folder <code>{{ folder }}</code>. The name above can change later;
-          the folder name cannot.
+          {{ i18n.t('newProject.previewBefore') }} <code>{{ folder }}</code>{{ i18n.t('newProject.previewAfter') }}
         </p>
       }
 
       @if (failure(); as code) {
-        <p class="failure" role="alert">Could not create the project ({{ code }}).</p>
+        <p class="failure" role="alert">{{ i18n.t('newProject.failed', { code }) }}</p>
       }
 
       <div class="actions">
-        <button type="button" (click)="cancel.emit()">Cancel</button>
-        <button type="button" [disabled]="!ready()" (click)="submit()">Create</button>
+        <button type="button" (click)="cancel.emit()">{{ i18n.t('common.cancel') }}</button>
+        <button type="button" [disabled]="!ready()" (click)="submit()">{{ i18n.t('common.create') }}</button>
       </div>
     </wi-dialog>
   `,
@@ -105,6 +105,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
   `,
 })
 export class NewProjectDialogComponent {
+  protected readonly i18n = inject(Localization);
   readonly location = input<ChosenLocation | null>(null);
   readonly failure = input<string | null>(null);
 

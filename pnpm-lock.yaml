@@ -38,6 +38,9 @@ importers:
       '@opera-incerta/git-node':
         specifier: workspace:*
         version: link:../../packages/git-node
+      '@opera-incerta/localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
       '@opera-incerta/project-node':
         specifier: workspace:*
         version: link:../../packages/project-node
@@ -74,6 +77,9 @@ importers:
       '@opera-incerta/desktop-contract':
         specifier: workspace:*
         version: link:../../packages/desktop-contract
+      '@opera-incerta/localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
@@ -117,6 +123,8 @@ importers:
       '@opera-incerta/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/localization: {}
 
   packages/project-node:
     dependencies:

@@ -18,8 +18,10 @@ import {
   type SettingsCategoryId,
 } from '@opera-incerta/core';
 import type { GitIdentity, GitIdentityReport } from '@opera-incerta/desktop-contract';
+import type { MessageKey } from '@opera-incerta/localization';
 import { LayoutState } from './layout-state.js';
 import { DialogComponent } from './dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * The settings dialog. SPEC.md §13.
@@ -43,13 +45,13 @@ import { DialogComponent } from './dialog.component.js';
   imports: [DialogComponent],
   host: { '(keydown.tab)': 'keepFocusInside($event)', '(keydown.shift.tab)': 'keepFocusInside($event)' },
   template: `
-    <wi-dialog label="Settings" width="min(720px, calc(100vw - 48px))" maxHeight="min(560px, calc(100vh - 48px))" (dismiss)="close.emit()">
+    <wi-dialog [label]="i18n.t('settings.title')" width="min(720px, calc(100vw - 48px))" maxHeight="min(560px, calc(100vh - 48px))" (dismiss)="close.emit()">
       <header>
-        <h2>Settings</h2>
-        <button type="button" class="close" (click)="close.emit()">Close</button>
+        <h2>{{ i18n.t('settings.title') }}</h2>
+        <button type="button" class="close" (click)="close.emit()">{{ i18n.t('common.close') }}</button>
       </header>
       <div class="body">
-        <nav class="categories" aria-label="Settings categories">
+        <nav class="categories" [attr.aria-label]="i18n.t('settings.categories')">
           @for (category of categories; track category.id) {
             <button
               type="button"
@@ -58,13 +60,13 @@ import { DialogComponent } from './dialog.component.js';
               [attr.aria-current]="category.id === selected() ? 'page' : null"
               (click)="selected.set(category.id)"
             >
-              {{ category.label }}
+              {{ i18n.t(key(category.labelKey)) }}
             </button>
           }
         </nav>
-        <section class="content" [attr.aria-label]="current().label">
-          <h3>{{ current().label }}</h3>
-          <p class="hint">{{ current().description }}</p>
+        <section class="content" [attr.aria-label]="i18n.t(key(current().labelKey))">
+          <h3>{{ i18n.t(key(current().labelKey)) }}</h3>
+          <p class="hint">{{ i18n.t(key(current().descriptionKey)) }}</p>
 
           @for (setting of settings(); track setting.id) {
             @if (setting.kind === 'switch') {
@@ -74,14 +76,14 @@ import { DialogComponent } from './dialog.component.js';
                   [checked]="switchValue(setting)"
                   (change)="layout.setSwitch(setting.key, checked($event))"
                 />
-                <span class="label">{{ setting.label }}</span>
-                @if (setting.hint; as hint) {
-                  <span class="hint">{{ hint }}</span>
+                <span class="label">{{ i18n.t(key(setting.labelKey)) }}</span>
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint)) }}</span>
                 }
               </label>
-            } @else {
+            } @else if (setting.kind === 'density') {
               <fieldset class="setting choice">
-                <legend>{{ setting.label }}</legend>
+                <legend>{{ i18n.t(key(setting.labelKey)) }}</legend>
                 @for (option of setting.options; track option.value) {
                   <label>
                     <input
@@ -91,11 +93,30 @@ import { DialogComponent } from './dialog.component.js';
                       [checked]="layout.sheetListDensity() === option.value"
                       (change)="layout.setDensity(option.value)"
                     />
-                    {{ option.label }}
+                    {{ i18n.t(key(option.labelKey)) }}
                   </label>
                 }
-                @if (setting.hint; as hint) {
-                  <span class="hint">{{ hint }}</span>
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint)) }}</span>
+                }
+              </fieldset>
+            } @else {
+              <fieldset class="setting choice language">
+                <legend>{{ i18n.t(key(setting.labelKey)) }}</legend>
+                @for (option of setting.options; track option.value) {
+                  <label>
+                    <input
+                      type="radio"
+                      name="language"
+                      [value]="option.value"
+                      [checked]="layout.interfaceLanguage() === option.value"
+                      (change)="layout.setLanguage(option.value)"
+                    />
+                    {{ i18n.t(key(option.labelKey)) }}
+                  </label>
+                }
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint)) }}</span>
                 }
               </fieldset>
             }
@@ -104,31 +125,28 @@ import { DialogComponent } from './dialog.component.js';
           @if (selected() === 'pageCategories') {
             <div class="setting">
               <button type="button" class="manage-categories" (click)="manageCategories.emit()">
-                Manage categories…
+                {{ i18n.t('settings.manageCategories') }}
               </button>
             </div>
           }
 
           @if (selected() === 'sourceControl') {
             @if (identity() === null) {
-              <p class="hint">This project is not inside a Git repository.</p>
+              <p class="hint">{{ i18n.t('sourceControl.noRepository') }}</p>
             } @else {
               <p class="hint">{{ identitySource() }}</p>
               <label class="setting field">
-                <span class="label">Name</span>
+                <span class="label">{{ i18n.t('identity.name') }}</span>
                 <input type="text" name="name" [value]="name()" (input)="name.set(value($event))" />
               </label>
               <label class="setting field">
-                <span class="label">E-mail</span>
+                <span class="label">{{ i18n.t('identity.email') }}</span>
                 <input type="email" name="email" [value]="email()" (input)="email.set(value($event))" />
               </label>
-              <p class="hint">
-                Both are written into every commit and go with the manuscript wherever it is
-                published. They are recorded in this project only; nothing outside it changes.
-              </p>
+              <p class="hint">{{ i18n.t('identity.hint') }}</p>
               <div class="setting">
                 <button type="button" class="save-identity" [disabled]="!identityChanged()" (click)="saveIdentity()">
-                  Save
+                  {{ i18n.t('common.save') }}
                 </button>
               </div>
             }
@@ -136,9 +154,9 @@ import { DialogComponent } from './dialog.component.js';
         </section>
       </div>
       <div class="actions">
-        <button type="button" class="reset" (click)="layout.resetPreferences()">Reset all settings</button>
+        <button type="button" class="reset" (click)="layout.resetPreferences()">{{ i18n.t('settings.reset') }}</button>
         <span class="spacer"></span>
-        <span class="hint">Changes apply at once and are kept for this installation.</span>
+        <span class="hint">{{ i18n.t('settings.applyNote') }}</span>
       </div>
     </wi-dialog>
   `,
@@ -229,6 +247,7 @@ import { DialogComponent } from './dialog.component.js';
   `,
 })
 export class SettingsComponent {
+  protected readonly i18n = inject(Localization);
   protected readonly layout = inject(LayoutState);
   readonly #host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -272,13 +291,23 @@ export class SettingsComponent {
   protected readonly identitySource = computed(() => {
     const report = this.identity();
     if (report?.local !== null && report?.local !== undefined) {
-      return 'Recorded in this repository.';
+      return this.i18n.t('settings.identity.local');
     }
     if (report?.global !== null && report?.global !== undefined) {
-      return 'From your global Git configuration; saving here records a copy in this repository.';
+      return this.i18n.t('settings.identity.global');
     }
-    return 'Commits have no author yet.';
+    return this.i18n.t('settings.identity.none');
   });
+
+  /**
+   * The registry names its keys as strings, because the core is text-free
+   * and knows no catalogue; here they meet the catalogue's type. A key the
+   * catalogue lacks would show as itself — the localization tests keep the
+   * registry and the catalogue in step.
+   */
+  protected key(registryKey: string): MessageKey {
+    return registryKey as MessageKey;
+  }
 
   readonly #opener = typeof document === 'undefined' ? null : document.activeElement;
   readonly #focusables = signal<readonly HTMLElement[]>([]);

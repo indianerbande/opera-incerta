@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import type { MessageKey } from '@opera-incerta/localization';
+import { Localization } from '../localization/localization.js';
 
 /**
  * One entry of an activity bar. SPEC.md §8.4.
@@ -14,7 +16,8 @@ export interface ActivityItem<TId extends string = string> {
   readonly id: TId;
   /** Class selecting the mask, defined in this component's styles. */
   readonly icon: string;
-  readonly label: string;
+  /** The key of the accessible name; the bar translates it (SPEC.md §14). */
+  readonly labelKey: MessageKey;
 }
 
 /**
@@ -35,9 +38,9 @@ export interface ActivityItem<TId extends string = string> {
         type="button"
         class="item"
         [class.active]="item.id === activeId()"
-        [attr.aria-label]="item.label"
+        [attr.aria-label]="i18n.t(item.labelKey)"
         [attr.aria-pressed]="item.id === activeId()"
-        [title]="item.label"
+        [title]="i18n.t(item.labelKey)"
         (click)="activate.emit(item.id)"
       >
         <span class="icon" [class]="item.icon" aria-hidden="true"></span>
@@ -47,8 +50,8 @@ export interface ActivityItem<TId extends string = string> {
       <button
         type="button"
         class="item tool"
-        [attr.aria-label]="item.label"
-        [title]="item.label"
+        [attr.aria-label]="i18n.t(item.labelKey)"
+        [title]="i18n.t(item.labelKey)"
         (click)="tool.emit(item.id)"
       >
         <span class="icon" [class]="item.icon" aria-hidden="true"></span>
@@ -123,6 +126,7 @@ export interface ActivityItem<TId extends string = string> {
   `,
 })
 export class ActivityBarComponent<TId extends string = string> {
+  protected readonly i18n = inject(Localization);
   readonly items = input.required<readonly ActivityItem<TId>[]>();
   /** The active view of the region this bar drives, or null when collapsed. */
   readonly activeId = input.required<TId | null>();

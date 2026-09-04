@@ -5,8 +5,10 @@ import {
   input,
   linkedSignal,
   output,
+  inject,
 } from '@angular/core';
 import { DialogComponent } from './dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Asking for one line of text. SPEC.md §6.4, §6.5.
@@ -34,7 +36,7 @@ import { DialogComponent } from './dialog.component.js';
         <p class="hint">{{ note }}</p>
       }
       <div class="actions">
-        <button type="button" (click)="cancel.emit()">Cancel</button>
+        <button type="button" (click)="cancel.emit()">{{ i18n.t('common.cancel') }}</button>
         <button type="button" [disabled]="!valid()" (click)="submit()">{{ confirmLabel() }}</button>
       </div>
     </wi-dialog>
@@ -51,6 +53,7 @@ import { DialogComponent } from './dialog.component.js';
   `,
 })
 export class TextPromptComponent {
+  protected readonly i18n = inject(Localization);
   readonly title = input.required<string>();
   readonly initial = input('');
   readonly placeholder = input('');

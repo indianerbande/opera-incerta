@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal, inject } from '@angular/core';
 import {
   countConflicts,
   diffProse,
@@ -8,6 +8,7 @@ import {
   type ConflictRegion,
 } from '@opera-incerta/core';
 import { DialogComponent } from '../shell/dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Deciding a merge, one conflict at a time. SPEC.md §12.
@@ -31,17 +32,17 @@ import { DialogComponent } from '../shell/dialog.component.js';
   imports: [DialogComponent],
   template: `
     <wi-dialog
-      [label]="'Resolve ' + path()"
+      [label]="i18n.t('resolver.label', { path: path() })"
       width="min(880px, calc(100vw - 64px))"
       maxHeight="min(76vh, 700px)"
       (dismiss)="close.emit()"
     >
       <header>
         <h2>{{ path() }}</h2>
-        <span class="count">{{ decided() }} of {{ total() }} decided</span>
-        <button type="button" (click)="close.emit()">Cancel</button>
+        <span class="count">{{ i18n.t('resolver.decided', { decided: decided(), total: total() }) }}</span>
+        <button type="button" (click)="close.emit()">{{ i18n.t('common.cancel') }}</button>
         <button type="button" class="apply" [disabled]="decided() !== total()" (click)="apply()">
-          Apply
+          {{ i18n.t('resolver.apply') }}
         </button>
       </header>
 
@@ -56,7 +57,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
                   [checked]="choiceAt($index) === 'ours'"
                   (change)="choose($index, 'ours')"
                 />
-                Keep mine
+                {{ i18n.t('resolver.keepMine') }}
                 <span class="label">{{ shorten(region.oursLabel) }}</span>
               </label>
               <p class="text">@for (part of mine($index); track $index) {<span
@@ -72,7 +73,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
                   [checked]="choiceAt($index) === 'theirs'"
                   (change)="choose($index, 'theirs')"
                 />
-                Take theirs
+                {{ i18n.t('resolver.takeTheirs') }}
                 <span class="label">{{ incoming() ?? shorten(region.theirsLabel) }}</span>
               </label>
               <p class="text">@for (part of theirs($index); track $index) {<span
@@ -144,6 +145,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
   `,
 })
 export class ConflictResolverComponent {
+  protected readonly i18n = inject(Localization);
   readonly path = input.required<string>();
   /** The file as the merge left it, markers and all. */
   readonly text = input.required<string>();

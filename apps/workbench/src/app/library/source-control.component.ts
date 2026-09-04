@@ -3,6 +3,7 @@ import { isConflicted } from '@opera-incerta/core';
 import type { GitFileStatus } from '@opera-incerta/core';
 import { SourceControlActions } from '../workspace/source-control-actions.js';
 import { SourceControlStore } from '../workspace/source-control-store.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * The source control panel. SPEC.md §12.
@@ -30,30 +31,30 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
         <!-- A normal starting point, and the one offer that fits it
              (SPEC.md §12). Nothing is staged or committed by it. -->
         <div class="no-repository">
-          <p class="hint">This project is not inside a Git repository.</p>
+          <p class="hint">{{ i18n.t('sourceControl.noRepository') }}</p>
           <button type="button" class="create-repository" (click)="actions.createRepository()">
-            Create repository
+            {{ i18n.t('sourceControl.createRepository') }}
           </button>
         </div>
       } @else {
-        <p class="hint">Reading…</p>
+        <p class="hint">{{ i18n.t('sourceControl.reading') }}</p>
       }
     } @else {
       <div class="panel">
         @if (store.branch(); as name) {
           <div class="branch-row">
-            <span class="branch-name" [title]="'On branch ' + name">{{ name }}</span>
-            <button type="button" (click)="actions.openBranches()">Branches…</button>
+            <span class="branch-name" [title]="i18n.t('sourceControl.onBranch', { name })">{{ name }}</span>
+            <button type="button" (click)="actions.openBranches()">{{ i18n.t('sourceControl.branches') }}</button>
           </div>
         }
 
         @if (store.canPublish()) {
           <div class="tracking">
             <div class="remote">
-              <span class="upstream">{{ store.branch() }} — not published</span>
+              <span class="upstream">{{ i18n.t('sourceControl.notPublished', { branch: store.branch() ?? '' }) }}</span>
             </div>
             <div class="remote-actions">
-              <button type="button" (click)="actions.askToPublish()">Publish branch…</button>
+              <button type="button" (click)="actions.askToPublish()">{{ i18n.t('sourceControl.publish') }}</button>
             </div>
           </div>
         }
@@ -61,7 +62,7 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
         @if (store.tracking(); as remote) {
           <div class="tracking">
             <div class="remote">
-              <span class="upstream" [title]="'Tracking ' + remote.upstream">{{
+              <span class="upstream" [title]="i18n.t('sourceControl.tracking', { upstream: remote.upstream })">{{
                 remote.upstream
               }}</span>
               <span class="counts">
@@ -72,17 +73,17 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
                   <span class="ahead">↑{{ remote.ahead }}</span>
                 }
                 @if (remote.behind === 0 && remote.ahead === 0) {
-                  <span class="even">up to date</span>
+                  <span class="even">{{ i18n.t('sourceControl.upToDate') }}</span>
                 }
               </span>
             </div>
             <div class="remote-actions">
-              <button type="button" (click)="store.fetch()">Fetch</button>
+              <button type="button" (click)="store.fetch()">{{ i18n.t('sourceControl.fetch') }}</button>
               <button type="button" [disabled]="!store.canPull()" (click)="store.pull()">
-                Pull
+                {{ i18n.t('sourceControl.pull') }}
               </button>
               @if (store.canMerge()) {
-                <button type="button" (click)="actions.askToMerge()">Merge…</button>
+                <button type="button" (click)="actions.askToMerge()">{{ i18n.t('sourceControl.merge') }}</button>
               }
             </div>
           </div>
@@ -90,8 +91,8 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
 
         @if (store.merging()) {
           <div class="merging" role="status">
-            <span>Merge in progress. Decide each conflict, then commit.</span>
-            <button type="button" (click)="store.abortMerge()">Abort merge</button>
+            <span>{{ i18n.t('sourceControl.merging') }}</span>
+            <button type="button" (click)="store.abortMerge()">{{ i18n.t('sourceControl.abortMerge') }}</button>
           </div>
         }
 
@@ -99,15 +100,15 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
           <!-- The way back to the question a created repository asked, for an
                author who declined it then (SPEC.md §12). -->
           <div class="identity-row">
-            <span class="hint">Commits have no author yet.</span>
+            <span class="hint">{{ i18n.t('sourceControl.noAuthor') }}</span>
             <button type="button" class="set-identity" (click)="actions.askForIdentity()">
-              Set…
+              {{ i18n.t('sourceControl.setIdentity') }}
             </button>
           </div>
         }
 
         <div class="ignore-row">
-          <button type="button" (click)="actions.openIgnore()">Ignored files…</button>
+          <button type="button" (click)="actions.openIgnore()">{{ i18n.t('sourceControl.ignoredFiles') }}</button>
         </div>
 
         <div class="changes-header">
@@ -116,10 +117,10 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
             [checked]="store.selectAll() === 'all'"
             [indeterminate]="store.selectAll() === 'some'"
             [disabled]="store.entries().length === 0"
-            [attr.aria-label]="'Stage all changes'"
+            [attr.aria-label]="i18n.t('sourceControl.stageAll')"
             (change)="store.toggleAll()"
           />
-          <span>Changes ({{ store.entries().length }})</span>
+          <span>{{ i18n.t('sourceControl.changes', { count: store.entries().length }) }}</span>
         </div>
 
         <ul class="changes">
@@ -128,7 +129,7 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
               <input
                 type="checkbox"
                 [checked]="staged(entry)"
-                [attr.aria-label]="'Stage ' + entry.path"
+                [attr.aria-label]="i18n.t('sourceControl.stage', { path: entry.path })"
                 (change)="store.toggle(entry)"
               />
               <span class="status" [title]="statusTitle(entry)">{{ statusCode(entry) }}</span>
@@ -138,8 +139,8 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
                 <button
                   type="button"
                   class="ignore"
-                  [attr.aria-label]="'Ignore ' + entry.path"
-                  title="Add to .gitignore"
+                  [attr.aria-label]="i18n.t('sourceControl.ignore', { path: entry.path })"
+                  [title]="i18n.t('sourceControl.ignoreTitle')"
                   (click)="store.ignorePath(entry.path)"
                 >
                   ⊘
@@ -149,18 +150,18 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
                 <button
                   type="button"
                   class="resolve"
-                  [attr.aria-label]="'Resolve ' + entry.path"
-                  title="Resolve this conflict"
+                  [attr.aria-label]="i18n.t('sourceControl.resolve', { path: entry.path })"
+                  [title]="i18n.t('sourceControl.resolveTitle')"
                   (click)="actions.openResolver(entry)"
                 >
-                  Resolve…
+                  {{ i18n.t('sourceControl.resolveButton') }}
                 </button>
               }
               <button
                 type="button"
                 class="show-diff"
-                [attr.aria-label]="'Show changes to ' + entry.path"
-                title="Show changes"
+                [attr.aria-label]="i18n.t('sourceControl.showChanges', { path: entry.path })"
+                [title]="i18n.t('sourceControl.showChangesTitle')"
                 (click)="actions.showDiff(entry)"
               >
                 ⤢
@@ -168,22 +169,22 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
               <button
                 type="button"
                 class="discard"
-                [attr.aria-label]="'Discard changes to ' + entry.path"
-                title="Discard changes"
+                [attr.aria-label]="i18n.t('sourceControl.discardChanges', { path: entry.path })"
+                [title]="i18n.t('sourceControl.discardTitle')"
                 (click)="actions.askToDiscard(entry)"
               >
                 ↺
               </button>
             </li>
           } @empty {
-            <li class="hint">Nothing has changed.</li>
+            <li class="hint">{{ i18n.t('sourceControl.nothingChanged') }}</li>
           }
         </ul>
 
         <textarea
           class="message"
           rows="3"
-          placeholder="Commit message"
+          [placeholder]="i18n.t('sourceControl.messagePlaceholder')"
           [value]="store.message()"
           (input)="store.setMessage(value($event))"
         ></textarea>
@@ -195,14 +196,14 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
         <div class="actions">
           @if (store.canAmend()) {
             <button type="button" class="amend" (click)="actions.askToAmend()">
-              Amend last commit…
+              {{ i18n.t('sourceControl.amend') }}
             </button>
           }
           <button type="button" [disabled]="!store.canCommit()" (click)="store.commit()">
-            Commit
+            {{ i18n.t('sourceControl.commit') }}
           </button>
           <button type="button" [disabled]="!store.canCommit()" (click)="store.commitAndPush()">
-            Commit and push
+            {{ i18n.t('sourceControl.commitAndPush') }}
           </button>
         </div>
       </div>
@@ -488,6 +489,7 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
   `,
 })
 export class SourceControlComponent {
+  protected readonly i18n = inject(Localization);
   protected readonly store = inject(SourceControlStore);
   protected readonly actions = inject(SourceControlActions);
 
@@ -532,9 +534,6 @@ export class SourceControlComponent {
    * git's, because there is no git.
    */
   protected wording(reason: string): string {
-    return reason === 'git/not-installed'
-      ? 'Git is not installed on this machine, or not on the path. Source control needs ' +
-          'it; everything else works without it.'
-      : reason;
+    return reason === 'git/not-installed' ? this.i18n.t('sourceControl.gitNotInstalled') : reason;
   }
 }

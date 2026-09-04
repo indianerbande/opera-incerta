@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COLUMN_BOUNDS, COLUMN_IDEAL_WIDTH, DEFAULT_PREFERENCES } from '@opera-incerta/core';
 import type { OperaIncertaBridge } from '@opera-incerta/desktop-contract';
+import { translate } from '@opera-incerta/localization';
 import {
   LayoutState,
   NAVIGATOR_ITEMS,
@@ -210,13 +211,16 @@ describe('the activity bar inventories', () => {
     expect(new Set(icons).size).toBe(icons.length);
 
     for (const item of [...NAVIGATOR_ITEMS, ...SECONDARY_ITEMS]) {
-      expect(item.label.length).toBeGreaterThan(2);
+      // The name is a catalogue key; the English word behind it is the check.
+      expect(translate('en', item.labelKey).length).toBeGreaterThan(2);
       expect(item.icon.startsWith('icon-')).toBe(true);
     }
   });
 
   it('offers no entry that merely toggles a region, which would name a position', () => {
-    const labels = [...NAVIGATOR_ITEMS, ...SECONDARY_ITEMS].map((item) => item.label.toLowerCase());
+    const labels = [...NAVIGATOR_ITEMS, ...SECONDARY_ITEMS].map((item) =>
+      translate('en', item.labelKey).toLowerCase(),
+    );
     expect(labels.some((label) => label.includes('sidebar') || label.includes('toggle'))).toBe(
       false,
     );

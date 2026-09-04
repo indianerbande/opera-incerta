@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta/core';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Metadata of the active sheet. SPEC.md §11.
@@ -18,13 +19,13 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
     @if (available()) {
       <div class="inspector">
         <section class="progress">
-          <div><strong>{{ statistics().words }}</strong> words</div>
-          <div><strong>{{ statistics().characters }}</strong> characters</div>
-          <div><strong>{{ statistics().readingMinutes }}</strong> min reading</div>
+          <div><strong>{{ statistics().words }}</strong> {{ i18n.n('inspector.words', statistics().words) }}</div>
+          <div><strong>{{ statistics().characters }}</strong> {{ i18n.n('inspector.characters', statistics().characters) }}</div>
+          <div><strong>{{ statistics().readingMinutes }}</strong> {{ i18n.n('inspector.minutes', statistics().readingMinutes) }}</div>
         </section>
 
         <label>
-          Title
+          {{ i18n.t('inspector.title') }}
           <input
             type="text"
             [value]="metadata().title ?? ''"
@@ -33,27 +34,27 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
         </label>
 
         <label>
-          Topic
+          {{ i18n.t('inspector.topic') }}
           <input
             type="text"
-            placeholder="one short label"
+            [placeholder]="i18n.t('inspector.topicPlaceholder')"
             [value]="metadata().topic ?? ''"
             (change)="metadataChange.emit({ topic: value($event) })"
           />
         </label>
 
         <label>
-          Keywords
+          {{ i18n.t('inspector.keywords') }}
           <input
             type="text"
-            placeholder="comma separated"
+            [placeholder]="i18n.t('inspector.keywordsPlaceholder')"
             [value]="(metadata().keywords ?? []).join(', ')"
             (change)="metadataChange.emit({ keywords: keywords($event) })"
           />
         </label>
 
         <label>
-          Status
+          {{ i18n.t('inspector.status') }}
           <input
             type="text"
             [value]="metadata().status ?? ''"
@@ -62,35 +63,35 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
         </label>
 
         <label class="category">
-          Category
+          {{ i18n.t('inspector.category') }}
           <span class="row">
             <select
               [value]="metadata().category ?? ''"
               (change)="metadataChange.emit({ category: value($event) })"
             >
-              <option value="">None</option>
+              <option value="">{{ i18n.t('inspector.noCategory') }}</option>
               @for (category of categories(); track category.id) {
                 <option [value]="category.id" [selected]="category.id === metadata().category">
                   {{ category.name }}
                 </option>
               }
             </select>
-            <button type="button" (click)="manage.emit()">Manage…</button>
+            <button type="button" (click)="manage.emit()">{{ i18n.t('inspector.manage') }}</button>
           </span>
         </label>
 
         <label class="notes">
-          Notes
+          {{ i18n.t('inspector.notes') }}
           <textarea
             rows="6"
-            placeholder="research, open questions, reminders"
+            [placeholder]="i18n.t('inspector.notesPlaceholder')"
             [value]="metadata().notes ?? ''"
             (change)="metadataChange.emit({ notes: value($event) })"
           ></textarea>
         </label>
       </div>
     } @else {
-      <p class="hint">No sheet open.</p>
+      <p class="hint">{{ i18n.t('inspector.noSheet') }}</p>
     }
   `,
   styles: `
@@ -147,6 +148,7 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
   `,
 })
 export class InspectorComponent {
+  protected readonly i18n = inject(Localization);
   readonly metadata = input.required<SheetMetadata>();
   readonly statistics = input.required<TextStatistics>();
   readonly available = input.required<boolean>();

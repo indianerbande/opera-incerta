@@ -7,6 +7,7 @@ import {
   readPreferences,
   type BooleanPreferenceKey,
   type ColumnWidths,
+  type InterfaceLanguage,
   type NavigatorView,
   type PreviewDensity,
   type SecondarySidebarView,
@@ -17,16 +18,17 @@ import type { ActivityItem } from './activity-bar.component.js';
 
 export type { NavigatorView, SecondarySidebarView };
 
+/** The entries of the two bars, by the key of their name (SPEC.md §14). */
 export const NAVIGATOR_ITEMS: readonly ActivityItem<NavigatorView>[] = [
-  { id: 'explorer', icon: 'icon-explorer', label: 'Explorer' },
-  { id: 'sourceControl', icon: 'icon-source-control', label: 'Source control' },
+  { id: 'explorer', icon: 'icon-explorer', labelKey: 'view.explorer' },
+  { id: 'sourceControl', icon: 'icon-source-control', labelKey: 'view.sourceControl' },
 ];
 
 export const SECONDARY_ITEMS: readonly ActivityItem<SecondarySidebarView>[] = [
-  { id: 'inspector', icon: 'icon-inspector', label: 'Inspector' },
-  { id: 'outline', icon: 'icon-outline', label: 'Outline' },
-  { id: 'ai', icon: 'icon-ai', label: 'AI assistant' },
-  { id: 'snapshots', icon: 'icon-snapshots', label: 'Snapshots' },
+  { id: 'inspector', icon: 'icon-inspector', labelKey: 'view.inspector' },
+  { id: 'outline', icon: 'icon-outline', labelKey: 'view.outline' },
+  { id: 'ai', icon: 'icon-ai', labelKey: 'view.ai' },
+  { id: 'snapshots', icon: 'icon-snapshots', labelKey: 'view.snapshots' },
 ];
 
 export type ResizableColumn = keyof ColumnWidths;
@@ -58,6 +60,7 @@ export class LayoutState {
   readonly #showFrontMatter = signal(DEFAULT_PREFERENCES.showFrontMatter);
   readonly #frontMatterWritable = signal(DEFAULT_PREFERENCES.frontMatterWritable);
   readonly #showOwnedFrontMatter = signal(DEFAULT_PREFERENCES.showOwnedFrontMatter);
+  readonly #interfaceLanguage = signal<InterfaceLanguage>(DEFAULT_PREFERENCES.interfaceLanguage);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
     this.#bridge = bridge;
@@ -76,15 +79,17 @@ export class LayoutState {
   readonly showFrontMatter = this.#showFrontMatter.asReadonly();
   readonly frontMatterWritable = this.#frontMatterWritable.asReadonly();
   readonly showOwnedFrontMatter = this.#showOwnedFrontMatter.asReadonly();
+  /** The stored language choice; the localization service resolves it. SPEC.md §14. */
+  readonly interfaceLanguage = this.#interfaceLanguage.asReadonly();
 
   /** The active entry of the trailing bar, or null while the sidebar is collapsed. */
   readonly activeSecondaryId = computed<SecondarySidebarView | null>(() =>
     this.#secondaryVisible() ? this.#secondaryView() : null,
   );
 
-  /** The title of the secondary sidebar: the label of its active entry. */
-  readonly secondaryTitle = computed(
-    () => SECONDARY_ITEMS.find((item) => item.id === this.#secondaryView())?.label ?? '',
+  /** The key of the secondary sidebar's title: the name of its active entry. */
+  readonly secondaryTitleKey = computed(
+    () => SECONDARY_ITEMS.find((item) => item.id === this.#secondaryView())?.labelKey ?? 'view.inspector',
   );
 
   /** Applies the stored record, or the defaults when there is none. */
@@ -113,12 +118,14 @@ export class LayoutState {
     this.#showFrontMatter.set(preferences.showFrontMatter);
     this.#frontMatterWritable.set(preferences.frontMatterWritable);
     this.#showOwnedFrontMatter.set(preferences.showOwnedFrontMatter);
+    this.#interfaceLanguage.set(preferences.interfaceLanguage);
   }
 
   /** The record as it currently stands. */
   snapshot(): WorkbenchPreferences {
     return {
       version: DEFAULT_PREFERENCES.version,
+      interfaceLanguage: this.#interfaceLanguage(),
       columnWidths: this.#columnWidths(),
       navigatorView: this.#navigatorView(),
       secondaryView: this.#secondaryView(),
@@ -165,6 +172,11 @@ export class LayoutState {
   /** Double-clicking a divider restores that column's ideal width. */
   resetColumn(column: ResizableColumn): void {
     this.#columnWidths.set({ ...this.#columnWidths(), [column]: COLUMN_IDEAL_WIDTH[column] });
+    this.#store();
+  }
+
+  setLanguage(language: InterfaceLanguage): void {
+    this.#interfaceLanguage.set(language);
     this.#store();
   }
 

@@ -18,6 +18,13 @@ export const PREFERENCES_KEY = 'opera-incerta.workbench.preferences';
 export const PREFERENCES_VERSION = 1;
 
 export type NavigatorView = 'explorer' | 'sourceControl';
+
+/**
+ * The interface language, or "whatever the system says". The catalogues and
+ * the resolution live in `@opera-incerta/localization`; the record stores the
+ * choice only, because the core is text-free (SPEC.md §14.3).
+ */
+export type InterfaceLanguage = 'system' | 'en' | 'de';
 export type SecondarySidebarView = 'inspector' | 'outline' | 'ai' | 'snapshots';
 
 export interface ColumnWidths {
@@ -28,6 +35,8 @@ export interface ColumnWidths {
 
 export interface WorkbenchPreferences {
   readonly version: number;
+  /** SPEC.md §13, §14: the first setting of the Appearance category. */
+  readonly interfaceLanguage: InterfaceLanguage;
   readonly columnWidths: ColumnWidths;
   readonly navigatorView: NavigatorView;
   readonly secondaryView: SecondarySidebarView;
@@ -46,6 +55,7 @@ export interface WorkbenchPreferences {
 
 export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   version: PREFERENCES_VERSION,
+  interfaceLanguage: 'system',
   columnWidths: {
     navigator: COLUMN_IDEAL_WIDTH.navigator,
     sheetList: COLUMN_IDEAL_WIDTH.sheetList,
@@ -63,6 +73,7 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
 };
 
 const NAVIGATOR_VIEWS: readonly string[] = ['explorer', 'sourceControl'];
+const INTERFACE_LANGUAGES: readonly string[] = ['system', 'en', 'de'];
 const SECONDARY_VIEWS: readonly string[] = ['inspector', 'outline', 'ai', 'snapshots'];
 
 /**
@@ -80,6 +91,11 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
 
   return {
     version: PREFERENCES_VERSION,
+    interfaceLanguage: pick(
+      stored['interfaceLanguage'],
+      INTERFACE_LANGUAGES,
+      DEFAULT_PREFERENCES.interfaceLanguage,
+    ),
     columnWidths: readColumnWidths(stored['columnWidths']),
     navigatorView: pick(stored['navigatorView'], NAVIGATOR_VIEWS, DEFAULT_PREFERENCES.navigatorView),
     secondaryView: pick(stored['secondaryView'], SECONDARY_VIEWS, DEFAULT_PREFERENCES.secondaryView),

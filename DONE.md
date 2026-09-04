@@ -6,6 +6,57 @@ documents").
 
 ---
 
+## 2026-09-04 — the interface speaks German, and the menu with it
+
+**What was open** (`TODO.md` §3, `SPEC.md` §14). Accepted since the first
+day, built nowhere: every word of the interface sat in its template, the
+registry of the settings dialog carried English labels inside the
+text-free core, and the group-deletion warning chose between "1 sheet" and
+"sheets" with the very `count === 1` the specification forbids.
+
+**What changed.** A new package, `packages/localization`, holds the
+English and German catalogues and the rules that read them: `translate`
+with `{name}` placeholders, `plural` by `Intl.PluralRules`, and the
+resolution of the stored choice — `system`, `en`, `de` — against a
+language tag. Every key is typed from the English catalogue; the German one
+is typed against it, so a lost line is a compile error. The renderer's one
+localization service exposes `t` and `n` over a signal, and every
+component, every flow, and the launcher went through it: some two hundred
+and twenty strings, none left behind, and the activity bars and the
+settings registry now name keys rather than words. The language is the
+first setting of the Appearance category. The main process resolves the
+same choice against Electron's locale and rebuilds the native menu the
+moment the preference record is written with another language; the
+document's `lang` follows.
+
+User data stayed where it was: the type of `t` takes a key, never a
+string, and a test reads the source for a call whose first argument is
+anything else. The settings dialog's one bridge from the registry's string
+keys is the named exception.
+
+**Verification.** `pnpm run check` green: **969 tests** — the catalogues
+in step with each other, plural resolution for both languages over eight
+counts, the fallback for a lost key, the choice resolved, every key the
+interface uses present in both catalogues, no user data handed to the
+service, and the service changing language on the layout state's word.
+`pnpm run desktop:smoke` green across **thirty-two checks**: the interface
+switched to German, and the dialog, the activity bar, the document's
+`lang`, and the native menu item read German, then English again; the run
+seeds English first, because the machine it ran on is German. Screenshot
+looked at: the whole workbench in German, the project's own names
+untouched. Falsified three ways: a key the catalogue lacks turned the scan
+red; a sheet title handed to the service turned the user-data check red; a
+German line deleted failed the build.
+
+**Lesson.** The smoke had been reading English off the screen on a German
+machine and never knew, because until today the application had no other
+language to fall into. The first run after the build failed on
+"Darstellung" where it looked for "Appearance". A test that assumes the
+language of its subject is a test that will be surprised by localization;
+the seed is one line, and the surprise was worth it.
+
+---
+
 ## 2026-09-04 — a prompt about nothing, and a chain that stops
 
 **What was open.** The previous entry's smoke was red once at the

@@ -107,6 +107,15 @@ mkdirSync(evidenceDirectory, { recursive: true });
 // The recent list and the preference record are installation-local state; a
 // test run must not write into the author's.
 const userDataPath = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-userdata-'));
+// The checks read English words off the screen. The interface follows the
+// system language unless told otherwise (SPEC.md §14), and the machine this
+// runs on may well be German — so the preference is seeded, not assumed. The
+// settings check switches languages and puts this back.
+writeFileSync(
+  join(userDataPath, PREFERENCES_FILE),
+  `${JSON.stringify({ interfaceLanguage: 'en' }, null, 2)}\n`,
+  'utf8',
+);
 
 const shell = startShell({
   chooseProjectToOpen: () => Promise.resolve(projectPath),

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BrowserWindow } from 'electron';
+import { Menu, type BrowserWindow } from 'electron';
+import { menuItemId } from '../../application-menu.js';
 import type { Smoke } from '../context.js';
 import {
   activateSidebar,
@@ -17,6 +18,31 @@ interface StoredPreferences {
   readonly showBlankLines?: boolean;
   readonly sheetListDensity?: string;
   readonly showDeeperOutline?: boolean;
+  readonly interfaceLanguage?: string;
+}
+
+async function dialogTitle(window: BrowserWindow): Promise<string | null> {
+  return (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-settings h2')?.textContent.trim() ?? null`,
+  )) as string | null;
+}
+
+/** Picks a language by the label beside its radio button. */
+async function chooseLanguage(window: BrowserWindow, label: string): Promise<void> {
+  const chosen = (await window.webContents.executeJavaScript(
+    `(() => {
+       const option = [...document.querySelectorAll('wi-settings fieldset.language label')]
+         .find((candidate) => candidate.textContent.trim() === ${JSON.stringify(label)});
+       const radio = option?.querySelector('input');
+       if (!radio) { return false; }
+       radio.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!chosen) {
+    throw new Error(`no language labelled ${label}`);
+  }
+  await rendered(window);
 }
 
 function readStored(smoke: Smoke): StoredPreferences | null {
@@ -126,12 +152,51 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
   // fixture should leave the run as it found it.
   smoke.git(smoke.projectPath, ['config', 'user.name', 'Opera Incerta Smoke']);
 
+  // The interface language, and the native menu with it (SPEC.md §14).
+  await clickText(window, 'wi-settings .category', 'Appearance');
+  await chooseLanguage(window, 'Deutsch');
+  await waitUntil(
+    'the dialog to speak German',
+    async () => (await dialogTitle(window)) === 'Einstellungen',
+  );
+  const menuLabel = (): string | undefined =>
+    Menu.getApplicationMenu()?.getMenuItemById(menuItemId('settings/open'))?.label;
+  await waitUntil('the native menu to follow', () => menuLabel() === 'Einstellungen…');
+  const lang = (await window.webContents.executeJavaScript('document.documentElement.lang')) as string;
+  if (lang !== 'de') {
+    throw new Error(`the document's language is ${JSON.stringify(lang)}, not de`);
+  }
+  const gear = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-activity-bar button.tool')?.getAttribute('aria-label')`,
+  )) as string | null;
+  if (gear !== 'Einstellungen') {
+    throw new Error(`the activity bar says ${JSON.stringify(gear)} in German`);
+  }
+  const german = join(smoke.evidenceDirectory, 'smoke-settings-de.png');
+  await rendered(window);
+  writeFileSync(german, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${german}`);
+  await chooseLanguage(window, 'English');
+  await waitUntil('the dialog to speak English again', async () => (await dialogTitle(window)) === 'Settings');
+  await waitUntil('the native menu to follow back', () => menuLabel() === 'Settings…');
+
   // Reset restores the complete default record.
   await clickText(window, 'wi-settings button.reset', 'Reset all settings');
   await waitUntil(
     'the defaults to reach the preference file',
     () => readStored(smoke)?.showBlankLines === false && readStored(smoke)?.sheetListDensity === 'standard',
   );
+  // The default follows the system, which on this machine may be German:
+  // English is put back explicitly, so the checks after this one can read.
+  await waitUntil(
+    'the record to say system after the reset',
+    () => readStored(smoke)?.interfaceLanguage === 'system',
+  );
+  // The first category is Appearance in either language — after the reset
+  // the list may already say "Darstellung".
+  await clickText(window, 'wi-settings .category', '');
+  await chooseLanguage(window, 'English');
+  await waitUntil('English to be recorded', () => readStored(smoke)?.interfaceLanguage === 'en');
   await pressKey(window, 'Escape');
   await waitUntil('the dialog to close after the reset', async () => !(await settingsOpen(window)));
   // The reset put the navigator back on the explorer; the checks after this
@@ -141,7 +206,7 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
 
   console.log(
     'smoke ok: settings opened from the menu and the activity bar, a switch reached the ' +
-      'preference file, Escape returned focus, the identity reached the repository, reset ' +
-      'restored the defaults',
+      'preference file, Escape returned focus, the identity reached the repository, the ' +
+      'interface and the native menu spoke German and English again, reset restored the defaults',
   );
 }

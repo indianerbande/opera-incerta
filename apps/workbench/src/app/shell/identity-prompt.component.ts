@@ -5,9 +5,11 @@ import {
   input,
   linkedSignal,
   output,
+  inject,
 } from '@angular/core';
 import type { GitIdentity } from '@opera-incerta/desktop-contract';
 import { DialogComponent } from './dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Asking who commits are by. SPEC.md §12.
@@ -22,10 +24,10 @@ import { DialogComponent } from './dialog.component.js';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DialogComponent],
   template: `
-    <wi-dialog label="Name and e-mail for commits" (dismiss)="cancel.emit()">
-      <h2>Name and e-mail for commits</h2>
+    <wi-dialog [label]="i18n.t('identity.title')" (dismiss)="cancel.emit()">
+      <h2>{{ i18n.t('identity.title') }}</h2>
       <label>
-        <span>Name</span>
+        <span>{{ i18n.t('identity.name') }}</span>
         <input
           type="text"
           name="name"
@@ -36,7 +38,7 @@ import { DialogComponent } from './dialog.component.js';
         />
       </label>
       <label>
-        <span>E-mail</span>
+        <span>{{ i18n.t('identity.email') }}</span>
         <input
           type="email"
           name="email"
@@ -45,13 +47,10 @@ import { DialogComponent } from './dialog.component.js';
           (keydown.enter)="submit()"
         />
       </label>
-      <p class="hint">
-        Both are written into every commit and go with the manuscript wherever it is
-        published. They are recorded in this project only; nothing outside it changes.
-      </p>
+      <p class="hint">{{ i18n.t('identity.hint') }}</p>
       <div class="actions">
-        <button type="button" class="decline" (click)="cancel.emit()">Not now</button>
-        <button type="button" class="save" [disabled]="!valid()" (click)="submit()">Save</button>
+        <button type="button" class="decline" (click)="cancel.emit()">{{ i18n.t('identity.notNow') }}</button>
+        <button type="button" class="save" [disabled]="!valid()" (click)="submit()">{{ i18n.t('common.save') }}</button>
       </div>
     </wi-dialog>
   `,
@@ -74,6 +73,7 @@ import { DialogComponent } from './dialog.component.js';
   `,
 })
 export class IdentityPromptComponent {
+  protected readonly i18n = inject(Localization);
   /** What the repository already has, so a correction starts from it. */
   readonly initial = input<GitIdentity | null>(null);
 

@@ -15,6 +15,7 @@
 import { InjectionToken, inject, signal, type Provider, type WritableSignal } from '@angular/core';
 import { LibraryDrag } from '../shell/library-drag.js';
 import { LayoutState } from '../shell/layout-state.js';
+import { Localization, systemLanguageTag } from '../localization/localization.js';
 import type { Overlay } from '../shell/overlay.js';
 import { DESKTOP_BRIDGE, resolveBridge } from './bridge.js';
 import { LibraryActions } from './library-actions.js';
@@ -30,15 +31,25 @@ export const WORKBENCH_PROVIDERS: readonly Provider[] = [
   { provide: WorkspaceStore, useFactory: () => new WorkspaceStore(inject(DESKTOP_BRIDGE)) },
   { provide: SourceControlStore, useFactory: () => new SourceControlStore(inject(DESKTOP_BRIDGE)) },
   { provide: LayoutState, useFactory: () => new LayoutState(inject(DESKTOP_BRIDGE)) },
+  {
+    provide: Localization,
+    useFactory: () => new Localization(inject(LayoutState).interfaceLanguage, systemLanguageTag()),
+  },
   { provide: LibraryDrag, useFactory: () => new LibraryDrag() },
   { provide: OVERLAY, useFactory: () => signal<Overlay | null>(null) },
   {
     provide: LibraryActions,
-    useFactory: () => new LibraryActions(inject(WorkspaceStore), inject(OVERLAY)),
+    useFactory: () =>
+      new LibraryActions(inject(WorkspaceStore), inject(OVERLAY), inject(Localization)),
   },
   {
     provide: SourceControlActions,
     useFactory: () =>
-      new SourceControlActions(inject(WorkspaceStore), inject(SourceControlStore), inject(OVERLAY)),
+      new SourceControlActions(
+        inject(WorkspaceStore),
+        inject(SourceControlStore),
+        inject(OVERLAY),
+        inject(Localization),
+      ),
   },
 ];

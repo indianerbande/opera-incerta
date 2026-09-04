@@ -17,12 +17,15 @@
  */
 import { Menu, app, type BrowserWindow, type MenuItemConstructorOptions } from 'electron';
 import { CHANNELS, type MenuCommand } from '@opera-incerta/desktop-contract';
+import { translate, type Language, type MessageKey } from '@opera-incerta/localization';
 
 export interface MenuActions {
   /** Runs a command that belongs to the main process. */
   readonly run: (command: MenuCommand) => void;
   /** The project window, when one is open. */
   readonly projectWindow: () => BrowserWindow | null;
+  /** The interface language; the menu is rebuilt when it changes (SPEC.md §14). */
+  readonly language: Language;
 }
 
 /**
@@ -32,6 +35,7 @@ export interface MenuActions {
  */
 export function installApplicationMenu(actions: MenuActions): void {
   const hasProject = actions.projectWindow() !== null;
+  const words = (key: MessageKey): string => translate(actions.language, key);
 
   /** A command the main process performs itself. */
   const mainCommand = (command: MenuCommand) => () => actions.run(command);
@@ -42,24 +46,24 @@ export function installApplicationMenu(actions: MenuActions): void {
   };
 
   const fileMenu: MenuItemConstructorOptions = {
-    label: '&File',
+    label: words('menu.file'),
     submenu: [
       {
         id: 'menu:project/new',
-        label: 'New Project…',
+        label: words('menu.newProject'),
         accelerator: 'CmdOrCtrl+Shift+N',
         click: mainCommand('project/new'),
       },
       {
         id: 'menu:project/open',
-        label: 'Open Project…',
+        label: words('menu.openProject'),
         accelerator: 'CmdOrCtrl+O',
         click: mainCommand('project/open'),
       },
       { type: 'separator' },
       {
         id: 'menu:sheet/save',
-        label: 'Save',
+        label: words('menu.save'),
         accelerator: 'CmdOrCtrl+S',
         enabled: hasProject,
         click: rendererCommand('sheet/save'),
@@ -70,7 +74,7 @@ export function installApplicationMenu(actions: MenuActions): void {
             { type: 'separator' },
             {
               id: 'menu:settings/open',
-              label: 'Settings…',
+              label: words('menu.settings'),
               accelerator: 'CmdOrCtrl+,',
               enabled: hasProject,
               click: rendererCommand('settings/open'),
@@ -79,7 +83,7 @@ export function installApplicationMenu(actions: MenuActions): void {
       { type: 'separator' },
       {
         id: 'menu:project/close',
-        label: 'Close Project',
+        label: words('menu.closeProject'),
         accelerator: 'CmdOrCtrl+Shift+W',
         enabled: hasProject,
         click: mainCommand('project/close'),
@@ -95,7 +99,7 @@ export function installApplicationMenu(actions: MenuActions): void {
    * including inside a text field, which a hand-wired command would not.
    */
   const editMenu: MenuItemConstructorOptions = {
-    label: '&Edit',
+    label: words('menu.edit'),
     submenu: [
       { role: 'undo' },
       { role: 'redo' },
@@ -108,7 +112,7 @@ export function installApplicationMenu(actions: MenuActions): void {
   };
 
   const windowMenu: MenuItemConstructorOptions = {
-    label: '&Window',
+    label: words('menu.window'),
     role: 'window',
     submenu:
       process.platform === 'darwin'
@@ -128,7 +132,7 @@ export function installApplicationMenu(actions: MenuActions): void {
                 // Where macOS keeps it; the dialog lives in the workbench,
                 // so the item needs a project window to send to.
                 id: 'menu:settings/open',
-                label: 'Settings…',
+                label: words('menu.settings'),
                 accelerator: 'CmdOrCtrl+,',
                 enabled: hasProject,
                 click: rendererCommand('settings/open'),

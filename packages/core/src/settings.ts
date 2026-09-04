@@ -14,10 +14,15 @@
  * here because the dialog is where an author looks for them, and marked by
  * scope so nobody takes them for preferences.
  */
-import { DEFAULT_PREFERENCES, type WorkbenchPreferences } from './preferences.js';
+import {
+  DEFAULT_PREFERENCES,
+  type InterfaceLanguage,
+  type WorkbenchPreferences,
+} from './preferences.js';
 import type { PreviewDensity } from './preview.js';
 
 export type SettingsCategoryId =
+  | 'appearance'
   | 'sheetList'
   | 'outline'
   | 'frontMatter'
@@ -26,11 +31,15 @@ export type SettingsCategoryId =
 
 export type SettingScope = 'installation' | 'project' | 'repository';
 
+/**
+ * A category names the keys of its words, never the words: the core is
+ * text-free (SPEC.md §14.3), and the dialog translates.
+ */
 export interface SettingsCategory {
   readonly id: SettingsCategoryId;
-  readonly label: string;
+  readonly labelKey: string;
   /** One sentence under the heading, saying what the category is about. */
-  readonly description: string;
+  readonly descriptionKey: string;
   readonly scope: SettingScope;
 }
 
@@ -41,33 +50,39 @@ export interface SettingsCategory {
  */
 export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
   {
+    id: 'appearance',
+    labelKey: 'settings.category.appearance.label',
+    descriptionKey: 'settings.category.appearance.description',
+    scope: 'installation',
+  },
+  {
     id: 'sheetList',
-    label: 'Sheet list',
-    description: 'How the sheets of a group are previewed.',
+    labelKey: 'settings.category.sheetList.label',
+    descriptionKey: 'settings.category.sheetList.description',
     scope: 'installation',
   },
   {
     id: 'outline',
-    label: 'Outline',
-    description: 'Which headings the outline pane lists.',
+    labelKey: 'settings.category.outline.label',
+    descriptionKey: 'settings.category.outline.description',
     scope: 'installation',
   },
   {
     id: 'frontMatter',
-    label: 'Front matter',
-    description: 'The area above the text that shows a sheet’s metadata as written.',
+    labelKey: 'settings.category.frontMatter.label',
+    descriptionKey: 'settings.category.frontMatter.description',
     scope: 'installation',
   },
   {
     id: 'pageCategories',
-    label: 'Page categories',
-    description: 'The categories of this project. They live with the project, not with this installation.',
+    labelKey: 'settings.category.pageCategories.label',
+    descriptionKey: 'settings.category.pageCategories.description',
     scope: 'project',
   },
   {
     id: 'sourceControl',
-    label: 'Source control',
-    description: 'The name and e-mail address commits are by, recorded in this project’s repository.',
+    labelKey: 'settings.category.sourceControl.label',
+    descriptionKey: 'settings.category.sourceControl.description',
     scope: 'repository',
   },
 ];
@@ -81,8 +96,8 @@ interface SettingBase {
   /** Stable; a renamed label keeps its id (`CONVENTIONS.md` C-N3). */
   readonly id: string;
   readonly category: SettingsCategoryId;
-  readonly label: string;
-  readonly hint: string | null;
+  readonly labelKey: string;
+  readonly hintKey: string | null;
 }
 
 export interface SwitchSetting extends SettingBase {
@@ -94,24 +109,45 @@ export interface SwitchSetting extends SettingBase {
 export interface DensitySetting extends SettingBase {
   readonly kind: 'density';
   readonly key: 'sheetListDensity';
-  readonly options: readonly { readonly value: PreviewDensity; readonly label: string }[];
+  readonly options: readonly { readonly value: PreviewDensity; readonly labelKey: string }[];
   readonly defaultValue: PreviewDensity;
 }
 
-export type Setting = SwitchSetting | DensitySetting;
+export interface LanguageSetting extends SettingBase {
+  readonly kind: 'language';
+  readonly key: 'interfaceLanguage';
+  readonly options: readonly { readonly value: InterfaceLanguage; readonly labelKey: string }[];
+  readonly defaultValue: InterfaceLanguage;
+}
+
+export type Setting = SwitchSetting | DensitySetting | LanguageSetting;
 
 export const SETTINGS: readonly Setting[] = [
+  {
+    kind: 'language',
+    id: 'appearance.language',
+    category: 'appearance',
+    labelKey: 'settings.appearance.language',
+    hintKey: 'settings.appearance.languageHint',
+    key: 'interfaceLanguage',
+    options: [
+      { value: 'system', labelKey: 'settings.language.system' },
+      { value: 'en', labelKey: 'settings.language.en' },
+      { value: 'de', labelKey: 'settings.language.de' },
+    ],
+    defaultValue: DEFAULT_PREFERENCES.interfaceLanguage,
+  },
   {
     kind: 'density',
     id: 'sheetList.density',
     category: 'sheetList',
-    label: 'Preview size',
-    hint: 'The compact step shows every sheet at the same height.',
+    labelKey: 'settings.sheetList.density',
+    hintKey: 'settings.sheetList.densityHint',
     key: 'sheetListDensity',
     options: [
-      { value: 'compact', label: 'Compact' },
-      { value: 'standard', label: 'Standard' },
-      { value: 'large', label: 'Large' },
+      { value: 'compact', labelKey: 'settings.sheetList.density.compact' },
+      { value: 'standard', labelKey: 'settings.sheetList.density.standard' },
+      { value: 'large', labelKey: 'settings.sheetList.density.large' },
     ],
     defaultValue: DEFAULT_PREFERENCES.sheetListDensity,
   },
@@ -119,8 +155,8 @@ export const SETTINGS: readonly Setting[] = [
     kind: 'switch',
     id: 'sheetList.showBlankLines',
     category: 'sheetList',
-    label: 'Show blank lines in previews',
-    hint: 'Off, a preview skips empty lines so more of the text fits.',
+    labelKey: 'settings.sheetList.blankLines',
+    hintKey: 'settings.sheetList.blankLinesHint',
     key: 'showBlankLines',
     defaultValue: DEFAULT_PREFERENCES.showBlankLines,
   },
@@ -128,8 +164,8 @@ export const SETTINGS: readonly Setting[] = [
     kind: 'switch',
     id: 'outline.showDeeperLevels',
     category: 'outline',
-    label: 'List headings below the second level',
-    hint: null,
+    labelKey: 'settings.outline.deeper',
+    hintKey: null,
     key: 'showDeeperOutline',
     defaultValue: DEFAULT_PREFERENCES.showDeeperOutline,
   },
@@ -137,8 +173,8 @@ export const SETTINGS: readonly Setting[] = [
     kind: 'switch',
     id: 'frontMatter.show',
     category: 'frontMatter',
-    label: 'Show the front matter area',
-    hint: null,
+    labelKey: 'settings.frontMatter.show',
+    hintKey: null,
     key: 'showFrontMatter',
     defaultValue: DEFAULT_PREFERENCES.showFrontMatter,
   },
@@ -146,8 +182,8 @@ export const SETTINGS: readonly Setting[] = [
     kind: 'switch',
     id: 'frontMatter.writable',
     category: 'frontMatter',
-    label: 'Allow editing the foreign lines',
-    hint: 'The lines this application owns are never editable there.',
+    labelKey: 'settings.frontMatter.writable',
+    hintKey: 'settings.frontMatter.writableHint',
     key: 'frontMatterWritable',
     defaultValue: DEFAULT_PREFERENCES.frontMatterWritable,
   },
@@ -155,8 +191,8 @@ export const SETTINGS: readonly Setting[] = [
     kind: 'switch',
     id: 'frontMatter.showOwned',
     category: 'frontMatter',
-    label: 'Show the lines this application owns',
-    hint: null,
+    labelKey: 'settings.frontMatter.showOwned',
+    hintKey: null,
     key: 'showOwnedFrontMatter',
     defaultValue: DEFAULT_PREFERENCES.showOwnedFrontMatter,
   },

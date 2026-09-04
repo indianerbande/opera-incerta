@@ -10,6 +10,8 @@
 import { findGroup, sheetsOf, walkLibrary, type PageCategory } from '@opera-incerta/core';
 import type { MenuEntry, OverlayHost } from '../shell/overlay.js';
 import type { WorkspaceStore } from './workspace-store.js';
+import { signal } from '@angular/core';
+import { Localization } from '../localization/localization.js';
 
 export interface MenuPoint {
   readonly x: number;
@@ -17,12 +19,14 @@ export interface MenuPoint {
 }
 
 export class LibraryActions {
+  readonly #i18n: Localization;
   readonly #store: WorkspaceStore;
   readonly #overlay: OverlayHost;
 
-  constructor(store: WorkspaceStore, overlay: OverlayHost) {
+  constructor(store: WorkspaceStore, overlay: OverlayHost, i18n: Localization = englishLocalization()) {
     this.#store = store;
     this.#overlay = overlay;
+    this.#i18n = i18n;
   }
 
   /** The menu of a group in the tree. The root cannot be deleted or renamed away. */
@@ -32,13 +36,16 @@ export class LibraryActions {
     }
     const name = this.#groupName(path);
     const entries: MenuEntry[] = [
-      { label: 'New Sheet…', run: () => this.askForNewSheet(path) },
-      { label: 'New Group…', run: () => this.askForNewGroup(path) },
-      { label: 'Rename…', run: () => this.askToRenameGroup(path, name) },
+      { label: this.#i18n.t('library.menu.newSheet'), run: () => this.askForNewSheet(path) },
+      { label: this.#i18n.t('library.menu.newGroup'), run: () => this.askForNewGroup(path) },
+      { label: this.#i18n.t('library.menu.rename'), run: () => this.askToRenameGroup(path, name) },
     ];
     // The project root has no group above it to delete it from.
     if (path !== '.') {
-      entries.push({ label: 'Delete Group…', run: () => this.askToDeleteGroup(path, name) });
+      entries.push({
+        label: this.#i18n.t('library.menu.deleteGroup'),
+        run: () => this.askToDeleteGroup(path, name),
+      });
     }
     this.#overlay.set({ kind: 'menu', entries, x: at.x, y: at.y });
   }
@@ -48,8 +55,8 @@ export class LibraryActions {
     this.#overlay.set({
       kind: 'menu',
       entries: [
-        { label: 'Rename…', run: () => this.askToRenameSheet(path, name) },
-        { label: 'Delete Sheet…', run: () => this.askToDeleteSheet(path, name) },
+        { label: this.#i18n.t('library.menu.rename'), run: () => this.askToRenameSheet(path, name) },
+        { label: this.#i18n.t('library.menu.deleteSheet'), run: () => this.askToDeleteSheet(path, name) },
       ],
       x: at.x,
       y: at.y,
@@ -59,13 +66,13 @@ export class LibraryActions {
   askForNewSheet(groupPath: string): void {
     this.#overlay.set({
       kind: 'prompt',
-      title: 'New sheet',
+      title: this.#i18n.t('library.newSheet.title'),
       initial: '',
-      placeholder: 'The First Scene',
+      placeholder: this.#i18n.t('library.newSheet.placeholder'),
       // The rule, where it applies: the file name is derived once and then
       // stays, while this title can change any time (SPEC.md §6.4).
-      hint: 'The title can change later; the file name is set once, from it.',
-      confirmLabel: 'Create',
+      hint: this.#i18n.t('library.newSheet.hint'),
+      confirmLabel: this.#i18n.t('common.create'),
       action: (value) => void this.#store.createSheet(groupPath, value),
     });
   }
@@ -73,11 +80,11 @@ export class LibraryActions {
   askForNewGroup(parentPath: string): void {
     this.#overlay.set({
       kind: 'prompt',
-      title: 'New group',
+      title: this.#i18n.t('library.newGroup.title'),
       initial: '',
-      placeholder: 'Part One',
-      hint: 'The name can change later; the folder name is set once, from it.',
-      confirmLabel: 'Create',
+      placeholder: this.#i18n.t('library.newGroup.placeholder'),
+      hint: this.#i18n.t('library.newGroup.hint'),
+      confirmLabel: this.#i18n.t('common.create'),
       action: (value) => void this.#store.createGroup(parentPath, value),
     });
   }
@@ -85,11 +92,11 @@ export class LibraryActions {
   askToRenameGroup(path: string, name: string): void {
     this.#overlay.set({
       kind: 'prompt',
-      title: 'Rename group',
+      title: this.#i18n.t('library.renameGroup.title'),
       initial: name,
       placeholder: '',
-      hint: 'Renaming changes the name shown here, never the folder on disk.',
-      confirmLabel: 'Rename',
+      hint: this.#i18n.t('library.renameGroup.hint'),
+      confirmLabel: this.#i18n.t('common.rename'),
       action: (value) => void this.#store.renameGroup(path, value),
     });
   }
@@ -97,11 +104,11 @@ export class LibraryActions {
   askToRenameSheet(path: string, name: string): void {
     this.#overlay.set({
       kind: 'prompt',
-      title: 'Rename sheet',
+      title: this.#i18n.t('library.renameSheet.title'),
       initial: name,
       placeholder: '',
-      hint: 'Renaming changes the title in the file, never the file name.',
-      confirmLabel: 'Rename',
+      hint: this.#i18n.t('library.renameSheet.hint'),
+      confirmLabel: this.#i18n.t('common.rename'),
       action: (value) => void this.#store.renameSheet(path, value),
     });
   }
@@ -111,12 +118,12 @@ export class LibraryActions {
     const open = this.#store.openSheet();
     this.#overlay.set({
       kind: 'confirmation',
-      title: `Move “${name}” to the trash?`,
+      title: this.#i18n.t('library.trash.title', { name }),
       // Unsaved work does not go to the trash with the file: it was never in
       // it. The author has to hear that before, not after.
       warning:
         open?.relativePath === path && this.#store.dirty()
-          ? 'It has unsaved changes, and those are not in the trash afterwards.'
+          ? this.#i18n.t('library.trash.unsaved')
           : null,
       action: () => void this.#store.deleteEntry(path),
     });
@@ -126,7 +133,7 @@ export class LibraryActions {
   askToDeleteGroup(path: string, name: string): void {
     this.#overlay.set({
       kind: 'confirmation',
-      title: `Move “${name}” to the trash?`,
+      title: this.#i18n.t('library.trash.title', { name }),
       warning: this.#groupContents(path),
       action: () => void this.#store.deleteEntry(path),
     });
@@ -157,11 +164,15 @@ export class LibraryActions {
       return null;
     }
 
+    // By the platform's plural rules, never by a count-equals-one test
+    // (SPEC.md §14.1) — which is what stood here before.
     const parts = [
-      sheets === 1 ? '1 sheet' : `${String(sheets)} sheets`,
-      ...(groups === 0 ? [] : [groups === 1 ? '1 subgroup' : `${String(groups)} subgroups`]),
+      this.#i18n.n('library.sheets', sheets),
+      ...(groups === 0 ? [] : [this.#i18n.n('library.subgroups', groups)]),
     ];
-    return `Everything in it goes too: ${parts.join(' and ')}.`;
+    return this.#i18n.t('library.trash.contents', {
+      parts: parts.join(this.#i18n.t('library.trash.and')),
+    });
   }
 
   #groupName(path: string): string {
@@ -171,4 +182,9 @@ export class LibraryActions {
     }
     return findGroup(library, path)?.displayName ?? path;
   }
+}
+
+/** The flows speak English unless told otherwise: what a unit test reads. */
+export function englishLocalization(): Localization {
+  return new Localization(signal<'system' | 'en' | 'de'>('en'), 'en');
 }

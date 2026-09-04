@@ -1918,15 +1918,17 @@ Later, deliberately unimplemented categories: backup, styles, keyboard,
 accessibility, updates.
 
 **What the dialog holds today** (`packages/core/src/settings.ts`, the
-registry the dialog renders): *Sheet list* — preview size and blank lines;
+registry the dialog renders): *Appearance* — the interface language (§14);
+*Sheet list* — preview size and blank lines;
 *Outline* — the deeper levels; *Front matter* — the three switches of §10.4;
 *Page categories* — a way into the manager of §6.6, because an author looks
 here for it, marked as project data; *Source control* — the commit identity
 of §12, edited in place and written into this repository only. Every
 installation-local preference that is not workbench layout MUST be in the
 registry, and a test enforces it, so a preference cannot appear without a
-place in the dialog. Appearance, Editor, Markup, and Privacy are listed in
-the table above and arrive with §14, §10.2, and §15.
+place in the dialog. The registry names the keys of its words, never the
+words (§14.3). Editor, Markup, and Privacy are listed in the table above and
+arrive with §10.2 and §15.
 
 Heading sizes H1–H6 scale proportionally with the editor base size, keeping
 fixed ratios to the base hierarchy.
@@ -1966,7 +1968,8 @@ of this.
 
 ## 14. Localization
 
-**Status: Accepted.**
+**Status: Accepted; built 2026-09-04 — English and German catalogues, the
+language setting, the native menu following it.**
 
 ### 14.1 Model
 
@@ -2008,6 +2011,19 @@ without display text; the mapping from case to localized text happens in the
 renderer. The data layer must know nothing about interface or language.
 Failures the application does not produce itself (filesystem, Git) fall back to
 the underlying message.
+
+**Where it lives.** The catalogues and the rules that read them are the
+package `packages/localization`, portable like the core and separate from
+it because two processes need the same words: the renderer for the
+workbench and the launcher, the main process for the native menu. Every key
+is typed from the English catalogue and the German one is typed against it,
+so a missing key is a compile error. The renderer's one localization service
+resolves the stored choice — `system`, `en`, or `de` — against the system's
+language tag and exposes `t` for a message and `n` for a count; both read a
+signal, so changing the language re-renders every template without a
+restart. The main process resolves the same choice against Electron's locale
+and rebuilds the menu whenever the preference record is written with a
+different language. The document's `lang` attribute follows too.
 
 **Not goals of this stage:** right-to-left languages, localized help, and
 translation of the project documents, which remain English.

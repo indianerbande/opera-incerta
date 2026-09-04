@@ -304,7 +304,7 @@ succeeded in this checkout. The following have:
 - `pnpm install` installs the pinned workspace dependency graph;
 - `pnpm run build` builds every package and both applications;
 - `pnpm run typecheck:tests` type-checks source and test code;
-- `pnpm run test` runs the suites of all six workspace projects;
+- `pnpm run test` runs the suites of all seven workspace projects;
 - `pnpm run check` runs the complete current gate (build, type-check, test,
   desktop production boundary);
 - `pnpm run check:assets` verifies the pinned icon bytes, their licence and

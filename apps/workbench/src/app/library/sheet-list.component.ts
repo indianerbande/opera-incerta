@@ -15,6 +15,7 @@ import { LibraryDrag } from '../shell/library-drag.js';
 import { LayoutState } from '../shell/layout-state.js';
 import { LibraryActions } from '../workspace/library-actions.js';
 import { WorkspaceStore } from '../workspace/workspace-store.js';
+import { Localization } from '../localization/localization.js';
 
 const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
 
@@ -74,7 +75,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
           </button>
         </li>
       } @empty {
-        <li class="empty">No sheets in this group.</li>
+        <li class="empty">{{ i18n.t('sheetList.empty') }}</li>
       }
     </ul>
   `,
@@ -158,6 +159,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
   `,
 })
 export class SheetListComponent {
+  protected readonly i18n = inject(Localization);
   readonly #store = inject(WorkspaceStore);
   readonly #layout = inject(LayoutState);
   readonly #actions = inject(LibraryActions);

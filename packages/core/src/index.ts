@@ -94,6 +94,7 @@ export { LAYOUT_PREFERENCE_KEYS, SETTINGS, SETTINGS_CATEGORIES, settingsOf } fro
 export type {
   BooleanPreferenceKey,
   DensitySetting,
+  LanguageSetting,
   Setting,
   SettingScope,
   SettingsCategory,
@@ -165,6 +166,7 @@ export type {
   ColumnWidths,
   NavigatorView,
   SecondarySidebarView,
+  InterfaceLanguage,
   WorkbenchPreferences,
 } from './preferences.js';
 

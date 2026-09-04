@@ -9,7 +9,9 @@
  * the fake bridge.
  */
 import type { GitFileStatus } from '@opera-incerta/core';
+import type { Localization } from '../localization/localization.js';
 import type { OverlayHost } from '../shell/overlay.js';
+import { englishLocalization } from './library-actions.js';
 import type { SourceControlStore } from './source-control-store.js';
 import type { WorkspaceStore } from './workspace-store.js';
 
@@ -17,11 +19,18 @@ export class SourceControlActions {
   readonly #store: WorkspaceStore;
   readonly #sourceControl: SourceControlStore;
   readonly #overlay: OverlayHost;
+  readonly #i18n: Localization;
 
-  constructor(store: WorkspaceStore, sourceControl: SourceControlStore, overlay: OverlayHost) {
+  constructor(
+    store: WorkspaceStore,
+    sourceControl: SourceControlStore,
+    overlay: OverlayHost,
+    i18n: Localization = englishLocalization(),
+  ) {
     this.#store = store;
     this.#sourceControl = sourceControl;
     this.#overlay = overlay;
+    this.#i18n = i18n;
   }
 
   /**
@@ -61,16 +70,10 @@ export class SourceControlActions {
     const untracked = entry.groups.includes('untracked');
     this.#overlay.set({
       kind: 'confirmation',
-      title: `Discard the changes to “${entry.path}”?`,
-      warning: untracked
-        ? 'This file is not in the repository yet, so there is nothing to go back to: ' +
-          'it goes to the trash.'
-        : 'The file goes back to its last committed state, and unsaved changes to it in ' +
-          'the editor go with it.',
-      hint: untracked
-        ? 'It goes to the desktop trash, where it can be restored.'
-        : 'The committed version stays in the repository’s history either way.',
-      confirmLabel: 'Discard',
+      title: this.#i18n.t('discard.title', { path: entry.path }),
+      warning: untracked ? this.#i18n.t('discard.untracked') : this.#i18n.t('discard.tracked'),
+      hint: untracked ? this.#i18n.t('confirm.trashHint') : this.#i18n.t('discard.historyHint'),
+      confirmLabel: this.#i18n.t('common.discard'),
       action: () => void this.discard(entry),
     });
   }
@@ -100,10 +103,10 @@ export class SourceControlActions {
   askToMerge(): void {
     this.#overlay.set({
       kind: 'confirmation',
-      title: 'Merge the changes from the remote?',
-      warning: 'Where both sides changed the same passage, you decide which version stays.',
-      hint: 'A merge can be abandoned afterwards, putting everything back as it was.',
-      confirmLabel: 'Merge',
+      title: this.#i18n.t('merge.title'),
+      warning: this.#i18n.t('merge.warning'),
+      hint: this.#i18n.t('merge.hint'),
+      confirmLabel: this.#i18n.t('merge.confirm'),
       action: () => void this.#sourceControl.merge(),
     });
   }
@@ -133,11 +136,11 @@ export class SourceControlActions {
     if (remote === null) {
       this.#overlay.set({
         kind: 'prompt',
-        title: 'Publish this branch',
+        title: this.#i18n.t('publish.title'),
         initial: '',
-        placeholder: 'https://example.com/book.git',
-        hint: 'The address of an empty repository. It is recorded as “origin”.',
-        confirmLabel: 'Publish',
+        placeholder: this.#i18n.t('publish.placeholder'),
+        hint: this.#i18n.t('publish.hint'),
+        confirmLabel: this.#i18n.t('publish.confirm'),
         action: (value) => void this.#sourceControl.publish(value),
       });
       return;
@@ -145,10 +148,13 @@ export class SourceControlActions {
 
     this.#overlay.set({
       kind: 'confirmation',
-      title: `Publish “${this.#sourceControl.branch() ?? ''}” to ${remote.name}?`,
-      warning: `Everything committed on this branch is sent to ${remote.url}.`,
-      hint: 'From then on, Commit and push goes there without asking again.',
-      confirmLabel: 'Publish',
+      title: this.#i18n.t('publish.toTitle', {
+        branch: this.#sourceControl.branch() ?? '',
+        remote: remote.name,
+      }),
+      warning: this.#i18n.t('publish.toWarning', { url: remote.url }),
+      hint: this.#i18n.t('publish.toHint'),
+      confirmLabel: this.#i18n.t('publish.confirm'),
       action: () => void this.#sourceControl.publish(),
     });
   }
@@ -170,10 +176,10 @@ export class SourceControlActions {
     if (this.#store.dirty()) {
       this.#overlay.set({
         kind: 'confirmation',
-        title: 'Save or discard first',
-        warning: `“${this.#store.openTitle() ?? ''}” has changes that are not saved.`,
-        hint: 'Switching branches replaces files on disk, and unsaved work has nowhere to go.',
-        confirmLabel: 'Save and switch',
+        title: this.#i18n.t('switch.title'),
+        warning: this.#i18n.t('switch.warning', { title: this.#store.openTitle() ?? '' }),
+        hint: this.#i18n.t('switch.hint'),
+        confirmLabel: this.#i18n.t('switch.confirm'),
         action: () => void this.saveAndSwitch(name),
       });
       return;
@@ -191,11 +197,11 @@ export class SourceControlActions {
   askForBranchName(): void {
     this.#overlay.set({
       kind: 'prompt',
-      title: 'New branch',
+      title: this.#i18n.t('newBranch.title'),
       initial: '',
-      placeholder: 'draft/chapter-3',
-      hint: 'It starts at the current commit, and is switched to at once.',
-      confirmLabel: 'Create',
+      placeholder: this.#i18n.t('newBranch.placeholder'),
+      hint: this.#i18n.t('newBranch.hint'),
+      confirmLabel: this.#i18n.t('common.create'),
       action: (value) => void this.#sourceControl.createBranch(value),
     });
   }
@@ -203,10 +209,10 @@ export class SourceControlActions {
   askToDeleteBranch(name: string): void {
     this.#overlay.set({
       kind: 'confirmation',
-      title: `Delete the branch “${name}”?`,
-      warning: 'Only a branch whose work is already merged can be deleted; git refuses the rest.',
-      hint: 'The commits stay in the repository either way.',
-      confirmLabel: 'Delete',
+      title: this.#i18n.t('deleteBranch.title', { name }),
+      warning: this.#i18n.t('deleteBranch.warning'),
+      hint: this.#i18n.t('deleteBranch.hint'),
+      confirmLabel: this.#i18n.t('common.delete'),
       action: () => void this.#sourceControl.deleteBranch(name),
     });
   }
@@ -231,11 +237,10 @@ export class SourceControlActions {
     const message = this.#sourceControl.message().trim();
     this.#overlay.set({
       kind: 'confirmation',
-      title: 'Replace the last commit?',
-      warning: `It is rewritten with whatever is staged, and its message becomes “${message}”.`,
-      hint:
-        'Offered only while it has not been pushed; afterwards it could only be replaced by force.',
-      confirmLabel: 'Amend',
+      title: this.#i18n.t('amend.title'),
+      warning: this.#i18n.t('amend.warning', { message }),
+      hint: this.#i18n.t('amend.hint'),
+      confirmLabel: this.#i18n.t('amend.confirm'),
       action: () => void this.#sourceControl.amend(),
     });
   }

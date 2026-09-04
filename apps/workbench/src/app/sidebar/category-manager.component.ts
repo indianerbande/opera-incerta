@@ -5,9 +5,11 @@ import {
   input,
   linkedSignal,
   output,
+  inject,
 } from '@angular/core';
 import { MAX_CATEGORIES, categoryTextColor, type PageCategory } from '@opera-incerta/core';
 import { DialogComponent } from '../shell/dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Defining the project's page categories. SPEC.md §6.6.
@@ -25,11 +27,11 @@ import { DialogComponent } from '../shell/dialog.component.js';
   imports: [DialogComponent],
   template: `
     <wi-dialog
-      label="Page categories"
+      [label]="i18n.t('categories.title')"
       width="min(460px, calc(100vw - 48px))"
       (dismiss)="cancel.emit()"
     >
-      <h2>Page categories</h2>
+      <h2>{{ i18n.t('categories.title') }}</h2>
 
       <ul class="list">
         @for (category of draft(); track category.id) {
@@ -37,39 +39,39 @@ import { DialogComponent } from '../shell/dialog.component.js';
             <input
               type="color"
               [value]="category.color"
-              [attr.aria-label]="'Colour of ' + category.name"
+              [attr.aria-label]="i18n.t('categories.colourOf', { name: category.name })"
               (input)="recolor(category.id, $event)"
             />
             <input
               type="text"
               class="name"
               [value]="category.name"
-              aria-label="Category name"
+              [attr.aria-label]="i18n.t('categories.name')"
               (input)="rename(category.id, $event)"
             />
             <span
               class="badge"
               [style.background]="category.color"
               [style.color]="textColor(category.color)"
-              >{{ category.name || 'Unnamed' }}</span
+              >{{ category.name || i18n.t('categories.unnamed') }}</span
             >
-            <button type="button" (click)="remove(category.id)" aria-label="Delete category">
+            <button type="button" (click)="remove(category.id)" [attr.aria-label]="i18n.t('categories.delete')">
               ✕
             </button>
           </li>
         } @empty {
-          <li class="empty">No categories yet.</li>
+          <li class="empty">{{ i18n.t('categories.empty') }}</li>
         }
       </ul>
 
       <div class="actions">
-        <button type="button" [disabled]="full()" (click)="add()">Add</button>
+        <button type="button" [disabled]="full()" (click)="add()">{{ i18n.t('categories.add') }}</button>
         <span class="spacer"></span>
-        <button type="button" (click)="cancel.emit()">Cancel</button>
-        <button type="button" (click)="confirm.emit(draft())">Save</button>
+        <button type="button" (click)="cancel.emit()">{{ i18n.t('common.cancel') }}</button>
+        <button type="button" (click)="confirm.emit(draft())">{{ i18n.t('common.save') }}</button>
       </div>
       @if (full()) {
-        <p class="hint">A project holds at most {{ limit }} categories.</p>
+        <p class="hint">{{ i18n.t('categories.limit', { limit }) }}</p>
       }
     </wi-dialog>
   `,
@@ -120,6 +122,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
   `,
 })
 export class CategoryManagerComponent {
+  protected readonly i18n = inject(Localization);
   readonly categories = input.required<readonly PageCategory[]>();
 
   readonly confirm = output<readonly PageCategory[]>();
@@ -142,7 +145,7 @@ export class CategoryManagerComponent {
     // changed freely afterwards (SPEC.md §6.6).
     this.draft.set([
       ...this.draft(),
-      { id: crypto.randomUUID(), name: 'New category', color: '#cccccc' },
+      { id: crypto.randomUUID(), name: this.i18n.t('categories.new'), color: '#cccccc' },
     ]);
   }
 

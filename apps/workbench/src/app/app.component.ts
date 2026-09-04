@@ -47,6 +47,7 @@ import { SourceControlActions } from './workspace/source-control-actions.js';
 import { SourceControlStore } from './workspace/source-control-store.js';
 import { WorkspaceStore } from './workspace/workspace-store.js';
 import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
+import { Localization } from './localization/localization.js';
 
 /**
  * The workbench shell. SPEC.md §8, §8.7.
@@ -107,9 +108,9 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       <section class="navigator" [style.width.px]="layout.columnWidths().navigator">
         <wi-panel-header [verbatimTitle]="store.project()?.displayName ?? null">
           @if (layout.navigatorView() === 'sourceControl') {
-            <button type="button" (click)="sourceControl.refresh()" title="Refresh">↻</button>
+            <button type="button" (click)="sourceControl.refresh()" [title]="i18n.t('app.refresh')">↻</button>
           } @else {
-            <button type="button" (click)="store.reloadProject()" title="Reload from disk">↻</button>
+            <button type="button" (click)="store.reloadProject()" [title]="i18n.t('app.reload')">↻</button>
           }
         </wi-panel-header>
 
@@ -118,7 +119,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             @if (store.library(); as library) {
               <wi-explorer-node [group]="library" />
             } @else {
-              <p class="hint">No project open.</p>
+              <p class="hint">{{ i18n.t('app.noProject') }}</p>
             }
           </div>
         } @else {
@@ -157,7 +158,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       <section class="editor">
         <wi-panel-header [verbatimTitle]="editorTitle()">
           @if (store.diagnostics().length > 0) {
-            <span class="read-only" [title]="store.diagnostics()[0]?.code">read-only</span>
+            <span class="read-only" [title]="store.diagnostics()[0]?.code">{{ i18n.t('app.readOnly') }}</span>
           }
           @if (store.openSheet() !== null) {
             <label class="switch">
@@ -166,7 +167,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                 [checked]="layout.showFrontMatter()"
                 (change)="layout.toggleFrontMatter()"
               />
-              Variables
+              {{ i18n.t('app.frontMatter.show') }}
             </label>
             @if (layout.showFrontMatter()) {
               <label class="switch">
@@ -175,7 +176,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                   [checked]="layout.frontMatterWritable()"
                   (change)="layout.toggleFrontMatterWritable()"
                 />
-                Writable
+                {{ i18n.t('app.frontMatter.writable') }}
               </label>
               <label class="switch">
                 <input
@@ -183,12 +184,12 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                   [checked]="layout.showOwnedFrontMatter()"
                   (change)="layout.toggleOwnedFrontMatter()"
                 />
-                System
+                {{ i18n.t('app.frontMatter.system') }}
               </label>
             }
           }
           @if (store.canSave()) {
-            <button type="button" (click)="store.save()">Save</button>
+            <button type="button" (click)="store.save()">{{ i18n.t('common.save') }}</button>
           }
         </wi-panel-header>
 
@@ -197,7 +198,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
                other tools actually came here to look at (SPEC.md §10.4). -->
           @if (store.foreignLines().length > 0) {
             <wi-front-matter-block
-              label="Foreign front matter"
+              [label]="i18n.t('app.frontMatter.foreign')"
               [lines]="store.foreignLines()"
               [writable]="layout.frontMatterWritable()"
               (linesChange)="store.updateForeignLines($event)"
@@ -205,7 +206,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
           }
           @if (layout.showOwnedFrontMatter() && store.ownedLines().length > 0) {
             <wi-front-matter-block
-              label="Own front matter"
+              [label]="i18n.t('app.frontMatter.own')"
               [lines]="store.ownedLines()"
               [owned]="true"
             />
@@ -220,7 +221,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
             (textChange)="store.noteText($event)"
           />
         } @else {
-          <p class="hint">Select a sheet to start writing.</p>
+          <p class="hint">{{ i18n.t('app.selectSheet') }}</p>
         }
       </section>
 
@@ -232,15 +233,15 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         />
 
         <section class="secondary-sidebar" [style.width.px]="layout.columnWidths().secondarySidebar">
-          <wi-panel-header [title]="layout.secondaryTitle()">
+          <wi-panel-header [title]="i18n.t(layout.secondaryTitleKey())">
             @if (layout.secondaryView() === 'outline') {
               <button
                 type="button"
                 [attr.aria-pressed]="layout.showDeeperOutline()"
-                title="Show H3 to H6"
+                [title]="i18n.t('app.outline.deeperTitle')"
                 (click)="layout.toggleDeeperOutline()"
               >
-                H3–H6
+                {{ i18n.t('app.outline.deeper') }}
               </button>
             }
           </wi-panel-header>
@@ -263,7 +264,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
               />
             }
             @default {
-              <p class="hint">Not built yet.</p>
+              <p class="hint">{{ i18n.t('app.notBuilt') }}</p>
             }
           }
         </section>
@@ -306,8 +307,8 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
         <wi-confirm-prompt
           [title]="open.title"
           [warning]="open.warning"
-          [hint]="open.hint ?? 'It goes to the desktop trash, where it can be restored.'"
-          [confirmLabel]="open.confirmLabel ?? 'Delete'"
+          [hint]="open.hint ?? i18n.t('confirm.trashHint')"
+          [confirmLabel]="open.confirmLabel ?? i18n.t('common.delete')"
           (confirm)="confirmAction()"
           (cancel)="overlay.set(null)"
         />
@@ -321,8 +322,8 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
       }
       @if (open.kind === 'ignore') {
         <wi-text-editor
-          title="Ignored files"
-          hint="One path or pattern per line, as git reads them."
+          [title]="i18n.t('app.ignore.title')"
+          [hint]="i18n.t('app.ignore.hint')"
           [text]="open.text"
           (save)="gitActions.saveIgnore($event)"
           (close)="overlay.set(null)"
@@ -374,10 +375,10 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
 
     @if (store.conflict(); as path) {
       <wi-confirm-prompt
-        title="This sheet changed on disk while you were editing it"
-        warning="Loading the file discards what you have not saved."
-        hint="Keeping yours changes nothing on disk; saving afterwards overwrites the file."
-        confirmLabel="Load the file"
+        [title]="i18n.t('app.conflict.title')"
+        [warning]="i18n.t('app.conflict.warning')"
+        [hint]="i18n.t('app.conflict.hint')"
+        [confirmLabel]="i18n.t('app.conflict.confirm')"
         (confirm)="store.resolveConflict('disk')"
         (cancel)="store.resolveConflict('mine')"
       />
@@ -386,7 +387,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
     @if (store.failure(); as failure) {
       <div class="failure" role="alert">
         <span>{{ failure }}</span>
-        <button type="button" (click)="store.dismissFailure()">Dismiss</button>
+        <button type="button" (click)="store.dismissFailure()">{{ i18n.t('app.dismiss') }}</button>
       </div>
     }
   `,
@@ -477,6 +478,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
   `,
 })
 export class AppComponent {
+  protected readonly i18n = inject(Localization);
   // Everything below is provided once, in `WORKBENCH_PROVIDERS`, and injected
   // here and in every region that reads it (SPEC.md §8.7).
   readonly #bridge = inject(DESKTOP_BRIDGE);
@@ -505,6 +507,11 @@ export class AppComponent {
     // The window exists because a project was opened; it finds it waiting.
     void this.store.adoptOpenProject();
     void this.layout.load();
+
+    // The document's language follows the interface language (SPEC.md §14).
+    effect(() => {
+      document.documentElement.lang = this.i18n.language();
+    });
 
     // Saving arrives from the menu, not from a key handler: the menu item owns
     // Cmd+S, so the keystroke never reaches this page (SPEC.md §8.5).
@@ -542,7 +549,7 @@ export class AppComponent {
   protected readonly activityBarWidth = ACTIVITY_BAR_WIDTH;
   /** The one tool of the leading bar: the settings dialog (SPEC.md §13). */
   protected readonly toolItems: readonly ActivityItem[] = [
-    { id: 'settings', icon: 'icon-settings', label: 'Settings' },
+    { id: 'settings', icon: 'icon-settings', labelKey: 'view.settings' },
   ];
 
   /** The dirty marker follows the document name, as in every editor. */

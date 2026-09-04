@@ -432,8 +432,11 @@ Tests MUST cover:
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the
   entry that opened it; the repository's identity shown, changed, and read
-  back with `git config --local`; and Reset restoring the defaults in the
-  preference file;
+  back with `git config --local`; the interface language switched to German
+  and the dialog, the activity bar, the document's `lang` and the native
+  menu item read in German, then back; and Reset restoring the defaults in
+  the preference file, with English put back explicitly because the machine
+  may be German;
 - the native menu of `SPEC.md` §8.5: every declared command has an item with
   its specified accelerator, the items are enabled only when their command is
   possible, saving and closing are exercised **through the menu item** rather
@@ -721,6 +724,19 @@ Tests MUST prove:
   through the localization service; and
 - switching the language updates the workbench and the native menus without a
   restart.
+
+**Built 2026-09-04.** `packages/localization/test` proves the two
+catalogues carry the same keys with the same placeholders and every plural
+family in both forms, plural resolution for both languages over several
+counts by the platform's rules, the fallback for a lost key, and the
+resolution of the stored choice. `apps/workbench/test/localization.test.ts`
+reads every key the interface uses off the source — `i18n.t('…')`,
+`i18n.n('…')`, the bars' `labelKey` — and requires each in both catalogues;
+it also refuses a call whose first argument is not a literal key, which is
+how user data would get in. The service follows the layout state's choice
+without a restart. The smoke (§2.7) switches to German and back and reads
+the dialog, the activity bar, the document's `lang`, and the native menu
+item.
 
 ## 3. Fixture catalog
 

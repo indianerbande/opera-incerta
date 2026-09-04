@@ -58,7 +58,7 @@ describe('the edit roles', () => {
 describe('state-dependent items', () => {
   it('enables saving and closing only with a project open', () => {
     expect(source).toContain("enabled: hasProject");
-    const saveSection = source.slice(source.indexOf("label: 'Save'"));
+    const saveSection = source.slice(source.indexOf("label: words('menu.save')"));
     expect(saveSection.slice(0, 200)).toContain('enabled: hasProject');
   });
 

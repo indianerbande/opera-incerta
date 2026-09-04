@@ -59,6 +59,7 @@ import {
   createLibraryWatcher,
   createProjectFilesystem,
 } from '@opera-incerta/project-node';
+import { resolveLanguage, type Language } from '@opera-incerta/localization';
 import { installApplicationMenu } from './application-menu.js';
 import { failureResult } from './bridge-failure.js';
 import {
@@ -276,8 +277,20 @@ export function startShell(options: ShellOptions = {}): Shell {
    * "Save" are only possible with one open, and a menu that offers a command
    * which would do nothing teaches the author to distrust it.
    */
+  /**
+   * The interface language, as the renderer's preference record has it and
+   * as the system resolves it; the menu is rebuilt when it changes
+   * (SPEC.md §14). Read from the file at start, and again on every write.
+   */
+  let interfaceLanguage: Language = 'en';
+
+  function languageOf(record: unknown): Language {
+    return resolveLanguage(readPreferences(record).interfaceLanguage, app.getLocale());
+  }
+
   function refreshMenu(): void {
     installApplicationMenu({
+      language: interfaceLanguage,
       projectWindow: () =>
         projectWindow !== null && !projectWindow.isDestroyed() ? projectWindow : null,
       run: (command) => {
@@ -484,6 +497,11 @@ export function startShell(options: ShellOptions = {}): Shell {
    * file, and the writer because a malformed record should never be written.
    */
   const preferencesPath = join(app.getPath('userData'), PREFERENCES_FILE);
+  try {
+    interfaceLanguage = languageOf(JSON.parse(readFileSync(preferencesPath, 'utf8')));
+  } catch {
+    interfaceLanguage = languageOf(null);
+  }
 
   privileged(CHANNELS.readPreferences, acceptsNothing, async () => {
     try {
@@ -502,6 +520,12 @@ export function startShell(options: ShellOptions = {}): Shell {
       const record = readPreferences(request);
       mkdirSync(dirname(preferencesPath), { recursive: true });
       writeFileSync(preferencesPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
+      // The native menu follows the interface language at once (SPEC.md §14).
+      const language = languageOf(record);
+      if (language !== interfaceLanguage) {
+        interfaceLanguage = language;
+        refreshMenu();
+      }
       return null;
     },
   );

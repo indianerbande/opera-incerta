@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, linkedSignal, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, linkedSignal, output, inject } from '@angular/core';
 import { DialogComponent } from './dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * A small editor for one plain-text file that is not a sheet. SPEC.md §12.
@@ -16,8 +17,8 @@ import { DialogComponent } from './dialog.component.js';
     <wi-dialog [label]="title()" width="min(520px, calc(100vw - 48px))" (dismiss)="close.emit()">
       <header>
         <h2>{{ title() }}</h2>
-        <button type="button" (click)="close.emit()">Cancel</button>
-        <button type="button" class="save" (click)="save.emit(draft())">Save</button>
+        <button type="button" (click)="close.emit()">{{ i18n.t('common.cancel') }}</button>
+        <button type="button" class="save" (click)="save.emit(draft())">{{ i18n.t('common.save') }}</button>
       </header>
 
       <textarea
@@ -44,6 +45,7 @@ import { DialogComponent } from './dialog.component.js';
   `,
 })
 export class TextEditorComponent {
+  protected readonly i18n = inject(Localization);
   readonly title = input.required<string>();
   readonly text = input.required<string>();
   readonly hint = input('');

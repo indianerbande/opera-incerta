@@ -5,10 +5,12 @@ import {
   input,
   linkedSignal,
   output,
+  inject,
 } from '@angular/core';
 import { diffProse, readDiff } from '@opera-incerta/core';
 import type { GitVersions } from '@opera-incerta/desktop-contract';
 import { DialogComponent } from '../shell/dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * What changed in one file. SPEC.md §12.
@@ -49,7 +51,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
               [attr.aria-pressed]="mode() === 'words'"
               (click)="mode.set('words')"
             >
-              Words
+              {{ i18n.t('diff.words') }}
             </button>
             <button
               type="button"
@@ -58,18 +60,18 @@ import { DialogComponent } from '../shell/dialog.component.js';
               [attr.aria-pressed]="mode() === 'lines'"
               (click)="mode.set('lines')"
             >
-              Lines
+              {{ i18n.t('diff.lines') }}
             </button>
           </div>
         }
-        <button type="button" (click)="close.emit()">Close</button>
+        <button type="button" (click)="close.emit()">{{ i18n.t('common.close') }}</button>
       </header>
 
       @if (mode() === 'words') {
         @if (words().length === 0) {
-          <p class="hint">Nothing changed in this file.</p>
+          <p class="hint">{{ i18n.t('diff.nothing') }}</p>
         } @else {
-          <p class="prose" tabindex="0" aria-label="Changes, word by word">@for (
+          <p class="prose" tabindex="0" [attr.aria-label]="i18n.t('diff.wordsLabel')">@for (
             segment of words();
             track $index
           ) {<span
@@ -79,9 +81,9 @@ import { DialogComponent } from '../shell/dialog.component.js';
             >{{ segment.text }}</span>}</p>
         }
       } @else if (lines().length === 0) {
-        <p class="hint">Git reports no difference for this file.</p>
+        <p class="hint">{{ i18n.t('diff.gitNothing') }}</p>
       } @else {
-        <pre tabindex="0" aria-label="Diff">@for (line of lines(); track $index) {<span
+        <pre tabindex="0" [attr.aria-label]="i18n.t('diff.label')">@for (line of lines(); track $index) {<span
             class="line"
             [class.added]="line.kind === 'added'"
             [class.removed]="line.kind === 'removed'"
@@ -164,6 +166,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
   `,
 })
 export class DiffViewComponent {
+  protected readonly i18n = inject(Localization);
   readonly path = input.required<string>();
   /** Git's own diff, shown unchanged in the line view. */
   readonly text = input.required<string>();

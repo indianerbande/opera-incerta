@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **945 tests**, plus the desktop and asset checks.
+projects, **969 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -75,10 +75,7 @@ Everything here waits on a decision from §2, on a user interface, or on both.
   today: in the file manager, by putting it back. An in-application list of
   what was deleted would need its own storage decision, and the desktop trash
   plus Git already cover the case.
-- **Localization** (`SPEC.md` §14) — the English/German catalogues and the
-  language setting, which is the first entry of the settings dialog's
-  *Appearance* category (§13, built 2026-09-04 for the categories that have
-  settings).
+
 - **Source control beyond this stage** — the panel, the tri-state select-all,
   committing, pushing, fetch and pull, merge with conflict resolution,
   branches, the upstream, amend and `.gitignore` are built and checked against

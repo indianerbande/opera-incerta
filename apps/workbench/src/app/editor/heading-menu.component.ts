@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import type { HeadingLevel, HeadingMarkerActivation } from '@opera-incerta/core';
+import { Localization } from '../localization/localization.js';
 
 const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
 
@@ -32,7 +33,7 @@ const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
         (click)="select.emit(null)"
       >
         <span class="check"></span>
-        No heading
+        {{ i18n.t('heading.none') }}
       </button>
       <hr />
       @for (level of levels; track level) {
@@ -90,6 +91,7 @@ const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
   `,
 })
 export class HeadingMenuComponent {
+  protected readonly i18n = inject(Localization);
   readonly activation = input.required<HeadingMarkerActivation>();
 
   /** The chosen level, or null to remove the heading. */

@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
+import { Localization, systemLanguageTag } from '../localization/localization.js';
+import { LayoutState } from '../shell/layout-state.js';
 import { resolveBridge } from '../workspace/bridge.js';
 import { LauncherStore } from '../workspace/launcher-store.js';
 import { NewProjectDialogComponent } from './new-project-dialog.component.js';
@@ -15,22 +17,23 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
   // one of the two components is ever bootstrapped into it (SPEC.md §8.5).
   selector: 'wi-root',
   imports: [NewProjectDialogComponent],
+  providers: [{ provide: Localization, useFactory: () => inject(WelcomeComponent).i18n }],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="welcome">
       <header>
         <h1>Opera Incerta</h1>
-        <p>Collect and write texts, and grow a book out of them.</p>
+        <p>{{ i18n.t('welcome.tagline') }}</p>
       </header>
 
       <div class="actions">
-        <button type="button" (click)="launcher.open()">Open project…</button>
-        <button type="button" (click)="launcher.startCreating()">New project…</button>
+        <button type="button" (click)="launcher.open()">{{ i18n.t('welcome.open') }}</button>
+        <button type="button" (click)="launcher.startCreating()">{{ i18n.t('welcome.new') }}</button>
       </div>
 
       @if (launcher.recent().length > 0) {
         <section class="recent">
-          <h2>Recent projects</h2>
+          <h2>{{ i18n.t('welcome.recent') }}</h2>
           <ul>
             @for (project of launcher.recent(); track project.path) {
               <li class="entry" [class.unavailable]="!project.available">
@@ -43,14 +46,14 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
                   <span class="name">{{ project.displayName }}</span>
                   <span class="path">{{ project.shortPath }}</span>
                   @if (!project.available) {
-                    <span class="missing">not found</span>
+                    <span class="missing">{{ i18n.t('welcome.notFound') }}</span>
                   }
                 </button>
                 <button
                   type="button"
                   class="forget"
-                  [attr.aria-label]="'Remove ' + project.displayName + ' from the list'"
-                  title="Remove from list"
+                  [attr.aria-label]="i18n.t('welcome.remove', { name: project.displayName })"
+                  [title]="i18n.t('welcome.removeTitle')"
                   (click)="launcher.forget(project)"
                 >
                   ×
@@ -60,7 +63,7 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
           </ul>
         </section>
       } @else {
-        <p class="hint">No projects opened yet.</p>
+        <p class="hint">{{ i18n.t('welcome.empty') }}</p>
       }
 
       @if (launcher.failure(); as code) {
@@ -196,9 +199,17 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
   `,
 })
 export class WelcomeComponent {
-  protected readonly launcher = new LauncherStore(resolveBridge());
+  readonly #bridge = resolveBridge();
+  protected readonly launcher = new LauncherStore(this.#bridge);
+  /** The launcher reads the same preference the workbench stores (SPEC.md §14). */
+  readonly #layout = new LayoutState(this.#bridge);
+  readonly i18n = new Localization(this.#layout.interfaceLanguage, systemLanguageTag());
 
   constructor() {
+    void this.#layout.load();
+    effect(() => {
+      document.documentElement.lang = this.i18n.language();
+    });
     void this.launcher.refresh();
     const stopListening = this.launcher.listenForMenuCommands();
     inject(DestroyRef).onDestroy(() => stopListening());
@@ -207,7 +218,7 @@ export class WelcomeComponent {
   /** The one message the launcher words itself; every other code is shown as it is. */
   protected message(code: string): string {
     return code === 'project/not-found'
-      ? 'That project is no longer there. Remove it from the list, or restore the folder.'
-      : `Could not open the project (${code}).`;
+      ? this.i18n.t('welcome.gone')
+      : this.i18n.t('welcome.openFailed', { code });
   }
 }

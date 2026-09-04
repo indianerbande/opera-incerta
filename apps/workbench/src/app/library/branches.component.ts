@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import type { GitBranch } from '@opera-incerta/desktop-contract';
 import { DialogComponent } from '../shell/dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * The branches of the project, and what can be done with them. SPEC.md §12.
@@ -20,15 +21,15 @@ import { DialogComponent } from '../shell/dialog.component.js';
   imports: [DialogComponent],
   template: `
     <wi-dialog
-      label="Branches"
+      [label]="i18n.t('branches.title')"
       width="min(440px, calc(100vw - 48px))"
       maxHeight="60vh"
       (dismiss)="close.emit()"
     >
       <header>
-        <h2>Branches</h2>
-        <button type="button" (click)="create.emit()">New branch…</button>
-        <button type="button" (click)="close.emit()">Close</button>
+        <h2>{{ i18n.t('branches.title') }}</h2>
+        <button type="button" (click)="create.emit()">{{ i18n.t('branches.new') }}</button>
+        <button type="button" (click)="close.emit()">{{ i18n.t('common.close') }}</button>
       </header>
 
       <ul class="list">
@@ -36,16 +37,16 @@ import { DialogComponent } from '../shell/dialog.component.js';
           <li [class.current]="branch.current">
             <span class="name">{{ branch.name }}</span>
             @if (branch.current) {
-              <span class="here">checked out</span>
+              <span class="here">{{ i18n.t('branches.checkedOut') }}</span>
             } @else {
-              <button type="button" (click)="switchTo.emit(branch.name)">Switch</button>
+              <button type="button" (click)="switchTo.emit(branch.name)">{{ i18n.t('branches.switch') }}</button>
               <button type="button" class="delete" (click)="remove.emit(branch.name)">
-                Delete…
+                {{ i18n.t('branches.delete') }}
               </button>
             }
           </li>
         } @empty {
-          <li class="empty">This repository has no branch yet.</li>
+          <li class="empty">{{ i18n.t('branches.empty') }}</li>
         }
       </ul>
     </wi-dialog>
@@ -87,6 +88,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
   `,
 })
 export class BranchesComponent {
+  protected readonly i18n = inject(Localization);
   readonly branches = input.required<readonly GitBranch[]>();
 
   readonly switchTo = output<string>();

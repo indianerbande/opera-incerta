@@ -3,11 +3,14 @@ import {
   Component,
   ElementRef,
   afterNextRender,
+  computed,
   input,
   output,
   viewChild,
+  inject,
 } from '@angular/core';
 import { DialogComponent } from './dialog.component.js';
+import { Localization } from '../localization/localization.js';
 
 /**
  * Asking before something is taken away. SPEC.md §6.7.
@@ -40,10 +43,10 @@ import { DialogComponent } from './dialog.component.js';
       @if (warning(); as note) {
         <p class="warning">{{ note }}</p>
       }
-      <p class="hint">{{ hint() }}</p>
+      <p class="hint">{{ hintShown() }}</p>
       <div class="actions">
-        <button type="button" class="cancel" #cancelButton (click)="cancel.emit()">Cancel</button>
-        <button type="button" class="danger" (click)="confirm.emit()">{{ confirmLabel() }}</button>
+        <button type="button" class="cancel" #cancelButton (click)="cancel.emit()">{{ i18n.t('common.cancel') }}</button>
+        <button type="button" class="danger" (click)="confirm.emit()">{{ confirmShown() }}</button>
       </div>
     </wi-dialog>
   `,
@@ -64,10 +67,14 @@ import { DialogComponent } from './dialog.component.js';
   `,
 })
 export class ConfirmPromptComponent {
+  protected readonly i18n = inject(Localization);
   readonly title = input.required<string>();
   readonly warning = input<string | null>(null);
-  readonly hint = input('It goes to the desktop trash, where it can be restored.');
-  readonly confirmLabel = input('Delete');
+  readonly hint = input<string | null>(null);
+  readonly confirmLabel = input<string | null>(null);
+  /** The defaults, in the current language: what a deletion says. */
+  protected readonly hintShown = computed(() => this.hint() ?? this.i18n.t('confirm.trashHint'));
+  protected readonly confirmShown = computed(() => this.confirmLabel() ?? this.i18n.t('common.delete'));
 
   readonly confirm = output<void>();
   readonly cancel = output<void>();

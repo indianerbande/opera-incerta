@@ -17,6 +17,7 @@ describe('readPreferences', () => {
   it('reads a well-formed record', () => {
     const stored = {
       version: 1,
+      interfaceLanguage: 'de',
       columnWidths: { navigator: 200, sheetList: 250, secondarySidebar: 300 },
       navigatorView: 'sourceControl',
       secondaryView: 'outline',

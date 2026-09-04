@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import type { OutlineEntry } from '@opera-incerta/core';
+import { Localization } from '../localization/localization.js';
 
 /**
  * The heading outline of the current text. SPEC.md §11.
@@ -31,7 +32,7 @@ import type { OutlineEntry } from '@opera-incerta/core';
         }
       </ul>
     } @else {
-      <p class="hint">No headings in this sheet.</p>
+      <p class="hint">{{ i18n.t('outline.empty') }}</p>
     }
   `,
   styles: `
@@ -79,6 +80,7 @@ import type { OutlineEntry } from '@opera-incerta/core';
   `,
 })
 export class OutlineComponent {
+  protected readonly i18n = inject(Localization);
   readonly entries = input.required<readonly OutlineEntry[]>();
 
   /** One-based line to reveal in the editor. */

@@ -46,6 +46,7 @@ describe('the settings registry (SPEC.md §13)', () => {
   it('lists categories once each, and marks the two that hold no preference', () => {
     const ids = SETTINGS_CATEGORIES.map((category) => category.id);
     expect(new Set(ids).size).toBe(ids.length);
+    expect(ids[0]).toBe('appearance');
     const withoutPreferences = SETTINGS_CATEGORIES.filter(
       (category) => settingsOf(category.id).length === 0,
     ).map((category) => [category.id, category.scope]);
@@ -55,6 +56,26 @@ describe('the settings registry (SPEC.md §13)', () => {
     ]);
     for (const category of SETTINGS_CATEGORIES.filter((c) => settingsOf(c.id).length > 0)) {
       expect(category.scope, category.id).toBe('installation');
+    }
+  });
+});
+
+describe('the registry is text-free (SPEC.md §14.3)', () => {
+  it('names keys of the catalogue, never words', () => {
+    for (const category of SETTINGS_CATEGORIES) {
+      expect(category.labelKey).toMatch(/^settings\.category\.\w+\.label$/u);
+      expect(category.descriptionKey).toMatch(/^settings\.category\.\w+\.description$/u);
+    }
+    for (const setting of SETTINGS) {
+      expect(setting.labelKey, setting.id).toMatch(/^settings\./u);
+      if (setting.hintKey !== null) {
+        expect(setting.hintKey, setting.id).toMatch(/^settings\./u);
+      }
+      if (setting.kind !== 'switch') {
+        for (const option of setting.options) {
+          expect(option.labelKey, setting.id).toMatch(/^settings\./u);
+        }
+      }
     }
   });
 });
