@@ -229,3 +229,35 @@ describe('code blocks are verbatim, by CommonMark\'s rules', () => {
     expect(lines.map((line) => line.verbatim)).toEqual([false, false]);
   });
 });
+
+describe('fence rules the standard oracle found (TESTING.md §2.11)', () => {
+  it('does not open a backtick fence whose info string contains a backtick', () => {
+    // CommonMark examples 138 and 145: these are code spans, not fences.
+    for (const text of ['``` ```\naaa\n', '``` aa ```\nfoo\n']) {
+      const lines = markdownToDisplay(text);
+      expect(lines.map((line) => line.verbatim)).toEqual([false, false, false]);
+    }
+  });
+
+  it('still opens a backtick fence with an ordinary info string', () => {
+    const lines = markdownToDisplay('```ts\ncode\n```\n');
+    expect(lines.map((line) => line.verbatim)).toEqual([true, true, true, false]);
+  });
+
+  it('lets a tilde fence carry a backtick in its info string', () => {
+    const lines = markdownToDisplay('~~~ a`b\ncode\n~~~\n');
+    expect(lines.map((line) => line.verbatim)).toEqual([true, true, true, false]);
+  });
+
+  it('does not close a fence on a line that carries text after the run', () => {
+    // CommonMark example 147: the middle line is content, the last one closes.
+    const lines = markdownToDisplay('```\n``` aaa\n```\nafter\n');
+    expect(lines.map((line) => line.verbatim)).toEqual([true, true, true, false, false]);
+  });
+
+  it('closes a fence on a line with trailing spaces after the run', () => {
+    const lines = markdownToDisplay('```\ncode\n```   \n# heading\n');
+    expect(lines.map((line) => line.verbatim)).toEqual([true, true, true, false, false]);
+    expect(lines[3]?.level).toBe(1);
+  });
+});

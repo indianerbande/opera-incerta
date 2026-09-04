@@ -6,6 +6,45 @@ documents").
 
 ---
 
+## 2026-09-04 — two fence rules the oracle found, and two limits written down
+
+**What was open** (`TODO.md` §1, from the parser spike). Criterion 3 of the
+parser gate compared `markdownToDisplay` with three conformant parsers over
+the specification's heading and code examples, and the parsers disagreed
+with the core in the same eight places.
+
+**What changed.** Two of them were defects, now fixed in `heading.ts`: a
+backtick fence whose info string contains a backtick is not a fence —
+`` ``` ``` `` and `` ``` aa ``` `` are code spans (examples 138, 145) — and
+a closing fence may be followed by spaces only, where the core let
+`` ``` aaa `` close one (example 147). A tilde fence may still carry a
+backtick in its info string, as CommonMark allows. The fence pattern now
+captures what follows the run, and both rules read from that.
+
+The other four disagreements are limits of a transform that models no
+containers, and they are written into `SPEC.md` §10.1 rather than fixed: an
+indented line after a blank line inside a list item is that item's
+paragraph to CommonMark and code to the core (examples 108, 109), which
+needs container awareness — the GFM display's round; and a whitespace-only
+line at the edge of an indented block is shown verbatim (example 117),
+which changes nothing anyone can see.
+
+**Verification.** `pnpm run check` green: **927 tests** — the two code-span
+lines not opening a fence, an ordinary info string still opening one, a
+tilde fence with a backtick, the closing line with text staying content,
+trailing spaces after the run still closing. `pnpm run spike:parser`
+criterion 3: **four disagreements left for every conformant parser, all
+four the recorded limits.** Falsified by putting both old rules back: two
+tests red.
+
+**Lesson.** A conformance oracle draws a line between "wrong" and "not
+modelled". Before it ran, both looked the same from inside the core: a
+place where our rule and the standard part ways. After it, two were fixed
+in an hour and two were written down with their example numbers, and the
+next reader can tell which is which.
+
+---
+
 ## 2026-09-04 — four codec defects the oracle found, fixed the same day
 
 **What was open** (`TODO.md` §1, from the parser spike). The front matter

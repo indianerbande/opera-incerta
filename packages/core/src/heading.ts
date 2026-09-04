@@ -41,8 +41,13 @@ const ATX = /^( {0,3})(#{1,6})(?:([ \t]+)([\s\S]*?))?[ \t]*$/;
 /** A closing hash sequence, which CommonMark allows and this codec preserves. */
 const CLOSING_HASHES = /^([\s\S]*?)([ \t]+#+)$/;
 
-/** A fenced code block opener or closer. */
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+/**
+ * A fenced code block opener or closer: the run, and what follows it. An
+ * opening backtick fence's info string must not contain a backtick (`` ``` ``` ``
+ * is a code span), and a closing fence may be followed by spaces only. The
+ * standard oracle found both (`TESTING.md` §2.11, examples 138, 145, 147).
+ */
+const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
 /** An indented code line: four spaces or a tab, per CommonMark. */
 const INDENTED_CODE = /^(?: {4}|\t)/;
@@ -67,13 +72,19 @@ export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
     const fence = FENCE.exec(line);
     if (fence !== null) {
       const run = fence[1] ?? '';
+      const rest = fence[2] ?? '';
       if (openFence === null) {
-        openFence = { marker: run.charAt(0), length: run.length };
-        display.push(plainLine(line, true));
-        previousBlank = false;
-        continue;
-      }
-      if (run.charAt(0) === openFence.marker && run.length >= openFence.length) {
+        if (run.charAt(0) === '~' || !rest.includes('`')) {
+          openFence = { marker: run.charAt(0), length: run.length };
+          display.push(plainLine(line, true));
+          previousBlank = false;
+          continue;
+        }
+      } else if (
+        run.charAt(0) === openFence.marker &&
+        run.length >= openFence.length &&
+        rest.trim() === ''
+      ) {
         openFence = null;
         display.push(plainLine(line, true));
         previousBlank = false;

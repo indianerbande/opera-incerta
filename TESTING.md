@@ -158,9 +158,10 @@ Tests MUST prove:
 - heading transformation in both directions for all six levels, including a
   line that merely begins with `#` inside a code fence, which MUST NOT be
   treated as a heading — and the fence rules as CommonMark has them: a
-  fence closes only on one at least as long and of the same character, and
-  four-space indented code after a blank line is verbatim while an indented
-  continuation of a paragraph is not;
+  fence closes only on one at least as long and of the same character and
+  followed by spaces only, a backtick fence whose info string contains a
+  backtick is no fence at all, and four-space indented code after a blank
+  line is verbatim while an indented continuation of a paragraph is not;
 - the flanking rule of emphasis: an asterisk followed by a space opens
   nothing, so `2 * 3 * 4` stays arithmetic, and one preceded by a space closes
   nothing;

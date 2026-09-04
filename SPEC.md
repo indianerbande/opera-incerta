@@ -1247,7 +1247,19 @@ target syntax. Round-tripping MUST be lossless and idempotent.
 **Lines inside a fenced code block are shown exactly as written.** No heading is
 recognized there and no delimiter is hidden: backticks mean "literally this",
 and hiding a character inside them would display something the file does not
-contain.
+contain. The fence rules are CommonMark's: a backtick fence whose info string
+contains a backtick is not a fence, and a closing fence may be followed by
+spaces only (measured against the specification's examples, `TESTING.md`
+§2.11).
+
+**Known limits of the line-based transform.** It models no containers. An
+indented line after a blank line inside a list item is that item's paragraph
+to CommonMark and indented code to this transform, which shows it verbatim
+(specification examples 108 and 109); and a whitespace-only line at the edge
+of an indented code block is shown verbatim although it is not part of the
+block (example 117), which nobody can see. Both are recorded here rather than
+fixed: the first needs container awareness, which is the GFM display's round
+(§18), and the second changes nothing visible.
 
 **The component sits behind an `EditorAdapter` boundary.** The portable core
 computes the display model — which lines are headings, which character ranges
