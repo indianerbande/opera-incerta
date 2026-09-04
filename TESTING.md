@@ -328,7 +328,9 @@ Component and state tests MUST cover:
   stored, and a reset restoring the complete default record, layout
   included; and
 - rejection of stale asynchronous results: a slow scan or search that completes
-  after a newer one MUST NOT overwrite the newer result; and
+  after a newer one MUST NOT overwrite the newer result — and re-reads after
+  an external change coalescing, so a change reported during a re-read is
+  read after it and never overtaken by it; and
 - **the flows** (`SPEC.md` §8.7), driven without a component: each context
   menu offers the entries its target gets and no others; choosing an entry
   puts up the prompt or confirmation with the words the author reads, and

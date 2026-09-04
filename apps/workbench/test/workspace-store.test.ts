@@ -303,7 +303,64 @@ describe('editing and saving', () => {
   });
 });
 
+/** Yields to the event loop until the condition holds, or fails after a while. */
+async function settleUntil(condition: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    if (condition()) {
+      return;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+  throw new Error('the condition never held');
+}
+
 describe('reloading after an external change', () => {
+  it('reads a change reported during a re-read after it, never overtaken by it', async () => {
+    // Two watch reports in quick succession: the first re-read is slow, the
+    // second sees a newer file. The slow one must not finish last and win.
+    let disk = '# Preface\n';
+    const reads: Array<{ readonly text: string; resolve: () => void }> = [];
+    const bridge = fakeBridge({
+      readSheet: async (request) => {
+        if (request.handle.id !== 'a'.repeat(32)) {
+          return { ok: true, value: 'Other\n' };
+        }
+        const text = disk;
+        await new Promise<void>((resolve) => reads.push({ text, resolve }));
+        return { ok: true, value: text };
+      },
+    });
+    const store = new WorkspaceStore(bridge);
+    await store.openProject();
+    const selecting = store.selectSheet('preface.md');
+    await settleUntil(() => reads.length === 1);
+    reads.shift()?.resolve();
+    await selecting;
+    expect(store.editorDocument()?.text).toBe('# Preface\n');
+
+    const first = store.reloadProject();
+    await settleUntil(() => reads.length === 1);
+    disk = '# Changed elsewhere\n';
+    const second = store.reloadProject();
+    let settled = false;
+    const both = Promise.all([first, second]).then(() => {
+      settled = true;
+    });
+    // Whatever is pending resolves newest first: with overlapping re-reads
+    // that is the newer file, and then the older one lands on top of it.
+    while (!settled) {
+      await settleUntil(() => reads.length >= 1 || settled);
+      for (const read of [...reads].reverse()) {
+        reads.splice(reads.indexOf(read), 1);
+        read.resolve();
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+    await both;
+
+    expect(store.editorDocument()?.text).toBe('# Changed elsewhere\n');
+  });
+
   it('keeps the selected group and the open sheet', async () => {
     const store = new WorkspaceStore(fakeBridge());
     await store.openProject();

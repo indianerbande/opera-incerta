@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **943 tests**, plus the desktop and asset checks.
+projects, **944 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -41,14 +41,7 @@ has to be consulted to build, verify or change the product.
    typed sequence — and the next run was green. Both look like input events
    delivered out of step with the renderer; if a third appears, the typing
    helper should wait for each character to land rather than for a frame.
-   A third kind, seen once the same day, is different in nature: the merge
-   check found no `read-only` notice within six seconds of the merge leaving
-   conflict markers in the open sheet, and two runs afterwards were green.
-   The store's `reloadProject` is neither serialised nor coalesced: two
-   watch reports in quick succession — the smoke's own write of the sheet,
-   then the merge — start two overlapping re-reads, and the earlier one can
-   finish last with the older file. The stale-result rule of `TESTING.md`
-   §2.6 applies here and is not yet enforced for reloads. Its own round.
+
 
 ## 2. To decide before code exists
 

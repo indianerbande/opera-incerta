@@ -31,6 +31,7 @@ import {
   type SheetEntry,
   type SheetMetadata,
   type TextStatistics,
+  RefreshCoordinator,
 } from '@opera-incerta/core';
 import {
   isLibraryEditResult,
@@ -89,6 +90,7 @@ export class WorkspaceStore {
    * not come back. Comparing the count is how a restore knows it is stale.
    */
   #editingEpoch = 0;
+  readonly #reload = new RefreshCoordinator(async () => this.#reloadOnce());
   readonly #editorDocument = signal<EditorDocument | null>(null);
   readonly #categories = signal<readonly PageCategory[]>([]);
   readonly #busy = signal(false);
@@ -248,7 +250,19 @@ export class WorkspaceStore {
    * are true. The author's version is kept meanwhile — the prompt asks, it does
    * not announce a loss.
    */
-  async reloadProject(): Promise<void> {
+  reloadProject(): Promise<void> {
+    return this.#reload.request();
+  }
+
+  /**
+   * One re-read. Behind the coordinator, because two watch reports in quick
+   * succession — a save, then a merge — used to start two overlapping
+   * re-reads, and the earlier one could finish last with the older file:
+   * the editor then showed a sheet the disk no longer had (the smoke's merge
+   * check, once, 2026-09-04). Coalesced, a report during a re-read is read
+   * after it, and never overtaken by it.
+   */
+  async #reloadOnce(): Promise<void> {
     await this.#withBridge(async (bridge) => {
       const snapshot = unwrapSnapshot(await bridge.reopenProject());
       if (snapshot === null) {

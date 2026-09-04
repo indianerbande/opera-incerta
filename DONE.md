@@ -6,6 +6,38 @@ documents").
 
 ---
 
+## 2026-09-04 — a re-read that came too late, coalesced
+
+**What was open** (`TODO.md` §1, from the previous round). The merge check
+once found no read-only notice within six seconds of the merge leaving
+conflict markers in the open sheet, and the two runs after it were green.
+
+**What was found.** `reloadProject` was neither serialised nor coalesced.
+Two watch reports in quick succession — the smoke's own write of the sheet,
+then the merge — started two overlapping re-reads, and the earlier one
+could finish last with the older file: the editor then showed a sheet the
+disk no longer had, without markers and without the notice. The source
+control store had the coordinator for exactly this since the review rounds;
+the workspace store had not taken it.
+
+**What changed.** The re-read runs behind a `RefreshCoordinator`: a report
+during a re-read schedules one follow-up, which reads after it and is
+never overtaken by it. One line in the store, plus the constructor.
+
+**Verification.** `pnpm run check` green: **944 tests** — a test with two
+reloads in flight whose reads resolve newest first, ending on the newer
+file. Falsified by calling the re-read directly again: the test ends on
+the older file. `pnpm run desktop:smoke` green across thirty-two checks.
+
+**Lesson.** A rule that exists in one store and not in its neighbour is a
+rule that will be needed in the neighbour. The coordinator was written for
+the source control panel with the words "coalesce, do not queue"; the
+workspace store re-read the project on every watch report with no words at
+all. The smoke could only show the gap once in three runs. The test shows
+it every time.
+
+---
+
 ## 2026-09-04 — a conflict prompt nobody asked for, and the smoke that now looks
 
 **What was open** (`TODO.md` §1, from the settings round's screenshot). Behind
