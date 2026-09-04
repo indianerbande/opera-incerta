@@ -34,6 +34,17 @@ export { delimiterRanges, inlineSpans } from './inline.js';
 export type { InlineKind, InlineSpan } from './inline.js';
 
 export { displayModel, headingPrefixRange, visibleLineStart } from './display-model.js';
+export { EMPTY_BLOCK_MODEL, blockAt, isListItem, quoteDepth } from './block-model.js';
+export type { Block, BlockKind, BlockModel, BlockSpan, ListItemSpan, TaskState } from './block-model.js';
+export { presentation } from './presentation.js';
+export type {
+  Glyph,
+  LineInstruction,
+  LineStyle,
+  MarkInstruction,
+  Presentation,
+  ReplaceInstruction,
+} from './presentation.js';
 
 export {
   ancestorPaths,

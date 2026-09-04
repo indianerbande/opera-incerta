@@ -69,6 +69,7 @@ An install with `--ignore-scripts` leaves the runtime out; run
 | `packages/core` | Portable domain rules. No DOM, no Electron, no Node.js APIs. |
 | `packages/desktop-contract` | The versioned main-process/renderer bridge and its runtime guards. |
 | `packages/localization` | The English and German catalogues and the rules that read them; used by the renderer and the native menu. |
+| `packages/markdown` | The block structure of a document, read with markdown-it and translated into the core's own types. |
 | `packages/project-node` | Project and library adapter — owns filesystem access. |
 | `packages/git-node` | Source-control adapter over the system `git`. |
 | `apps/workbench` | Angular renderer: the workbench UI. |

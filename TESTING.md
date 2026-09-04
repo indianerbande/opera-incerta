@@ -94,7 +94,21 @@ and without touching the filesystem. Tests MUST cover:
 - the computed category text color at and around the luminance threshold; and
 - the editor typography rule (`SPEC.md` §13): a base size clamped into its
   bounds and to whole pixels, the heading ratios holding at every base, and
-  the curated families each ending in a generic family.
+  the curated families each ending in a generic family;
+- the block model and the presentation of `SPEC.md` §10.7: a quote marker
+  hidden off the focus line and shown on it, the line styled by depth
+  either way; a bullet in place of an unordered marker and an ordered one
+  kept; a task box turned into a checkbox glyph; a nested item indented by
+  its depth inside the list, not counting quotes; a thematic break as a
+  rule off focus and as text on it; a hard break as a glyph, but not a
+  trailing space on the last line; an escape's backslash hidden, a
+  backslash before a letter kept; inline marks on every line, the focus
+  line included, and after a heading's hidden prefix; nothing marked or
+  hidden inside code. And `packages/markdown`'s translation: quotes with
+  their depth, list items with marker, order and nesting, task items by
+  the translation's own rule, fenced and indented code, a thematic break,
+  every block inside the document, an unclosed quote reaching the end,
+  and a table or raw HTML left as paragraphs.
 
 ### 2.2 Markdown and front matter codec — data safety
 
@@ -441,6 +455,12 @@ Tests MUST cover:
   column following one keystroke, the bar at its constant height, and the
   wrap switch turning this sheet's wrapping off and on, read off the
   editor's own class list;
+- the GFM display (`SPEC.md` §10.7), typed in and measured with computed
+  styles: a quote marker hidden and the line ruled at the left, a bullet in
+  place of a dash, a ticked box in place of `[x]`, an ordered marker kept,
+  a rule in place of `---`, strikethrough as line-through, inline code in a
+  monospace face, bold as a heavier weight; the marker back as written on
+  the focus line; and the typed markup undone afterwards;
 - the settings dialog (`SPEC.md` §13): opened through the native menu item
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the
@@ -725,8 +745,10 @@ the core: the conformant parsers agree with each other and disagree with
 Criterion 7 found four defects in the codec's writer and reader, also in
 `TODO.md`; 165 of 181 generated sheets and all three fixtures read back
 identically. The measurements and the reading of them are in
-`spikes/parser-markdown/README.md`; the decision the outcome asks for is in
-`TODO.md` §2.1. Re-run with `pnpm run spike:parser`.
+`spikes/parser-markdown/README.md`. The decision was taken the same day
+(`TODO.md` §2.1): the gate read as two — commonmark.js and `yaml` as the
+test oracle, markdown-it for the GFM display with its two deviations
+recorded in `DEPENDENCIES.md`. Re-run with `pnpm run spike:parser`.
 
 ### 2.10 Localization
 

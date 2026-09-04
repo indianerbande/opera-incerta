@@ -5,6 +5,7 @@
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
+import { writeFileSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserWindow, clipboard } from 'electron';
@@ -225,6 +226,117 @@ export async function checkStatusBar(window: BrowserWindow): Promise<void> {
   console.log(
     `smoke ok: the status bar named line ${lineCount} and followed the cursor by one column, ` +
       'and its wrap switch turned this sheet’s wrapping off and on',
+  );
+}
+
+/**
+ * The GFM display. SPEC.md §10.7: markers hidden and the effect shown off
+ * the focus line, everything as written on it. Typed in, measured with
+ * computed styles, and undone.
+ */
+export async function checkGfmDisplay(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  await placeCursorInEditor(window);
+  await pressKey(window, 'End');
+  const lines = [
+    '',
+    '> A quoted line',
+    '- a bullet',
+    '- [x] a done task',
+    '1. first of an ordered list',
+    '',
+    '---',
+    '',
+    'Some ~~gone~~ and `code` and **bold** text',
+  ];
+  for (const line of lines) {
+    await pressKey(window, 'Return');
+    if (line !== '') {
+      await typeText(window, line);
+    }
+  }
+  await waitUntil('the typed markup to be in the editor', () => editorContains(window, 'first of an ordered'));
+
+  const read = async (): Promise<Record<string, unknown>> =>
+    (await window.webContents.executeJavaScript(
+      `(() => {
+         const byText = (text) => [...document.querySelectorAll('.cm-line')].find((line) => line.textContent.includes(text)) ?? null;
+         const quote = byText('A quoted line');
+         const bullet = byText('a bullet');
+         const task = byText('a done task');
+         const ordered = byText('first of an ordered');
+         const rule = document.querySelector('.cm-line.cm-thematic-break');
+         const strike = document.querySelector('.cm-inline-strikethrough');
+         const code = document.querySelector('.cm-inline-code');
+         const bold = document.querySelector('.cm-inline-bold');
+         return {
+           quoteText: quote?.textContent ?? null,
+           quoteBorder: quote === null ? null : getComputedStyle(quote).borderLeftWidth,
+           bulletGlyph: bullet?.querySelector('.cm-glyph-bullet') !== null && bullet !== null,
+           bulletText: bullet?.textContent ?? null,
+           taskGlyph: task?.querySelector('.cm-glyph-checked') !== null && task !== null,
+           orderedText: ordered?.textContent ?? null,
+           ruleGlyph: rule?.querySelector('.cm-glyph-rule') !== null && rule !== null,
+           strike: strike === null ? null : getComputedStyle(strike).textDecorationLine,
+           code: code === null ? null : getComputedStyle(code).fontFamily,
+           bold: bold === null ? null : getComputedStyle(bold).fontWeight,
+         };
+       })()`,
+    )) as Record<string, unknown>;
+
+  const shown = await read();
+  const expectations: Array<[string, boolean]> = [
+    ['the quote marker hidden', typeof shown['quoteText'] === 'string' && !(shown['quoteText'] as string).includes('>')],
+    ['the quote ruled at the left', shown['quoteBorder'] !== '0px' && shown['quoteBorder'] !== null],
+    ['a bullet in place of the dash', shown['bulletGlyph'] === true && !(shown['bulletText'] as string).includes('-')],
+    ['a ticked box in place of [x]', shown['taskGlyph'] === true],
+    ['the ordered marker kept as written', typeof shown['orderedText'] === 'string' && (shown['orderedText'] as string).startsWith('1.')],
+    ['a rule in place of ---', shown['ruleGlyph'] === true],
+    ['strikethrough as line-through', shown['strike'] === 'line-through'],
+    ['inline code in a monospace face', typeof shown['code'] === 'string' && /Menlo|monospace/u.test(shown['code'] as string)],
+    ['bold as a heavier weight', Number(shown['bold']) >= 600],
+  ];
+  for (const [what, holds] of expectations) {
+    if (!holds) {
+      throw new Error(`the GFM display does not show ${what}: ${JSON.stringify(shown)}`);
+    }
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-gfm.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  // On the focus line, the marker is back as written.
+  const target = (await window.webContents.executeJavaScript(
+    `(() => {
+       const line = [...document.querySelectorAll('.cm-line')].find((candidate) => candidate.textContent.includes('A quoted line'));
+       if (line === undefined) { return null; }
+       const rect = line.getBoundingClientRect();
+       return { x: Math.round(rect.right - 8), y: Math.round(rect.top + rect.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (target === null) {
+    throw new Error('the quoted line is gone');
+  }
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: target.x, y: target.y, button: 'left', clickCount: 1 });
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: target.x, y: target.y, button: 'left', clickCount: 1 });
+  await rendered(window);
+  await waitUntil('the quote marker to show on the focus line', async () => {
+    const now = await read();
+    return typeof now['quoteText'] === 'string' && (now['quoteText'] as string).includes('>');
+  });
+
+  // Undo what was typed, so the checks after this one find the sheet as it was.
+  for (let attempt = 0; attempt < 80 && (await editorContains(window, 'A quoted line')); attempt += 1) {
+    await pressKey(window, 'z', ['cmd']);
+  }
+  if (await editorContains(window, 'A quoted line')) {
+    throw new Error('undo did not take the typed markup back out');
+  }
+
+  console.log(
+    'smoke ok: the GFM display hid a quote marker, a dash, a task box and a rule behind their ' +
+      'effects, kept an ordered marker, showed strikethrough, code and bold, and put the marker back on the focus line',
   );
 }
 

@@ -255,10 +255,9 @@ filesystem, the process table, the network, or the DOM.
 
 ### 5.4 Dependency decisions
 
-**Status: The editing surface and the test-time standard oracle are
-accepted; the runtime Markdown parser waits for the GFM display round (see
-below); the remaining entries are draft and each requires the report in
-`AGENTS.md` before acceptance.**
+**Status: The editing surface, the test-time standard oracle, and the
+runtime Markdown parser are accepted; the remaining entries are draft and
+each requires the report in `AGENTS.md` before acceptance.**
 
 **CodeMirror 6 is the accepted editing surface (2026-09-01).** It passed all six
 criteria of the spike gate in `TESTING.md` §2.8, measured in a real rendering
@@ -272,7 +271,7 @@ switches, an intact paste, and a 6.6 ms p95 keystroke latency in a
 | Capability | Candidate | Boundary that keeps it replaceable |
 | --- | --- | --- |
 | Text editing surface | CodeMirror 6 (**accepted**) | An Opera-Incerta-owned `EditorAdapter` interface; the display model stays in the core, and the component only renders it |
-| Markdown parsing | commonmark.js and `yaml` as the test-time oracle (**accepted 2026-09-04**, tests only); markdown-it the leading candidate for the GFM display, decided in that round | The parser produces a syntax representation that is translated into Opera-Incerta-owned domain types; parser AST types MUST NOT become the public model |
+| Markdown parsing | commonmark.js and `yaml` as the test-time oracle (**accepted 2026-09-04**, tests only); markdown-it for the GFM display (**accepted 2026-09-04**, §10.7) | The parser's tokens are translated in `packages/markdown` into the core's own `BlockModel`; parser types MUST NOT become the public model, and the production check keeps its command-line dependency out of the bundle |
 | Filesystem watching | Node.js `fs.watch` with a debouncing layer, or `chokidar` | One `LibraryWatcher` interface in the Node adapter |
 | Git | The locally installed `git` executable via `child_process` | A `GitService` interface; no Git library dependency, no bundled Git |
 | Front matter | Own line-preserving reader/writer (§6.3) | Not a general YAML parser; see the reasoning in §6.3 |
@@ -290,10 +289,11 @@ markdown-it, short of task list items and carrying one PSF-2.0 dependency.
 Both need the gate read as two gates, which is a decision, not a
 measurement — **taken on 2026-09-04**: the test oracle is accepted as two
 development dependencies of the core, with the cross-check a fixed test of
-the gate (`TESTING.md` §2.2); the runtime parser is decided in the GFM
-display round, where markdown-it's two deviations — task list items in the
-translation layer, the PSF-2.0 license of its command-line dependency — are
-weighed then. The cross-check paid before the decision: it found two fence
+the gate (`TESTING.md` §2.2); and markdown-it is accepted for the GFM
+display (§10.7) the same day, its two deviations settled as recorded in
+`DEPENDENCIES.md` — task list items are the translation layer's rule, and
+the PSF-2.0 command-line dependency is kept out of the bundle by the
+production check. The cross-check paid before the decision: it found two fence
 defects in the display transform and four in the codec, all fixed the same
 day (`DONE.md`).
 
@@ -1598,6 +1598,55 @@ directory and renamed into place. A rename within one directory is atomic on
 every supported platform, so an interrupted save cannot leave a half-written
 manuscript behind, and a failed write removes its temporary file.
 
+### 10.7 GFM display
+
+**Status: Decided and built 2026-09-04 for the constructs listed; links,
+images, and tables wait for their own concept rounds.**
+
+The pattern of §10.2 and §10.3, applied to the rest of GFM: **hide the
+markers, show the effect — except on the line that holds the cursor**, where
+every marker is shown as written so it can be edited, and the effect stays
+so the author sees what the line is while editing what it says. Nothing is
+ever rewritten on disk by any of this; the file stays plain Markdown (§10.1).
+
+**Two models, one presentation.** The line-based display model of §10.1
+keeps deciding headings, fences, and inline delimiters, and the standard
+oracle of `TESTING.md` §2.2 keeps it honest. A parser — markdown-it, accepted
+for this display after the gate of `TESTING.md` §2.11 — reads the block
+structure the line-based rules cannot see: quotes, lists and their nesting,
+code blocks, thematic breaks. Its tokens are translated in
+`packages/markdown` into the core's own `BlockModel` and go no further
+(`CONVENTIONS.md` C-A6). One pure function in the core, `presentation`,
+turns text, display model, and block model into instructions — a style on a
+line, a range hidden, a range replaced by a glyph, a mark over a range — and
+the editor adapter draws them one-to-one. The rules are therefore tested
+without a rendering engine; the smoke measures the drawing.
+
+| Construct | Off the focus line | On the focus line |
+| --- | --- | --- |
+| Emphasis `*x*`, `**x**`, `***x***` | delimiters hidden; real italic, bold, both | delimiters shown; the weight stays |
+| Strikethrough `~~x~~` | delimiters hidden; line-through | delimiters shown; line-through stays |
+| Inline code `` `x` `` | backticks hidden; monospace with a faint ground | backticks shown; the face stays |
+| Fenced and indented code | shown exactly as written (§10.1), the block on a faint ground in monospace; nothing inside it is a marker | the same — code has no focus rule |
+| Block quote `>` | markers hidden; a rule at the left per depth, the text muted | markers shown; the rule stays |
+| Unordered list `-`, `*`, `+` | the marker replaced by a bullet; hanging indent by depth | the marker shown |
+| Ordered list `1.`, `2)` | the marker shown as written (its number is content); hanging indent | the same |
+| Task list `- [ ]`, `- [x]` | the box replaced by an empty or a ticked checkbox glyph — a display, not yet a control | the box shown |
+| Thematic break `---`, `***` | the line replaced by a rule | the text shown |
+| Hard break: two trailing spaces or `\` | a faint return glyph at the line's end, so the invisible becomes visible | shown as written |
+| Escape `\*` | the backslash hidden, the character shown | the backslash shown |
+| Inline HTML | plain text, nothing hidden or styled | the same |
+
+**Task list items are the translation's own rule**, not the parser's: an
+item whose text begins with `[ ]` or `[x]` is a task. The parser was
+measured without them and accepted with that noted (`DEPENDENCIES.md`).
+Ticking a box by clicking it is a control, and a later round.
+
+**What is deliberately not here.** Links and images — the address, what a
+click does, an image's size and source — and tables, whose editing is a
+question of its own, each get a concept round before a line of display.
+Emoji shortcodes are not a goal (§18).
+
 ## 11. Secondary sidebar views
 
 **Status: Inspector and Outline accepted; AI and Snapshots draft.**
@@ -2186,11 +2235,11 @@ own specification update before implementation.
   why the detent at 100 % is unambiguous. Stored installation-locally, never in
   `.opera-incerta/` — a viewing preference must not travel through Git.
 - **Inline markup rendering** (§10.3), staged as specified.
-- **Full GFM display**: strikethrough, inline code, code blocks, block quotes,
-  ordered and unordered lists, task lists, horizontal rules, hard breaks, and
-  escapes. Each attribute's presentation is decided **before** its
-  implementation round. Links, images, and tables are explicitly delicate and
-  each get their own concept round. Inline HTML passes through as plain text;
+- **Full GFM display** — built 2026-09-04 as §10.7: strikethrough, inline
+  code, code blocks, block quotes, ordered and unordered lists, task lists,
+  horizontal rules, hard breaks, and escapes, each with its presentation
+  decided there. Links, images, and tables are explicitly delicate and each
+  get their own concept round. Inline HTML passes through as plain text;
   emoji shortcodes are not a goal.
 
 **Phase 3 — library and workflow**

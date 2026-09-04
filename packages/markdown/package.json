@@ -1,0 +1,23 @@
+{
+  "name": "@opera-incerta/markdown",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The block structure of a document, read with markdown-it and translated into the core's own types. Portable: no DOM, no Electron, no Node.js APIs.",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --exclude 'dist/**'"
+  },
+  "dependencies": {
+    "@opera-incerta/core": "workspace:*",
+    "markdown-it": "15.0.1"
+  }
+}

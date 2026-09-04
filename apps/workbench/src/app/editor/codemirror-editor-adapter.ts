@@ -22,12 +22,14 @@ import {
   EditorView,
   GutterMarker,
   ViewPlugin,
+  WidgetType,
   gutter,
   keymap,
   type Command,
   type DecorationSet,
   type ViewUpdate,
 } from '@codemirror/view';
+import { parseBlocks } from '@opera-incerta/markdown';
 import {
   applyDotCommand,
   displayModel,
@@ -37,7 +39,11 @@ import {
   EDITOR_FONT_STACKS,
   HEADING_SCALE,
   markdownToDisplay,
+  presentation,
   visibleLineStart,
+  type BlockModel,
+  type Glyph,
+  type Presentation,
   withHeadingLevel,
   type DisplayModel,
   type EditorAdapter,
@@ -65,6 +71,45 @@ const editorTheme = EditorView.baseTheme({
   '.cm-heading-4': { fontSize: `${HEADING_SCALE[4]}em`, fontWeight: '600' },
   '.cm-heading-5': { fontSize: `${HEADING_SCALE[5]}em`, fontWeight: '600' },
   '.cm-heading-6': { fontSize: `${HEADING_SCALE[6]}em`, fontWeight: '600', fontStyle: 'italic' },
+  // GFM display (SPEC.md §10.7): the effect, where the markers were.
+  '.cm-inline-bold': { fontWeight: '700' },
+  '.cm-inline-italic': { fontStyle: 'italic' },
+  '.cm-inline-boldItalic': { fontWeight: '700', fontStyle: 'italic' },
+  '.cm-inline-strikethrough': { textDecoration: 'line-through' },
+  '.cm-inline-code': {
+    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+    fontSize: '0.9em',
+    background: 'rgba(128, 128, 128, 0.14)',
+    borderRadius: '3px',
+    padding: '0 3px',
+  },
+  '.cm-code-block': {
+    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+    fontSize: '0.9em',
+    background: 'rgba(128, 128, 128, 0.1)',
+  },
+  '.cm-quote': { color: 'rgba(96, 96, 96, 0.95)', borderLeft: '3px solid rgba(128, 128, 128, 0.5)' },
+  '.cm-quote-1': { paddingLeft: '10px' },
+  '.cm-quote-2': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px rgba(128, 128, 128, 0.5)' },
+  '.cm-quote-3': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px rgba(128, 128, 128, 0.5), inset 28px 0 0 -25px rgba(128, 128, 128, 0.5)' },
+  '.cm-quote-4': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px rgba(128, 128, 128, 0.5), inset 28px 0 0 -25px rgba(128, 128, 128, 0.5), inset 42px 0 0 -39px rgba(128, 128, 128, 0.5)' },
+  '.cm-list-item-0': { paddingLeft: '1.4em', textIndent: '-1.4em' },
+  '.cm-list-item-1': { paddingLeft: '2.8em', textIndent: '-1.4em' },
+  '.cm-list-item-2': { paddingLeft: '4.2em', textIndent: '-1.4em' },
+  '.cm-list-item-3': { paddingLeft: '5.6em', textIndent: '-1.4em' },
+  '.cm-list-item-4': { paddingLeft: '7em', textIndent: '-1.4em' },
+  '.cm-thematic-break': { padding: '6px 0' },
+  '.cm-glyph': { color: 'rgba(128, 128, 128, 0.9)' },
+  '.cm-glyph-bullet': { display: 'inline-block', width: '1.4em', textIndent: '0' },
+  '.cm-glyph-checked, .cm-glyph-unchecked': { marginRight: '0.4em' },
+  '.cm-glyph-rule': {
+    display: 'inline-block',
+    width: '100%',
+    height: '0',
+    borderTop: '1px solid rgba(128, 128, 128, 0.6)',
+    verticalAlign: 'middle',
+  },
+  '.cm-glyph-break': { fontSize: '0.8em', opacity: '0.7' },
   '.cm-marker-gutter': {
     minWidth: '32px',
     padding: '0 6px',
@@ -127,17 +172,129 @@ const displayModelField = StateField.define<DisplayModel>({
 });
 
 /**
- * Builds every decoration from the core's display model, so the editor and any
- * other presentation of the same document agree by construction.
+ * The block structure, read by the parser once per change. Selection moves
+ * do not touch it: the structure is the text's, not the cursor's.
+ */
+const blockModelField = StateField.define<BlockModel>({
+  create(state) {
+    return parseBlocks(state.doc.toString());
+  },
+  update(value, transaction) {
+    return transaction.docChanged ? parseBlocks(transaction.state.doc.toString()) : value;
+  },
+});
+
+/**
+ * The presentation of SPEC.md §10.7, from both models and the cursor's line.
+ * Recomputed with the display model's rhythm: on a change, and on a move
+ * that crosses a line.
+ */
+const presentationField = StateField.define<Presentation>({
+  create(state) {
+    return presentationOf(state);
+  },
+  update(value, transaction) {
+    if (!transaction.docChanged && transaction.selection === undefined) {
+      return value;
+    }
+    const { state } = transaction;
+    if (!transaction.docChanged) {
+      const before = transaction.startState;
+      if (
+        before.doc.lineAt(before.selection.main.head).number ===
+        state.doc.lineAt(state.selection.main.head).number
+      ) {
+        return value;
+      }
+    }
+    return presentationOf(state);
+  },
+});
+
+function presentationOf(state: EditorState): Presentation {
+  return presentation(
+    state.doc.toString(),
+    state.field(displayModelField),
+    state.field(blockModelField),
+    state.doc.lineAt(state.selection.main.head).number,
+  );
+}
+
+/** A glyph that stands in for hidden markup: a bullet, a box, a rule, a return. */
+class GlyphWidget extends WidgetType {
+  readonly #glyph: Glyph;
+
+  constructor(glyph: Glyph) {
+    super();
+    this.#glyph = glyph;
+  }
+
+  override eq(other: GlyphWidget): boolean {
+    return other.#glyph === this.#glyph;
+  }
+
+  override toDOM(): HTMLElement {
+    const element = document.createElement('span');
+    element.className = `cm-glyph cm-glyph-${this.#glyph}`;
+    element.setAttribute('aria-hidden', 'true');
+    element.textContent = GLYPH_TEXT[this.#glyph];
+    return element;
+  }
+
+  override ignoreEvent(): boolean {
+    return false;
+  }
+}
+
+const GLYPH_TEXT: Readonly<Record<Glyph, string>> = {
+  bullet: '•',
+  checked: '☑',
+  unchecked: '☐',
+  rule: '',
+  break: '↵',
+};
+
+function lineClass(style: Presentation['lines'][number]['style']): string {
+  switch (style.kind) {
+    case 'blockquote':
+      return `cm-quote cm-quote-${Math.min(style.depth, 4)}`;
+    case 'listItem':
+      return `cm-list-item cm-list-item-${Math.min(style.depth, 4)}${style.ordered ? ' cm-list-ordered' : ''}`;
+    case 'codeBlock':
+      return 'cm-code-block';
+    case 'thematicBreak':
+      return 'cm-thematic-break';
+  }
+}
+
+/**
+ * Builds every decoration from the core's models, so the editor and any
+ * other presentation of the same document agree by construction: the
+ * display model's headings and hidden delimiters, and the presentation's
+ * line styles, replacements, and marks, each drawn one-to-one.
  */
 function decorationsFor(view: EditorView): DecorationSet {
   const model = view.state.field(displayModelField);
+  const shown = view.state.field(presentationField);
+  const doc = view.state.doc;
 
   const decorations = [
     ...model.headings.map((heading) =>
       Decoration.line({ class: `cm-heading-${heading.level}` }).range(heading.from),
     ),
     ...model.hidden.map((range) => Decoration.replace({}).range(range.from, range.to)),
+    ...shown.lines.map((instruction) =>
+      Decoration.line({ class: lineClass(instruction.style) }).range(doc.line(instruction.line).from),
+    ),
+    ...shown.replacements.map((range) =>
+      (range.glyph === null
+        ? Decoration.replace({})
+        : Decoration.replace({ widget: new GlyphWidget(range.glyph) })
+      ).range(range.from, range.to),
+    ),
+    ...shown.marks.map((mark) =>
+      Decoration.mark({ class: `cm-inline cm-inline-${mark.kind}` }).range(mark.from, mark.to),
+    ),
   ];
 
   // The `true` asks CodeMirror to sort, which it does by position and then by
@@ -408,6 +565,8 @@ function extensions(
 ): readonly Extension[] {
   return [
     displayModelField,
+    blockModelField,
+    presentationField,
     dotCommandFilter,
     atomicHeadingSyntax,
     clipboardKeepsMarkdown,

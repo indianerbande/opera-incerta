@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **982 tests**, plus the desktop and asset checks.
+projects, **1001 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -47,15 +47,11 @@ has to be consulted to build, verify or change the product.
 
 ### 2.1 Markdown parser dependency
 
-**Decided 2026-09-04**, on the measurements of `spikes/parser-markdown`
-(`TESTING.md` §2.11): the gate is read as two. commonmark.js and `yaml` are
-accepted as the test-time oracle, development dependencies of `packages/core`
-only, with the cross-check a fixed test of the gate (`TESTING.md` §2.2). The
-runtime parser for the GFM display is decided in that round (`SPEC.md` §18);
-markdown-it leads — 652 of 652, positions, 15 ms, 7 packages — with two
-deviations to weigh then: task list items are not built in, and its
-`argparse` dependency is PSF-2.0. Not recommended: marked (587 of 652),
-micromark (43 packages, 164 ms). Until that round, nothing here is open.
+**Decided and built 2026-09-04.** The gate of `TESTING.md` §2.11 was read as
+two: commonmark.js and `yaml` are the test-time oracle (`TESTING.md` §2.2),
+markdown-it is the parser behind the GFM display (`SPEC.md` §10.7), its two
+deviations settled in `DEPENDENCIES.md`. The other candidates' measurements
+stay there as the record. Nothing here is open.
 
 ---
 

@@ -7,7 +7,7 @@
  *
  * Run after `pnpm run desktop:build`.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
@@ -125,6 +125,16 @@ if (preload !== null) {
 
 // --- renderer artifact --------------------------------------------------
 const indexHtml = read('build/workbench/browser/index.html');
+
+// The parser's command-line dependency (PSF-2.0, DEPENDENCIES.md) must never
+// reach the renderer: it is not imported, and this makes sure it stays so.
+const browserDirectory = join(repositoryRoot, 'build/workbench/browser');
+for (const name of readdirSync(browserDirectory).filter((file) => file.endsWith('.js'))) {
+  check(
+    !readFileSync(join(browserDirectory, name), 'utf8').includes('argparse'),
+    `the built renderer carries argparse (${name}); the parser's CLI dependency is not for the bundle`,
+  );
+}
 if (indexHtml !== null) {
   check(
     indexHtml.includes('Content-Security-Policy'),

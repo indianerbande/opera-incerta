@@ -38,7 +38,7 @@ on macOS and Windows that is always there, on Linux use `xvfb-run`).
 | `harness.ts` | Helpers that do what a hand does: wait for a selector, click text, right-click a row, fill a prompt, press a key, type. They know nothing about what is being checked. |
 | `checks/launcher.ts` | Opening a project from the launcher, returning to it, creating a project, giving it a repository and an identity, the native menu. |
 | `checks/bridge.ts` | The workbench rendered, the bridge answers, the bridge refuses a path out of the project, the editor laid out. |
-| `checks/editor.ts` | Dot commands, the gutter menu, cursor rules around hidden heading syntax, the status bar, saving through the menu, switching sheets. |
+| `checks/editor.ts` | Dot commands, the gutter menu, cursor rules around hidden heading syntax, the status bar, the GFM display, saving through the menu, switching sheets. |
 | `checks/panes.ts` | Front matter area, page categories, inspector, outline, sidebar collapse, column dividers. |
 | `checks/settings.ts` | The settings dialog: from the menu and the activity bar, a switch reaching the preference file, Escape and focus, the identity in place, the language switched to German and back with the native menu following, reset. |
 | `checks/source-control.ts` | Committing, live status, discarding, fetch and pull against a real remote, a real conflict, branches, amend, `.gitignore`. |

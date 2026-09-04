@@ -80,6 +80,9 @@ importers:
       '@opera-incerta/localization':
         specifier: workspace:*
         version: link:../../packages/localization
+      '@opera-incerta/markdown':
+        specifier: workspace:*
+        version: link:../../packages/markdown
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
@@ -125,6 +128,15 @@ importers:
         version: link:../core
 
   packages/localization: {}
+
+  packages/markdown:
+    dependencies:
+      '@opera-incerta/core':
+        specifier: workspace:*
+        version: link:../core
+      markdown-it:
+        specifier: 15.0.1
+        version: 15.0.1
 
   packages/project-node:
     dependencies:

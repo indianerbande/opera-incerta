@@ -6,6 +6,55 @@ documents").
 
 ---
 
+## 2026-09-04 — the GFM display, with markdown-it behind it
+
+**What was open** (`SPEC.md` §18, `TODO.md` §2.1). The editor hid heading
+prefixes and inline delimiters and showed nothing else of Markdown: a quote
+was a line beginning with `>`, a list a line beginning with `-`, a rule
+three dashes. The runtime parser was decided but not taken.
+
+**What was decided first.** `SPEC.md` §10.7, written before the code: the
+pattern of §10.2 and §10.3 applied to the rest — hide the markers, show the
+effect, except on the focus line — with a table saying, construct by
+construct, what shows off the focus line and what on it. Links, images,
+and tables stay out until their concept rounds.
+
+**What changed.** A new package, `packages/markdown`, reads the block
+structure with markdown-it in its CommonMark preset and translates the
+tokens into the core's own `BlockModel` — quotes with depth, list items
+with marker, order and nesting, code blocks, thematic breaks — and lets no
+token out. Task list items are that translation's own rule, since the parser
+has none. In the core, `presentation` turns text, display model, and block
+model into instructions: a style on a line, a range hidden, a range replaced
+by a glyph, a mark over a range. The adapter draws them one-to-one — a
+second state field for the blocks, recomputed on a change of the text and
+never on a cursor move, and a third for the presentation with the display
+model's rhythm — with bullets, boxes, rules, and returns as widgets and the
+inline effects as marks. The production check now fails the build if the
+built renderer carries `argparse`, the parser's PSF-2.0 command-line
+dependency; `DEPENDENCIES.md` records both deviations the spike measured
+and how each is settled.
+
+**Verification.** `pnpm run check` green: **1001 tests** across eight
+workspace projects — the translation over a sample of every construct, the
+presentation rule by rule, nothing marked or hidden inside code, the marks
+after a heading's hidden prefix. `pnpm run desktop:smoke` green across
+**thirty-four checks**: the GFM check types the constructs in, measures the
+quote's rule, the bullet, the ticked box, the kept ordered marker, the rule,
+line-through, the monospace face and the weight with computed styles, clicks
+into the quote and sees its marker back, and undoes it all. Screenshot looked
+at. Falsified twice: the task box left as written failed the presentation
+test, and an adapter drawing without the block model failed the smoke.
+
+**Lesson.** The round had two halves, and the first was a page of prose:
+what each construct looks like on and off the focus line. Once that table
+stood, the parser was a translation and the editor a drawing; the rules sat
+in one pure function with a test per row of the table. Deciding the
+presentation before its implementation round, as the roadmap asked, was not
+ceremony — it was the design.
+
+---
+
 ## 2026-09-04 — the status bar: where the cursor is, and whether this sheet wraps
 
 **What was open** (`SPEC.md` §10.5). Accepted, not built: a bar under the

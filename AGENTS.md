@@ -304,7 +304,7 @@ succeeded in this checkout. The following have:
 - `pnpm install` installs the pinned workspace dependency graph;
 - `pnpm run build` builds every package and both applications;
 - `pnpm run typecheck:tests` type-checks source and test code;
-- `pnpm run test` runs the suites of all seven workspace projects;
+- `pnpm run test` runs the suites of all eight workspace projects;
 - `pnpm run check` runs the complete current gate (build, type-check, test,
   desktop production boundary);
 - `pnpm run check:assets` verifies the pinned icon bytes, their licence and
@@ -320,7 +320,7 @@ succeeded in this checkout. The following have:
   preload files;
 - `pnpm run desktop:smoke` launches the shell through its smoke entry
   (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
-  renderer through thirty-three checks, and writes `build/desktop/smoke*.png`;
+  renderer through thirty-four checks, and writes `build/desktop/smoke*.png`;
 - `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
   real rendering engine and exits non-zero on any failed criterion;
 - `pnpm run spike:parser` runs the parser spike gate of `TESTING.md` §2.11

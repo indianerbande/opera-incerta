@@ -1,8 +1,7 @@
 # Opera Incerta Dependency Record
 
-Status: Accepted toolchain, shell stack, editing surface, and the test-time
-standard oracle (2026-09-04); the runtime Markdown parser waits for the GFM
-display round
+Status: Accepted toolchain, shell stack, editing surface, the test-time
+standard oracle, and the Markdown parser for the GFM display (2026-09-04)
 
 Date: 2026-09-01
 
@@ -143,6 +142,36 @@ source code and assumes a uniform line height. Opera Incerta shows H1 at 45 px
 next to body text at 22.5 px in the same document, which is the core of its
 display model rather than a decoration on top of it.
 
+## Accepted — the Markdown parser
+
+### markdown-it 15.0.1
+
+- **Capability:** the block structure of a document — quotes, lists and
+  their nesting, code blocks, thematic breaks — for the GFM display of
+  `SPEC.md` §10.7. Run in its CommonMark preset with HTML, linkify, and the
+  typographer off.
+- **Why external:** the line-based rules of the core see no containers
+  (§10.1); a conformant block parser is a mature algorithm, not a
+  well-bounded implementation of our own.
+- **License:** MIT. Dependencies: `mdurl`, `uc.micro`, `entities`
+  (BSD-2-Clause), `linkify-it`, `punycode.js` — and `argparse`, **PSF-2.0**,
+  which serves only markdown-it's command-line tool, is not imported by its
+  module entry, and never reaches a bundle: `check:desktop-production`
+  fails the build if the built renderer carries it. PSF-2.0 is OSI-approved
+  and permissive; the gate of `TESTING.md` §2.11 did not list it, and this
+  entry is where the deviation is recorded.
+- **Impact:** 7 packages, 3 MB unpacked in development; the renderer bundle
+  takes the module entry and its five imports. 15 ms for 112,854 characters
+  in the spike; parsed once per change of the text, never per cursor move.
+- **Offline behavior:** fully local.
+- **Boundary:** `packages/markdown` translates the tokens into the core's
+  own `BlockModel` and lets no token out (`CONVENTIONS.md` C-A6). Task
+  list items, which markdown-it does not know, are that translation's own
+  rule — the second deviation the spike measured, settled here rather than
+  by a third-party plugin.
+- **Evidence:** `packages/markdown/test`, the presentation tests of the
+  core, and the GFM check of the smoke (`TESTING.md` §2.7).
+
 ## Accepted — the standard oracle (tests only)
 
 ### commonmark.js 0.31.2 (with `@types/commonmark` 0.27.10)
@@ -244,10 +273,10 @@ recurring installation prompt.
 These are named in `SPEC.md` §5.4 and require the full report above, plus a
 spike, before they may be added.
 
-### Markdown parser for the GFM display (candidates, measured 2026-09-04)
+### Markdown parser for the GFM display (the other candidates, measured 2026-09-04)
 
-The test-time oracle above is accepted; what remains open is the runtime
-parser for the GFM display of `SPEC.md` §18, decided in that round. Its AST MUST NOT become the public model
+markdown-it is accepted above; the measurements of every candidate stay
+here as the record of the decision. Its AST MUST NOT become the public model
 (`CONVENTIONS.md` C-A6). Front matter handling is deliberately **not**
 delegated to it: foreign keys are preserved as raw lines, which needs no YAML
 parser at all (`SPEC.md` §6.3).
