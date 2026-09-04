@@ -6,7 +6,10 @@ import {
   clampColumnWidth,
   readPreferences,
   type BooleanPreferenceKey,
+  clampEditorFontSize,
   type ColumnWidths,
+  type EditorFontFamily,
+  type EditorTypography,
   type InterfaceLanguage,
   type NavigatorView,
   type PreviewDensity,
@@ -61,6 +64,9 @@ export class LayoutState {
   readonly #frontMatterWritable = signal(DEFAULT_PREFERENCES.frontMatterWritable);
   readonly #showOwnedFrontMatter = signal(DEFAULT_PREFERENCES.showOwnedFrontMatter);
   readonly #interfaceLanguage = signal<InterfaceLanguage>(DEFAULT_PREFERENCES.interfaceLanguage);
+  readonly #editorFontFamily = signal<EditorFontFamily>(DEFAULT_PREFERENCES.editorFontFamily);
+  readonly #editorFontSize = signal(DEFAULT_PREFERENCES.editorFontSize);
+  readonly #editorWordWrap = signal(DEFAULT_PREFERENCES.editorWordWrap);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
     this.#bridge = bridge;
@@ -81,6 +87,15 @@ export class LayoutState {
   readonly showOwnedFrontMatter = this.#showOwnedFrontMatter.asReadonly();
   /** The stored language choice; the localization service resolves it. SPEC.md §14. */
   readonly interfaceLanguage = this.#interfaceLanguage.asReadonly();
+  readonly editorFontFamily = this.#editorFontFamily.asReadonly();
+  readonly editorFontSize = this.#editorFontSize.asReadonly();
+  readonly editorWordWrap = this.#editorWordWrap.asReadonly();
+  /** The three editor settings as the editor takes them. SPEC.md §13. */
+  readonly editorTypography = computed<EditorTypography>(() => ({
+    fontFamily: this.#editorFontFamily(),
+    fontSize: this.#editorFontSize(),
+    wordWrap: this.#editorWordWrap(),
+  }));
 
   /** The active entry of the trailing bar, or null while the sidebar is collapsed. */
   readonly activeSecondaryId = computed<SecondarySidebarView | null>(() =>
@@ -119,6 +134,9 @@ export class LayoutState {
     this.#frontMatterWritable.set(preferences.frontMatterWritable);
     this.#showOwnedFrontMatter.set(preferences.showOwnedFrontMatter);
     this.#interfaceLanguage.set(preferences.interfaceLanguage);
+    this.#editorFontFamily.set(preferences.editorFontFamily);
+    this.#editorFontSize.set(preferences.editorFontSize);
+    this.#editorWordWrap.set(preferences.editorWordWrap);
   }
 
   /** The record as it currently stands. */
@@ -126,6 +144,9 @@ export class LayoutState {
     return {
       version: DEFAULT_PREFERENCES.version,
       interfaceLanguage: this.#interfaceLanguage(),
+      editorFontFamily: this.#editorFontFamily(),
+      editorFontSize: this.#editorFontSize(),
+      editorWordWrap: this.#editorWordWrap(),
       columnWidths: this.#columnWidths(),
       navigatorView: this.#navigatorView(),
       secondaryView: this.#secondaryView(),
@@ -172,6 +193,17 @@ export class LayoutState {
   /** Double-clicking a divider restores that column's ideal width. */
   resetColumn(column: ResizableColumn): void {
     this.#columnWidths.set({ ...this.#columnWidths(), [column]: COLUMN_IDEAL_WIDTH[column] });
+    this.#store();
+  }
+
+  setEditorFontFamily(family: EditorFontFamily): void {
+    this.#editorFontFamily.set(family);
+    this.#store();
+  }
+
+  /** Clamped, like a width: the field can say 3, the editor never shows it. */
+  setEditorFontSize(size: number): void {
+    this.#editorFontSize.set(clampEditorFontSize(size));
     this.#store();
   }
 
@@ -230,6 +262,7 @@ export class LayoutState {
   #switches(): Record<BooleanPreferenceKey, WritableSignal<boolean>> {
     return {
       secondaryVisible: this.#secondaryVisible,
+      editorWordWrap: this.#editorWordWrap,
       showBlankLines: this.#showBlankLines,
       showDeeperOutline: this.#showDeeperOutline,
       showFrontMatter: this.#showFrontMatter,

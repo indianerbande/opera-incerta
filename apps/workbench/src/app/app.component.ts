@@ -218,6 +218,7 @@ import { Localization } from './localization/localization.js';
             #editor
             [document]="document"
             [retired]="store.retiredHandles()"
+            [typography]="layout.editorTypography()"
             (textChange)="store.noteText($event)"
           />
         } @else {

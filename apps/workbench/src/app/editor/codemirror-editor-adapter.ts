@@ -16,7 +16,7 @@ import {
   redo as cmRedo,
   undo as cmUndo,
 } from '@codemirror/commands';
-import { EditorState, RangeSetBuilder, StateField, type Extension } from '@codemirror/state';
+import { Compartment, EditorState, RangeSetBuilder, StateField, type Extension } from '@codemirror/state';
 import {
   Decoration,
   EditorView,
@@ -33,6 +33,9 @@ import {
   displayModel,
   displayToMarkdown,
   headingPrefixRange,
+  DEFAULT_EDITOR_TYPOGRAPHY,
+  EDITOR_FONT_STACKS,
+  HEADING_SCALE,
   markdownToDisplay,
   visibleLineStart,
   withHeadingLevel,
@@ -40,21 +43,26 @@ import {
   type EditorAdapter,
   type EditorChangeListener,
   type EditorDocument,
+  type EditorTypography,
   type HeadingLevel,
   type HeadingMarkerActivation,
   type HeadingMarkerListener,
 } from '@opera-incerta/core';
 
-/** Heading sizes. One place, as SPEC.md §8.2 requires of every layout number. */
+/**
+ * The fixed part of the theme. Heading sizes are the core's ratios in `em`,
+ * so the base size set by the author scales the whole hierarchy
+ * (SPEC.md §13); the base itself is the typography compartment's.
+ */
 const editorTheme = EditorView.baseTheme({
   '&': { height: '100%' },
-  '.cm-content': { fontFamily: 'Georgia, serif', fontSize: '16px', lineHeight: '1.6' },
-  '.cm-heading-1': { fontSize: '2em', fontWeight: '700' },
-  '.cm-heading-2': { fontSize: '1.6em', fontWeight: '700' },
-  '.cm-heading-3': { fontSize: '1.3em', fontWeight: '600' },
-  '.cm-heading-4': { fontSize: '1.15em', fontWeight: '600' },
-  '.cm-heading-5': { fontSize: '1em', fontWeight: '600' },
-  '.cm-heading-6': { fontSize: '1em', fontWeight: '600', fontStyle: 'italic' },
+  '.cm-content': { lineHeight: '1.6' },
+  '.cm-heading-1': { fontSize: `${HEADING_SCALE[1]}em`, fontWeight: '700' },
+  '.cm-heading-2': { fontSize: `${HEADING_SCALE[2]}em`, fontWeight: '700' },
+  '.cm-heading-3': { fontSize: `${HEADING_SCALE[3]}em`, fontWeight: '600' },
+  '.cm-heading-4': { fontSize: `${HEADING_SCALE[4]}em`, fontWeight: '600' },
+  '.cm-heading-5': { fontSize: `${HEADING_SCALE[5]}em`, fontWeight: '600' },
+  '.cm-heading-6': { fontSize: `${HEADING_SCALE[6]}em`, fontWeight: '600', fontStyle: 'italic' },
   '.cm-marker-gutter': {
     minWidth: '32px',
     padding: '0 6px',
@@ -414,7 +422,6 @@ function extensions(
     editorTheme,
     displayPlugin,
     markerGutter(onActivate),
-    EditorView.lineWrapping,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onChange();
@@ -455,12 +462,38 @@ function applyHeadingLevel(view: EditorView, line: number, level: HeadingLevel |
  * what keeps the interface free of DOM types and lets the contract suite run
  * against a double.
  */
-export function createCodeMirrorEditorAdapter(host: HTMLElement): EditorAdapter {
-  return new CodeMirrorEditorAdapter(host);
+export function createCodeMirrorEditorAdapter(
+  host: HTMLElement,
+  typography: EditorTypography = DEFAULT_EDITOR_TYPOGRAPHY,
+): EditorAdapter & TypographyAware {
+  return new CodeMirrorEditorAdapter(host, typography);
 }
 
-class CodeMirrorEditorAdapter implements EditorAdapter {
+/**
+ * What the adapter shows text in. Not part of the core's `EditorAdapter`,
+ * which speaks of text, lines, and heading levels only: this is the
+ * component's own concern, and the shell reaches it through this face.
+ */
+export interface TypographyAware {
+  setTypography(typography: EditorTypography): void;
+}
+
+/** The theme for a typography: what the author set, as CSS. */
+function typographyTheme(typography: EditorTypography): Extension {
+  return EditorView.theme({
+    '.cm-content': {
+      fontFamily: EDITOR_FONT_STACKS[typography.fontFamily],
+      fontSize: `${typography.fontSize}px`,
+    },
+  });
+}
+
+class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
   readonly #view: EditorView;
+  /** Reconfigured in place: the document, its history, and its cursor stay. */
+  readonly #typography = new Compartment();
+  readonly #wrapping = new Compartment();
+  #currentTypography: EditorTypography;
   /** One state per document: this is what gives each its own undo history. */
   readonly #states = new Map<string, EditorState>();
   readonly #listeners = new Set<EditorChangeListener>();
@@ -468,7 +501,8 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
   #openId: string | null = null;
   #destroyed = false;
 
-  constructor(host: HTMLElement) {
+  constructor(host: HTMLElement, typography: EditorTypography) {
+    this.#currentTypography = typography;
     this.#view = new EditorView({
       state: EditorState.create({ extensions: [...this.#extensions()] }),
       parent: host,
@@ -476,10 +510,42 @@ class CodeMirrorEditorAdapter implements EditorAdapter {
   }
 
   #extensions(): readonly Extension[] {
-    return extensions(
-      () => this.#notify(),
-      (activation) => this.#activate(activation),
-    );
+    return [
+      ...extensions(
+        () => this.#notify(),
+        (activation) => this.#activate(activation),
+      ),
+      this.#typography.of(typographyTheme(this.#currentTypography)),
+      this.#wrapping.of(this.#currentTypography.wordWrap ? EditorView.lineWrapping : []),
+    ];
+  }
+
+  setTypography(typography: EditorTypography): void {
+    this.#currentTypography = typography;
+    if (this.#destroyed) {
+      return;
+    }
+    // Every kept state carries its own compartments; the visible one is
+    // reconfigured now, the others when they are shown again.
+    this.#view.dispatch({
+      effects: [
+        this.#typography.reconfigure(typographyTheme(typography)),
+        this.#wrapping.reconfigure(typography.wordWrap ? EditorView.lineWrapping : []),
+      ],
+    });
+    for (const [id, state] of this.#states) {
+      if (id !== this.#openId) {
+        this.#states.set(
+          id,
+          state.update({
+            effects: [
+              this.#typography.reconfigure(typographyTheme(typography)),
+              this.#wrapping.reconfigure(typography.wordWrap ? EditorView.lineWrapping : []),
+            ],
+          }).state,
+        );
+      }
+    }
   }
 
   open(document_: EditorDocument): void {

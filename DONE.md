@@ -6,6 +6,44 @@ documents").
 
 ---
 
+## 2026-09-04 — the editor's font, size, and wrapping as settings
+
+**What was open** (`SPEC.md` §13, Editor). The editor's typography was
+three constants in the adapter's theme: Georgia at 16 px with the heading
+sizes in `em` beside it, and line wrapping always on. The specification
+had named them settings from the start, with one rule: heading sizes keep
+fixed ratios to the base.
+
+**What changed.** The rule moved into the core, `editor-typography.ts`: a
+curated list of three families with the stacks behind them, the base size
+bounded to 12–24 px and clamped on read like a width, the default for
+wrapping, and the heading ratios as one table. The adapter's theme states
+the ratios in `em` from that table and takes the base and the family from a
+compartment, so a change reconfigures the view in place — document, history
+and cursor stay — and every kept state of another sheet with it. Wrapping is
+a second compartment. The record holds the three, the registry lists them
+under a new *Editor* category with two new kinds — a family choice shown in
+its own face, a bounded number — and the layout state hands them to the
+editor as one typography.
+
+**Verification.** `pnpm run check` green: **976 tests** — the clamp, the
+ratios at three bases, the curated list, the record's read and clamp, the
+registry complete, the layout state's setters. `pnpm run desktop:smoke`
+green across thirty-two checks: the base size set to 20 in the dialog
+reaches `.cm-content` as 20 px and H2 measures 32 px, the family reaches the
+content as a monospace stack, wrapping leaves the content's class list, the
+record holds all three, and Reset brings the editor back to 16 px and
+wrapping. Screenshot looked at. Falsified by an H2 pinned to 26 px in the
+theme: the smoke reports the ratio lost.
+
+**Lesson.** The ratio was already right in the theme; what was missing was
+a place where it *is* a rule rather than a coincidence of six numbers. Once
+it was a table in the core with a test over three bases, the setting was a
+compartment and an input — and the smoke could ask the editor, not the
+theme, whether the rule holds.
+
+---
+
 ## 2026-09-04 — the interface speaks German, and the menu with it
 
 **What was open** (`TODO.md` §3, `SPEC.md` §14). Accepted since the first

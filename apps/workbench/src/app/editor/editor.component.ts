@@ -11,13 +11,15 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import type {
-  EditorAdapter,
-  EditorDocument,
-  HeadingLevel,
-  HeadingMarkerActivation,
+import {
+  DEFAULT_EDITOR_TYPOGRAPHY,
+  type EditorAdapter,
+  type EditorDocument,
+  type EditorTypography,
+  type HeadingLevel,
+  type HeadingMarkerActivation,
 } from '@opera-incerta/core';
-import { createCodeMirrorEditorAdapter } from './codemirror-editor-adapter.js';
+import { createCodeMirrorEditorAdapter, type TypographyAware } from './codemirror-editor-adapter.js';
 import { HeadingMenuComponent } from './heading-menu.component.js';
 
 /**
@@ -60,12 +62,14 @@ export class EditorComponent {
    * adapter keeps no history for a sheet that was deleted or moved.
    */
   readonly retired = input<readonly string[]>([]);
+  /** Font, base size, wrapping — the author's, from the settings. SPEC.md §13. */
+  readonly typography = input<EditorTypography>(DEFAULT_EDITOR_TYPOGRAPHY);
 
   /** Emitted after every change, with the text as it would be written. */
   readonly textChange = output<string>();
 
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
-  private readonly adapter = signal<EditorAdapter | null>(null);
+  private readonly adapter = signal<(EditorAdapter & TypographyAware) | null>(null);
 
   /** The open gutter menu, or null. */
   protected readonly menu = signal<HeadingMarkerActivation | null>(null);
@@ -74,13 +78,18 @@ export class EditorComponent {
     const destroyRef = inject(DestroyRef);
 
     afterNextRender(() => {
-      const adapter = createCodeMirrorEditorAdapter(this.host().nativeElement);
+      const adapter = createCodeMirrorEditorAdapter(this.host().nativeElement, this.typography());
       adapter.onChange((text) => this.textChange.emit(text));
       adapter.onHeadingMarkerActivate((activation) => this.menu.set(activation));
       adapter.open(this.document());
       this.adapter.set(adapter);
 
       destroyRef.onDestroy(() => adapter.destroy());
+    });
+
+    effect(() => {
+      const typography = this.typography();
+      this.adapter()?.setTypography(typography);
     });
 
     effect(() => {

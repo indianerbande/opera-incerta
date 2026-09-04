@@ -71,7 +71,7 @@ describe('the registry is text-free (SPEC.md §14.3)', () => {
       if (setting.hintKey !== null) {
         expect(setting.hintKey, setting.id).toMatch(/^settings\./u);
       }
-      if (setting.kind !== 'switch') {
+      if (setting.kind !== 'switch' && setting.kind !== 'number') {
         for (const option of setting.options) {
           expect(option.labelKey, setting.id).toMatch(/^settings\./u);
         }

@@ -9,6 +9,14 @@
  * **A preference never modifies a document.** Everything here is about how the
  * workbench looks and which pane is showing; nothing about a manuscript.
  */
+import {
+  DEFAULT_EDITOR_FONT_FAMILY,
+  DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_EDITOR_WORD_WRAP,
+  EDITOR_FONT_FAMILIES,
+  clampEditorFontSize,
+  type EditorFontFamily,
+} from './editor-typography.js';
 import { COLUMN_BOUNDS, COLUMN_IDEAL_WIDTH, clampColumnWidth } from './layout.js';
 import { DEFAULT_PREVIEW_DENSITY, PREVIEW_DENSITIES, type PreviewDensity } from './preview.js';
 
@@ -42,6 +50,10 @@ export interface WorkbenchPreferences {
   readonly secondaryView: SecondarySidebarView;
   readonly secondaryVisible: boolean;
   readonly sheetListDensity: PreviewDensity;
+  /** The editor's typography. SPEC.md §13 (Editor); the rule is `editor-typography.ts`. */
+  readonly editorFontFamily: EditorFontFamily;
+  readonly editorFontSize: number;
+  readonly editorWordWrap: boolean;
   readonly showBlankLines: boolean;
   readonly showDeeperOutline: boolean;
   /**
@@ -65,6 +77,9 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   secondaryView: 'inspector',
   secondaryVisible: true,
   sheetListDensity: DEFAULT_PREVIEW_DENSITY,
+  editorFontFamily: DEFAULT_EDITOR_FONT_FAMILY,
+  editorFontSize: DEFAULT_EDITOR_FONT_SIZE,
+  editorWordWrap: DEFAULT_EDITOR_WORD_WRAP,
   showBlankLines: false,
   showFrontMatter: false,
   frontMatterWritable: false,
@@ -105,6 +120,18 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
       Object.keys(PREVIEW_DENSITIES),
       DEFAULT_PREFERENCES.sheetListDensity,
     ),
+    editorFontFamily: pick(
+      stored['editorFontFamily'],
+      EDITOR_FONT_FAMILIES,
+      DEFAULT_PREFERENCES.editorFontFamily,
+    ),
+    // Clamped on read as well as on write, like a width (SPEC.md §8.2).
+    editorFontSize: clampEditorFontSize(
+      typeof stored['editorFontSize'] === 'number'
+        ? stored['editorFontSize']
+        : DEFAULT_PREFERENCES.editorFontSize,
+    ),
+    editorWordWrap: boolean_(stored['editorWordWrap'], DEFAULT_PREFERENCES.editorWordWrap),
     showBlankLines: boolean_(stored['showBlankLines'], DEFAULT_PREFERENCES.showBlankLines),
     showFrontMatter: boolean_(stored['showFrontMatter'], DEFAULT_PREFERENCES.showFrontMatter),
     frontMatterWritable: boolean_(

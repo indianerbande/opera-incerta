@@ -91,7 +91,10 @@ and without touching the filesystem. Tests MUST cover:
   the uniform-size behavior of the compact step;
 - word, character, and reading-time counting, including multi-byte characters
   and the treatment of front matter, which MUST NOT be counted; and
-- the computed category text color at and around the luminance threshold.
+- the computed category text color at and around the luminance threshold; and
+- the editor typography rule (`SPEC.md` §13): a base size clamped into its
+  bounds and to whole pixels, the heading ratios holding at every base, and
+  the curated families each ending in a generic family.
 
 ### 2.2 Markdown and front matter codec — data safety
 
@@ -325,8 +328,9 @@ Component and state tests MUST cover:
   taken from the record, the density steps exactly those of the preview,
   and the two entries that hold no preference marked by their scope; and
   the layout state's way in for the dialog — a switch set by key and
-  stored, and a reset restoring the complete default record, layout
-  included; and
+  stored, the editor's family, size and wrapping stored and handed to the
+  editor as one, a size clamped, and a reset restoring the complete default
+  record, layout included; and
 - rejection of stale asynchronous results: a slow scan or search that completes
   after a newer one MUST NOT overwrite the newer result — and re-reads after
   an external change coalescing, so a change reported during a re-read is
@@ -432,7 +436,10 @@ Tests MUST cover:
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the
   entry that opened it; the repository's identity shown, changed, and read
-  back with `git config --local`; the interface language switched to German
+  back with `git config --local`; the editor settings measured on the editor
+  itself — the base size reaching `.cm-content`, H2 keeping its ratio to it,
+  the family and the wrapping following, and the record holding all three;
+  the interface language switched to German
   and the dialog, the activity bar, the document's `lang` and the native
   menu item read in German, then back; and Reset restoring the defaults in
   the preference file, with English put back explicitly because the machine

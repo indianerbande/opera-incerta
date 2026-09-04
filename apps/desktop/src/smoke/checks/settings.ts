@@ -15,6 +15,8 @@ import {
 } from '../harness.js';
 
 interface StoredPreferences {
+  readonly editorFontSize?: number;
+  readonly editorWordWrap?: boolean;
   readonly showBlankLines?: boolean;
   readonly sheetListDensity?: string;
   readonly showDeeperOutline?: boolean;
@@ -152,6 +154,57 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
   // fixture should leave the run as it found it.
   smoke.git(smoke.projectPath, ['config', 'user.name', 'Opera Incerta Smoke']);
 
+  // The editor settings, measured on the editor itself (SPEC.md §13).
+  await clickText(window, 'wi-settings .category', 'Editor');
+  const measure = async (): Promise<{ size: number; family: string; wrapping: boolean; h2: number }> =>
+    (await window.webContents.executeJavaScript(
+      `(() => {
+         const content = document.querySelector('.cm-content');
+         const style = getComputedStyle(content);
+         const heading = document.querySelector('.cm-heading-2');
+         return {
+           size: Number.parseFloat(style.fontSize),
+           family: style.fontFamily,
+           wrapping: content.classList.contains('cm-lineWrapping'),
+           h2: heading === null ? 0 : Number.parseFloat(getComputedStyle(heading).fontSize),
+         };
+       })()`,
+    )) as { size: number; family: string; wrapping: boolean; h2: number };
+  const defaults = await measure();
+  if (defaults.size !== 16 || !defaults.wrapping || !/Georgia/u.test(defaults.family)) {
+    throw new Error(`the editor does not start from its defaults: ${JSON.stringify(defaults)}`);
+  }
+  await window.webContents.executeJavaScript(
+    `(() => {
+       const field = document.querySelector('wi-settings input[name="fontSize"]');
+       field.value = '20';
+       field.dispatchEvent(new Event('change', { bubbles: true }));
+     })()`,
+  );
+  await waitUntil('the base size to reach the editor', async () => (await measure()).size === 20);
+  const larger = await measure();
+  if (Math.round(larger.h2) !== 32) {
+    throw new Error(`H2 did not keep its ratio to the base: ${JSON.stringify(larger)}`);
+  }
+  await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-settings fieldset.font-family label')]
+       .find((label) => label.textContent.trim() === 'Monospace')?.querySelector('input')?.click()`,
+  );
+  await waitUntil('the family to reach the editor', async () => /Menlo|monospace/u.test((await measure()).family));
+  await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-settings label.switch')]
+       .find((label) => label.textContent.includes('Wrap long lines'))?.querySelector('input')?.click()`,
+  );
+  await waitUntil('wrapping to leave the editor', async () => !(await measure()).wrapping);
+  await waitUntil(
+    'the editor settings to reach the preference file',
+    () => readStored(smoke)?.editorFontSize === 20 && readStored(smoke)?.editorWordWrap === false,
+  );
+  const editorEvidence = join(smoke.evidenceDirectory, 'smoke-settings-editor.png');
+  await rendered(window);
+  writeFileSync(editorEvidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${editorEvidence}`);
+
   // The interface language, and the native menu with it (SPEC.md §14).
   await clickText(window, 'wi-settings .category', 'Appearance');
   await chooseLanguage(window, 'Deutsch');
@@ -186,6 +239,10 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
     'the defaults to reach the preference file',
     () => readStored(smoke)?.showBlankLines === false && readStored(smoke)?.sheetListDensity === 'standard',
   );
+  await waitUntil('the editor to return to its defaults', async () => {
+    const now = await measure();
+    return now.size === 16 && now.wrapping;
+  });
   // The default follows the system, which on this machine may be German:
   // English is put back explicitly, so the checks after this one can read.
   await waitUntil(
@@ -207,6 +264,7 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
   console.log(
     'smoke ok: settings opened from the menu and the activity bar, a switch reached the ' +
       'preference file, Escape returned focus, the identity reached the repository, the ' +
-      'interface and the native menu spoke German and English again, reset restored the defaults',
+      'interface and the native menu spoke German and English again, the editor took a base ' +
+      'size, a family and no wrapping with headings keeping their ratio, reset restored the defaults',
   );
 }

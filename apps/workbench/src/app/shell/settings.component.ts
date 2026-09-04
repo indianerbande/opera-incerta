@@ -11,8 +11,10 @@ import {
   signal,
 } from '@angular/core';
 import {
+  EDITOR_FONT_STACKS,
   SETTINGS_CATEGORIES,
   settingsOf,
+  type EditorFontFamily,
   type PreviewDensity,
   type Setting,
   type SettingsCategoryId,
@@ -100,6 +102,41 @@ import { Localization } from '../localization/localization.js';
                   <span class="hint">{{ i18n.t(key(hint)) }}</span>
                 }
               </fieldset>
+            } @else if (setting.kind === 'fontFamily') {
+              <fieldset class="setting choice font-family">
+                <legend>{{ i18n.t(key(setting.labelKey)) }}</legend>
+                @for (option of setting.options; track option.value) {
+                  <label [style.font-family]="stackOf(option.value)">
+                    <input
+                      type="radio"
+                      name="fontFamily"
+                      [value]="option.value"
+                      [checked]="layout.editorFontFamily() === option.value"
+                      (change)="layout.setEditorFontFamily(option.value)"
+                    />
+                    {{ i18n.t(key(option.labelKey)) }}
+                  </label>
+                }
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint)) }}</span>
+                }
+              </fieldset>
+            } @else if (setting.kind === 'number') {
+              <label class="setting number">
+                <span class="label">{{ i18n.t(key(setting.labelKey)) }}</span>
+                <input
+                  type="number"
+                  name="fontSize"
+                  [min]="setting.min"
+                  [max]="setting.max"
+                  [step]="setting.step"
+                  [value]="layout.editorFontSize()"
+                  (change)="layout.setEditorFontSize(numberOf($event))"
+                />
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint), { min: setting.min, max: setting.max }) }}</span>
+                }
+              </label>
             } @else {
               <fieldset class="setting choice language">
                 <legend>{{ i18n.t(key(setting.labelKey)) }}</legend>
@@ -229,6 +266,15 @@ import { Localization } from '../localization/localization.js';
     .choice label {
       margin-inline-end: 12px;
     }
+    .number input {
+      width: 5em;
+      padding: 4px 6px;
+      border: 1px solid var(--wi-border);
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+    }
     .field input {
       padding: 4px 6px;
       border: 1px solid var(--wi-border);
@@ -337,6 +383,15 @@ export class SettingsComponent {
 
   protected value(event: Event): string {
     return (event.target as HTMLInputElement).value;
+  }
+
+  protected numberOf(event: Event): number {
+    return Number((event.target as HTMLInputElement).value);
+  }
+
+  /** The family's own look on its label, so the choice can be seen before it is made. */
+  protected stackOf(family: EditorFontFamily): string {
+    return EDITOR_FONT_STACKS[family];
   }
 
   protected densityOf(value: string): PreviewDensity {

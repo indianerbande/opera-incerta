@@ -15,6 +15,10 @@
  * scope so nobody takes them for preferences.
  */
 import {
+  EDITOR_FONT_SIZE_BOUNDS,
+  type EditorFontFamily,
+} from './editor-typography.js';
+import {
   DEFAULT_PREFERENCES,
   type InterfaceLanguage,
   type WorkbenchPreferences,
@@ -23,6 +27,7 @@ import type { PreviewDensity } from './preview.js';
 
 export type SettingsCategoryId =
   | 'appearance'
+  | 'editor'
   | 'sheetList'
   | 'outline'
   | 'frontMatter'
@@ -53,6 +58,12 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
     id: 'appearance',
     labelKey: 'settings.category.appearance.label',
     descriptionKey: 'settings.category.appearance.description',
+    scope: 'installation',
+  },
+  {
+    id: 'editor',
+    labelKey: 'settings.category.editor.label',
+    descriptionKey: 'settings.category.editor.description',
     scope: 'installation',
   },
   {
@@ -120,7 +131,28 @@ export interface LanguageSetting extends SettingBase {
   readonly defaultValue: InterfaceLanguage;
 }
 
-export type Setting = SwitchSetting | DensitySetting | LanguageSetting;
+export interface FontFamilySetting extends SettingBase {
+  readonly kind: 'fontFamily';
+  readonly key: 'editorFontFamily';
+  readonly options: readonly { readonly value: EditorFontFamily; readonly labelKey: string }[];
+  readonly defaultValue: EditorFontFamily;
+}
+
+export interface NumberSetting extends SettingBase {
+  readonly kind: 'number';
+  readonly key: 'editorFontSize';
+  readonly min: number;
+  readonly max: number;
+  readonly step: number;
+  readonly defaultValue: number;
+}
+
+export type Setting =
+  | SwitchSetting
+  | DensitySetting
+  | LanguageSetting
+  | FontFamilySetting
+  | NumberSetting;
 
 export const SETTINGS: readonly Setting[] = [
   {
@@ -136,6 +168,41 @@ export const SETTINGS: readonly Setting[] = [
       { value: 'de', labelKey: 'settings.language.de' },
     ],
     defaultValue: DEFAULT_PREFERENCES.interfaceLanguage,
+  },
+  {
+    kind: 'fontFamily',
+    id: 'editor.fontFamily',
+    category: 'editor',
+    labelKey: 'settings.editor.fontFamily',
+    hintKey: 'settings.editor.fontFamilyHint',
+    key: 'editorFontFamily',
+    options: [
+      { value: 'serif', labelKey: 'settings.editor.font.serif' },
+      { value: 'sans', labelKey: 'settings.editor.font.sans' },
+      { value: 'mono', labelKey: 'settings.editor.font.mono' },
+    ],
+    defaultValue: DEFAULT_PREFERENCES.editorFontFamily,
+  },
+  {
+    kind: 'number',
+    id: 'editor.fontSize',
+    category: 'editor',
+    labelKey: 'settings.editor.fontSize',
+    hintKey: 'settings.editor.fontSizeHint',
+    key: 'editorFontSize',
+    min: EDITOR_FONT_SIZE_BOUNDS.min,
+    max: EDITOR_FONT_SIZE_BOUNDS.max,
+    step: 1,
+    defaultValue: DEFAULT_PREFERENCES.editorFontSize,
+  },
+  {
+    kind: 'switch',
+    id: 'editor.wordWrap',
+    category: 'editor',
+    labelKey: 'settings.editor.wordWrap',
+    hintKey: 'settings.editor.wordWrapHint',
+    key: 'editorWordWrap',
+    defaultValue: DEFAULT_PREFERENCES.editorWordWrap,
   },
   {
     kind: 'density',

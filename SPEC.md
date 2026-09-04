@@ -1919,7 +1919,10 @@ accessibility, updates.
 
 **What the dialog holds today** (`packages/core/src/settings.ts`, the
 registry the dialog renders): *Appearance* — the interface language (§14);
-*Sheet list* — preview size and blank lines;
+*Editor* — the font family from a curated list of three, the base size within
+12 and 24 pixels, and whether long lines wrap (the default; the status bar's
+per-sheet toggle of §10.5 is a later round); *Sheet list* — preview size and
+blank lines;
 *Outline* — the deeper levels; *Front matter* — the three switches of §10.4;
 *Page categories* — a way into the manager of §6.6, because an author looks
 here for it, marked as project data; *Source control* — the commit identity
@@ -1927,11 +1930,14 @@ of §12, edited in place and written into this repository only. Every
 installation-local preference that is not workbench layout MUST be in the
 registry, and a test enforces it, so a preference cannot appear without a
 place in the dialog. The registry names the keys of its words, never the
-words (§14.3). Editor, Markup, and Privacy are listed in the table above and
-arrive with §10.2 and §15.
+words (§14.3). Markup and Privacy are listed in the table above and arrive
+with §10.2 and §15.
 
 Heading sizes H1–H6 scale proportionally with the editor base size, keeping
-fixed ratios to the base hierarchy.
+fixed ratios to the base hierarchy. The ratios are a rule of the core
+(`editor-typography.ts`), and the editor's theme states them in `em` so that
+the base size the author sets scales the whole hierarchy and never one level
+alone (built 2026-09-04).
 
 **Behavior.** Changes apply immediately and are stored installation-locally.
 Unsupported versions, malformed values, and unavailable storage MUST fall back

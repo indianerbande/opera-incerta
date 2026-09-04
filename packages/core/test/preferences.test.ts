@@ -5,6 +5,7 @@ import {
   DEFAULT_PREFERENCES,
   PREFERENCES_VERSION,
   readPreferences,
+  EDITOR_FONT_SIZE_BOUNDS,
 } from '../src/index.js';
 
 describe('readPreferences', () => {
@@ -23,6 +24,9 @@ describe('readPreferences', () => {
       secondaryView: 'outline',
       secondaryVisible: false,
       sheetListDensity: 'large',
+      editorFontFamily: 'mono',
+      editorFontSize: 18,
+      editorWordWrap: false,
       showBlankLines: true,
       showDeeperOutline: true,
       showFrontMatter: true,
@@ -62,6 +66,15 @@ describe('readPreferences', () => {
     expect(preferences.columnWidths.navigator).toBe(COLUMN_BOUNDS.navigator.max);
     expect(preferences.columnWidths.sheetList).toBe(COLUMN_BOUNDS.sheetList.min);
     expect(preferences.columnWidths.secondarySidebar).toBe(260);
+  });
+
+  it('clamps a stored editor size and falls back for a family it does not offer', () => {
+    const preferences = readPreferences({ editorFontSize: 3, editorFontFamily: 'Comic Sans' });
+    expect(preferences.editorFontSize).toBe(EDITOR_FONT_SIZE_BOUNDS.min);
+    expect(preferences.editorFontFamily).toBe(DEFAULT_PREFERENCES.editorFontFamily);
+    expect(readPreferences({ editorFontSize: 'big' }).editorFontSize).toBe(
+      DEFAULT_PREFERENCES.editorFontSize,
+    );
   });
 
   it('falls back to the ideal width for a missing or non-numeric one', () => {

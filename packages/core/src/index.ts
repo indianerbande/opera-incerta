@@ -91,10 +91,26 @@ export {
 } from './preview.js';
 export type { PreviewDensity, PreviewDensitySpec } from './preview.js';
 export { LAYOUT_PREFERENCE_KEYS, SETTINGS, SETTINGS_CATEGORIES, settingsOf } from './settings.js';
+export {
+  DEFAULT_EDITOR_FONT_FAMILY,
+  DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_EDITOR_TYPOGRAPHY,
+  DEFAULT_EDITOR_WORD_WRAP,
+  EDITOR_FONT_FAMILIES,
+  EDITOR_FONT_SIZE_BOUNDS,
+  EDITOR_FONT_STACKS,
+  HEADING_SCALE,
+  clampEditorFontSize,
+  headingFontSize,
+  isEditorFontFamily,
+} from './editor-typography.js';
+export type { EditorFontFamily, EditorTypography } from './editor-typography.js';
 export type {
   BooleanPreferenceKey,
   DensitySetting,
+  FontFamilySetting,
   LanguageSetting,
+  NumberSetting,
   Setting,
   SettingScope,
   SettingsCategory,

@@ -252,3 +252,27 @@ describe('the settings dialog’s way in (SPEC.md §13)', () => {
     expect(bridge.written.at(-1)).toEqual(DEFAULT_PREFERENCES);
   });
 });
+
+describe('the editor settings (SPEC.md §13)', () => {
+  it('stores family, size, and wrapping, and hands the editor all three at once', () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    expect(layout.editorTypography()).toEqual({ fontFamily: 'serif', fontSize: 16, wordWrap: true });
+
+    layout.setEditorFontFamily('mono');
+    layout.setEditorFontSize(20);
+    layout.setSwitch('editorWordWrap', false);
+
+    expect(layout.editorTypography()).toEqual({ fontFamily: 'mono', fontSize: 20, wordWrap: false });
+    const last = bridge.written.at(-1) as { editorFontFamily: string; editorFontSize: number; editorWordWrap: boolean };
+    expect([last.editorFontFamily, last.editorFontSize, last.editorWordWrap]).toEqual(['mono', 20, false]);
+  });
+
+  it('clamps a size the field lets through', () => {
+    const layout = new LayoutState(storingBridge());
+    layout.setEditorFontSize(3);
+    expect(layout.editorFontSize()).toBe(12);
+    layout.setEditorFontSize(200);
+    expect(layout.editorFontSize()).toBe(24);
+  });
+});
