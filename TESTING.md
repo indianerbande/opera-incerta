@@ -626,6 +626,49 @@ Tests MUST prove:
   real external call is verified manually before a release, never in the
   automated suite.
 
+### 2.11 Markdown parser spike gate
+
+The Markdown parser (`SPEC.md` §5.4) is a draft decision. It is wanted for
+two things: the standard-conformance cross-check that §2.2 requires and the
+codec's own tests cannot supply, and the GFM rendering of the roadmap
+(`SPEC.md` §18). Before a candidate is accepted, a spike MUST demonstrate the
+following, in Node, against the published CommonMark specification examples
+(version 0.31.2, 652 examples, fetched by hash into `build/` and never
+committed — the specification is CC-BY-SA, the repository is not). The
+thresholds are fixed here **before** the spike runs (`CONVENTIONS.md` C-T14).
+
+| # | Criterion | Threshold |
+| --- | --- | --- |
+| 1 | CommonMark conformance | Every specification example renders to the specified HTML, compared after whitespace and self-closing-tag normalisation; a candidate below 100 % is listed with its failures and not accepted |
+| 2 | Source positions | Every heading and code block the parser reports carries the one-based line it starts on, without the translation layer having to re-scan the text |
+| 3 | Agreement with the core on headings and code | Over the examples of the sections *ATX headings*, *Fenced code blocks*, *Indented code blocks*, and *Setext headings*, the top-level ATX heading lines the parser reports are exactly the lines `markdownToDisplay` marks as headings, at the same level; and every line the core marks verbatim lies inside a top-level code block the parser reports. Top-level, because the display transform models no containers: a heading inside a block quote or a list item is outside its rule by design (`SPEC.md` §10.1). Zero disagreements — a disagreement is a defect in one of the two and is recorded either way |
+| 4 | GFM | Tables, strikethrough, and task list items parse with the candidate's own or its author's extension, from the same package family |
+| 5 | Footprint | At most 10 packages installed in total for the candidate, including transitives; no dependency from Git or a URL; every license MIT, BSD, ISC, or Apache-2.0 |
+| 6 | Parse time | A document of at least 100,000 characters parses in under 50 ms median over 20 runs |
+| 7 | The front matter the codec writes is YAML | For a set of sheets covering every owned field and the quoting cases of §2.2, the front matter that `serializeSheet` produces is read by an independent YAML parser to the same values the codec wrote, with every scalar a string; and the three fixtures of `examples/foreign-front-matter` remain readable after a round trip |
+
+Criterion 7 is measured with a YAML parser that is a candidate in its own
+right, on the same footprint and license terms. Criterion 3 is the
+cross-check of §2.2 in the form it can take today: the display transform
+against an implementation of the standard it claims to follow.
+
+A failing criterion means the candidate is not accepted. It does not mean the
+criterion is relaxed.
+
+**Outcome, 2026-09-04: no candidate passed every criterion**, and none is
+accepted. markdown-it and commonmark.js render all 652 examples; marked
+renders 587, micromark 648. markdown-it has no task list items and carries a
+PSF-2.0 dependency; commonmark.js has no GFM; micromark pulls 43 packages
+and needs 164 ms for 112,854 characters. Criterion 3 turned out to measure
+the core: the conformant parsers agree with each other and disagree with
+`markdownToDisplay` in the same eight places, all recorded as findings in
+`TODO.md` (two fence defects, one design limit, one cosmetic deviation).
+Criterion 7 found four defects in the codec's writer and reader, also in
+`TODO.md`; 165 of 181 generated sheets and all three fixtures read back
+identically. The measurements and the reading of them are in
+`spikes/parser-markdown/README.md`; the decision the outcome asks for is in
+`TODO.md` §2.1. Re-run with `pnpm run spike:parser`.
+
 ### 2.10 Localization
 
 Tests MUST prove:

@@ -6,6 +6,48 @@ documents").
 
 ---
 
+## 2026-09-04 — the parser spike: measured, not accepted, and paid for already
+
+**What was open** (`TODO.md` §2.1). The Markdown parser was a candidate
+since the first day, named as "the remark/micromark family" and never
+measured. `TESTING.md` §2.2 asks for a cross-check of the codec against an
+independent parser that the candidate would have to supply.
+
+**What was done.** A gate of seven criteria with fixed thresholds
+(`TESTING.md` §2.11) before any code ran; then `spikes/parser-markdown`,
+which measures four parsers — markdown-it, marked, commonmark.js, micromark
+with mdast — against the 652 examples of CommonMark 0.31.2, fetched by hash
+and never committed, and `yaml` against the codec's own output.
+
+**What was found.** No candidate passes every criterion. markdown-it and
+commonmark.js are conformant; marked is not; micromark is nearly, but slow
+and forty-three packages wide. The two jobs — a test oracle now, a GFM
+display later — are best served by two packages, and whether the gate may be
+read that way is the author's decision, put in `TODO.md` §2.1 with a
+recommendation.
+
+The cross-check paid before any decision: two fence defects in the display
+transform, and four in the codec — one of them a **data loss on read** of a
+file the application itself wrote (`keywords: ["a #comment", plain]` comes
+back as `["a`). All in `TODO.md` §1, each with the example that shows it.
+
+**Verification.** `pnpm run spike:parser` prints seven tables and exits
+non-zero, which is the honest result. The spike measured itself wrong three
+times before it measured the candidates: micromark sanitised raw HTML
+(a rendering option, not a parsing failure), pnpm's listing keys packages by
+name without repeating it, and the empty string after an example's final
+newline is not a line of the document. Each was a spike defect, corrected
+without touching a threshold. `pnpm run check` green: the spike builds with
+the rest.
+
+**Lesson.** The gate was written for one package doing two jobs, and the
+measurements said no such package exists on these terms. That is a result,
+not a failure of the gate: it turned a vague preference into two concrete
+choices with numbers beside them. And the oracle proved its worth on the
+first run, against our own code.
+
+---
+
 ## 2026-09-03 — the Electron runtime arrives with the install
 
 **What was open** (`TODO.md` §2). A clean checkout did not get the Electron

@@ -1,7 +1,7 @@
 # Opera Incerta Dependency Record
 
 Status: Accepted toolchain, shell stack, and editing surface; the Markdown
-parser remains an open candidate
+parser candidates were measured on 2026-09-04 and none is accepted yet
 
 Date: 2026-09-01
 
@@ -206,12 +206,37 @@ recurring installation prompt.
 These are named in `SPEC.md` §5.4 and require the full report above, plus a
 spike, before they may be added.
 
-### Markdown parser — CommonMark/GFM family (candidate)
+### Markdown parser — CommonMark/GFM family (candidates, measured 2026-09-04)
 
-Required for the display transform and the outline. Its AST MUST NOT become the
-public model (`CONVENTIONS.md` C-A6). Front matter handling is deliberately
-**not** delegated to it: foreign keys are preserved as raw lines, which needs no
-YAML parser at all (`SPEC.md` §6.3).
+Wanted for the standard-conformance oracle of `TESTING.md` §2.2 and, later,
+the GFM display of `SPEC.md` §18. Its AST MUST NOT become the public model
+(`CONVENTIONS.md` C-A6). Front matter handling is deliberately **not**
+delegated to it: foreign keys are preserved as raw lines, which needs no YAML
+parser at all (`SPEC.md` §6.3).
+
+Measured against the gate of `TESTING.md` §2.11 in `spikes/parser-markdown`;
+the thresholds were fixed before the run. None passed every criterion, and
+the decision the outcome asks for is in `TODO.md` §2.1.
+
+- **markdown-it 15.0.1** — MIT. 652 of 652 examples; source positions; 15 ms
+  for 112,854 characters; 7 packages, 3 MB unpacked. Tables and
+  strikethrough built in, **no task list items**; its `argparse` dependency
+  (used by its command-line tool only) is **PSF-2.0**, outside the gate's
+  license list.
+- **commonmark.js 0.31.2** — BSD-2-Clause, with `entities` (BSD-2) and
+  `mdurl`, `minimist` (MIT). The reference implementation: 652 of 652;
+  source positions; 9.5 ms; 4 packages, 1 MB. **No GFM.**
+- **marked 18.0.11** — MIT, zero dependencies, full GFM, 11 ms. **587 of 652**:
+  tabs, list tightness, and the finer link rules. A renderer, not a
+  reference; it cannot be the oracle.
+- **micromark 4.0.2 with mdast-util-from-markdown 2.0.3** — MIT. 648 of 652
+  (link destinations with escapes and unusual schemes); source positions;
+  full GFM through the author's extensions. **43 packages** and **164 ms**,
+  twelve times the others.
+- **yaml 2.9.0** — ISC, zero dependencies. Read the codec's front matter
+  for criterion 7 and found four defects in it (`TODO.md` §1); 165 of 181
+  generated sheets and all three fixtures read back identically. The
+  fitting oracle for the front matter half of the cross-check.
 
 ### Node — 24, because Electron says so
 

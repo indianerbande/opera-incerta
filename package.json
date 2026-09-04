@@ -28,6 +28,7 @@
     "desktop:start": "pnpm run desktop:build && pnpm --filter @opera-incerta/desktop run start",
     "postinstall": "pnpm --filter @opera-incerta/desktop exec install-electron",
     "spike:editor": "pnpm --filter @opera-incerta/spike-editor-codemirror... run build && pnpm --filter @opera-incerta/spike-editor-codemirror run spike",
+    "spike:parser": "pnpm --filter @opera-incerta/spike-parser-markdown... run build && pnpm --filter @opera-incerta/spike-parser-markdown run spike",
     "test": "pnpm --recursive --sort --if-present run test",
     "typecheck": "pnpm run build && pnpm run typecheck:tests",
     "typecheck:tests": "tsc -p tsconfig.tests.json",

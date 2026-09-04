@@ -29,13 +29,35 @@ has to be consulted to build, verify or change the product.
 
 ## 1. Next — small enough to start immediately
 
-1. **Independent parser cross-check for the codec** — `TESTING.md` §2.2 requires
+1. **The findings of the parser spike** (`spikes/parser-markdown/README.md`,
+   2026-09-04), each a defect in the core, each small, each with the
+   specification example that shows it:
+   - **fences**: a backtick fence whose info string contains a backtick is
+     not a fence (CommonMark examples 138, 145 — `` ``` ``` `` is a code
+     span); and a closing fence may be followed by spaces only, while the
+     core lets `` ``` aaa `` close one (example 147). `heading.ts`;
+   - **codec, data loss on read**: the reader strips a ` #comment` from an
+     inline keyword list before it splits the items, so
+     `keywords: ["a #comment", plain]` — which the writer produces — reads
+     back as `["a`. `front-matter.ts`, `stripComment`;
+   - **codec, quoting**: `0x1F` is written bare and is the number 31 to any
+     YAML reader (octal, binary, `.inf`, `.nan`, `5.` and `.5` likewise);
+     `trailing colon:` is written bare and is not YAML at all;
+   - **codec, notes**: a block literal cannot carry a text whose first
+     non-empty line begins with a space or is indented deeper than a later
+     line; the writer has to fall back to a quoted scalar there;
+   - **display transform, recorded rather than fixed**: an indented line
+     after a blank line inside a list item is that item's paragraph, not
+     code (examples 108, 109) — the transform models no containers
+     (`SPEC.md` §10.1), and the limit belongs in that section; a
+     whitespace-only line at the edge of an indented code block is shown
+     verbatim (example 117), which nobody can see.
+2. **Independent parser cross-check for the codec** — `TESTING.md` §2.2 requires
    proof that written output is standard-conformant and readable by an
-   independent Markdown/YAML parser. The codec's own tests cannot supply that,
-   and no parser dependency is accepted yet (§2.1, `DEPENDENCIES.md`). Until
-   then the honest claim is "round-trips through our own reader", not "verified
-   standard-conformant".
-2. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
+   independent Markdown/YAML parser. The spike of 2026-09-04 is that check,
+   run by hand; making it a test needs the dependency decision in §2.1.
+   Until then the honest claim stays "round-trips through our own reader".
+3. **One unreproduced smoke failure**, seen once on 2026-09-03: the save check
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the
@@ -47,11 +69,26 @@ has to be consulted to build, verify or change the product.
 
 ### 2.1 Markdown parser dependency
 
-The display transform and the outline are implemented without a parser, and the
-front matter codec deliberately needs none (`SPEC.md` §6.3). Full GFM rendering
-(`SPEC.md` §18, phase 2) does need one, and so does the independent
-standard-conformance cross-check in §1.1. The candidate and its boundary are
-recorded in `DEPENDENCIES.md`; the decision itself is open.
+Measured on 2026-09-04 against the gate of `TESTING.md` §2.11
+(`spikes/parser-markdown/README.md`): no candidate passes every criterion, so
+none is accepted. The measurements show the parser has two jobs no single
+package fits, and the decision is whether the gate is read as two:
+
+- **For the test-time oracle** (`TESTING.md` §2.2): **commonmark.js** — the
+  reference implementation, 652 of 652, source positions, 4 packages under
+  BSD-2/MIT — together with **`yaml`** (ISC, no dependencies) for the front
+  matter. As devDependencies of `packages/core` they reach no installed
+  application. They fail criterion 4 (GFM), which a test oracle does not
+  need. *Recommended.*
+- **For the GFM display** (`SPEC.md` §18, a later round): **markdown-it** —
+  652 of 652, positions, 15 ms, 7 packages — with two deviations to accept
+  or refuse: task list items are not built in (a small rule in the
+  translation layer, or a third-party plugin), and its `argparse` dependency
+  is PSF-2.0, an OSI-approved permissive license outside the gate's list,
+  used only by markdown-it's command-line tool. *Recommended when that round
+  comes; not needed before.*
+- Not recommended: marked (587 of 652 — cannot be an oracle), micromark
+  (43 packages, 164 ms).
 
 ---
 

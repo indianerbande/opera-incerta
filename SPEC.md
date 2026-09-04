@@ -255,8 +255,9 @@ filesystem, the process table, the network, or the DOM.
 
 ### 5.4 Dependency decisions
 
-**Status: The editing surface is accepted; the remaining entries are draft and
-each requires the report in `AGENTS.md` before acceptance.**
+**Status: The editing surface is accepted; the Markdown parser was measured
+on 2026-09-04 and is not yet accepted (see below); the remaining entries are
+draft and each requires the report in `AGENTS.md` before acceptance.**
 
 **CodeMirror 6 is the accepted editing surface (2026-09-01).** It passed all six
 criteria of the spike gate in `TESTING.md` §2.8, measured in a real rendering
@@ -270,10 +271,25 @@ switches, an intact paste, and a 6.6 ms p95 keystroke latency in a
 | Capability | Candidate | Boundary that keeps it replaceable |
 | --- | --- | --- |
 | Text editing surface | CodeMirror 6 (**accepted**) | An Opera-Incerta-owned `EditorAdapter` interface; the display model stays in the core, and the component only renders it |
-| Markdown parsing | A CommonMark/GFM parser (e.g. `remark`/`micromark` family) | The parser produces a syntax representation that is translated into Opera-Incerta-owned domain types; parser AST types MUST NOT become the public model |
+| Markdown parsing | Measured 2026-09-04 (`TESTING.md` §2.11): commonmark.js and `yaml` for the test-time oracle, markdown-it for the later GFM display — neither accepted yet, see below | The parser produces a syntax representation that is translated into Opera-Incerta-owned domain types; parser AST types MUST NOT become the public model |
 | Filesystem watching | Node.js `fs.watch` with a debouncing layer, or `chokidar` | One `LibraryWatcher` interface in the Node adapter |
 | Git | The locally installed `git` executable via `child_process` | A `GitService` interface; no Git library dependency, no bundled Git |
 | Front matter | Own line-preserving reader/writer (§6.3) | Not a general YAML parser; see the reasoning in §6.3 |
+
+**The Markdown parser, measured 2026-09-04.** Four candidates ran against the
+gate of `TESTING.md` §2.11 and none passed every criterion. What the
+measurements say: markdown-it and commonmark.js are conformant (652 of 652
+examples), marked is not (587), micromark nearly (648) but slow (164 ms) and
+large (43 packages). The parser has two jobs that no single candidate fits:
+the **test-time oracle** of `TESTING.md` §2.2 needs conformance, positions,
+and a small footprint, and no GFM — commonmark.js, the reference
+implementation, with `yaml` beside it for the front matter; the **GFM
+display** of §18 needs tables, strikethrough, and task lists at runtime —
+markdown-it, short of task list items and carrying one PSF-2.0 dependency.
+Both would need the gate read as two gates, which is a decision, not a
+measurement; it is put to the author in `TODO.md` §2.1. The cross-check
+itself has already paid: it found two fence defects in the display
+transform and four defects in the codec (`TODO.md` §1).
 
 Note on the editing surface: Monaco is the obvious alternative and is built for
 source code. Opera Incerta displays headings at **different sizes in the same

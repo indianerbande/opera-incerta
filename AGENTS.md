@@ -322,7 +322,11 @@ succeeded in this checkout. The following have:
   (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
   renderer through thirty checks, and writes `build/desktop/smoke*.png`;
 - `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
-  real rendering engine and exits non-zero on any failed criterion.
+  real rendering engine and exits non-zero on any failed criterion;
+- `pnpm run spike:parser` runs the parser spike gate of `TESTING.md` §2.11
+  against the fetched, hash-verified CommonMark examples and exits non-zero
+  when no candidate passes every criterion — which, as of 2026-09-04, is the
+  case.
 
 Not yet run here, and therefore not approved: `pnpm run desktop:start`,
 `desktop:package`, and `desktop:make`.
