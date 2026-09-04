@@ -131,6 +131,14 @@ Tests MUST prove:
   And the property those cases protect, asserted directly: an owned key is
   never written twice, whatever shape it was read from;
 - `keywords` as a block sequence read and written back inline, stably;
+- what the standard oracle found (§2.11) staying found: a quoted keyword
+  with a space and a hash in it read back whole, a real comment after a
+  list or a quoted scalar still dropped; a scalar another YAML reader would
+  take for a number, a boolean, a sexagesimal or a date — `0x1F`, `.5`,
+  `1:20`, `2019-04-02`, `y` — written quoted; a scalar ending in a colon
+  written quoted; and notes a literal block cannot carry — a first line
+  beginning with whitespace, a line of spaces only — written as a quoted
+  scalar and read back exactly;
 - quoting read back exactly: a literal backslash before an `n`, a tab, a
   newline, a quote in the middle of a keyword, and a hand-written inline list
   with quotes inside its items;

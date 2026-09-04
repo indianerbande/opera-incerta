@@ -766,3 +766,86 @@ describe('generated front matter never throws, and what it writes it reads back'
     }
   });
 });
+
+describe('what the standard oracle found (TESTING.md §2.11)', () => {
+  const base = parseSheet('body').sheet;
+
+  it('reads back a quoted keyword that contains a space and a hash', () => {
+    // The reader stripped the ` #comment` from the whole line before it split
+    // the list, and read `["a`.
+    const keywords = ['a #comment', 'plain'];
+    const text = serializeSheet({ ...base, metadata: { keywords } });
+    expect(text).toContain('keywords: ["a #comment", plain]');
+    expect(parseSheet(text).sheet.metadata.keywords).toEqual(keywords);
+    expect(roundTrip(text)).toBe(text);
+  });
+
+  it('still drops a real comment after a list, and after a quoted scalar', () => {
+    const list = parseSheet('---\nopera-incerta:\n  keywords: ["a #b", c] # note\n---\n');
+    expect(list.sheet.metadata.keywords).toEqual(['a #b', 'c']);
+    const scalar = parseSheet('---\nopera-incerta:\n  title: "x # y" # note\n---\n');
+    expect(scalar.sheet.metadata.title).toBe('x # y');
+    const plain = parseSheet("---\nopera-incerta:\n  title: it's # note\n---\n");
+    expect(plain.sheet.metadata.title).toBe("it's");
+  });
+
+  const otherTypes = [
+    '0x1F',
+    '0o17',
+    '017',
+    '0b101',
+    '.inf',
+    '-.Inf',
+    '.NaN',
+    '.5',
+    '5.',
+    '1_000',
+    '1:20',
+    '2019-04-02',
+    '2019-04-02T10:00:00Z',
+    'y',
+    'N',
+    'Null',
+  ];
+  for (const value of otherTypes) {
+    it(`quotes ${JSON.stringify(value)}, which another reader would not take for a string`, () => {
+      const text = serializeSheet({ ...base, metadata: { title: value, keywords: [value] } });
+      expect(text).toContain(`title: "${value}"`);
+      expect(text).toContain(`keywords: ["${value}"]`);
+      expect(parseSheet(text).sheet.metadata).toEqual({ title: value, keywords: [value] });
+    });
+  }
+
+  it('leaves a word that merely contains digits bare', () => {
+    const text = serializeSheet({ ...base, metadata: { title: 'Chapter 12', topic: '12b' } });
+    expect(text).toContain('title: Chapter 12\n');
+    expect(text).toContain('topic: 12b\n');
+  });
+
+  it('quotes a scalar that ends in a colon, which is not YAML bare', () => {
+    const text = serializeSheet({ ...base, metadata: { title: 'trailing colon:' } });
+    expect(text).toContain('title: "trailing colon:"');
+    expect(parseSheet(text).sheet.metadata.title).toBe('trailing colon:');
+  });
+
+  const awkwardNotes = [
+    ' leading space',
+    '\n\n  indented after a blank\n',
+    '  deeper first line\nthen shallower',
+    'a\n   \nb',
+    '   ',
+  ];
+  for (const notes of awkwardNotes) {
+    it(`round-trips notes a block literal cannot carry: ${JSON.stringify(notes)}`, () => {
+      const text = serializeSheet({ ...base, metadata: { notes } });
+      expect(text).toMatch(/notes: "/);
+      expect(parseSheet(text).sheet.metadata.notes).toBe(notes);
+      expect(roundTrip(text)).toBe(text);
+    });
+  }
+
+  it('keeps the literal block for ordinary notes', () => {
+    const text = serializeSheet({ ...base, metadata: { notes: 'one\n\ntwo\n' } });
+    expect(text).toContain('notes: |\n    one\n\n    two\n');
+  });
+});

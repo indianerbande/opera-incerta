@@ -6,6 +6,43 @@ documents").
 
 ---
 
+## 2026-09-04 — four codec defects the oracle found, fixed the same day
+
+**What was open** (`TODO.md` §1, from the parser spike). The front matter
+the codec writes was read by an independent YAML parser for the first time,
+and thirteen of 181 generated sheets came back wrong. Four causes.
+
+**What changed.** The reader's comment stripping now respects quoted runs:
+`keywords: ["a #comment", plain]`, which the writer itself produces, used to
+read back as `["a` — a keyword lost on the next load of a file the
+application had written. The writer's notion of "what another reader would
+not take for a string" grew from decimal numbers and booleans to YAML 1.1's
+whole zoo: hexadecimal, octal and binary, `.inf` and `.nan`, `.5` and `5.`,
+underscored digits, sexagesimals like `1:20`, dates, and `y`/`n`. A scalar
+ending in a colon is quoted, because bare it is not YAML. And `notes` fall
+back to a quoted scalar with escaped newlines where a literal block cannot
+carry the text — a first line beginning with whitespace, a line of spaces
+only — since a block's indentation is read from its first line and an
+indentation indicator is a shape the reader refuses by design.
+
+**Verification.** `pnpm run check` green: **922 tests** — the keyword
+with a space and a hash read back whole, real comments still dropped after
+a list and after a quoted scalar, sixteen other-type spellings written
+quoted and read back, a word with digits in it still bare, the trailing
+colon, five awkward notes round-tripped exactly, ordinary notes still a
+literal block. `pnpm run spike:parser` criterion 7: **181 generated sheets
+and 3 fixtures, no problem.** Falsified twice: the old comment stripping put
+back failed three tests; the notes fallback disabled failed five.
+
+**Lesson.** The oracle found in one run what a year of the codec's own
+tests would not have, because those tests can only check that the writer
+and the reader agree with each other — and they did, on the wrong answer.
+Agreement is not correctness. The independent reader is what turns a
+round-trip test into a conformance test, which is why it goes into the
+gate next.
+
+---
+
 ## 2026-09-04 — the parser spike: measured, not accepted, and paid for already
 
 **What was open** (`TODO.md` §2.1). The Markdown parser was a candidate

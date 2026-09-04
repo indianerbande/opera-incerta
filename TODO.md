@@ -12,7 +12,7 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, and source control (§12) up to and
 including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **896 tests**, plus the desktop and asset checks.
+projects, **922 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across thirty checks,
 `pnpm run spike:editor` 7/7.
 
@@ -30,22 +30,13 @@ has to be consulted to build, verify or change the product.
 ## 1. Next — small enough to start immediately
 
 1. **The findings of the parser spike** (`spikes/parser-markdown/README.md`,
-   2026-09-04), each a defect in the core, each small, each with the
-   specification example that shows it:
+   2026-09-04) that are still open — the four codec defects were fixed the
+   same day (`DONE.md`); what remains is in the display transform, each with
+   the specification example that shows it:
    - **fences**: a backtick fence whose info string contains a backtick is
      not a fence (CommonMark examples 138, 145 — `` ``` ``` `` is a code
      span); and a closing fence may be followed by spaces only, while the
      core lets `` ``` aaa `` close one (example 147). `heading.ts`;
-   - **codec, data loss on read**: the reader strips a ` #comment` from an
-     inline keyword list before it splits the items, so
-     `keywords: ["a #comment", plain]` — which the writer produces — reads
-     back as `["a`. `front-matter.ts`, `stripComment`;
-   - **codec, quoting**: `0x1F` is written bare and is the number 31 to any
-     YAML reader (octal, binary, `.inf`, `.nan`, `5.` and `.5` likewise);
-     `trailing colon:` is written bare and is not YAML at all;
-   - **codec, notes**: a block literal cannot carry a text whose first
-     non-empty line begins with a space or is indented deeper than a later
-     line; the writer has to fall back to a quoted scalar there;
    - **display transform, recorded rather than fixed**: an indented line
      after a blank line inside a list item is that item's paragraph, not
      code (examples 108, 109) — the transform models no containers

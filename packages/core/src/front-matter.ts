@@ -527,13 +527,39 @@ function unescapeDoubleQuoted(inner: string): string {
   });
 }
 
-/** A trailing ` # comment` is not part of an unquoted scalar. */
+/**
+ * A trailing ` # comment` is not part of a value — unless it is inside a
+ * quoted run. The standard oracle found the version that looked for ` #` in
+ * the whole line: `keywords: ["a #comment", plain]`, which the writer itself
+ * produces, read back as `["a`. A quote opens a run only where a value or a
+ * list item starts, the same rule `splitTopLevelCommas` follows, so a quote
+ * in the middle of a plain item (`it's`) is a character.
+ */
 function stripComment(raw: string): string {
-  if (raw.startsWith('"') || raw.startsWith("'")) {
-    return raw;
+  let quote: '"' | "'" | null = null;
+  let atValueStart = true;
+  for (let index = 0; index < raw.length; index += 1) {
+    const character = raw[index];
+    if (quote !== null) {
+      if (quote === '"' && character === '\\') {
+        index += 1;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (atValueStart && (character === '"' || character === "'")) {
+      quote = character;
+      atValueStart = false;
+      continue;
+    }
+    if (character === '#' && index > 0 && /\s/.test(raw[index - 1] ?? '')) {
+      return raw.slice(0, index - 1);
+    }
+    atValueStart =
+      character === '[' || character === ',' || (atValueStart && /\s/.test(character ?? ''));
   }
-  const index = raw.indexOf(' #');
-  return index === -1 ? raw : raw.slice(0, index);
+  return raw;
 }
 
 function parseInlineList(raw: string): readonly string[] | null {
@@ -694,8 +720,30 @@ function formatOwnedBlock(
   return fields.length === 0 ? [] : [`${FRONT_MATTER_NAMESPACE}:`, ...fields];
 }
 
-const NEEDS_QUOTES = /^$|^[\s]|[\s]$|^[-?:,[\]{}#&*!|>'"%@`]|:\s|\s#|[\n\r]/;
-const LOOKS_LIKE_OTHER_TYPE = /^(?:true|false|yes|no|on|off|null|~|[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)$/i;
+const NEEDS_QUOTES = /^$|^[\s]|[\s]$|^[-?:,[\]{}#&*!|>'"%@`]|:\s|:$|\s#|[\n\r]/;
+/**
+ * What another YAML reader would take for something other than a string.
+ * Wider than YAML 1.2's core schema on purpose: a tool built on YAML 1.1 reads
+ * `y`, `1:20`, `1_000` and a date as a boolean, a sexagesimal, an integer and
+ * a timestamp, and a title is none of those. The standard oracle found `0x1F`
+ * read as 31 (`TESTING.md` §2.11).
+ */
+const LOOKS_LIKE_OTHER_TYPE = new RegExp(
+  '^(?:' +
+    [
+      'true|false|yes|no|y|n|on|off|null|~',
+      '[-+]?0x[0-9a-f_]+',
+      '[-+]?0o?[0-7_]+',
+      '[-+]?0b[01_]+',
+      '[-+]?[0-9][0-9_]*(?:\\.[0-9_]*)?(?:e[-+]?[0-9]+)?',
+      '[-+]?\\.[0-9_]+(?:e[-+]?[0-9]+)?',
+      '[-+]?\\.(?:inf|nan)',
+      '[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\\.[0-9_]*)?',
+      '[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}(?:[t ].*)?',
+    ].join('|') +
+    ')$',
+  'i',
+);
 
 /**
  * Quotes a value whenever leaving it bare would change its meaning — for
@@ -738,7 +786,25 @@ function formatListItem(value: string): string {
   return value.includes(',') || value.includes(']') ? quoteScalar(value) : formatScalar(value);
 }
 
+/**
+ * Writes `notes` as a literal block, or as a quoted scalar where a block
+ * cannot carry the text. YAML reads a block's indentation from its first
+ * non-empty line, so a text whose first line begins with whitespace would
+ * need an indentation indicator — a shape the reader refuses — and a line
+ * holding only spaces reads back empty. The standard oracle found both
+ * (`TESTING.md` §2.11); the reader accepts a quoted scalar with escaped
+ * newlines, so that is the fallback.
+ */
 function formatBlockText(field: string, value: string): readonly string[] {
+  const lines = value.split('\n');
+  const firstText = lines.find((line) => line.trim() !== '');
+  const blockCannotCarry =
+    (firstText !== undefined && /^\s/.test(firstText)) ||
+    lines.some((line) => line !== '' && line.trim() === '') ||
+    /\r/.test(value);
+  if (blockCannotCarry) {
+    return [`${OWNED_INDENT}${field}: ${quoteScalar(value)}`];
+  }
   const endsWithNewline = value.endsWith('\n');
   const indicator = endsWithNewline ? '|' : '|-';
   const content = endsWithNewline ? value.slice(0, -1) : value;
