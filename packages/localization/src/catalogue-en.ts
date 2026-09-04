@@ -49,6 +49,10 @@ export const EN = {
 
   // --- the editor ------------------------------------------------------------
   'heading.none': 'No heading',
+  'statusBar.position': 'Ln {line}, Col {column}',
+  'statusBar.positionLabel': 'Cursor position',
+  'statusBar.wrap': 'Wrap',
+  'statusBar.wrapTitle': 'Wrap long lines in this sheet',
   'outline.empty': 'No headings in this sheet.',
   'sheetList.empty': 'No sheets in this group.',
 

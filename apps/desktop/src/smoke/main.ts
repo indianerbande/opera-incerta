@@ -36,6 +36,7 @@ import {
   checkHeadingCursorRules,
   checkHeadingGestures,
   checkSheetSwitch,
+  checkStatusBar,
 } from './checks/editor.js';
 import {
   checkCreateProject,
@@ -166,6 +167,7 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await checkHeadingGestures(window);
     await expectNoStrayDialog(window, 'checkHeadingGestures');
     await checkHeadingCursorRules(window);
+    await checkStatusBar(window);
     await expectNoStrayDialog(window, 'checkHeadingCursorRules');
     await checkDocumentFlow(smoke, window);
     await expectNoStrayDialog(window, 'checkDocumentFlow');

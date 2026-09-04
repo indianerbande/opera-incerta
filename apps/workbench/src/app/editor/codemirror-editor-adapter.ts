@@ -42,6 +42,8 @@ import {
   type DisplayModel,
   type EditorAdapter,
   type EditorChangeListener,
+  type EditorCursor,
+  type EditorCursorListener,
   type EditorDocument,
   type EditorTypography,
   type HeadingLevel,
@@ -402,6 +404,7 @@ const cutTakesHeadingPrefix = EditorState.transactionFilter.of((transaction) => 
 function extensions(
   onChange: () => void,
   onActivate: (activation: HeadingMarkerActivation) => void,
+  onCursor: () => void,
 ): readonly Extension[] {
   return [
     displayModelField,
@@ -425,6 +428,9 @@ function extensions(
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onChange();
+      }
+      if (update.docChanged || update.selectionSet) {
+        onCursor();
       }
     }),
   ];
@@ -497,6 +503,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
   /** One state per document: this is what gives each its own undo history. */
   readonly #states = new Map<string, EditorState>();
   readonly #listeners = new Set<EditorChangeListener>();
+  readonly #cursorListeners = new Set<EditorCursorListener>();
   readonly #markerListeners = new Set<HeadingMarkerListener>();
   #openId: string | null = null;
   #destroyed = false;
@@ -514,6 +521,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
       ...extensions(
         () => this.#notify(),
         (activation) => this.#activate(activation),
+        () => this.#notifyCursor(),
       ),
       this.#typography.of(typographyTheme(this.#currentTypography)),
       this.#wrapping.of(this.#currentTypography.wordWrap ? EditorView.lineWrapping : []),
@@ -565,6 +573,8 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
     this.#states.set(document_.id, next);
     this.#openId = document_.id;
     this.#view.setState(next);
+    // setState is not an update the listener sees; the move it makes is.
+    this.#notifyCursor();
   }
 
   replace(text: string): void {
@@ -586,6 +596,36 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
 
   focusedLine(): number {
     return this.#view.state.doc.lineAt(this.#view.state.selection.main.head).number;
+  }
+
+  /**
+   * The column counts from the visible start of the line: a heading's hidden
+   * prefix is not where the author is (SPEC.md §10.5).
+   */
+  cursor(): EditorCursor {
+    const state = this.#view.state;
+    const head = state.selection.main.head;
+    const line = state.doc.lineAt(head);
+    const model = displayModel(state.doc.toString(), line.number);
+    const start = visibleLineStart(model, line.from);
+    return { line: line.number, column: Math.max(1, head - start + 1) };
+  }
+
+  onCursorChange(listener: EditorCursorListener): () => void {
+    this.#cursorListeners.add(listener);
+    return () => {
+      this.#cursorListeners.delete(listener);
+    };
+  }
+
+  #notifyCursor(): void {
+    if (this.#destroyed) {
+      return;
+    }
+    const cursor = this.cursor();
+    for (const listener of this.#cursorListeners) {
+      listener(cursor);
+    }
   }
 
   revealLine(line: number): void {

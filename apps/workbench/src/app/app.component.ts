@@ -21,6 +21,8 @@ import { ActivityBarComponent, type ActivityItem } from './shell/activity-bar.co
 import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
 import { IdentityPromptComponent } from './shell/identity-prompt.component.js';
+import { StatusBarComponent } from './editor/status-bar.component.js';
+import { EditorSession } from './editor/editor-session.js';
 import { SettingsComponent } from './shell/settings.component.js';
 import type { GitIdentity } from '@opera-incerta/desktop-contract';
 import { LibraryDrag, describeListEnd, describeRow, type OverRow } from './shell/library-drag.js';
@@ -82,6 +84,7 @@ import { Localization } from './localization/localization.js';
     SourceControlComponent,
     ConfirmPromptComponent,
     IdentityPromptComponent,
+    StatusBarComponent,
     SettingsComponent,
     TextPromptComponent,
   ],
@@ -218,8 +221,14 @@ import { Localization } from './localization/localization.js';
             #editor
             [document]="document"
             [retired]="store.retiredHandles()"
-            [typography]="layout.editorTypography()"
+            [typography]="editorTypography()"
             (textChange)="store.noteText($event)"
+            (cursorChange)="session.noteCursor($event)"
+          />
+          <wi-status-bar
+            [cursor]="session.cursor()"
+            [wrapping]="wrapping()"
+            (toggleWrap)="session.toggleWrap(document.id, layout.editorWordWrap())"
           />
         } @else {
           <p class="hint">{{ i18n.t('app.selectSheet') }}</p>
@@ -548,6 +557,18 @@ export class AppComponent {
   }
 
   protected readonly activityBarWidth = ACTIVITY_BAR_WIDTH;
+  protected readonly session = inject(EditorSession);
+
+  /** This sheet's wrapping: its own switch, or the settings' default. SPEC.md §10.5. */
+  protected readonly wrapping = computed(() =>
+    this.session.isWrapping(this.store.editorDocument()?.id ?? null, this.layout.editorWordWrap()),
+  );
+
+  /** The settings' typography, with this sheet's wrap switch applied. */
+  protected readonly editorTypography = computed(() => ({
+    ...this.layout.editorTypography(),
+    wordWrap: this.wrapping(),
+  }));
   /** The one tool of the leading bar: the settings dialog (SPEC.md §13). */
   protected readonly toolItems: readonly ActivityItem[] = [
     { id: 'settings', icon: 'icon-settings', labelKey: 'view.settings' },

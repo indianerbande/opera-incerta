@@ -3,6 +3,7 @@ import { COLUMN_BOUNDS, COLUMN_IDEAL_WIDTH } from '@opera-incerta/core';
 import {
   ACTIVITY_BAR_WIDTH,
   PANEL_HEADER_HEIGHT,
+  STATUS_BAR_HEIGHT,
   WINDOW_GEOMETRY,
   WORKBENCH_REGIONS,
 } from '../src/app/workbench-layout.js';
@@ -53,5 +54,6 @@ describe('shell constants', () => {
   it('starts every column at its ideal width', () => {
     expect(COLUMN_IDEAL_WIDTH.navigator).toBe(160);
     expect(PANEL_HEADER_HEIGHT).toBe(36);
+    expect(STATUS_BAR_HEIGHT).toBeLessThan(PANEL_HEADER_HEIGHT);
   });
 });

@@ -45,6 +45,10 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'confirm.trashHint': 'Es landet im Papierkorb des Systems und kann von dort zurückgeholt werden.',
 
   'heading.none': 'Keine Überschrift',
+  'statusBar.position': 'Z. {line}, Sp. {column}',
+  'statusBar.positionLabel': 'Cursorposition',
+  'statusBar.wrap': 'Umbruch',
+  'statusBar.wrapTitle': 'Lange Zeilen in diesem Blatt umbrechen',
   'outline.empty': 'Keine Überschriften in diesem Blatt.',
   'sheetList.empty': 'Keine Blätter in dieser Gruppe.',
 

@@ -45,6 +45,8 @@ export function runEditorAdapterContract(create: Create): readonly ContractCase[
   cases.push(caseReplaceKeepsIdentity(create));
   cases.push(caseFocusedLine(create));
   cases.push(caseRevealLine(create));
+  cases.push(caseCursorAfterReveal(create));
+  cases.push(caseCursorListener(create));
   cases.push(caseSetHeadingLevel(create));
   cases.push(caseHeadingDoesNotCarryOver(create));
   cases.push(caseRemoveHeading(create));
@@ -115,6 +117,33 @@ function caseRevealLine(create: Create): ContractCase {
       'revealing a line moves the cursor to it',
       adapter.focusedLine() === 3,
       `focusedLine=${adapter.focusedLine()}`,
+    );
+  });
+}
+
+function caseCursorAfterReveal(create: Create): ContractCase {
+  return withAdapter(create, (adapter) => {
+    adapter.open(documentA());
+    adapter.revealLine(2);
+    const cursor = adapter.cursor();
+    return check(
+      'revealing a line puts the cursor at its first visible column',
+      cursor.line === 2 && cursor.column === 1,
+      `cursor=${JSON.stringify(cursor)}`,
+    );
+  });
+}
+
+function caseCursorListener(create: Create): ContractCase {
+  return withAdapter(create, (adapter) => {
+    const seen: string[] = [];
+    adapter.onCursorChange((cursor) => seen.push(`${cursor.line}:${cursor.column}`));
+    adapter.open(documentA());
+    adapter.revealLine(3);
+    return check(
+      'a cursor listener hears the move a reveal makes',
+      seen.includes('3:1'),
+      `seen=${JSON.stringify(seen)}`,
     );
   });
 }

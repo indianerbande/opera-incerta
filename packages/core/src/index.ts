@@ -24,6 +24,8 @@ export type {
   EditorDocument,
   HeadingMarkerActivation,
   HeadingMarkerListener,
+  EditorCursor,
+  EditorCursorListener,
 } from './editor-adapter.js';
 export { applyDotCommand, dotCommandAt } from './dot-command.js';
 export type { DotCommand } from './dot-command.js';

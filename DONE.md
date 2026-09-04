@@ -6,6 +6,43 @@ documents").
 
 ---
 
+## 2026-09-04 — the status bar: where the cursor is, and whether this sheet wraps
+
+**What was open** (`SPEC.md` §10.5). Accepted, not built: a bar under the
+text with the cursor position on the left and the wrap switch on the right,
+the zoom slider to follow with §18.
+
+**What changed.** The adapter port speaks of the cursor now: `cursor()`
+gives line and column, `onCursorChange` reports every move — including the
+one an `open` or a reveal makes, which is not an update the view's listener
+sees and had to be told separately. The column counts the visible text, so
+a heading's hidden prefix is not where the author is; the display model
+already knew where a line's visible start lies. Two contract cases hold
+every adapter to it, the in-memory one included. A small `EditorSession`
+holds the last cursor and the wrap switch per sheet: an override of the
+settings' default that lives with the window and never enters the record,
+because a switch for reading one sheet is not a preference. The bar itself
+is one component at a constant height beside the header's, with the border
+inside the height — the first smoke run measured 25 px for a 24 px bar.
+
+**Verification.** `pnpm run check` green: **982 tests** — the contract's
+cursor after a reveal and the listener hearing it, the session flipping one
+sheet at a time and following the default where nothing was flipped, the
+constant below the header's. `pnpm run desktop:smoke` green across
+**thirty-three checks**: the bar names the last line after a click, follows
+a typed character by one column and a Backspace back, measures 24 px, and
+its switch turns this sheet's wrapping off and on as the editor's own class
+list says. Falsified twice: a fake adapter that stops telling about the
+cursor fails the contract, a switch that sets what it found fails the
+session test and the smoke.
+
+**Lesson.** Two of the day's rounds met here: the wrap setting from the
+morning wanted a per-sheet switch, and the switch wanted a place that is
+not the preference record. Naming the place — a session, gone with the
+window — was the whole design; the bar was forty lines after that.
+
+---
+
 ## 2026-09-04 — the editor's font, size, and wrapping as settings
 
 **What was open** (`SPEC.md` §13, Editor). The editor's typography was

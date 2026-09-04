@@ -1478,7 +1478,8 @@ while omitting several fields entirely.
 
 ### 10.5 Editor status bar
 
-**Status: Accepted.**
+**Status: Accepted; built 2026-09-04 — the cursor position and the wrap
+switch; the zoom slider arrives with §18.**
 
 The status bar is divided: **information on the left, controls on the right**.
 
@@ -1493,6 +1494,14 @@ action, plus the front matter switches from §10.4.
 
 Progress figures (characters, words, reading time) belong to the Inspector
 (§11), not to the status bar.
+
+**The column counts the visible text.** A heading's hidden `#` prefix is not
+where the author is, so the column starts after it; the adapter reports
+line and column as one `EditorCursor`, and the contract suite of §2.6 holds
+every adapter to it. **The wrap switch is for this sheet, now.** It overrides
+the settings' default (§13) for one sheet and lives with the window, not in
+the preference record: a switch for reading one sheet is not a preference,
+and must not be smuggled into the record as one.
 
 ### 10.6 External changes, saving, and conflicts
 
@@ -1920,9 +1929,9 @@ accessibility, updates.
 **What the dialog holds today** (`packages/core/src/settings.ts`, the
 registry the dialog renders): *Appearance* — the interface language (§14);
 *Editor* — the font family from a curated list of three, the base size within
-12 and 24 pixels, and whether long lines wrap (the default; the status bar's
-per-sheet toggle of §10.5 is a later round); *Sheet list* — preview size and
-blank lines;
+12 and 24 pixels, and whether long lines wrap (the default; the status bar
+of §10.5 switches it per sheet); *Sheet list* — preview size and blank
+lines;
 *Outline* — the deeper levels; *Front matter* — the three switches of §10.4;
 *Page categories* — a way into the manager of §6.6, because an author looks
 here for it, marked as project data; *Source control* — the commit identity

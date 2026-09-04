@@ -316,6 +316,11 @@ Component and state tests MUST cover:
 - editor display: heading sizes per level, the gutter label per line, the
   gutter menu changing and removing levels, and Return after a heading starting
   a normal paragraph;
+- the status bar (`SPEC.md` §10.5): the adapter contract's cursor after a
+  reveal — line and first visible column — and a cursor listener hearing the
+  move; the session flipping one sheet's wrapping at a time, keeping a
+  flipped sheet where it was when the default changes, forgetting a sheet
+  that is gone, and holding the last cursor;
 - sheet list: all three density steps, formatted previews, blank-line
   suppression, category badges, and correct row heights on first render after a
   rescan (`CONVENTIONS.md` C-U3);
@@ -432,6 +437,10 @@ Tests MUST cover:
   every check closes what it opens, so a prompt standing at a boundary is
   one the application raised on its own; and the dirty marker clearing when
   an inspector edit is saved through the menu;
+- the status bar (`SPEC.md` §10.5): the last line named after a click, the
+  column following one keystroke, the bar at its constant height, and the
+  wrap switch turning this sheet's wrapping off and on, read off the
+  editor's own class list;
 - the settings dialog (`SPEC.md` §13): opened through the native menu item
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the

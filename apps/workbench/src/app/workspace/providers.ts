@@ -13,6 +13,7 @@
  * with `new`.
  */
 import { InjectionToken, inject, signal, type Provider, type WritableSignal } from '@angular/core';
+import { EditorSession } from '../editor/editor-session.js';
 import { LibraryDrag } from '../shell/library-drag.js';
 import { LayoutState } from '../shell/layout-state.js';
 import { Localization, systemLanguageTag } from '../localization/localization.js';
@@ -36,6 +37,7 @@ export const WORKBENCH_PROVIDERS: readonly Provider[] = [
     useFactory: () => new Localization(inject(LayoutState).interfaceLanguage, systemLanguageTag()),
   },
   { provide: LibraryDrag, useFactory: () => new LibraryDrag() },
+  { provide: EditorSession, useFactory: () => new EditorSession() },
   { provide: OVERLAY, useFactory: () => signal<Overlay | null>(null) },
   {
     provide: LibraryActions,

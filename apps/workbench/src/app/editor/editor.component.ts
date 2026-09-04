@@ -14,6 +14,7 @@ import {
 import {
   DEFAULT_EDITOR_TYPOGRAPHY,
   type EditorAdapter,
+  type EditorCursor,
   type EditorDocument,
   type EditorTypography,
   type HeadingLevel,
@@ -67,6 +68,8 @@ export class EditorComponent {
 
   /** Emitted after every change, with the text as it would be written. */
   readonly textChange = output<string>();
+  /** Where the cursor is, after every move. SPEC.md §10.5. */
+  readonly cursorChange = output<EditorCursor>();
 
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
   private readonly adapter = signal<(EditorAdapter & TypographyAware) | null>(null);
@@ -80,6 +83,7 @@ export class EditorComponent {
     afterNextRender(() => {
       const adapter = createCodeMirrorEditorAdapter(this.host().nativeElement, this.typography());
       adapter.onChange((text) => this.textChange.emit(text));
+      adapter.onCursorChange((cursor) => this.cursorChange.emit(cursor));
       adapter.onHeadingMarkerActivate((activation) => this.menu.set(activation));
       adapter.open(this.document());
       this.adapter.set(adapter);

@@ -10,9 +10,11 @@ import { join } from 'node:path';
 import { type BrowserWindow, clipboard } from 'electron';
 import {
   clickMenuItem,
+  clickText,
   editorContains,
   headerTitle,
   isVisible,
+  placeCursorInEditor,
   pressKey,
   rendered,
   sheetTitles,
@@ -174,6 +176,58 @@ export async function checkHeadingGestures(window: BrowserWindow): Promise<void>
  * Everything here is driven through real keys and the real clipboard, because
  * what is in question is the behavior a hand at the keyboard produces.
  */
+/**
+ * The status bar: where the cursor is, and this sheet's wrap switch.
+ * SPEC.md §10.5. The column is read after a real keystroke, and the switch
+ * is read off the editor's own class list, not off the button.
+ */
+export async function checkStatusBar(window: BrowserWindow): Promise<void> {
+  const position = async (): Promise<string> =>
+    (await window.webContents.executeJavaScript(
+      `document.querySelector('wi-status-bar .position')?.textContent.trim() ?? ''`,
+    )) as string;
+  const wrapping = async (): Promise<boolean> =>
+    (await window.webContents.executeJavaScript(
+      `document.querySelector('.cm-content')?.classList.contains('cm-lineWrapping') === true`,
+    )) as boolean;
+
+  await placeCursorInEditor(window);
+  const lineCount = (await window.webContents.executeJavaScript(
+    `document.querySelectorAll('.cm-line').length`,
+  )) as number;
+  await waitUntil(
+    'the status bar to name the last line',
+    async () => (await position()) === `Ln ${lineCount}, Col 1`,
+  );
+
+  // The last line may be empty, so Right would go nowhere: a typed character
+  // moves the cursor for certain, and Backspace takes it back out again.
+  await typeText(window, 'x');
+  await waitUntil('the column to move with the cursor', async () => (await position()) === `Ln ${lineCount}, Col 2`);
+  await pressKey(window, 'Backspace');
+  await waitUntil('the column to move back', async () => (await position()) === `Ln ${lineCount}, Col 1`);
+
+  const barHeight = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-status-bar .status-bar')?.getBoundingClientRect().height ?? 0`,
+  )) as number;
+  if (barHeight !== 24) {
+    throw new Error(`the status bar is ${barHeight}px high, not 24`);
+  }
+
+  if (!(await wrapping())) {
+    throw new Error('the sheet does not start on the settings default, wrapping');
+  }
+  await clickText(window, 'wi-status-bar button.wrap', 'Wrap');
+  await waitUntil('wrapping to leave this sheet', async () => !(await wrapping()));
+  await clickText(window, 'wi-status-bar button.wrap', 'Wrap');
+  await waitUntil('wrapping to come back', wrapping);
+
+  console.log(
+    `smoke ok: the status bar named line ${lineCount} and followed the cursor by one column, ` +
+      'and its wrap switch turned this sheet’s wrapping off and on',
+  );
+}
+
 export async function checkHeadingCursorRules(window: BrowserWindow): Promise<void> {
   const lineStartKey = process.platform === 'darwin' ? 'Left' : 'Home';
   const lineStartModifiers = process.platform === 'darwin' ? ['cmd'] : [];

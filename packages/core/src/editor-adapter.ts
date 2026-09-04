@@ -21,6 +21,20 @@ export interface EditorDocument {
 export type EditorChangeListener = (text: string) => void;
 
 /**
+ * Where the cursor is, as the status bar says it. SPEC.md §10.5.
+ *
+ * One-based, and the column counts the visible text of the line: a hidden
+ * heading prefix is not part of what the author sees, so it is not part of
+ * where they are.
+ */
+export interface EditorCursor {
+  readonly line: number;
+  readonly column: number;
+}
+
+export type EditorCursorListener = (cursor: EditorCursor) => void;
+
+/**
  * The author activated a heading marker in the gutter. SPEC.md §10.2.
  *
  * Carries plain numbers rather than an event: the adapter reports *what* was
@@ -66,6 +80,15 @@ export interface EditorAdapter {
 
   /** One-based line holding the cursor. */
   focusedLine(): number;
+
+  /** Line and visible column of the cursor. SPEC.md §10.5. */
+  cursor(): EditorCursor;
+
+  /**
+   * Registers a listener for cursor movement, including the move an `open`
+   * or `revealLine` makes; the returned function unregisters it.
+   */
+  onCursorChange(listener: EditorCursorListener): () => void;
 
   /** Moves the cursor to a line — outline navigation, diagnostics. */
   revealLine(line: number): void;

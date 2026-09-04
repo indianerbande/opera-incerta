@@ -9,6 +9,8 @@ import {
   type HeadingLevel,
   type HeadingMarkerActivation,
   type HeadingMarkerListener,
+  type EditorCursor,
+  type EditorCursorListener,
 } from '../src/index.js';
 import { runEditorAdapterContract } from '../src/testing/index.js';
 
@@ -20,9 +22,13 @@ import { runEditorAdapterContract } from '../src/testing/index.js';
  * rather than a boundary, and this double is what makes that visible.
  */
 class FakeEditorAdapter implements EditorAdapter {
-  #documents = new Map<string, { text: string; undo: string[]; redo: string[]; line: number }>();
+  #documents = new Map<
+    string,
+    { text: string; undo: string[]; redo: string[]; line: number; column: number }
+  >();
   #openId: string | null = null;
   #listeners = new Set<EditorChangeListener>();
+  #cursorListeners = new Set<EditorCursorListener>();
   #markerListeners = new Set<HeadingMarkerListener>();
   #destroyed = false;
 
@@ -33,9 +39,11 @@ class FakeEditorAdapter implements EditorAdapter {
         undo: [],
         redo: [],
         line: 1,
+        column: 1,
       });
     }
     this.#openId = document_.id;
+    this.#notifyCursor();
   }
 
   openDocumentId(): string | null {
@@ -63,6 +71,27 @@ class FakeEditorAdapter implements EditorAdapter {
     const state = this.#current();
     if (state !== undefined) {
       state.line = line;
+      state.column = 1;
+      this.#notifyCursor();
+    }
+  }
+
+  cursor(): EditorCursor {
+    const state = this.#current();
+    return { line: state?.line ?? 1, column: state?.column ?? 1 };
+  }
+
+  onCursorChange(listener: EditorCursorListener): () => void {
+    this.#cursorListeners.add(listener);
+    return () => {
+      this.#cursorListeners.delete(listener);
+    };
+  }
+
+  #notifyCursor(): void {
+    const cursor = this.cursor();
+    for (const listener of this.#cursorListeners) {
+      listener(cursor);
     }
   }
 

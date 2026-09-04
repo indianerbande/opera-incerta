@@ -13,6 +13,9 @@ export const ACTIVITY_BAR_WIDTH = 44;
 /** Height of every panel header, in CSS pixels. SPEC.md §8.3. */
 export const PANEL_HEADER_HEIGHT = 36;
 
+/** Height of the editor's status bar, in CSS pixels. SPEC.md §10.5. */
+export const STATUS_BAR_HEIGHT = 24;
+
 /** Project window geometry. SPEC.md §8.2. */
 export const WINDOW_GEOMETRY = {
   defaultWidth: 1600,
