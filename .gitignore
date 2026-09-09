@@ -6,3 +6,7 @@ coverage/
 .angular/
 .DS_Store
 *.tsbuildinfo
+
+# The shared agent permissions are committed (.claude/settings.json); the
+# machine-local ones are one person's approvals on one machine.
+.claude/settings.local.json

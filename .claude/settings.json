@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run typecheck:tests*)",
+      "Bash(pnpm run test*)",
+      "Bash(pnpm run check*)",
+      "Bash(pnpm run build*)",
+      "Bash(pnpm run desktop:smoke*)",
+      "Bash(pnpm run spike:editor*)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\" && pnpm run typecheck:tests*)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\" && pnpm run test*)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\" && pnpm run check*)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\" && pnpm run build*)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\" && pnpm run desktop:smoke*)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\" && node --version*)",
+      "mcp__ccd_session__mark_chapter"
+    ]
+  }
+}
