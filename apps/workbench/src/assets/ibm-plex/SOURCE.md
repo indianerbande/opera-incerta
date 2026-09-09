@@ -5,8 +5,12 @@ Plex, the interface face of the workbench (`SPEC.md` §8.8).
 
 - Upstream: <https://github.com/IBM/plex>, release `v6.4.2`, commit
   `242c4cccd37e87985a5337815c99b960ef13c65c`.
-- License: SIL Open Font License 1.1. The adjacent `LICENSE` is an unchanged
-  copy of the upstream license and is packaged beside this notice.
+- License: SIL Open Font License 1.1. The adjacent `LICENSE` is the upstream
+  license text, packaged beside this notice; its line endings are LF, because
+  this repository normalises them (`.gitattributes`) and the upstream file
+  uses CRLF. The wording is untouched. The font files themselves are binary
+  and byte-identical to the release — that is what the pinned hashes below
+  are for.
 - Retrieved: 2026-09-09.
 
 | File | Used for |
