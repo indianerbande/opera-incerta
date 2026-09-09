@@ -384,6 +384,10 @@ Component and state tests MUST cover:
 - the layout state persisting the front matter switches, and typing the
   views it accepts so an unknown one is a compile error rather than a
   silently ignored call;
+- the visual system's rule (`SPEC.md` §8.8): a chosen scheme resolving to
+  itself and `system` to what the machine reports, the three schemes and eight
+  palettes accepted and anything else refused, and both stored by the layout
+  state;
 - the four editor settings (`SPEC.md` §13, §10.8) handed to the editor as one
   value — family, base size, wrapping, line numbers — each reaching the
   preference record, with the gutter off in the defaults; and the zoom of
@@ -487,6 +491,16 @@ Tests MUST cover:
   heading markers; and, for a line typed long enough to wrap, one number
   whose element is exactly as tall as the wrapped line — the measured height,
   not a computed row. Turned off again, and the typed line undone;
+- the visual system (`SPEC.md` §8.8), read as the browser computed it: each of
+  the eight packaged files fetched over the renderer's own protocol and
+  answering with the WOFF2 signature rather than with an error; the face
+  proven to be **in use** by measuring a line of text against the same line in
+  a family that does not exist — a declared face that never arrived falls back
+  silently, and every name-based question still says yes (this is how the
+  first version of this check passed with the file removed); the root carrying
+  a resolved scheme and a palette; Dark changing the token set, the editor's
+  surface with it, and reaching the preference file; a palette changing the
+  accent; and both going back to where they started;
 - the editor zoom (`SPEC.md` §10.9), measured with computed styles: the
   slider starting at 100 %; dragged to 150 % it scales the text, the heading
   by its ratio and the gutter by exactly half again, while the sheet list and

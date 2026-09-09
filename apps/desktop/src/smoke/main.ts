@@ -62,7 +62,7 @@ import {
   checkPageCategories,
   checkPanes,
 } from './checks/panes.js';
-import { checkSettings } from './checks/settings.js';
+import { checkAppearance, checkSettings } from './checks/settings.js';
 import { expectNoStrayDialog } from './harness.js';
 import {
   checkAmendAndIgnore,
@@ -211,6 +211,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await expectNoStrayDialog(window, 'checkLineNumbers');
     await checkZoom(smoke, window);
     await expectNoStrayDialog(window, 'checkZoom');
+    await checkAppearance(smoke, window);
+    await expectNoStrayDialog(window, 'checkAppearance');
 
     await checkCommitting(smoke, window);
     await expectNoStrayDialog(window, 'checkCommitting');

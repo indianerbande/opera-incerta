@@ -15,6 +15,8 @@ import {
 } from '../harness.js';
 
 interface StoredPreferences {
+  readonly colorScheme?: string;
+  readonly accentPalette?: string;
   readonly editorFontSize?: number;
   readonly editorWordWrap?: boolean;
   readonly showBlankLines?: boolean;
@@ -266,5 +268,164 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
       'preference file, Escape returned focus, the identity reached the repository, the ' +
       'interface and the native menu spoke German and English again, the editor took a base ' +
       'size, a family and no wrapping with headings keeping their ratio, reset restored the defaults',
+  );
+}
+
+/** What the visual system computes to, read off the running workbench. */
+interface Appearance {
+  readonly scheme: string | null;
+  readonly palette: string | null;
+  readonly canvas: string;
+  readonly accent: string;
+  readonly workbenchFont: string;
+  readonly editorPanel: string;
+  /** Every packaged face, fetched over the renderer's own protocol. */
+  readonly served: readonly string[];
+  /** The width of a line set in Plex, against the same line in a face that is not there. */
+  readonly plexWidth: number;
+  readonly fallbackWidth: number;
+}
+
+async function appearance(window: BrowserWindow): Promise<Appearance> {
+  return (await window.webContents.executeJavaScript(
+    `(async () => {
+       const root = document.documentElement;
+       const styles = getComputedStyle(root);
+       const workbench = document.querySelector('.workbench');
+       const editor = document.querySelector('.cm-editor');
+       const pen = document.createElement('canvas').getContext('2d');
+       const measure = (family) => {
+         pen.font = '16px ' + family;
+         return pen.measureText('Handgloves 0123456789 — the quick brown fox').width;
+       };
+       return {
+         scheme: root.dataset.colorScheme ?? null,
+         palette: root.dataset.colorPalette ?? null,
+         canvas: styles.getPropertyValue('--wi-canvas').trim(),
+         accent: styles.getPropertyValue('--wi-accent').trim(),
+         workbenchFont: workbench === null ? '' : getComputedStyle(workbench).fontFamily,
+         editorPanel: editor === null ? '' : getComputedStyle(editor).backgroundColor,
+         served: await Promise.all(
+           [
+             'IBMPlexSans-Regular', 'IBMPlexSans-Medium', 'IBMPlexSans-SemiBold',
+             'IBMPlexSans-Bold', 'IBMPlexSans-Italic',
+             'IBMPlexMono-Regular', 'IBMPlexMono-Bold', 'IBMPlexMono-Italic',
+           ].map(async (name) => {
+             try {
+               const response = await fetch('/fonts/ibm-plex/' + name + '.woff2');
+               if (!response.ok) { return name + ': ' + response.status; }
+               const bytes = new Uint8Array((await response.arrayBuffer()).slice(0, 4));
+               return name + ': ' + String.fromCharCode(...bytes);
+             } catch (error) {
+               return name + ': ' + String(error);
+             }
+           }),
+         ),
+         // A face that is declared but never arrived falls back silently, and
+         // every name-based question would still say yes. Two lines of the
+         // same text in two families differ in width only if the first one is
+         // really there.
+         plexWidth: measure('"IBM Plex Sans"'),
+         fallbackWidth: measure('"wi-no-such-face"'),
+       };
+     })()`,
+  )) as Appearance;
+}
+
+/**
+ * The visual system. SPEC.md §8.8.
+ *
+ * That the packaged face actually arrived over the renderer's own protocol,
+ * that the scheme reaches the root element and the tokens with it, and that a
+ * palette changes the accent and nothing else. Everything is read as the
+ * browser computed it, not as the stylesheet wrote it.
+ */
+export async function checkAppearance(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  const start = await appearance(window);
+  // Every packaged file arrives over the renderer's protocol, and arrives as a
+  // WOFF2 rather than as an error page.
+  const wrong = start.served.filter((entry) => !entry.endsWith(': wOF2'));
+  if (wrong.length > 0) {
+    throw new Error(`packaged faces did not arrive: ${JSON.stringify(wrong)}`);
+  }
+  if (start.plexWidth === start.fallbackWidth || start.plexWidth === 0) {
+    throw new Error(
+      `IBM Plex Sans renders exactly like a face that does not exist (${start.plexWidth}px): it did not load`,
+    );
+  }
+  if (!start.workbenchFont.includes('IBM Plex Sans')) {
+    throw new Error(`the workbench is set in ${JSON.stringify(start.workbenchFont)}`);
+  }
+  if (start.palette !== 'blue' || (start.scheme !== 'light' && start.scheme !== 'dark')) {
+    throw new Error(`the root does not carry a resolved appearance: ${JSON.stringify(start)}`);
+  }
+
+  // Dark, chosen explicitly: the whole token set changes, not a filter over it.
+  await clickText(window, 'wi-activity-bar button[aria-label="Settings"]', '');
+  await waitForSelector(window, 'wi-settings');
+  await clickText(window, 'wi-settings .category', 'Appearance');
+  await clickText(window, 'wi-settings fieldset.scheme label', 'Dark');
+  await waitUntil('the dark scheme to reach the root', async () => (await appearance(window)).scheme === 'dark');
+
+  const dark = await appearance(window);
+  if (dark.canvas === start.canvas && start.scheme === 'light') {
+    throw new Error(`the canvas did not change with the scheme: ${dark.canvas}`);
+  }
+  if (dark.editorPanel === 'rgb(255, 255, 255)') {
+    throw new Error('the editor stayed white in the dark scheme');
+  }
+  await waitUntil(
+    'the scheme to reach the preference file',
+    () => readStored(smoke)?.colorScheme === 'dark',
+  );
+  const evidence = join(smoke.evidenceDirectory, 'smoke-appearance-dark.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  // A palette changes the accent; the surfaces follow it, the ink does not.
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const swatch = document.querySelector('wi-settings .swatch[data-color-palette="green"] input');
+       if (swatch === null) { return false; }
+       swatch.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error('the appearance category shows no green swatch');
+  }
+  await waitUntil('the palette to reach the root', async () => (await appearance(window)).palette === 'green');
+  const green = await appearance(window);
+  if (green.accent === dark.accent) {
+    throw new Error(`the accent did not change with the palette: ${green.accent}`);
+  }
+  await waitUntil(
+    'the palette to reach the preference file',
+    () => readStored(smoke)?.accentPalette === 'green',
+  );
+  const paletteEvidence = join(smoke.evidenceDirectory, 'smoke-appearance-palette.png');
+  await rendered(window);
+  writeFileSync(paletteEvidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${paletteEvidence}`);
+
+  // Back to what the checks after this one expect: the system's scheme, blue.
+  await clickText(window, 'wi-settings fieldset.scheme label', 'Follow the system');
+  await window.webContents.executeJavaScript(
+    `document.querySelector('wi-settings .swatch[data-color-palette="blue"] input')?.click()`,
+  );
+  await waitUntil(
+    'the appearance to be back where it started',
+    async () => {
+      const now = await appearance(window);
+      return now.palette === 'blue' && now.scheme === start.scheme;
+    },
+  );
+  await pressKey(window, 'Escape');
+  await waitUntil('the settings dialog to close', async () => !(await settingsOpen(window)));
+
+  console.log(
+    'smoke ok: the packaged face loaded and the workbench is set in it; the dark scheme reached ' +
+      'the root, the tokens and the preference file; a palette changed the accent and went back',
   );
 }

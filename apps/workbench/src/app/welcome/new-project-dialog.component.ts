@@ -95,7 +95,7 @@ import { Localization } from '../localization/localization.js';
       font-size: 11px;
     }
     code {
-      font-family: ui-monospace, monospace;
+      font-family: var(--wi-mono);
     }
     .failure {
       margin: 0;

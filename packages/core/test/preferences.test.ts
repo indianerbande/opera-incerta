@@ -19,6 +19,8 @@ describe('readPreferences', () => {
     const stored = {
       version: 1,
       interfaceLanguage: 'de',
+      colorScheme: 'dark',
+      accentPalette: 'green',
       columnWidths: { navigator: 200, sheetList: 250, secondarySidebar: 300 },
       navigatorView: 'sourceControl',
       secondaryView: 'outline',
@@ -77,6 +79,19 @@ describe('readPreferences', () => {
     expect(readPreferences({ editorFontSize: 'big' }).editorFontSize).toBe(
       DEFAULT_PREFERENCES.editorFontSize,
     );
+  });
+
+  it('falls back for a scheme or a palette it does not offer (SPEC.md §8.8)', () => {
+    expect(readPreferences({ colorScheme: 'sepia' }).colorScheme).toBe(
+      DEFAULT_PREFERENCES.colorScheme,
+    );
+    expect(readPreferences({ accentPalette: 'chartreuse' }).accentPalette).toBe(
+      DEFAULT_PREFERENCES.accentPalette,
+    );
+    expect(readPreferences({ colorScheme: 'dark', accentPalette: 'violet' })).toMatchObject({
+      colorScheme: 'dark',
+      accentPalette: 'violet',
+    });
   });
 
   it('clamps a stored zoom, and snaps one near the middle to 100 (SPEC.md §10.9)', () => {

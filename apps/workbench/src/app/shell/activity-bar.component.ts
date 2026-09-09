@@ -75,7 +75,7 @@ export interface ActivityItem<TId extends string = string> {
       border: 1px solid transparent;
       border-radius: 6px;
       background: none;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
       cursor: default;
     }
     .icon {
@@ -116,11 +116,11 @@ export interface ActivityItem<TId extends string = string> {
       margin-block-start: 0;
     }
     .item:hover {
-      background: rgba(128, 128, 128, 0.14);
+      background: var(--wi-row-hover);
     }
     .item.active {
-      border-color: rgba(128, 128, 128, 0.4);
-      background: rgba(128, 128, 128, 0.2);
+      border-color: var(--wi-border);
+      background: var(--wi-row-selected);
       color: inherit;
     }
   `,

@@ -58,12 +58,12 @@ import { ResizeDividerComponent } from '../shell/resize-divider.component.js';
     .block {
       position: relative;
       overflow: auto;
-      border-inline-start: 3px solid rgba(60, 150, 90, 0.75);
-      background: rgba(60, 150, 90, 0.08);
+      border-inline-start: 3px solid var(--wi-success);
+      background: color-mix(in srgb, var(--wi-success) 8%, transparent);
     }
     .block.owned {
-      border-inline-start-color: rgba(180, 70, 70, 0.75);
-      background: rgba(180, 70, 70, 0.08);
+      border-inline-start-color: var(--wi-danger);
+      background: color-mix(in srgb, var(--wi-danger) 8%, transparent);
     }
     pre,
     textarea {
@@ -74,7 +74,7 @@ import { ResizeDividerComponent } from '../shell/resize-divider.component.js';
       border: 0;
       background: none;
       color: inherit;
-      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      font: 12px var(--wi-mono);
       line-height: 1.45;
       white-space: pre;
       resize: none;

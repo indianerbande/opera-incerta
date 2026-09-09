@@ -8,6 +8,8 @@ import {
   type BooleanPreferenceKey,
   clampEditorFontSize,
   clampEditorZoom,
+  type AccentPalette,
+  type ColorScheme,
   type ColumnWidths,
   type EditorFontFamily,
   type EditorTypography,
@@ -65,6 +67,8 @@ export class LayoutState {
   readonly #frontMatterWritable = signal(DEFAULT_PREFERENCES.frontMatterWritable);
   readonly #showOwnedFrontMatter = signal(DEFAULT_PREFERENCES.showOwnedFrontMatter);
   readonly #interfaceLanguage = signal<InterfaceLanguage>(DEFAULT_PREFERENCES.interfaceLanguage);
+  readonly #colorScheme = signal<ColorScheme>(DEFAULT_PREFERENCES.colorScheme);
+  readonly #accentPalette = signal<AccentPalette>(DEFAULT_PREFERENCES.accentPalette);
   readonly #editorFontFamily = signal<EditorFontFamily>(DEFAULT_PREFERENCES.editorFontFamily);
   readonly #editorFontSize = signal(DEFAULT_PREFERENCES.editorFontSize);
   readonly #editorWordWrap = signal(DEFAULT_PREFERENCES.editorWordWrap);
@@ -90,6 +94,9 @@ export class LayoutState {
   readonly showOwnedFrontMatter = this.#showOwnedFrontMatter.asReadonly();
   /** The stored language choice; the localization service resolves it. SPEC.md §14. */
   readonly interfaceLanguage = this.#interfaceLanguage.asReadonly();
+  /** How the workbench looks. SPEC.md §8.8; `system` is resolved on the way to the DOM. */
+  readonly colorScheme = this.#colorScheme.asReadonly();
+  readonly accentPalette = this.#accentPalette.asReadonly();
   readonly editorFontFamily = this.#editorFontFamily.asReadonly();
   readonly editorFontSize = this.#editorFontSize.asReadonly();
   readonly editorWordWrap = this.#editorWordWrap.asReadonly();
@@ -141,6 +148,8 @@ export class LayoutState {
     this.#frontMatterWritable.set(preferences.frontMatterWritable);
     this.#showOwnedFrontMatter.set(preferences.showOwnedFrontMatter);
     this.#interfaceLanguage.set(preferences.interfaceLanguage);
+    this.#colorScheme.set(preferences.colorScheme);
+    this.#accentPalette.set(preferences.accentPalette);
     this.#editorFontFamily.set(preferences.editorFontFamily);
     this.#editorFontSize.set(preferences.editorFontSize);
     this.#editorWordWrap.set(preferences.editorWordWrap);
@@ -153,6 +162,8 @@ export class LayoutState {
     return {
       version: DEFAULT_PREFERENCES.version,
       interfaceLanguage: this.#interfaceLanguage(),
+      colorScheme: this.#colorScheme(),
+      accentPalette: this.#accentPalette(),
       editorFontFamily: this.#editorFontFamily(),
       editorFontSize: this.#editorFontSize(),
       editorWordWrap: this.#editorWordWrap(),
@@ -228,6 +239,16 @@ export class LayoutState {
       return;
     }
     this.#editorZoom.set(next);
+    this.#store();
+  }
+
+  setColorScheme(scheme: ColorScheme): void {
+    this.#colorScheme.set(scheme);
+    this.#store();
+  }
+
+  setAccentPalette(palette: AccentPalette): void {
+    this.#accentPalette.set(palette);
     this.#store();
   }
 

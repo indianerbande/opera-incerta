@@ -79,23 +79,23 @@ import { WorkspaceStore } from '../workspace/workspace-store.js';
       border-radius: 4px;
     }
     .row.selected {
-      background: rgba(128, 128, 128, 0.22);
+      background: var(--wi-row-selected);
     }
     .row:hover {
-      background: rgba(128, 128, 128, 0.12);
+      background: var(--wi-row-hover);
     }
     .row.dragging {
       opacity: 0.45;
     }
     .row.drop-into {
-      outline: 2px solid rgba(128, 128, 128, 0.9);
+      outline: 2px solid var(--wi-muted);
       outline-offset: -2px;
     }
     .row.drop-above {
-      box-shadow: inset 0 2px 0 0 rgba(128, 128, 128, 0.95);
+      box-shadow: inset 0 2px 0 0 var(--wi-muted);
     }
     .row.drop-below {
-      box-shadow: inset 0 -2px 0 0 rgba(128, 128, 128, 0.95);
+      box-shadow: inset 0 -2px 0 0 var(--wi-muted);
     }
     button {
       border: 0;
@@ -107,7 +107,7 @@ import { WorkspaceStore } from '../workspace/workspace-store.js';
     .twisty {
       width: 16px;
       padding: 0;
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
     .twisty.hidden {
       visibility: hidden;

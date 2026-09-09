@@ -367,5 +367,32 @@ Source control uses the locally installed `git` executable through
   all eight files in the built renderer. The check was falsified before being
   trusted: a single changed byte and a missing notice each fail it.
 
-No fonts have been added yet. When they are, the same applies
-(`CONVENTIONS.md` C-L4, `TESTING.md` §7).
+### IBM Plex — the interface face
+
+- **Capability:** the typography of the visual system (`SPEC.md` §8.8): IBM
+  Plex Sans in five weights for the workbench, IBM Plex Mono in three for what
+  is code rather than prose.
+- **Why external:** a face is not something to draw, and a face taken from the
+  system is a different face on every machine — which makes an interface
+  impossible to design and a screenshot impossible to compare. The
+  application's other half, the manuscript, keeps a configurable family
+  (§13); this is the chrome around it.
+- **License:** SIL Open Font License 1.1.
+  `apps/workbench/src/assets/ibm-plex/LICENSE` is an unchanged copy of the
+  upstream licence, and `SOURCE.md` beside it records the upstream release
+  (`v6.4.2`, commit `242c4cccd37e87985a5337815c99b960ef13c65c`), the retrieval
+  date, and what each file is for.
+- **Impact:** eight WOFF2 files, 470 kB in total, copied into the built
+  renderer with their licence and notice. No dependency is installed for them:
+  the files are in the repository, so the build needs nothing at run time and
+  nothing is fetched — the renderer's own protocol serves them, and its
+  content security policy allows fonts from itself only.
+- **Offline behavior:** local files.
+- **Boundary:** presentation only, behind two tokens (`--wi-sans`,
+  `--wi-mono`). Replacing the face is replacing two `@font-face` blocks and
+  the two values; nothing else names a family.
+- **Evidence:** `pnpm run check:assets` verifies each file's SHA-256 and
+  requires the licence and the notice; the smoke reads
+  `document.fonts.check('16px "IBM Plex Sans"')` in the running application,
+  which is what proves the packaged bytes actually arrive over the renderer
+  protocol rather than merely sitting in the build.

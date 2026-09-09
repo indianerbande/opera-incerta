@@ -20,6 +20,14 @@ import {
   clampEditorZoom,
   type EditorFontFamily,
 } from './editor-typography.js';
+import {
+  ACCENT_PALETTES,
+  COLOR_SCHEMES,
+  DEFAULT_ACCENT_PALETTE,
+  DEFAULT_COLOR_SCHEME,
+  type AccentPalette,
+  type ColorScheme,
+} from './appearance.js';
 import { COLUMN_BOUNDS, COLUMN_IDEAL_WIDTH, clampColumnWidth } from './layout.js';
 import { DEFAULT_PREVIEW_DENSITY, PREVIEW_DENSITIES, type PreviewDensity } from './preview.js';
 
@@ -48,6 +56,9 @@ export interface WorkbenchPreferences {
   readonly version: number;
   /** SPEC.md §13, §14: the first setting of the Appearance category. */
   readonly interfaceLanguage: InterfaceLanguage;
+  /** How the workbench looks. SPEC.md §8.8. */
+  readonly colorScheme: ColorScheme;
+  readonly accentPalette: AccentPalette;
   readonly columnWidths: ColumnWidths;
   readonly navigatorView: NavigatorView;
   readonly secondaryView: SecondarySidebarView;
@@ -78,6 +89,8 @@ export interface WorkbenchPreferences {
 export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   version: PREFERENCES_VERSION,
   interfaceLanguage: 'system',
+  colorScheme: DEFAULT_COLOR_SCHEME,
+  accentPalette: DEFAULT_ACCENT_PALETTE,
   columnWidths: {
     navigator: COLUMN_IDEAL_WIDTH.navigator,
     sheetList: COLUMN_IDEAL_WIDTH.sheetList,
@@ -122,6 +135,12 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
       stored['interfaceLanguage'],
       INTERFACE_LANGUAGES,
       DEFAULT_PREFERENCES.interfaceLanguage,
+    ),
+    colorScheme: pick(stored['colorScheme'], COLOR_SCHEMES, DEFAULT_PREFERENCES.colorScheme),
+    accentPalette: pick(
+      stored['accentPalette'],
+      ACCENT_PALETTES,
+      DEFAULT_PREFERENCES.accentPalette,
     ),
     columnWidths: readColumnWidths(stored['columnWidths']),
     navigatorView: pick(stored['navigatorView'], NAVIGATOR_VIEWS, DEFAULT_PREFERENCES.navigatorView),

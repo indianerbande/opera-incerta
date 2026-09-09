@@ -65,6 +65,47 @@ if (!licence.includes('Apache License')) {
   failures.push('the packaged icon licence is not the Apache License');
 }
 
+/**
+ * The interface face of SPEC.md §8.8, from IBM Plex v6.4.2. Same rule as the
+ * icons: the bytes ship, so the bytes are checked.
+ */
+const fontDirectory = join(repositoryRoot, 'apps/workbench/src/assets/ibm-plex');
+const PINNED_FONTS = {
+  'IBMPlexMono-Bold.woff2': '5788454f0ba4bd6300752c474215c4dd926682fa173ae1c6252d57828b6a235d',
+  'IBMPlexMono-Italic.woff2': '6afc2a6edd9a1d1f8104daf139a5062392f47da2f97fe19cb18a6a5a1fa67ec3',
+  'IBMPlexMono-Regular.woff2': '49ce58b41a0e1cb921c0f58d9a5b8b96a2cc21437c7066f3ba4f24873076d131',
+  'IBMPlexSans-Bold.woff2': 'fa7130d854a660b39a7fc9e6e0f2dc23dba5f1346e2adea3e1fe37b6d884133d',
+  'IBMPlexSans-Italic.woff2': '13284fab1821ba6e3652c1580fcf2bbfd8c9309520c69b3d1224dab40b37c597',
+  'IBMPlexSans-Medium.woff2': '5660f8a658f8bb50dbc005232f885eadffd2bc1c235c4f6fbb63469d1f9cde6d',
+  'IBMPlexSans-Regular.woff2': 'ba711a3085ff9f27440b6b9c4550cfc47c97bf36591d5da958b975bb3add8c1a',
+  'IBMPlexSans-SemiBold.woff2': 'f78048030eab62e860efa39a0df79e2e5581bf122eb95b9bc42c0b8a4988d205',
+};
+
+for (const [name, expected] of Object.entries(PINNED_FONTS)) {
+  const path = join(fontDirectory, name);
+  if (!existsSync(path)) {
+    failures.push(`missing font: ${name}`);
+    continue;
+  }
+  const actual = createHash('sha256').update(readFileSync(path)).digest('hex');
+  if (actual !== expected) {
+    failures.push(`font changed: ${name}\n      expected ${expected}\n      found    ${actual}`);
+  }
+}
+
+for (const required of ['LICENSE', 'SOURCE.md']) {
+  if (!existsSync(join(fontDirectory, required))) {
+    failures.push(`fonts ship without their ${required}`);
+  }
+}
+
+const fontLicence = existsSync(join(fontDirectory, 'LICENSE'))
+  ? readFileSync(join(fontDirectory, 'LICENSE'), 'utf8')
+  : '';
+if (!fontLicence.includes('SIL OPEN FONT LICENSE')) {
+  failures.push('the packaged font licence is not the SIL Open Font License');
+}
+
 if (failures.length > 0) {
   console.error('asset check failed:');
   for (const failure of failures) {
@@ -72,4 +113,7 @@ if (failures.length > 0) {
   }
   process.exit(1);
 }
-console.log(`asset check passed: ${Object.keys(PINNED).length} pinned icons with licence and notice`);
+console.log(
+  `asset check passed: ${Object.keys(PINNED).length} pinned icons and ` +
+    `${Object.keys(PINNED_FONTS).length} pinned fonts, with licence and notice`,
+);

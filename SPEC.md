@@ -1197,6 +1197,88 @@ the DOM.
 input synchronously and re-seeds when the input changes, so a rename shows
 the current name on first paint without a microtask.
 
+### 8.8 The visual system
+
+**Status: Accepted (2026-09-09), written before its implementation.**
+
+Every colour, every face and every shadow in the workbench comes from a named
+token, defined once in the renderer's global stylesheet. A component reads
+`var(--wi-…)`; a colour literal in a component is a defect. Until this
+section the workbench had five variables and a hundred and twenty-one
+literals, most of them `rgba(128, 128, 128, …)` — a grey that belongs to no
+palette and cannot be made dark.
+
+**The values are the author's other application's.** Opera Incerta and C4ML
+are two programs from one house and are meant to look like it: the ink, the
+lines, the surfaces, the accent and its palettes are the same values, under
+this project's own names. The values are recorded **here**, in this
+repository, because the documents are self-contained (`AGENTS.md`): nothing
+in the source or the specification refers to the other project to explain
+what a colour is.
+
+#### The tokens
+
+| Token | Light | What it is |
+| --- | --- | --- |
+| `--wi-ink` | `#17263d` | text |
+| `--wi-muted` | `#65758b` | secondary text, hints, disabled labels |
+| `--wi-line` | `#d9e1ea` | separators inside a region |
+| `--wi-line-strong` | `#c2ceda` | borders of controls and panels |
+| `--wi-canvas` | `#eef3f8` | the ground the windows sit on |
+| `--wi-panel` | `#ffffff` | a raised surface: editor, dialog, sheet list |
+| `--wi-surface-subtle` | `#f8fafc` | a quiet band: headers, footers |
+| `--wi-navigation-bg` | `#f3f6f9` | tree and list backgrounds |
+| `--wi-control-bg` | `#ffffff` | a button's face |
+| `--wi-control-ink` | `#40566b` | a button's label |
+| `--wi-control-hover` | `#edf5f8` | a button under the pointer |
+| `--wi-accent` | `#157ca3` | the one colour that means "this one" |
+| `--wi-accent-strong` | `#126684` | the same, pressed |
+| `--wi-accent-border` | `#b8d9e2` | an accented outline |
+| `--wi-accent-soft` | `#dff3fa` | an accented fill |
+| `--wi-focus-ring` | `rgba(21, 124, 163, 0.2)` | keyboard focus, never removed |
+| `--wi-success` / `--wi-danger` / `--wi-warning` | `#187a62` / `#b53a4f` / `#9a6014` | the three states that mean something |
+
+Three shadows — `--wi-panel-shadow`, `--wi-dialog-shadow`,
+`--wi-app-bar-shadow` — and one `--wi-backdrop`, so a raised thing is raised
+the same amount everywhere.
+
+#### Light, dark, and the palettes
+
+The root element carries `data-color-scheme` and `data-color-palette`.
+
+- **Scheme**: `light`, `dark`, or the stored `system`, which follows the
+  operating system and re-follows it when it changes. Dark is a **complete
+  second set** of the same token names, not a filter over the first.
+- **Palette**: `blue` (the default), `gray`, `yellow`, `green`, `violet`,
+  `red`, `orange`, `turquoise`. A palette sets the four accent tokens and the
+  focus ring; the surfaces are **derived** from the accent with `color-mix`
+  rather than listed, so a palette is five values and a rule, not thirty.
+
+Both are installation-local preferences (§7.2, §13) in the Appearance
+category, beside the interface language: they say how this installation looks,
+never what a manuscript contains, and they must not travel through Git.
+
+#### Typography
+
+**The interface speaks IBM Plex Sans**, packaged with the application in five
+weights (400, 500, 600, 700, and italic) — never a system font: an interface
+that looks different on every machine cannot be designed. IBM Plex Mono is
+packaged for the places that are code rather than prose. The files are
+unmodified upstream releases under the SIL Open Font License 1.1, documented
+and byte-pinned like the icons (`CONVENTIONS.md` C-L4, `DEPENDENCIES.md`).
+
+**The manuscript keeps its own face.** The editor's reading typography stays
+what the author configured (§13) — serif by default — and the zoom of §10.9
+scales it alone. The contrast is deliberate and is the oldest rule of this
+kind of tool: the workbench is sans, the text is what the author writes in.
+
+#### What this section does not decide
+
+The **shape** of controls — radii, sizes, spacing, the anatomy of a dialog —
+is the next round's; this one is colour and face. And a theme *interface* for
+themes beyond these two schemes (§18, Phase 4) stays open: eight palettes
+over two schemes are a decided set, not an extension point.
+
 ## 9. Library
 
 ### 9.1 Project explorer
@@ -2390,7 +2472,10 @@ own specification update before implementation.
 - The AI assistant panel over the provider interface (§15).
 - A terminal panel in the bottom region, working directory at the project root.
 - Snapshots with a shared difference view (§11).
-- Colour schemes and themes behind a theme interface.
+- Themes behind a theme **interface**. The two schemes and the eight palettes
+  of §8.8 arrived on 2026-09-09 as a decided set; what stays open is whether a
+  theme can come from outside the application at all, which is an extension
+  point and not a colour.
 - A local search index as a **performance cache** only, introduced when
   file scanning becomes noticeably slow — installation-local, rebuildable, and
   never the source of truth.

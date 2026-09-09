@@ -27,6 +27,16 @@
                 "glob": "{LICENSE,SOURCE.md}",
                 "input": "src/assets/material-symbols",
                 "output": "third-party/material-symbols"
+              },
+              {
+                "glob": "*.woff2",
+                "input": "src/assets/ibm-plex",
+                "output": "fonts/ibm-plex"
+              },
+              {
+                "glob": "{LICENSE,SOURCE.md}",
+                "input": "src/assets/ibm-plex",
+                "output": "third-party/ibm-plex"
               }
             ],
             "styles": [

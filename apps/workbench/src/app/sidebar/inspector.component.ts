@@ -114,15 +114,15 @@ import { Localization } from '../localization/localization.js';
       flex-direction: column;
       gap: 10px;
       padding: 8px;
-      font: 12px system-ui, sans-serif;
+      font: 12px var(--wi-sans);
     }
     .progress {
       display: flex;
       flex-direction: column;
       gap: 2px;
       padding-block-end: 6px;
-      border-block-end: 1px solid rgba(128, 128, 128, 0.3);
-      color: rgba(128, 128, 128, 0.95);
+      border-block-end: 1px solid var(--wi-separator);
+      color: var(--wi-muted);
     }
     label {
       display: flex;
@@ -132,7 +132,7 @@ import { Localization } from '../localization/localization.js';
     input,
     textarea {
       padding: 3px 5px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -142,8 +142,8 @@ import { Localization } from '../localization/localization.js';
     .hint {
       margin: 0;
       padding: 8px;
-      color: rgba(128, 128, 128, 0.9);
-      font: 12px system-ui, sans-serif;
+      color: var(--wi-muted);
+      font: 12px var(--wi-sans);
     }
   `,
 })

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
 import { Localization, systemLanguageTag } from '../localization/localization.js';
+import { startAppearance } from '../shell/appearance.js';
 import { LayoutState } from '../shell/layout-state.js';
 import { resolveBridge } from '../workspace/bridge.js';
 import { LauncherStore } from '../workspace/launcher-store.js';
@@ -94,7 +95,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     :host {
       display: block;
       height: 100vh;
-      font: 13px/1.5 system-ui, sans-serif;
+      font: 13px/1.5 var(--wi-sans);
     }
     .welcome {
       display: flex;
@@ -110,7 +111,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     }
     header p {
       margin: 2px 0 0;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
     }
     .actions {
       display: flex;
@@ -118,7 +119,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     }
     .actions button {
       padding: 5px 12px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 5px;
       background: none;
       color: inherit;
@@ -134,7 +135,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     }
     h2 {
       margin: 0 0 4px;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.04em;
@@ -154,7 +155,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
       border-radius: 5px;
     }
     .entry:hover {
-      background: rgba(128, 128, 128, 0.12);
+      background: var(--wi-row-hover);
     }
     .open-entry {
       display: flex;
@@ -176,7 +177,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     }
     .path {
       overflow: hidden;
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
       white-space: nowrap;
       text-overflow: ellipsis;
     }
@@ -184,8 +185,8 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
       flex: none;
       padding: 0 5px;
       border-radius: 4px;
-      background: rgba(190, 90, 90, 0.18);
-      color: rgba(150, 60, 60, 0.95);
+      background: color-mix(in srgb, var(--wi-danger) 18%, transparent);
+      color: var(--wi-danger);
       font-size: 11px;
     }
     .forget {
@@ -193,17 +194,17 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
       padding: 2px 8px;
       border: 0;
       background: none;
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
       font: inherit;
       cursor: default;
     }
     .hint,
     .failure {
       margin: 0;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
     }
     .failure {
-      color: rgba(150, 60, 60, 0.95);
+      color: var(--wi-danger);
     }
   `,
 })
@@ -219,9 +220,18 @@ export class WelcomeComponent {
     effect(() => {
       document.documentElement.lang = this.i18n.language();
     });
+    // The launcher is the application too, and wears the same scheme (§8.8).
+    const stopAppearance = startAppearance(
+      document.documentElement,
+      this.#layout.colorScheme,
+      this.#layout.accentPalette,
+    );
     void this.launcher.refresh();
     const stopListening = this.launcher.listenForMenuCommands();
-    inject(DestroyRef).onDestroy(() => stopListening());
+    inject(DestroyRef).onDestroy(() => {
+      stopListening();
+      stopAppearance();
+    });
   }
 
   /** The one message the launcher words itself; every other code is shown as it is. */

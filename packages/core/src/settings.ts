@@ -14,6 +14,7 @@
  * here because the dialog is where an author looks for them, and marked by
  * scope so nobody takes them for preferences.
  */
+import { ACCENT_PALETTES, type AccentPalette, type ColorScheme } from './appearance.js';
 import {
   EDITOR_FONT_SIZE_BOUNDS,
   type EditorFontFamily,
@@ -131,6 +132,25 @@ export interface LanguageSetting extends SettingBase {
   readonly defaultValue: InterfaceLanguage;
 }
 
+/** Light, dark, or what the system says. SPEC.md §8.8. */
+export interface ColorSchemeSetting extends SettingBase {
+  readonly kind: 'colorScheme';
+  readonly key: 'colorScheme';
+  readonly options: readonly { readonly value: ColorScheme; readonly labelKey: string }[];
+  readonly defaultValue: ColorScheme;
+}
+
+/**
+ * The accent palettes. Rendered as swatches rather than as a list of words:
+ * the choice is the colour, and the name is what a screen reader says.
+ */
+export interface AccentPaletteSetting extends SettingBase {
+  readonly kind: 'accentPalette';
+  readonly key: 'accentPalette';
+  readonly options: readonly { readonly value: AccentPalette; readonly labelKey: string }[];
+  readonly defaultValue: AccentPalette;
+}
+
 export interface FontFamilySetting extends SettingBase {
   readonly kind: 'fontFamily';
   readonly key: 'editorFontFamily';
@@ -151,6 +171,8 @@ export type Setting =
   | SwitchSetting
   | DensitySetting
   | LanguageSetting
+  | ColorSchemeSetting
+  | AccentPaletteSetting
   | FontFamilySetting
   | NumberSetting;
 
@@ -168,6 +190,33 @@ export const SETTINGS: readonly Setting[] = [
       { value: 'de', labelKey: 'settings.language.de' },
     ],
     defaultValue: DEFAULT_PREFERENCES.interfaceLanguage,
+  },
+  {
+    kind: 'colorScheme',
+    id: 'appearance.colorScheme',
+    category: 'appearance',
+    labelKey: 'settings.appearance.colorScheme',
+    hintKey: 'settings.appearance.colorSchemeHint',
+    key: 'colorScheme',
+    options: [
+      { value: 'system', labelKey: 'settings.colorScheme.system' },
+      { value: 'light', labelKey: 'settings.colorScheme.light' },
+      { value: 'dark', labelKey: 'settings.colorScheme.dark' },
+    ],
+    defaultValue: DEFAULT_PREFERENCES.colorScheme,
+  },
+  {
+    kind: 'accentPalette',
+    id: 'appearance.accentPalette',
+    category: 'appearance',
+    labelKey: 'settings.appearance.accentPalette',
+    hintKey: 'settings.appearance.accentPaletteHint',
+    key: 'accentPalette',
+    options: ACCENT_PALETTES.map((value) => ({
+      value,
+      labelKey: `settings.palette.${value}`,
+    })),
+    defaultValue: DEFAULT_PREFERENCES.accentPalette,
   },
   {
     kind: 'fontFamily',

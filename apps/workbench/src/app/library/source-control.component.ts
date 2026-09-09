@@ -217,7 +217,7 @@ import { Localization } from '../localization/localization.js';
     }
     .ignore-row button {
       padding: 2px 8px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -237,7 +237,7 @@ import { Localization } from '../localization/localization.js';
       border: 0;
       border-radius: 4px;
       background: none;
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
       font: inherit;
       cursor: default;
       opacity: 0;
@@ -254,14 +254,14 @@ import { Localization } from '../localization/localization.js';
       opacity: 1;
     }
     .change .discard:hover {
-      color: rgba(150, 60, 60, 0.95);
+      color: var(--wi-danger);
     }
     .failure {
       margin: 0;
       padding: 4px 6px;
       border-radius: 4px;
-      background: rgba(190, 90, 90, 0.18);
-      color: rgba(150, 60, 60, 0.95);
+      background: color-mix(in srgb, var(--wi-danger) 18%, transparent);
+      color: var(--wi-danger);
       /* Git output is tool output: shown as it came (SPEC.md §12, §14.2). */
       white-space: pre-wrap;
       word-break: break-word;
@@ -278,7 +278,7 @@ import { Localization } from '../localization/localization.js';
       flex: 1 1 auto;
       flex-direction: column;
       min-height: 0;
-      font: 12px system-ui, sans-serif;
+      font: 12px var(--wi-sans);
     }
     .branch-row {
       display: flex;
@@ -296,7 +296,7 @@ import { Localization } from '../localization/localization.js';
     .branch-row button {
       flex: none;
       padding: 2px 8px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -310,7 +310,7 @@ import { Localization } from '../localization/localization.js';
       flex-direction: column;
       gap: 4px;
       padding-bottom: 6px;
-      border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+      border-bottom: 1px solid var(--wi-separator);
     }
     .remote,
     .remote-actions {
@@ -323,7 +323,7 @@ import { Localization } from '../localization/localization.js';
       flex: 1 1 auto;
       white-space: nowrap;
       text-overflow: ellipsis;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
     }
     .counts {
       display: flex;
@@ -331,15 +331,15 @@ import { Localization } from '../localization/localization.js';
       gap: 4px;
     }
     .behind {
-      color: rgb(150, 90, 40);
+      color: var(--wi-warning);
     }
     .even {
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
     .tracking button {
       flex: none;
       padding: 2px 8px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -355,8 +355,8 @@ import { Localization } from '../localization/localization.js';
       align-items: center;
       padding: 6px;
       border-radius: 4px;
-      background: rgba(190, 140, 60, 0.16);
-      color: rgb(130, 90, 30);
+      background: color-mix(in srgb, var(--wi-warning) 16%, transparent);
+      color: var(--wi-warning);
     }
     .merging span {
       flex: 1 1 auto;
@@ -364,7 +364,7 @@ import { Localization } from '../localization/localization.js';
     .merging button {
       flex: none;
       padding: 2px 8px;
-      border: 1px solid rgba(130, 90, 30, 0.5);
+      border: 1px solid color-mix(in srgb, var(--wi-warning) 50%, transparent);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -374,10 +374,10 @@ import { Localization } from '../localization/localization.js';
     .change .resolve {
       flex: none;
       padding: 0 6px;
-      border: 1px solid rgba(190, 140, 60, 0.6);
+      border: 1px solid color-mix(in srgb, var(--wi-warning) 60%, transparent);
       border-radius: 4px;
       background: none;
-      color: rgb(130, 90, 30);
+      color: var(--wi-warning);
       font: inherit;
       cursor: default;
     }
@@ -386,7 +386,7 @@ import { Localization } from '../localization/localization.js';
       gap: 6px;
       align-items: center;
       padding: 6px 8px;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
     }
     .changes {
       overflow-y: auto;
@@ -404,12 +404,12 @@ import { Localization } from '../localization/localization.js';
       border-radius: 4px;
     }
     .change:hover {
-      background: rgba(128, 128, 128, 0.12);
+      background: var(--wi-row-hover);
     }
     .status {
       width: 16px;
-      color: rgba(128, 128, 128, 0.9);
-      font-family: ui-monospace, monospace;
+      color: var(--wi-muted);
+      font-family: var(--wi-mono);
     }
     .name {
       overflow: hidden;
@@ -418,14 +418,14 @@ import { Localization } from '../localization/localization.js';
     }
     .directory {
       overflow: hidden;
-      color: rgba(128, 128, 128, 0.8);
+      color: var(--wi-muted);
       white-space: nowrap;
       text-overflow: ellipsis;
     }
     .message {
       margin: 6px 8px;
       padding: 4px 5px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -440,7 +440,7 @@ import { Localization } from '../localization/localization.js';
     }
     button {
       padding: 4px 6px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -484,7 +484,7 @@ import { Localization } from '../localization/localization.js';
     .hint {
       margin: 0;
       padding: 8px;
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
   `,
 })

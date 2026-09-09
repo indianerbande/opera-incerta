@@ -107,7 +107,7 @@ import { Localization } from '../localization/localization.js';
       margin: 0;
       padding: 6px 0;
       border-top: 1px solid var(--wi-separator);
-      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      font: 12px var(--wi-mono);
       line-height: 1.45;
       white-space: pre;
       user-select: text;
@@ -117,18 +117,18 @@ import { Localization } from '../localization/localization.js';
       padding-inline: 8px;
     }
     .line.added {
-      background: rgba(60, 150, 90, 0.14);
-      color: rgb(30, 105, 60);
+      background: color-mix(in srgb, var(--wi-success) 14%, transparent);
+      color: var(--wi-success);
     }
     .line.removed {
-      background: rgba(180, 70, 70, 0.12);
-      color: rgb(150, 60, 60);
+      background: color-mix(in srgb, var(--wi-danger) 12%, transparent);
+      color: var(--wi-danger);
     }
     .line.hunk {
-      color: rgba(90, 110, 170, 0.95);
+      color: var(--wi-accent);
     }
     .line.meta {
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
     .modes {
       display: flex;
@@ -141,7 +141,7 @@ import { Localization } from '../localization/localization.js';
     }
     .mode.active {
       border-color: var(--wi-border);
-      background: rgba(128, 128, 128, 0.18);
+      background: var(--wi-row-selected);
     }
     .prose {
       overflow: auto;
@@ -155,12 +155,12 @@ import { Localization } from '../localization/localization.js';
       user-select: text;
     }
     .word.added {
-      background: rgba(60, 150, 90, 0.18);
-      color: rgb(25, 95, 55);
+      background: color-mix(in srgb, var(--wi-success) 18%, transparent);
+      color: var(--wi-success);
     }
     .word.removed {
-      background: rgba(180, 70, 70, 0.14);
-      color: rgb(150, 60, 60);
+      background: color-mix(in srgb, var(--wi-danger) 14%, transparent);
+      color: var(--wi-danger);
       text-decoration: line-through;
     }
   `,

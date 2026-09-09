@@ -65,8 +65,8 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
       gap: 8px;
       padding: 0 10px;
       border-top: 1px solid var(--wi-separator);
-      color: rgba(128, 128, 128, 0.95);
-      font: 11px system-ui, sans-serif;
+      color: var(--wi-muted);
+      font: 11px var(--wi-sans);
     }
     .position {
       font-variant-numeric: tabular-nums;
@@ -83,15 +83,15 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
       font: inherit;
     }
     .wrap.active {
-      border-color: rgba(128, 128, 128, 0.4);
-      background: rgba(128, 128, 128, 0.2);
+      border-color: var(--wi-border);
+      background: var(--wi-row-selected);
     }
     /* The zoom of SPEC.md §10.9: a slider, and the factor beside it. */
     input.zoom {
       width: 90px;
       height: 12px;
       margin: 0;
-      accent-color: rgba(128, 128, 128, 0.8);
+      accent-color: var(--wi-muted);
     }
     .zoom-value {
       padding: 1px 4px;

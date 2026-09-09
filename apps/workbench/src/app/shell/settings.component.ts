@@ -121,6 +121,51 @@ import { Localization } from '../localization/localization.js';
                   <span class="hint">{{ i18n.t(key(hint)) }}</span>
                 }
               </fieldset>
+            } @else if (setting.kind === 'colorScheme') {
+              <fieldset class="setting choice scheme">
+                <legend>{{ i18n.t(key(setting.labelKey)) }}</legend>
+                @for (option of setting.options; track option.value) {
+                  <label>
+                    <input
+                      type="radio"
+                      name="colorScheme"
+                      [value]="option.value"
+                      [checked]="layout.colorScheme() === option.value"
+                      (change)="layout.setColorScheme(option.value)"
+                    />
+                    {{ i18n.t(key(option.labelKey)) }}
+                  </label>
+                }
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint)) }}</span>
+                }
+              </fieldset>
+            } @else if (setting.kind === 'accentPalette') {
+              <fieldset class="setting palette">
+                <legend>{{ i18n.t(key(setting.labelKey)) }}</legend>
+                <div class="swatches">
+                  @for (option of setting.options; track option.value) {
+                    <label
+                      class="swatch"
+                      [attr.data-color-palette]="option.value"
+                      [class.chosen]="layout.accentPalette() === option.value"
+                      [title]="i18n.t(key(option.labelKey))"
+                    >
+                      <input
+                        type="radio"
+                        name="accentPalette"
+                        [value]="option.value"
+                        [checked]="layout.accentPalette() === option.value"
+                        (change)="layout.setAccentPalette(option.value)"
+                      />
+                      <span class="name">{{ i18n.t(key(option.labelKey)) }}</span>
+                    </label>
+                  }
+                </div>
+                @if (setting.hintKey; as hint) {
+                  <span class="hint">{{ i18n.t(key(hint)) }}</span>
+                }
+              </fieldset>
             } @else if (setting.kind === 'number') {
               <label class="setting number">
                 <span class="label">{{ i18n.t(key(setting.labelKey)) }}</span>
@@ -222,11 +267,11 @@ import { Localization } from '../localization/localization.js';
       text-align: start;
     }
     .category:hover {
-      background: rgba(128, 128, 128, 0.14);
+      background: var(--wi-row-hover);
     }
     .category.active {
-      border-color: rgba(128, 128, 128, 0.4);
-      background: rgba(128, 128, 128, 0.2);
+      border-color: var(--wi-border);
+      background: var(--wi-row-selected);
     }
     .content {
       display: flex;
@@ -265,6 +310,40 @@ import { Localization } from '../localization/localization.js';
     }
     .choice label {
       margin-inline-end: 12px;
+    }
+    /* The palette swatches of SPEC.md §8.8: the choice is the colour, and the
+     * name is what a screen reader hears and the pointer reveals. */
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .swatch {
+      display: grid;
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      place-items: center;
+      border: 1px solid var(--wi-line-strong);
+      border-radius: 50%;
+      background: var(--wi-accent);
+      cursor: default;
+    }
+    .swatch.chosen {
+      box-shadow: 0 0 0 2px var(--wi-panel), 0 0 0 4px var(--wi-accent);
+    }
+    .swatch input,
+    .swatch .name {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .swatch:has(input:focus-visible) {
+      outline: 2px solid var(--wi-ink);
+      outline-offset: 2px;
     }
     .number input {
       width: 5em;

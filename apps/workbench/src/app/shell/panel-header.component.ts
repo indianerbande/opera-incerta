@@ -41,8 +41,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       gap: 6px;
       height: 36px;
       padding: 0 8px;
-      border-block-end: 1px solid rgba(128, 128, 128, 0.35);
-      font: 12px system-ui, sans-serif;
+      border-block-end: 1px solid var(--wi-separator);
+      background: var(--wi-surface-subtle);
+      font: 12px var(--wi-sans);
     }
     .title {
       overflow: hidden;

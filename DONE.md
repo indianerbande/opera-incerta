@@ -6,6 +6,91 @@ documents").
 
 ---
 
+## 2026-09-09 — the visual system: one face, one palette, two schemes
+
+**What was open.** Nothing, in the specification's terms — and that was the
+problem. The workbench had five CSS variables, four of them
+`rgba(128, 128, 128, …)`, and **one hundred and twenty-one colour literals**
+spread over twenty-two components. A grey like that belongs to no palette, and
+a palette that does not exist cannot be made dark. The author's other
+application, C4ML, has had a proper system for months; the two are meant to
+look like two programs from one house, and did not.
+
+**What was decided first** (`SPEC.md` §8.8, written before the code, after
+three questions he answered): the same **values** as the other application
+under this project's own names; IBM Plex **packaged**, not borrowed from the
+system; and light, dark and the palettes **now** rather than later.
+
+The four decisions worth keeping:
+
+1. **A colour literal in a component is a defect.** Everything is a token,
+   defined once.
+2. **Dark is a complete second set of the same names**, never a filter over
+   the first — and `system` is resolved in TypeScript rather than expressed as
+   a second CSS block under `prefers-color-scheme`: twenty-five declarations
+   twice would drift, and the resolution already had a shape in this codebase
+   (`resolveLanguage`).
+3. **A palette is five values and a rule.** The accent and its three
+   companions are named; the surfaces follow from them with `color-mix`. The
+   palette selectors name the *attribute*, not the root, so the swatches in
+   the settings dialog show seven palettes that are not active — from the same
+   definitions, not from a second copy of the values.
+4. **The interface is sans, the manuscript is what the author writes in.**
+   Plex Sans for the workbench; the editor keeps its configurable family
+   (§13), serif by default, and the zoom of §10.9 scales it alone.
+
+**What changed.** Eight WOFF2 files with their licence, notice and pinned
+bytes (`DEPENDENCIES.md`, `check:assets`, which now covers fonts as well as
+icons); a token layer of some seventy declarations in `styles.css`; the two
+preferences, their registry entries and their controls — three radio buttons
+and eight swatches; the root element carrying `data-color-scheme` and
+`data-color-palette`, in the launcher as much as in the workbench; and the
+sweep: 121 literals to tokens, every `system-ui` and `ui-monospace` stack to
+`--wi-sans` / `--wi-mono`, the editor's own theme included, so CodeMirror's
+light defaults do not survive into a dark scheme.
+
+**Verification.** `pnpm run check` green: **1022 tests**, among them the
+resolution rule at both ends, the record refusing a scheme and a palette it
+does not offer, and the layout state storing both. `pnpm run desktop:smoke`
+green across **forty checks**. Both dialogs and the dark workbench
+screenshotted and looked at.
+
+**Falsified four times, and one of them found a defect in the check itself.**
+Breaking the scheme resolution failed in its own test; a missing `SOURCE.md`
+failed the asset check. But the smoke's font check —
+`document.fonts.check('16px "IBM Plex Sans"')` — **stayed green with the
+Regular face pointing at a file that does not exist**: a name-based question
+cannot tell a loaded face from a fallback. It fetches all eight files over the
+renderer's own protocol now and requires the `wOF2` signature, and it measures
+a line of text against the same line in a family that does not exist.
+
+The next break was aimed wrong and is worth writing down too: pointing *one
+weight* at a missing file, the run stayed green — correctly, because the other
+four faces still make the family, and the text really was set in Plex. The
+break that matches the claim is dropping the asset rule that packages the
+fonts, and with it all eight fetches fail by name in the appearance check and
+nowhere else.
+
+**Lessons.**
+
+1. **A check that cannot fail is not evidence — and a break that misses tells
+   you nothing about the check.** The font check was written, passed, and
+   would have shipped a claim it could not support; the first break exposed
+   it, the second was aimed at the wrong thing and proved only that the
+   application was right. Falsification has to hit the sentence the check
+   claims, or it is another green run.
+2. **Colour was one round; shape is the next.** With the tokens in place the
+   workbench is quiet and correct, and still square: radii, spacing, the
+   anatomy of a dialog and the look of a control are a second round, and
+   §8.8 says so rather than leaving it to taste.
+3. **A face arrives after the first paint.** The front matter block measures
+   itself and grows to what it measured, and the smoke read that height one
+   frame too early — twice, once before the fonts existed. It waits for the
+   height to settle now, which is what `TODO.md` §1 had predicted the remedy
+   would be.
+
+---
+
 ## 2026-09-09 — the editor zoom
 
 **What was open** (`SPEC.md` §18, Phase 2, and the promise §10.5 made when the

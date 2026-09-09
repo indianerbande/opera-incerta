@@ -54,7 +54,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
     .line {
       width: 1px;
       height: 100%;
-      background: rgba(128, 128, 128, 0.35);
+      background: var(--wi-separator);
     }
     :host(.horizontal) .line {
       width: 100%;
@@ -62,7 +62,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
     }
     :host(:hover) .line,
     :host(.dragging) .line {
-      background: rgba(128, 128, 128, 0.75);
+      background: var(--wi-muted);
     }
   `,
 })

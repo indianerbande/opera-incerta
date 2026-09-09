@@ -56,11 +56,11 @@ const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
       z-index: 10;
       min-width: 160px;
       padding: 4px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
+      border: 1px solid var(--wi-border);
       border-radius: 6px;
-      background: Canvas;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-      font: 13px system-ui, sans-serif;
+      background: var(--wi-panel);
+      box-shadow: var(--wi-panel-shadow);
+      font: 13px var(--wi-sans);
     }
     .item {
       display: flex;
@@ -77,7 +77,7 @@ const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
     }
     .item:hover,
     .item:focus-visible {
-      background: rgba(128, 128, 128, 0.18);
+      background: var(--wi-row-selected);
     }
     .check {
       display: inline-block;
@@ -86,7 +86,7 @@ const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
     hr {
       margin: 4px 2px;
       border: 0;
-      border-block-start: 1px solid rgba(128, 128, 128, 0.3);
+      border-block-start: 1px solid var(--wi-separator);
     }
   `,
 })

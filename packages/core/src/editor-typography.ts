@@ -27,8 +27,11 @@ export const EDITOR_FONT_FAMILIES: readonly EditorFontFamily[] = ['serif', 'sans
  */
 export const EDITOR_FONT_STACKS: Readonly<Record<EditorFontFamily, string>> = {
   serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
-  sans: 'system-ui, -apple-system, "Segoe UI", sans-serif',
-  mono: 'ui-monospace, Menlo, Consolas, monospace',
+  // The two packaged faces first (SPEC.md §8.8): where the application brings
+  // a face, the manuscript may use it and look the same everywhere. The serif
+  // is not packaged, so it names what a desktop is likely to have.
+  sans: "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  mono: "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace",
 };
 
 export const DEFAULT_EDITOR_FONT_FAMILY: EditorFontFamily = 'serif';

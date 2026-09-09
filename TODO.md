@@ -8,14 +8,15 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-09:** the library is complete — create, rename, place, delete —
+**State 2026-09-09 (evening):** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, source control (§12) up to and
 including amend and `.gitignore`, the GFM display (§10.7), all four answers
-opening a folder can give (§8.6), the line-number gutter (§10.8) and the
-editor zoom (§10.9). `pnpm run check` green on **Node 24**: 8
-projects, **1017 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across thirty-nine checks,
+opening a folder can give (§8.6), the line-number gutter (§10.8), the
+editor zoom (§10.9) and the visual system (§8.8) with its packaged face, its
+two schemes and its eight palettes. `pnpm run check` green on **Node 24**: 8
+projects, **1022 tests**, plus the desktop and asset checks.
+`pnpm run desktop:smoke` green across forty checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
@@ -47,6 +48,21 @@ has to be consulted to build, verify or change the product.
    and the two runs after it, on the same code, were green. That check
    measures immediately after a `rendered` wait; if it recurs, it should wait
    for the height to stop changing rather than for two frames.
+
+
+2. **The shape of the controls** (`SPEC.md` §8.8, "what this section does not
+   decide"). The colours and the face are one house now; the geometry is not.
+   Radii (4–5 px here against 9–18 px there), control heights, the spacing
+   scale, the anatomy of a dialog — header with an eyebrow line, a navigation
+   column, a footer — and the way an active entry is marked. One round, and
+   the smoke can measure most of it.
+
+3. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
+   `density`, `language`, `colorScheme`, `accentPalette` and `fontFamily` are
+   the same shape — a key, a list of options, a default — with five interfaces
+   and five branches in the dialog. They want one `choice` kind with a
+   renderer hint. Not urgent; it grows by one with every setting that offers a
+   list.
 
 
 ## 2. To decide before code exists

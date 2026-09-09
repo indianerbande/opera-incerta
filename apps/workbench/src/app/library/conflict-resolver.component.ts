@@ -106,7 +106,7 @@ import { Localization } from '../localization/localization.js';
       gap: 10px;
       grid-template-columns: 1fr 1fr;
       padding: 10px 0;
-      border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+      border-bottom: 1px solid var(--wi-row-selected);
     }
     .side {
       padding: 6px 8px;
@@ -114,8 +114,8 @@ import { Localization } from '../localization/localization.js';
       border-radius: 6px;
     }
     .side.chosen {
-      border-color: rgba(128, 128, 128, 0.5);
-      background: rgba(128, 128, 128, 0.08);
+      border-color: var(--wi-line-strong);
+      background: var(--wi-row-hover);
     }
     label {
       display: flex;
@@ -137,10 +137,10 @@ import { Localization } from '../localization/localization.js';
       user-select: text;
     }
     .only-here {
-      background: rgba(180, 70, 70, 0.14);
+      background: color-mix(in srgb, var(--wi-danger) 14%, transparent);
     }
     .only-there {
-      background: rgba(60, 150, 90, 0.18);
+      background: color-mix(in srgb, var(--wi-success) 18%, transparent);
     }
   `,
 })

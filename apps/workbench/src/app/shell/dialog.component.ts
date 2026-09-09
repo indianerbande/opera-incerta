@@ -35,7 +35,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
     .backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.2);
+      background: var(--wi-backdrop);
     }
     .panel {
       position: fixed;
@@ -47,9 +47,9 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       padding: 12px 14px;
       border: 1px solid var(--wi-border);
       border-radius: 8px;
-      background: Canvas;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-      font: 13px system-ui, sans-serif;
+      background: var(--wi-panel);
+      box-shadow: var(--wi-dialog-shadow);
+      font: 13px var(--wi-sans);
       transform: translate(-50%, -50%);
     }
   `,

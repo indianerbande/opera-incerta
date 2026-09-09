@@ -37,11 +37,11 @@ import type { MenuEntry } from './overlay.js';
       z-index: 20;
       min-width: 150px;
       padding: 4px;
-      border: 1px solid rgba(128, 128, 128, 0.4);
+      border: 1px solid var(--wi-border);
       border-radius: 6px;
-      background: Canvas;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
-      font: 13px system-ui, sans-serif;
+      background: var(--wi-panel);
+      box-shadow: var(--wi-panel-shadow);
+      font: 13px var(--wi-sans);
     }
     .item {
       display: block;
@@ -56,7 +56,7 @@ import type { MenuEntry } from './overlay.js';
       cursor: default;
     }
     .item:hover {
-      background: rgba(128, 128, 128, 0.18);
+      background: var(--wi-row-selected);
     }
   `,
 })

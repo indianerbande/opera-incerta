@@ -253,6 +253,23 @@ describe('the settings dialog’s way in (SPEC.md §13)', () => {
   });
 });
 
+describe('the appearance (SPEC.md §8.8)', () => {
+  it('keeps the scheme and the palette, and stores both', () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    expect(layout.colorScheme()).toBe('system');
+    expect(layout.accentPalette()).toBe('blue');
+
+    layout.setColorScheme('dark');
+    layout.setAccentPalette('green');
+
+    expect(layout.colorScheme()).toBe('dark');
+    expect(layout.accentPalette()).toBe('green');
+    const last = bridge.written.at(-1) as { colorScheme: string; accentPalette: string };
+    expect([last.colorScheme, last.accentPalette]).toEqual(['dark', 'green']);
+  });
+});
+
 describe('the editor settings (SPEC.md §13)', () => {
   it('stores family, size, wrapping and line numbers, and hands the editor all four at once', () => {
     const bridge = storingBridge();

@@ -96,10 +96,10 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
       opacity: 0.45;
     }
     li.drop-above {
-      box-shadow: inset 0 2px 0 0 rgba(128, 128, 128, 0.95);
+      box-shadow: inset 0 2px 0 0 var(--wi-muted);
     }
     li.drop-below {
-      box-shadow: inset 0 -2px 0 0 rgba(128, 128, 128, 0.95);
+      box-shadow: inset 0 -2px 0 0 var(--wi-muted);
     }
     .row {
       display: flex;
@@ -116,10 +116,10 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
       cursor: default;
     }
     .row:hover {
-      background: rgba(128, 128, 128, 0.12);
+      background: var(--wi-row-hover);
     }
     .row.selected {
-      background: rgba(128, 128, 128, 0.22);
+      background: var(--wi-row-selected);
     }
     .line {
       display: flex;
@@ -147,14 +147,14 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
     .preview {
       overflow: hidden;
       white-space: nowrap;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
       text-overflow: ellipsis;
       line-height: 1.25;
     }
     .empty {
       padding: 8px 6px;
-      color: rgba(128, 128, 128, 0.9);
-      font: 12px system-ui, sans-serif;
+      color: var(--wi-muted);
+      font: 12px var(--wi-sans);
     }
   `,
 })
@@ -250,8 +250,8 @@ export class SheetListComponent {
       cursor: default;
     }
     .option.active {
-      border-color: rgba(128, 128, 128, 0.45);
-      background: rgba(128, 128, 128, 0.18);
+      border-color: var(--wi-border);
+      background: var(--wi-row-selected);
     }
   `,
 })

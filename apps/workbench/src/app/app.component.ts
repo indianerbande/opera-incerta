@@ -18,6 +18,7 @@ import {
 } from './library/sheet-list.component.js';
 import { SourceControlComponent } from './library/source-control.component.js';
 import { ActivityBarComponent, type ActivityItem } from './shell/activity-bar.component.js';
+import { startAppearance } from './shell/appearance.js';
 import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
 import { IdentityPromptComponent } from './shell/identity-prompt.component.js';
@@ -408,11 +409,11 @@ import { Localization } from './localization/localization.js';
     .workbench {
       display: flex;
       height: 100vh;
-      font: 13px/1.4 system-ui, sans-serif;
+      font: 13px/1.4 var(--wi-sans);
     }
     .workbench > * {
       overflow: hidden;
-      border-inline-end: 1px solid rgba(128, 128, 128, 0.35);
+      border-inline-end: 1px solid var(--wi-separator);
     }
     .workbench > :last-child {
       border-inline-end: none;
@@ -420,18 +421,22 @@ import { Localization } from './localization/localization.js';
     .activity-bar {
       flex: none;
     }
+    /* The chrome sits on the navigation ground, the manuscript on a panel:
+     * the text is the raised thing in this application (SPEC.md §8.8). */
     .navigator,
     .sheet-list,
     .secondary-sidebar {
       display: flex;
       flex: none;
       flex-direction: column;
+      background: var(--wi-navigation-bg);
     }
     .editor {
       display: flex;
       flex: 1 1 auto;
       flex-direction: column;
       min-width: 380px;
+      background: var(--wi-panel);
     }
     .tree {
       overflow: auto;
@@ -442,7 +447,7 @@ import { Localization } from './localization/localization.js';
     .hint {
       margin: 0;
       padding: 8px;
-      color: rgba(128, 128, 128, 0.9);
+      color: var(--wi-muted);
     }
     wi-editor {
       flex: 1 1 auto;
@@ -452,14 +457,14 @@ import { Localization } from './localization/localization.js';
       display: flex;
       align-items: center;
       gap: 3px;
-      color: rgba(128, 128, 128, 0.95);
+      color: var(--wi-muted);
       white-space: nowrap;
     }
     .read-only {
       padding: 1px 5px;
       border-radius: 4px;
-      background: rgba(190, 90, 90, 0.18);
-      color: rgba(150, 60, 60, 0.95);
+      background: color-mix(in srgb, var(--wi-danger) 18%, transparent);
+      color: var(--wi-danger);
     }
     .blank-lines {
       display: flex;
@@ -468,7 +473,7 @@ import { Localization } from './localization/localization.js';
     }
     button {
       padding: 2px 6px;
-      border: 1px solid rgba(128, 128, 128, 0.45);
+      border: 1px solid var(--wi-border);
       border-radius: 4px;
       background: none;
       color: inherit;
@@ -483,10 +488,11 @@ import { Localization } from './localization/localization.js';
       gap: 8px;
       align-items: center;
       padding: 8px 10px;
-      border: 1px solid rgba(190, 90, 90, 0.6);
+      border: 1px solid var(--wi-danger-border);
       border-radius: 6px;
-      background: Canvas;
-      font: 12px system-ui, sans-serif;
+      background: var(--wi-panel);
+      box-shadow: var(--wi-panel-shadow);
+      font: 12px var(--wi-sans);
     }
   `,
 })
@@ -525,6 +531,14 @@ export class AppComponent {
     effect(() => {
       document.documentElement.lang = this.i18n.language();
     });
+
+    // And its scheme and palette follow the appearance settings (SPEC.md §8.8).
+    const stopAppearance = startAppearance(
+      document.documentElement,
+      this.layout.colorScheme,
+      this.layout.accentPalette,
+    );
+    inject(DestroyRef).onDestroy(stopAppearance);
 
     // Saving arrives from the menu, not from a key handler: the menu item owns
     // Cmd+S, so the keystroke never reaches this page (SPEC.md §8.5).

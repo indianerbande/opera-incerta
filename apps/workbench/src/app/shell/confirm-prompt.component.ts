@@ -58,7 +58,7 @@ import { Localization } from '../localization/localization.js';
       font-weight: 600;
     }
     button.cancel:focus-visible {
-      outline: 2px solid rgba(128, 128, 128, 0.9);
+      outline: 2px solid var(--wi-muted);
     }
     button.danger {
       border-color: var(--wi-danger-border);

@@ -56,15 +56,15 @@ import { Localization } from '../localization/localization.js';
       border-radius: 4px;
       background: none;
       color: inherit;
-      font: 12px system-ui, sans-serif;
+      font: 12px var(--wi-sans);
       text-align: start;
       cursor: default;
     }
     .entry:hover {
-      background: rgba(128, 128, 128, 0.14);
+      background: var(--wi-row-hover);
     }
     .level {
-      color: rgba(128, 128, 128, 0.8);
+      color: var(--wi-muted);
     }
     .text {
       overflow: hidden;
@@ -74,8 +74,8 @@ import { Localization } from '../localization/localization.js';
     .hint {
       margin: 0;
       padding: 8px;
-      color: rgba(128, 128, 128, 0.9);
-      font: 12px system-ui, sans-serif;
+      color: var(--wi-muted);
+      font: 12px var(--wi-sans);
     }
   `,
 })

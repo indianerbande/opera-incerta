@@ -38,7 +38,7 @@ import { Localization } from '../localization/localization.js';
       border-radius: 4px;
       background: none;
       color: inherit;
-      font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+      font: 12px var(--wi-mono);
       resize: none;
       white-space: pre;
     }

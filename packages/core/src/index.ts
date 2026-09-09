@@ -103,6 +103,16 @@ export {
   previewLines,
 } from './preview.js';
 export type { PreviewDensity, PreviewDensitySpec } from './preview.js';
+export {
+  ACCENT_PALETTES,
+  COLOR_SCHEMES,
+  DEFAULT_ACCENT_PALETTE,
+  DEFAULT_COLOR_SCHEME,
+  isAccentPalette,
+  isColorScheme,
+  resolveColorScheme,
+} from './appearance.js';
+export type { AccentPalette, ColorScheme, ResolvedColorScheme } from './appearance.js';
 export { LAYOUT_PREFERENCE_KEYS, SETTINGS, SETTINGS_CATEGORIES, settingsOf } from './settings.js';
 export {
   DEFAULT_EDITOR_FONT_FAMILY,

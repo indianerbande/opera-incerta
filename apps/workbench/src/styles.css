@@ -1,22 +1,332 @@
-:root {
-  color-scheme: light dark;
+/*
+ * The visual system. SPEC.md §8.8.
+ *
+ * Every colour and every face of the workbench is named here and read as
+ * `var(--wi-…)` everywhere else: a colour literal in a component is a defect,
+ * because it belongs to no palette and cannot be made dark.
+ *
+ * Two schemes and eight palettes. The scheme is a complete second set of the
+ * same names, never a filter; a palette sets the accent and lets the surfaces
+ * follow from it with `color-mix`, so a palette is five values and a rule.
+ */
 
-  /*
-   * The few colours every part of the workbench agrees on. Defined once so
-   * that a grey is one decision rather than nineteen literals (CONVENTIONS.md
-   * C-U7). Components read them with var(); nothing else is global.
-   */
-  --wi-border: rgba(128, 128, 128, 0.45);
-  --wi-separator: rgba(128, 128, 128, 0.25);
-  --wi-muted: rgba(128, 128, 128, 0.95);
-  --wi-danger: rgb(190, 60, 60);
-  --wi-danger-border: rgba(190, 60, 60, 0.7);
+/* The interface face, packaged rather than borrowed from the system: an
+ * interface that looks different on every machine cannot be designed
+ * (SPEC.md §8.8). Sources, licence and pinned bytes: `assets/ibm-plex/`. */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex/IBMPlexSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex/IBMPlexSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex/IBMPlexSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex/IBMPlexSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  src: url('/fonts/ibm-plex/IBMPlexSans-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/ibm-plex/IBMPlexMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/ibm-plex/IBMPlexMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  src: url('/fonts/ibm-plex/IBMPlexMono-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: block;
+}
+
+:root {
+  color-scheme: light;
+
+  --wi-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --wi-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --wi-ink: #17263d;
+  --wi-muted: #65758b;
+  --wi-line: #d9e1ea;
+  --wi-line-strong: #c2ceda;
+  --wi-canvas: #eef3f8;
+  --wi-panel: #ffffff;
+  --wi-surface-subtle: #f8fafc;
+  --wi-navigation-bg: #f3f6f9;
+  --wi-control-bg: #ffffff;
+  --wi-control-ink: #40566b;
+  --wi-control-hover: #edf5f8;
+  --wi-accent: #157ca3;
+  --wi-accent-strong: #126684;
+  --wi-accent-border: #b8d9e2;
+  --wi-accent-soft: #dff3fa;
+  --wi-focus-ring: rgba(21, 124, 163, 0.2);
+  --wi-accent-ink: #ffffff;
+  --wi-success: #187a62;
+  --wi-danger: #b53a4f;
+  --wi-warning: #9a6014;
+  --wi-panel-shadow: 0 12px 35px rgba(35, 57, 82, 0.08);
+  --wi-app-bar-shadow: 0 2px 14px rgba(26, 44, 68, 0.06);
+  --wi-dialog-shadow: 0 28px 80px rgba(15, 28, 44, 0.3);
+  --wi-backdrop: rgba(20, 34, 50, 0.48);
+
+  /* The two names the components already used, now part of the system. */
+  --wi-border: var(--wi-line-strong);
+  --wi-separator: var(--wi-line);
+  --wi-danger-border: color-mix(in srgb, var(--wi-danger) 45%, transparent);
+  /* A row under the pointer, and the one that is selected. */
+  --wi-row-hover: color-mix(in srgb, var(--wi-accent) 7%, transparent);
+  --wi-row-selected: var(--wi-accent-soft);
+}
+
+:root[data-color-scheme='dark'] {
+  color-scheme: dark;
+
+  --wi-ink: #e4edf6;
+  --wi-muted: #9aabba;
+  --wi-line: #304458;
+  --wi-line-strong: #40566b;
+  --wi-canvas: #0d1722;
+  --wi-panel: #172536;
+  --wi-surface-subtle: #1b2b3d;
+  --wi-navigation-bg: #132131;
+  --wi-control-bg: #1c2d3f;
+  --wi-control-ink: #d6e2ed;
+  --wi-control-hover: #263d51;
+  --wi-accent: #4cabc1;
+  --wi-accent-strong: #318ba4;
+  --wi-accent-border: #356579;
+  --wi-accent-soft: #173c49;
+  --wi-focus-ring: rgba(76, 171, 193, 0.25);
+  --wi-accent-ink: #071419;
+  --wi-success: #55b89d;
+  --wi-danger: #ee8799;
+  --wi-warning: #e2ae60;
+  --wi-panel-shadow: 0 12px 35px rgba(0, 0, 0, 0.24);
+  --wi-app-bar-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+  --wi-dialog-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  --wi-backdrop: rgba(3, 8, 13, 0.68);
+}
+
+/*
+ * The palettes. Each sets the accent and its three companions; the surfaces
+ * follow below, so a new palette is five values rather than thirty.
+ *
+ * The selectors name the attribute, not the root, so an element that carries
+ * `data-color-palette` gets that palette's accent locally: the swatches in
+ * the settings dialog show seven palettes that are not the active one, and
+ * they show them from these values rather than from a second copy.
+ */
+/* Blue is the default, and is written out as well so that a swatch showing
+ * blue shows blue while another palette is active. */
+[data-color-palette='blue'] {
+  --wi-accent: #157ca3;
+  --wi-accent-strong: #126684;
+  --wi-accent-border: #b8d9e2;
+  --wi-accent-soft: #dff3fa;
+  --wi-focus-ring: rgba(21, 124, 163, 0.2);
+}
+
+[data-color-palette='gray'] {
+  --wi-accent: #66717e;
+  --wi-accent-strong: #505b67;
+  --wi-accent-border: #cbd1d7;
+  --wi-accent-soft: #eceff2;
+  --wi-focus-ring: rgba(102, 113, 126, 0.22);
+}
+
+[data-color-palette='yellow'] {
+  --wi-accent: #8a6812;
+  --wi-accent-strong: #705208;
+  --wi-accent-border: #dfd0a0;
+  --wi-accent-soft: #faf1cc;
+  --wi-focus-ring: rgba(138, 104, 18, 0.22);
+}
+
+[data-color-palette='green'] {
+  --wi-accent: #34785b;
+  --wi-accent-strong: #285f47;
+  --wi-accent-border: #b9d8ca;
+  --wi-accent-soft: #e1f2e9;
+  --wi-focus-ring: rgba(52, 120, 91, 0.22);
+}
+
+[data-color-palette='violet'] {
+  --wi-accent: #705a9b;
+  --wi-accent-strong: #5b477f;
+  --wi-accent-border: #d0c5e0;
+  --wi-accent-soft: #efe9f7;
+  --wi-focus-ring: rgba(112, 90, 155, 0.22);
+}
+
+[data-color-palette='red'] {
+  --wi-accent: #a34f5b;
+  --wi-accent-strong: #873c48;
+  --wi-accent-border: #e0c1c6;
+  --wi-accent-soft: #f7e7e9;
+  --wi-focus-ring: rgba(163, 79, 91, 0.22);
+}
+
+[data-color-palette='orange'] {
+  --wi-accent: #a45f1a;
+  --wi-accent-strong: #884b0e;
+  --wi-accent-border: #e1c7aa;
+  --wi-accent-soft: #f8eadb;
+  --wi-focus-ring: rgba(164, 95, 26, 0.22);
+}
+
+[data-color-palette='turquoise'] {
+  --wi-accent: #177d79;
+  --wi-accent-strong: #126461;
+  --wi-accent-border: #b6d9d6;
+  --wi-accent-soft: #def2f0;
+  --wi-focus-ring: rgba(23, 125, 121, 0.22);
+}
+
+:root[data-color-palette]:not([data-color-palette='blue']) {
+  --wi-canvas: color-mix(in srgb, var(--wi-accent) 4%, #f1f4f7);
+  --wi-surface-subtle: color-mix(in srgb, var(--wi-accent) 2.5%, #fafbfc);
+  --wi-navigation-bg: color-mix(in srgb, var(--wi-accent) 3.5%, #f5f7f9);
+  --wi-control-hover: color-mix(in srgb, var(--wi-accent) 8%, #f3f5f7);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='blue'],
+[data-color-scheme='dark'] [data-color-palette='blue'] {
+  --wi-accent: #4cabc1;
+  --wi-accent-strong: #318ba4;
+  --wi-accent-border: #356579;
+  --wi-accent-soft: #173c49;
+  --wi-focus-ring: rgba(76, 171, 193, 0.25);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='gray'],
+[data-color-scheme='dark'] [data-color-palette='gray'] {
+  --wi-accent: #aeb8c2;
+  --wi-accent-strong: #8995a1;
+  --wi-accent-border: #56616d;
+  --wi-accent-soft: #30363d;
+  --wi-focus-ring: rgba(174, 184, 194, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='yellow'],
+[data-color-scheme='dark'] [data-color-palette='yellow'] {
+  --wi-accent: #ddbd59;
+  --wi-accent-strong: #b6973e;
+  --wi-accent-border: #6d5d2e;
+  --wi-accent-soft: #403718;
+  --wi-focus-ring: rgba(221, 189, 89, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='green'],
+[data-color-scheme='dark'] [data-color-palette='green'] {
+  --wi-accent: #6bbe91;
+  --wi-accent-strong: #4d9870;
+  --wi-accent-border: #3d6b53;
+  --wi-accent-soft: #1e4030;
+  --wi-focus-ring: rgba(107, 190, 145, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='violet'],
+[data-color-scheme='dark'] [data-color-palette='violet'] {
+  --wi-accent: #b59adb;
+  --wi-accent-strong: #9075b8;
+  --wi-accent-border: #62527a;
+  --wi-accent-soft: #382a4b;
+  --wi-focus-ring: rgba(181, 154, 219, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='red'],
+[data-color-scheme='dark'] [data-color-palette='red'] {
+  --wi-accent: #e38f99;
+  --wi-accent-strong: #bb6874;
+  --wi-accent-border: #7a4650;
+  --wi-accent-soft: #4b252d;
+  --wi-focus-ring: rgba(227, 143, 153, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='orange'],
+[data-color-scheme='dark'] [data-color-palette='orange'] {
+  --wi-accent: #e5a15f;
+  --wi-accent-strong: #bd7c3d;
+  --wi-accent-border: #79522f;
+  --wi-accent-soft: #472f1b;
+  --wi-focus-ring: rgba(229, 161, 95, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette='turquoise'],
+[data-color-scheme='dark'] [data-color-palette='turquoise'] {
+  --wi-accent: #59bbb5;
+  --wi-accent-strong: #3c9590;
+  --wi-accent-border: #356d6a;
+  --wi-accent-soft: #1b4240;
+  --wi-focus-ring: rgba(89, 187, 181, 0.27);
+}
+
+:root[data-color-scheme='dark'][data-color-palette]:not([data-color-palette='blue']) {
+  --wi-canvas: color-mix(in srgb, var(--wi-accent) 5%, #0d141d);
+  --wi-panel: color-mix(in srgb, var(--wi-accent) 7%, #17202b);
+  --wi-surface-subtle: color-mix(in srgb, var(--wi-accent) 8%, #192431);
+  --wi-navigation-bg: color-mix(in srgb, var(--wi-accent) 6%, #121c28);
+  --wi-control-bg: color-mix(in srgb, var(--wi-accent) 7%, #1b2836);
+  --wi-control-hover: color-mix(in srgb, var(--wi-accent) 13%, #223344);
 }
 
 html,
 body {
   margin: 0;
   height: 100%;
+}
+
+body {
+  background: var(--wi-canvas);
+  color: var(--wi-ink);
+  font-family: var(--wi-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+/* Keyboard focus is never removed; it is drawn in the accent's own ring. */
+:focus-visible {
+  outline: 2px solid var(--wi-accent);
+  outline-offset: 1px;
 }
 
 /*
@@ -53,10 +363,14 @@ wi-dialog button {
   padding: 3px 10px;
   border: 1px solid var(--wi-border);
   border-radius: 4px;
-  background: none;
-  color: inherit;
+  background: var(--wi-control-bg);
+  color: var(--wi-control-ink);
   font: inherit;
   cursor: default;
+}
+
+wi-dialog button:hover {
+  background: var(--wi-control-hover);
 }
 
 wi-dialog button:disabled {

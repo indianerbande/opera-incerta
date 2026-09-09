@@ -141,8 +141,11 @@ export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow):
   }
 
   await toggleSwitch(window, 'Variables');
-  const shown = (await window.webContents.executeJavaScript(
-    `[...document.querySelectorAll('wi-front-matter-block')].map((block) => ({
+  const read = async (): Promise<
+    Array<{ label: string | null; control: string; text: string; visible: number; needed: number }>
+  > =>
+    (await window.webContents.executeJavaScript(
+      `[...document.querySelectorAll('wi-front-matter-block')].map((block) => ({
        label: block.querySelector('pre, textarea')?.getAttribute('aria-label') ?? null,
        control: block.querySelector('textarea') !== null ? 'textarea' : 'pre',
        text: (block.querySelector('pre, textarea')?.textContent ??
@@ -152,13 +155,23 @@ export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow):
        visible: Math.round(block.querySelector('.block')?.clientHeight ?? 0),
        needed: Math.round(block.querySelector('.measure')?.getBoundingClientRect().height ?? 0),
      }))`,
-  )) as Array<{
-    label: string | null;
-    control: string;
-    text: string;
-    visible: number;
-    needed: number;
-  }>;
+    )) as Array<{
+      label: string | null;
+      control: string;
+      text: string;
+      visible: number;
+      needed: number;
+    }>;
+
+  // The block measures itself and grows to what it measured, and a packaged
+  // face arrives after the first paint (SPEC.md §8.8, §10.4): what is read
+  // here is the height it settles at, not the one it started from. Read once,
+  // this check failed twice on a block that was right a frame later.
+  await waitUntil('the front matter blocks to settle at their measured height', async () => {
+    const blocks = await read();
+    return blocks.length === 2 && blocks.every((block) => block.needed > 0 && block.visible + 1 >= block.needed);
+  });
+  const shown = await read();
 
   if (shown.length !== 2) {
     throw new Error(`expected a foreign and an own block, found ${JSON.stringify(shown)}`);

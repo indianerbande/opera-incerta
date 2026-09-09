@@ -76,8 +76,21 @@ const GUTTER_FONT_SIZE = 11;
  * (SPEC.md §13); the base itself is the typography compartment's.
  */
 const editorTheme = EditorView.baseTheme({
-  '&': { height: '100%' },
-  '.cm-content': { lineHeight: '1.6' },
+  // The manuscript sits on a panel, in the system's ink (SPEC.md §8.8); the
+  // caret, the selection and the gutters follow it, or a dark scheme would
+  // leave CodeMirror's own light defaults behind.
+  '&': { height: '100%', background: 'var(--wi-panel)', color: 'var(--wi-ink)' },
+  '.cm-content': { lineHeight: '1.6', caretColor: 'var(--wi-ink)' },
+  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--wi-ink)' },
+  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+    background: 'var(--wi-accent-soft)',
+  },
+  '.cm-gutters': {
+    background: 'var(--wi-panel)',
+    color: 'var(--wi-muted)',
+    border: '0',
+  },
+  '.cm-activeLine, .cm-activeLineGutter': { background: 'transparent' },
   '.cm-heading-1': { fontSize: `${HEADING_SCALE[1]}em`, fontWeight: '700' },
   '.cm-heading-2': { fontSize: `${HEADING_SCALE[2]}em`, fontWeight: '700' },
   '.cm-heading-3': { fontSize: `${HEADING_SCALE[3]}em`, fontWeight: '600' },
@@ -90,54 +103,54 @@ const editorTheme = EditorView.baseTheme({
   '.cm-inline-boldItalic': { fontWeight: '700', fontStyle: 'italic' },
   '.cm-inline-strikethrough': { textDecoration: 'line-through' },
   '.cm-inline-code': {
-    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+    fontFamily: 'var(--wi-mono)',
     fontSize: '0.9em',
-    background: 'rgba(128, 128, 128, 0.14)',
+    background: 'var(--wi-row-hover)',
     borderRadius: '3px',
     padding: '0 3px',
   },
   '.cm-code-block': {
-    fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+    fontFamily: 'var(--wi-mono)',
     fontSize: '0.9em',
-    background: 'rgba(128, 128, 128, 0.1)',
+    background: 'var(--wi-row-hover)',
   },
-  '.cm-quote': { color: 'rgba(96, 96, 96, 0.95)', borderLeft: '3px solid rgba(128, 128, 128, 0.5)' },
+  '.cm-quote': { color: 'var(--wi-muted)', borderLeft: '3px solid var(--wi-line-strong)' },
   '.cm-quote-1': { paddingLeft: '10px' },
-  '.cm-quote-2': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px rgba(128, 128, 128, 0.5)' },
-  '.cm-quote-3': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px rgba(128, 128, 128, 0.5), inset 28px 0 0 -25px rgba(128, 128, 128, 0.5)' },
-  '.cm-quote-4': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px rgba(128, 128, 128, 0.5), inset 28px 0 0 -25px rgba(128, 128, 128, 0.5), inset 42px 0 0 -39px rgba(128, 128, 128, 0.5)' },
+  '.cm-quote-2': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px var(--wi-line-strong)' },
+  '.cm-quote-3': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px var(--wi-line-strong), inset 28px 0 0 -25px var(--wi-line-strong)' },
+  '.cm-quote-4': { paddingLeft: '10px', boxShadow: 'inset 14px 0 0 -11px var(--wi-line-strong), inset 28px 0 0 -25px var(--wi-line-strong), inset 42px 0 0 -39px var(--wi-line-strong)' },
   '.cm-list-item-0': { paddingLeft: '1.4em', textIndent: '-1.4em' },
   '.cm-list-item-1': { paddingLeft: '2.8em', textIndent: '-1.4em' },
   '.cm-list-item-2': { paddingLeft: '4.2em', textIndent: '-1.4em' },
   '.cm-list-item-3': { paddingLeft: '5.6em', textIndent: '-1.4em' },
   '.cm-list-item-4': { paddingLeft: '7em', textIndent: '-1.4em' },
   '.cm-thematic-break': { padding: '6px 0' },
-  '.cm-glyph': { color: 'rgba(128, 128, 128, 0.9)' },
+  '.cm-glyph': { color: 'var(--wi-muted)' },
   '.cm-glyph-bullet': { display: 'inline-block', width: '1.4em', textIndent: '0' },
   '.cm-glyph-checked, .cm-glyph-unchecked': { marginRight: '0.4em' },
   '.cm-glyph-rule': {
     display: 'inline-block',
     width: '100%',
     height: '0',
-    borderTop: '1px solid rgba(128, 128, 128, 0.6)',
+    borderTop: '1px solid var(--wi-line-strong)',
     verticalAlign: 'middle',
   },
   '.cm-glyph-break': { fontSize: '0.8em', opacity: '0.7' },
   '.cm-marker-gutter': {
     minWidth: '32px',
     padding: '0 6px',
-    fontFamily: 'system-ui, sans-serif',
+    fontFamily: 'var(--wi-sans)',
     fontSize: `${GUTTER_FONT_SIZE}px`,
-    color: 'rgba(128, 128, 128, 0.9)',
+    color: 'var(--wi-muted)',
   },
   // The line numbers of SPEC.md §10.8. Right-aligned, so the digits line up
   // and a document passing 99 lines does not shift its text.
   '.cm-lineNumbers .cm-gutterElement': {
     padding: '0 3px 0 8px',
-    fontFamily: 'system-ui, sans-serif',
+    fontFamily: 'var(--wi-sans)',
     fontSize: `${GUTTER_FONT_SIZE}px`,
     fontVariantNumeric: 'tabular-nums',
-    color: 'rgba(128, 128, 128, 0.75)',
+    color: 'var(--wi-muted)',
   },
 });
 
