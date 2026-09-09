@@ -67,6 +67,7 @@ export class LayoutState {
   readonly #editorFontFamily = signal<EditorFontFamily>(DEFAULT_PREFERENCES.editorFontFamily);
   readonly #editorFontSize = signal(DEFAULT_PREFERENCES.editorFontSize);
   readonly #editorWordWrap = signal(DEFAULT_PREFERENCES.editorWordWrap);
+  readonly #editorLineNumbers = signal(DEFAULT_PREFERENCES.editorLineNumbers);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
     this.#bridge = bridge;
@@ -90,11 +91,13 @@ export class LayoutState {
   readonly editorFontFamily = this.#editorFontFamily.asReadonly();
   readonly editorFontSize = this.#editorFontSize.asReadonly();
   readonly editorWordWrap = this.#editorWordWrap.asReadonly();
-  /** The three editor settings as the editor takes them. SPEC.md §13. */
+  readonly editorLineNumbers = this.#editorLineNumbers.asReadonly();
+  /** The four editor settings as the editor takes them. SPEC.md §13, §10.8. */
   readonly editorTypography = computed<EditorTypography>(() => ({
     fontFamily: this.#editorFontFamily(),
     fontSize: this.#editorFontSize(),
     wordWrap: this.#editorWordWrap(),
+    lineNumbers: this.#editorLineNumbers(),
   }));
 
   /** The active entry of the trailing bar, or null while the sidebar is collapsed. */
@@ -137,6 +140,7 @@ export class LayoutState {
     this.#editorFontFamily.set(preferences.editorFontFamily);
     this.#editorFontSize.set(preferences.editorFontSize);
     this.#editorWordWrap.set(preferences.editorWordWrap);
+    this.#editorLineNumbers.set(preferences.editorLineNumbers);
   }
 
   /** The record as it currently stands. */
@@ -147,6 +151,7 @@ export class LayoutState {
       editorFontFamily: this.#editorFontFamily(),
       editorFontSize: this.#editorFontSize(),
       editorWordWrap: this.#editorWordWrap(),
+      editorLineNumbers: this.#editorLineNumbers(),
       columnWidths: this.#columnWidths(),
       navigatorView: this.#navigatorView(),
       secondaryView: this.#secondaryView(),
@@ -263,6 +268,7 @@ export class LayoutState {
     return {
       secondaryVisible: this.#secondaryVisible,
       editorWordWrap: this.#editorWordWrap,
+      editorLineNumbers: this.#editorLineNumbers,
       showBlankLines: this.#showBlankLines,
       showDeeperOutline: this.#showDeeperOutline,
       showFrontMatter: this.#showFrontMatter,

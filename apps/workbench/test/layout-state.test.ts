@@ -254,18 +254,40 @@ describe('the settings dialog’s way in (SPEC.md §13)', () => {
 });
 
 describe('the editor settings (SPEC.md §13)', () => {
-  it('stores family, size, and wrapping, and hands the editor all three at once', () => {
+  it('stores family, size, wrapping and line numbers, and hands the editor all four at once', () => {
     const bridge = storingBridge();
     const layout = new LayoutState(bridge);
-    expect(layout.editorTypography()).toEqual({ fontFamily: 'serif', fontSize: 16, wordWrap: true });
+    expect(layout.editorTypography()).toEqual({
+      fontFamily: 'serif',
+      fontSize: 16,
+      wordWrap: true,
+      // Off until it is asked for (SPEC.md §10.8).
+      lineNumbers: false,
+    });
 
     layout.setEditorFontFamily('mono');
     layout.setEditorFontSize(20);
     layout.setSwitch('editorWordWrap', false);
+    layout.setSwitch('editorLineNumbers', true);
 
-    expect(layout.editorTypography()).toEqual({ fontFamily: 'mono', fontSize: 20, wordWrap: false });
-    const last = bridge.written.at(-1) as { editorFontFamily: string; editorFontSize: number; editorWordWrap: boolean };
-    expect([last.editorFontFamily, last.editorFontSize, last.editorWordWrap]).toEqual(['mono', 20, false]);
+    expect(layout.editorTypography()).toEqual({
+      fontFamily: 'mono',
+      fontSize: 20,
+      wordWrap: false,
+      lineNumbers: true,
+    });
+    const last = bridge.written.at(-1) as {
+      editorFontFamily: string;
+      editorFontSize: number;
+      editorWordWrap: boolean;
+      editorLineNumbers: boolean;
+    };
+    expect([last.editorFontFamily, last.editorFontSize, last.editorWordWrap, last.editorLineNumbers]).toEqual([
+      'mono',
+      20,
+      false,
+      true,
+    ]);
   });
 
   it('clamps a size the field lets through', () => {

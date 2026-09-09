@@ -12,6 +12,7 @@
 import {
   DEFAULT_EDITOR_FONT_FAMILY,
   DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_EDITOR_LINE_NUMBERS,
   DEFAULT_EDITOR_WORD_WRAP,
   EDITOR_FONT_FAMILIES,
   clampEditorFontSize,
@@ -54,6 +55,8 @@ export interface WorkbenchPreferences {
   readonly editorFontFamily: EditorFontFamily;
   readonly editorFontSize: number;
   readonly editorWordWrap: boolean;
+  /** The line-number gutter of SPEC.md §10.8. */
+  readonly editorLineNumbers: boolean;
   readonly showBlankLines: boolean;
   readonly showDeeperOutline: boolean;
   /**
@@ -80,6 +83,7 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   editorFontFamily: DEFAULT_EDITOR_FONT_FAMILY,
   editorFontSize: DEFAULT_EDITOR_FONT_SIZE,
   editorWordWrap: DEFAULT_EDITOR_WORD_WRAP,
+  editorLineNumbers: DEFAULT_EDITOR_LINE_NUMBERS,
   showBlankLines: false,
   showFrontMatter: false,
   frontMatterWritable: false,
@@ -132,6 +136,10 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
         : DEFAULT_PREFERENCES.editorFontSize,
     ),
     editorWordWrap: boolean_(stored['editorWordWrap'], DEFAULT_PREFERENCES.editorWordWrap),
+    editorLineNumbers: boolean_(
+      stored['editorLineNumbers'],
+      DEFAULT_PREFERENCES.editorLineNumbers,
+    ),
     showBlankLines: boolean_(stored['showBlankLines'], DEFAULT_PREFERENCES.showBlankLines),
     showFrontMatter: boolean_(stored['showFrontMatter'], DEFAULT_PREFERENCES.showFrontMatter),
     frontMatterWritable: boolean_(

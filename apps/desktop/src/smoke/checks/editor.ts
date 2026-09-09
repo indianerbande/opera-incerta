@@ -644,3 +644,139 @@ export async function lineState(
      })()`,
   )) as { text: string; heading: boolean; count: number } | null;
 }
+
+/** What the line-number gutter and its neighbours measure. SPEC.md §10.8. */
+interface GutterMeasurement {
+  readonly numbers: readonly string[];
+  readonly logicalLines: number;
+  /** Right edge of the number column and left edge of the marker column. */
+  readonly numbersRight: number;
+  readonly markersLeft: number;
+  /** The tallest line, and the gutter element beside it. */
+  readonly tallestLineHeight: number;
+  readonly tallestGutterHeight: number;
+  readonly tallestGutterText: string | null;
+  readonly oneLineHeight: number;
+}
+
+async function measureGutter(window: BrowserWindow): Promise<GutterMeasurement> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const lines = [...document.querySelectorAll('.cm-line')];
+       const elements = [...document.querySelectorAll('.cm-lineNumbers .cm-gutterElement')]
+         // The first element is CodeMirror's spacer, which reserves the width
+         // and carries no line.
+         .slice(1);
+       const heights = lines.map((line) => line.getBoundingClientRect().height);
+       const tallest = heights.indexOf(Math.max(...heights));
+       const numbersBox = document.querySelector('.cm-lineNumbers')?.getBoundingClientRect() ?? null;
+       const markersBox = document.querySelector('.cm-marker-gutter')?.getBoundingClientRect() ?? null;
+       return {
+         numbers: elements.map((element) => element.textContent.trim()),
+         logicalLines: lines.length,
+         numbersRight: numbersBox === null ? -1 : numbersBox.right,
+         markersLeft: markersBox === null ? -1 : markersBox.left,
+         tallestLineHeight: heights[tallest] ?? 0,
+         tallestGutterHeight: elements[tallest]?.getBoundingClientRect().height ?? 0,
+         tallestGutterText: elements[tallest]?.textContent.trim() ?? null,
+         oneLineHeight: Math.min(...heights),
+       };
+     })()`,
+  )) as GutterMeasurement;
+}
+
+/** Turns one settings switch on or off, through the dialog. SPEC.md §13. */
+async function setEditorSwitch(window: BrowserWindow, label: string): Promise<void> {
+  await clickText(window, 'wi-activity-bar button[aria-label="Settings"]', '');
+  await waitForSelector(window, 'wi-settings');
+  await clickText(window, 'wi-settings .category', 'Editor');
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const box = [...document.querySelectorAll('wi-settings label.switch')]
+         .find((label) => label.textContent.includes(${JSON.stringify(label)}))?.querySelector('input');
+       if (!box) { return false; }
+       box.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`the editor category shows no switch for ${label}`);
+  }
+  await pressKey(window, 'Escape');
+  await waitUntil('the settings dialog to close', async () => !(await isVisible(window, 'wi-settings')));
+}
+
+/**
+ * The line-number gutter. SPEC.md §10.8.
+ *
+ * Off until it is asked for; then a column left of the heading markers, one
+ * number per **logical** line even where a line wraps over several visual
+ * ones, and heights that follow the text rather than a computed row.
+ */
+export async function checkLineNumbers(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  if (await isVisible(window, '.cm-lineNumbers')) {
+    throw new Error('the line-number gutter is there before it was asked for');
+  }
+
+  await setEditorSwitch(window, 'Show line numbers');
+  await waitForSelector(window, '.cm-lineNumbers');
+
+  // A line long enough to wrap, so "one number per logical line" is a claim
+  // about something the screen actually shows. Undone again below.
+  await placeCursorInEditor(window);
+  await pressKey(window, 'End');
+  await pressKey(window, 'Return');
+  await typeText(window, `A sentence long enough to run past the right edge of the editor and wrap ${'onwards and '.repeat(12)}back.`);
+  await waitUntil('the long line to be in the editor', () => editorContains(window, 'onwards and'));
+  await rendered(window);
+
+  const shown = await measureGutter(window);
+  if (shown.numbers.length !== shown.logicalLines) {
+    throw new Error(
+      `${shown.numbers.length} numbers for ${shown.logicalLines} lines: ${JSON.stringify(shown.numbers)}`,
+    );
+  }
+  if (shown.numbers[0] !== '1' || shown.numbers.at(-1) !== String(shown.logicalLines)) {
+    throw new Error(`the numbers do not run from 1 to the last line: ${JSON.stringify(shown.numbers)}`);
+  }
+  if (shown.markersLeft < shown.numbersRight) {
+    throw new Error(
+      `the numbers are not left of the markers: ${shown.numbersRight} against ${shown.markersLeft}`,
+    );
+  }
+  // The wrapped line: taller than one row, and still one number.
+  if (shown.tallestLineHeight < shown.oneLineHeight * 1.8) {
+    throw new Error(`nothing wrapped: tallest ${shown.tallestLineHeight} of ${shown.oneLineHeight}`);
+  }
+  if (Math.abs(shown.tallestGutterHeight - shown.tallestLineHeight) > 1) {
+    throw new Error(
+      `the gutter did not follow the line's height: ${shown.tallestGutterHeight} against ${shown.tallestLineHeight}`,
+    );
+  }
+  if (shown.tallestGutterText === null || !/^\d+$/u.test(shown.tallestGutterText)) {
+    throw new Error(`the wrapped line carries ${JSON.stringify(shown.tallestGutterText)}, not one number`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-line-numbers.png');
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  for (let attempt = 0; attempt < 80 && (await editorContains(window, 'onwards and')); attempt += 1) {
+    await pressKey(window, 'z', ['cmd']);
+  }
+  if (await editorContains(window, 'onwards and')) {
+    throw new Error('undo did not take the long line back out');
+  }
+
+  // Off again, so the checks after this one find the editor as it was.
+  await setEditorSwitch(window, 'Show line numbers');
+  await waitUntil(
+    'the gutter to go away again',
+    async () => !(await isVisible(window, '.cm-lineNumbers')),
+  );
+
+  console.log(
+    'smoke ok: the line-number gutter appeared left of the heading markers when it was asked ' +
+      'for, numbered every logical line once — the wrapped one included — and went away again',
+  );
+}

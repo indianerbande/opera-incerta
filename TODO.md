@@ -11,10 +11,10 @@ This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 **State 2026-09-09:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, source control (§12) up to and
-including amend and `.gitignore`, the GFM display (§10.7), and all four answers
-opening a folder can give (§8.6). `pnpm run check` green on **Node 24**: 8
+including amend and `.gitignore`, the GFM display (§10.7), all four answers
+opening a folder can give (§8.6), and the line-number gutter (§10.8). `pnpm run check` green on **Node 24**: 8
 projects, **1011 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across thirty-seven checks,
+`pnpm run desktop:smoke` green across thirty-eight checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains

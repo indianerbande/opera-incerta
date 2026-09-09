@@ -16,7 +16,14 @@ import {
   redo as cmRedo,
   undo as cmUndo,
 } from '@codemirror/commands';
-import { Compartment, EditorState, RangeSetBuilder, StateField, type Extension } from '@codemirror/state';
+import {
+  Compartment,
+  EditorState,
+  RangeSetBuilder,
+  StateField,
+  type Extension,
+  type StateEffect,
+} from '@codemirror/state';
 import {
   Decoration,
   EditorView,
@@ -25,6 +32,7 @@ import {
   WidgetType,
   gutter,
   keymap,
+  lineNumbers,
   type Command,
   type DecorationSet,
   type ViewUpdate,
@@ -116,6 +124,15 @@ const editorTheme = EditorView.baseTheme({
     fontFamily: 'system-ui, sans-serif',
     fontSize: '11px',
     color: 'rgba(128, 128, 128, 0.9)',
+  },
+  // The line numbers of SPEC.md §10.8. Right-aligned, so the digits line up
+  // and a document passing 99 lines does not shift its text.
+  '.cm-lineNumbers .cm-gutterElement': {
+    padding: '0 3px 0 8px',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: '11px',
+    fontVariantNumeric: 'tabular-nums',
+    color: 'rgba(128, 128, 128, 0.75)',
   },
 });
 
@@ -643,6 +660,18 @@ export interface TypographyAware {
   setTypography(typography: EditorTypography): void;
 }
 
+/**
+ * The line-number gutter, or nothing. SPEC.md §10.8.
+ *
+ * CodeMirror's own: it draws one number per **logical** line at that line's
+ * first visual line, and takes each line's height from the layout rather than
+ * from a computed line height — which is what the specification asks for and
+ * what a gutter of our own would have had to reimplement.
+ */
+function lineNumberGutter(typography: EditorTypography): Extension {
+  return typography.lineNumbers ? lineNumbers() : [];
+}
+
 /** The theme for a typography: what the author set, as CSS. */
 function typographyTheme(typography: EditorTypography): Extension {
   return EditorView.theme({
@@ -658,6 +687,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
   /** Reconfigured in place: the document, its history, and its cursor stay. */
   readonly #typography = new Compartment();
   readonly #wrapping = new Compartment();
+  readonly #lineNumbers = new Compartment();
   #currentTypography: EditorTypography;
   /** One state per document: this is what gives each its own undo history. */
   readonly #states = new Map<string, EditorState>();
@@ -677,6 +707,9 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
 
   #extensions(): readonly Extension[] {
     return [
+      // First, because gutters appear in the order their extensions do, and
+      // the numbers belong left of the marker gutter (SPEC.md §10.8).
+      this.#lineNumbers.of(lineNumberGutter(this.#currentTypography)),
       ...extensions(
         () => this.#notify(),
         (activation) => this.#activate(activation),
@@ -694,25 +727,21 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
     }
     // Every kept state carries its own compartments; the visible one is
     // reconfigured now, the others when they are shown again.
-    this.#view.dispatch({
-      effects: [
-        this.#typography.reconfigure(typographyTheme(typography)),
-        this.#wrapping.reconfigure(typography.wordWrap ? EditorView.lineWrapping : []),
-      ],
-    });
+    this.#view.dispatch({ effects: this.#reconfigured(typography) });
     for (const [id, state] of this.#states) {
       if (id !== this.#openId) {
-        this.#states.set(
-          id,
-          state.update({
-            effects: [
-              this.#typography.reconfigure(typographyTheme(typography)),
-              this.#wrapping.reconfigure(typography.wordWrap ? EditorView.lineWrapping : []),
-            ],
-          }).state,
-        );
+        this.#states.set(id, state.update({ effects: this.#reconfigured(typography) }).state);
       }
     }
+  }
+
+  /** What every kept state is reconfigured with when the settings change. */
+  #reconfigured(typography: EditorTypography): readonly StateEffect<unknown>[] {
+    return [
+      this.#typography.reconfigure(typographyTheme(typography)),
+      this.#wrapping.reconfigure(typography.wordWrap ? EditorView.lineWrapping : []),
+      this.#lineNumbers.reconfigure(lineNumberGutter(typography)),
+    ];
   }
 
   open(document_: EditorDocument): void {

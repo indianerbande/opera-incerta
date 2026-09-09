@@ -383,7 +383,10 @@ Component and state tests MUST cover:
   unknown path as null, and the end of a list as one past its last row; and
 - the layout state persisting the front matter switches, and typing the
   views it accepts so an unknown one is a compile error rather than a
-  silently ignored call.
+  silently ignored call;
+- the four editor settings (`SPEC.md` §13, §10.8) handed to the editor as one
+  value — family, base size, wrapping, line numbers — each reaching the
+  preference record, with the gutter off in the defaults.
 
 **The editor adapter has one contract suite for every implementation**
 (`CONVENTIONS.md` C-T11). It is written without a test framework so that the
@@ -476,6 +479,12 @@ Tests MUST cover:
   a rule in place of `---`, strikethrough as line-through, inline code in a
   monospace face, bold as a heavier weight; the marker back as written on
   the focus line; and the typed markup undone afterwards;
+- the line-number gutter (`SPEC.md` §10.8), measured in the real editor:
+  absent until the switch in Settings → Editor is turned on; then a number for
+  every logical line, running from 1 to the last, the whole column left of the
+  heading markers; and, for a line typed long enough to wrap, one number
+  whose element is exactly as tall as the wrapped line — the measured height,
+  not a computed row. Turned off again, and the typed line undone;
 - the settings dialog (`SPEC.md` §13): opened through the native menu item
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the

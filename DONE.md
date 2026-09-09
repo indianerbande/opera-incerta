@@ -6,6 +6,53 @@ documents").
 
 ---
 
+## 2026-09-09 — the line-number gutter
+
+**What was open** (`SPEC.md` §18, Phase 2). A second gutter column, left of
+the heading markers, with one number per line — specified in the roadmap as a
+sentence, and nothing else.
+
+**What was decided first** (`SPEC.md` §10.8, written before the code). What is
+numbered: the **logical** lines of the writing surface, from 1, which is the
+same counting the status bar reports — front matter is not in the surface, so
+the two can never disagree. A wrapped line keeps **one** number, at its first
+visual line: a number per visual line would count something the file does not
+have. Heights are measured, not computed (`CONVENTIONS.md` C-U5) — a heading
+is taller than body text, and that is exactly where a gutter drifts out of
+step with its text. And: **off by default, with a switch** in Settings →
+Editor. A manuscript is not source code; the numbers are for *talking about* a
+text — "look at line 120" — which is occasional. The same reasoning the front
+matter area was given (§10.4): the quieter surface is the harmless start.
+
+**What changed.** `EditorTypography` is four settings now rather than three,
+`editorLineNumbers` is in the preference record and in the settings registry,
+and the adapter holds a third compartment. The gutter itself is CodeMirror's
+own `lineNumbers()`: it already draws one number per logical line at that
+line's first visual line and takes each line's height from the layout — the
+two rules the specification names — and a gutter of our own would have had to
+reimplement both. It is placed **first** in the extension list, because
+gutters are laid out in the order their extensions appear. The three
+compartments are reconfigured in one place now (`#reconfigured`); two copies
+of that list had already grown apart by one entry when the third arrived.
+
+**Verification.** `pnpm run check` green: **1011 tests**, the layout state
+handing the editor all four settings as one value and the record carrying the
+fourth. `pnpm run desktop:smoke` green across **thirty-eight checks**: absent
+until the switch is turned on; then a number for every logical line, running
+1 to the last, the whole column left of the heading markers; a line typed long
+enough to wrap carries one number whose element is exactly as tall as the
+wrapped line. Screenshot looked at — the status bar read `Ln 5, Col 223`
+beside a gutter whose last number was 5, which is the agreement §10.8 asks
+for. Falsified twice: the gutter placed after the marker gutter (461 against
+409, in the right check), and the setting dropped on its way to the editor.
+
+**Lesson.** The specification round took longer than the implementation and
+decided the only two things that were actually open: what a wrapped line does,
+and whether the column is there by default. The code that followed was one
+compartment and a CSS rule.
+
+---
+
 ## 2026-09-09 — a folder that is not a project, answered instead of refused
 
 **What was wrong.** Choosing a folder without `.opera-incerta/` put

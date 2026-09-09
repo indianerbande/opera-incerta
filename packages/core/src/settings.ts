@@ -205,6 +205,15 @@ export const SETTINGS: readonly Setting[] = [
     defaultValue: DEFAULT_PREFERENCES.editorWordWrap,
   },
   {
+    kind: 'switch',
+    id: 'editor.lineNumbers',
+    category: 'editor',
+    labelKey: 'settings.editor.lineNumbers',
+    hintKey: 'settings.editor.lineNumbersHint',
+    key: 'editorLineNumbers',
+    defaultValue: DEFAULT_PREFERENCES.editorLineNumbers,
+  },
+  {
     kind: 'density',
     id: 'sheetList.density',
     category: 'sheetList',

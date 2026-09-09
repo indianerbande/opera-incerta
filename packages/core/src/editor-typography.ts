@@ -1,12 +1,17 @@
 /**
- * The editor's typography as a rule. SPEC.md §13 (Editor), §10.1.
+ * The editor's typography as a rule. SPEC.md §13 (Editor), §10.1, §10.8.
  *
- * Three settings and one invariant. The settings: a font family from a
- * curated list — never a system font picker — a base size within bounds, and
- * whether lines wrap. The invariant: heading sizes keep fixed ratios to the
- * base, so a larger base enlarges the whole hierarchy and never one level
- * alone. The ratios lived in the editor adapter's theme until 2026-09-04;
- * they are a rule, and rules live here.
+ * Four settings and one invariant. The settings: a font family from a
+ * curated list — never a system font picker — a base size within bounds,
+ * whether lines wrap, and whether the line-number gutter is shown. The
+ * invariant: heading sizes keep fixed ratios to the base, so a larger base
+ * enlarges the whole hierarchy and never one level alone. The ratios lived in
+ * the editor adapter's theme until 2026-09-04; they are a rule, and rules live
+ * here.
+ *
+ * All four are what the **author configured**. The zoom factor of §10.9 is
+ * not one of them: it is a display factor with its own control, and mixing it
+ * in here would make a viewing gesture look like a setting.
  */
 import type { HeadingLevel } from './heading.js';
 
@@ -36,6 +41,12 @@ export const DEFAULT_EDITOR_FONT_SIZE = 16;
 export const DEFAULT_EDITOR_WORD_WRAP = true;
 
 /**
+ * The line-number gutter is off until it is asked for. SPEC.md §10.8: a
+ * manuscript is not source code, and the quieter surface is where to start.
+ */
+export const DEFAULT_EDITOR_LINE_NUMBERS = false;
+
+/**
  * Heading size as a multiple of the base. H5 and H6 sit at the base size and
  * differ by weight and style, as the adapter's theme has it.
  */
@@ -53,12 +64,15 @@ export interface EditorTypography {
   /** The base size in CSS pixels, already within bounds. */
   readonly fontSize: number;
   readonly wordWrap: boolean;
+  /** Whether the gutter of §10.8 numbers the lines. */
+  readonly lineNumbers: boolean;
 }
 
 export const DEFAULT_EDITOR_TYPOGRAPHY: EditorTypography = {
   fontFamily: DEFAULT_EDITOR_FONT_FAMILY,
   fontSize: DEFAULT_EDITOR_FONT_SIZE,
   wordWrap: DEFAULT_EDITOR_WORD_WRAP,
+  lineNumbers: DEFAULT_EDITOR_LINE_NUMBERS,
 };
 
 /** A stored size, brought within bounds and to a whole pixel. */

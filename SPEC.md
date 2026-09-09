@@ -1513,7 +1513,7 @@ switch; the zoom slider arrives with §18.**
 The status bar is divided: **information on the left, controls on the right**.
 
 - Left: cursor position (line and column). This is a *different* datum from the
-  later line-number gutter (§18): the gutter numbers **all** lines, the status
+  line-number gutter (§10.8): the gutter numbers **all** lines, the status
   bar says **where the cursor is**. Established IDEs show both, and the gutter
   round therefore MUST NOT remove the cursor position.
 - Right: word-wrap toggle, and later the zoom slider (§18).
@@ -1675,6 +1675,39 @@ Ticking a box by clicking it is a control, and a later round.
 click does, an image's size and source — and tables, whose editing is a
 question of its own, each get a concept round before a line of display.
 Emoji shortcodes are not a goal (§18).
+
+### 10.8 The line-number gutter
+
+**Status: Accepted (2026-09-09), written before its implementation.**
+
+A second gutter column, **left of the marker gutter** of §10.2, showing the
+number of each line.
+
+**What is numbered.** The logical lines of the writing surface, from 1. That
+is the same counting the status bar reports (§10.5), and the two must never
+disagree: front matter is not in the writing surface (§10.4), so line 1 is the
+first line of the body, in the editor and in the status bar alike.
+
+**A wrapped line has one number.** It appears beside the line's **first**
+visual line; the visual lines that follow carry none, and the next number is
+the next logical line's. A number per visual line would count something the
+file does not have.
+
+**Heights are measured, not computed** (`CONVENTIONS.md` C-U5). A heading is
+larger than body text and a wrapped line is taller than one row: the gutter
+takes each line's real height from the editor rather than multiplying a line
+height, which is exactly where a gutter drifts out of step with its text.
+
+**Off by default, with a switch** in Settings → Editor
+(`editorLineNumbers`, installation-local, §13). A manuscript is not source
+code: the numbers are for *talking about* a text — a note, a message, a
+correction list that says "line 120" — which is occasional, not the working
+state. The same reasoning as the front matter area's (§10.4): the quieter
+surface is the harmless starting state, and turning it on is one click.
+
+**What the numbers are not.** They are not addresses that survive editing:
+inserting a line above renumbers everything below it, as in any editor. What
+is stable about a sheet is its file and its front matter, never a line number.
 
 ## 11. Secondary sidebar views
 
@@ -2252,11 +2285,11 @@ own specification update before implementation.
 
 **Phase 2 — editing comfort**
 
-- **Line-number gutter** as a second column left of the marker gutter. On a
-  wrapped line the number appears only at the first visual line; the next
-  number appears at the next logical line. The gutter scales with the zoom
-  factor, and line heights are **measured, not computed** (`CONVENTIONS.md`
-  C-U5). The status bar is untouched (§10.5).
+- **Line-number gutter** — specified as §10.8 and built 2026-09-09: a second
+  column left of the marker gutter, one number per logical line at its first
+  visual line, heights measured rather than computed, off by default with a
+  switch in Settings → Editor. The status bar kept its cursor position
+  (§10.5).
 - **Editor zoom slider** at the bottom edge of the editor: 50 % minimum, 200 %
   maximum, a distinct detent at 100 %. **Only the editor scales** — its text
   and its gutters; library, tree, and sidebar are unaffected. It is a pure

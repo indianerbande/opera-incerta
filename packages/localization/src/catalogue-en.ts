@@ -235,6 +235,9 @@ export const EN = {
   'settings.editor.fontSizeHint': 'In pixels, {min} to {max}. Headings keep their ratios to it.',
   'settings.editor.wordWrap': 'Wrap long lines',
   'settings.editor.wordWrapHint': 'The default for every sheet; off, a long paragraph scrolls sideways.',
+  'settings.editor.lineNumbers': 'Show line numbers',
+  'settings.editor.lineNumbersHint':
+    'A column left of the heading markers. A wrapped line keeps one number, and the count is the one the status bar names.',
   'settings.category.sheetList.label': 'Sheet list',
   'settings.category.sheetList.description': 'How the sheets of a group are previewed.',
   'settings.category.outline.label': 'Outline',

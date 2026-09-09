@@ -225,6 +225,9 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'settings.editor.fontSizeHint': 'In Pixeln, {min} bis {max}. Überschriften behalten ihr Verhältnis dazu.',
   'settings.editor.wordWrap': 'Lange Zeilen umbrechen',
   'settings.editor.wordWrapHint': 'Die Vorgabe für jedes Blatt; ausgeschaltet läuft ein langer Absatz seitlich weiter.',
+  'settings.editor.lineNumbers': 'Zeilennummern anzeigen',
+  'settings.editor.lineNumbersHint':
+    'Eine Spalte links der Überschriftenmarken. Eine umbrochene Zeile behält eine Nummer, und gezählt wird, was auch die Statusleiste nennt.',
   'settings.category.sheetList.label': 'Blattliste',
   'settings.category.sheetList.description': 'Wie die Blätter einer Gruppe in der Vorschau erscheinen.',
   'settings.category.outline.label': 'Gliederung',

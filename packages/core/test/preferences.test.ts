@@ -27,6 +27,7 @@ describe('readPreferences', () => {
       editorFontFamily: 'mono',
       editorFontSize: 18,
       editorWordWrap: false,
+      editorLineNumbers: true,
       showBlankLines: true,
       showDeeperOutline: true,
       showFrontMatter: true,
