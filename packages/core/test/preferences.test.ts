@@ -28,6 +28,7 @@ describe('readPreferences', () => {
       editorFontSize: 18,
       editorWordWrap: false,
       editorLineNumbers: true,
+      editorZoom: 125,
       showBlankLines: true,
       showDeeperOutline: true,
       showFrontMatter: true,
@@ -76,6 +77,12 @@ describe('readPreferences', () => {
     expect(readPreferences({ editorFontSize: 'big' }).editorFontSize).toBe(
       DEFAULT_PREFERENCES.editorFontSize,
     );
+  });
+
+  it('clamps a stored zoom, and snaps one near the middle to 100 (SPEC.md §10.9)', () => {
+    expect(readPreferences({ editorZoom: 1000 }).editorZoom).toBe(200);
+    expect(readPreferences({ editorZoom: 102 }).editorZoom).toBe(100);
+    expect(readPreferences({ editorZoom: 'large' }).editorZoom).toBe(DEFAULT_PREFERENCES.editorZoom);
   });
 
   it('falls back to the ideal width for a missing or non-numeric one', () => {

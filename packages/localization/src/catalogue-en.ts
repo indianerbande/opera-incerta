@@ -54,6 +54,9 @@ export const EN = {
   'statusBar.positionLabel': 'Cursor position',
   'statusBar.wrap': 'Wrap',
   'statusBar.wrapTitle': 'Wrap long lines in this sheet',
+  'statusBar.zoom': '{percent} %',
+  'statusBar.zoomLabel': 'Editor zoom',
+  'statusBar.zoomResetTitle': 'Back to 100 %',
   'outline.empty': 'No headings in this sheet.',
   'sheetList.empty': 'No sheets in this group.',
 

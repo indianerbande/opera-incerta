@@ -290,6 +290,23 @@ describe('the editor settings (SPEC.md §13)', () => {
     ]);
   });
 
+  it('keeps the zoom, clamped and snapped, and stores it (SPEC.md §10.9)', () => {
+    const bridge = storingBridge();
+    const layout = new LayoutState(bridge);
+    expect(layout.editorZoom()).toBe(100);
+
+    layout.setEditorZoom(150);
+    expect(layout.editorZoom()).toBe(150);
+    expect((bridge.written.at(-1) as { editorZoom: number }).editorZoom).toBe(150);
+
+    // The detent: dragging past the middle lands on it.
+    layout.setEditorZoom(102);
+    expect(layout.editorZoom()).toBe(100);
+    // And the bounds hold whatever the slider reports.
+    layout.setEditorZoom(1000);
+    expect(layout.editorZoom()).toBe(200);
+  });
+
   it('clamps a size the field lets through', () => {
     const layout = new LayoutState(storingBridge());
     layout.setEditorFontSize(3);

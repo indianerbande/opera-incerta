@@ -780,3 +780,123 @@ export async function checkLineNumbers(smoke: Smoke, window: BrowserWindow): Pro
       'for, numbered every logical line once — the wrapped one included — and went away again',
   );
 }
+
+/** What the zoom moves, and what it must not. SPEC.md §10.9. */
+interface ZoomMeasurement {
+  readonly shown: string | null;
+  readonly slider: number;
+  readonly content: number;
+  readonly heading: number;
+  readonly gutter: number;
+  /** Chrome: the sheet list beside the editor, which must not move. */
+  readonly sheetList: number;
+  readonly statusBar: number;
+}
+
+async function measureZoom(window: BrowserWindow): Promise<ZoomMeasurement> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const size = (selector) => {
+         const element = document.querySelector(selector);
+         return element === null ? 0 : Number.parseFloat(getComputedStyle(element).fontSize);
+       };
+       const slider = document.querySelector('wi-status-bar input.zoom');
+       return {
+         shown: document.querySelector('wi-status-bar .zoom-value')?.textContent.trim() ?? null,
+         slider: slider === null ? 0 : Number(slider.value),
+         content: size('.cm-content'),
+         heading: size('.cm-heading-2'),
+         gutter: size('.cm-marker-gutter .cm-gutterElement'),
+         sheetList: size('wi-sheet-list .title'),
+         statusBar: size('wi-status-bar .position'),
+       };
+     })()`,
+  )) as ZoomMeasurement;
+}
+
+/** Drags the zoom slider to a percentage, as an input event. */
+async function dragZoom(window: BrowserWindow, percent: number): Promise<void> {
+  const moved = (await window.webContents.executeJavaScript(
+    `(() => {
+       const slider = document.querySelector('wi-status-bar input.zoom');
+       if (slider === null) { return false; }
+       slider.value = '${percent}';
+       slider.dispatchEvent(new Event('input', { bubbles: true }));
+       return true;
+     })()`,
+  )) as boolean;
+  if (!moved) {
+    throw new Error('the status bar has no zoom slider');
+  }
+  await rendered(window);
+}
+
+/**
+ * The editor zoom. SPEC.md §10.9.
+ *
+ * What it scales — the text, its headings by their ratio, and the gutters —
+ * and what it leaves alone: everything that is chrome. Plus the detent at
+ * 100 %, the percentage as a way back to it, and the factor in the record.
+ */
+export async function checkZoom(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  await waitForSelector(window, 'wi-status-bar input.zoom');
+  const before = await measureZoom(window);
+  if (before.shown !== '100 %' || before.slider !== 100) {
+    throw new Error(`the editor does not start at 100 %: ${JSON.stringify(before)}`);
+  }
+
+  await dragZoom(window, 150);
+  await waitUntil('the zoom to reach the editor', async () => (await measureZoom(window)).content > before.content);
+  const zoomed = await measureZoom(window);
+
+  const scaled: Array<[string, number, number]> = [
+    ['the text', zoomed.content, before.content * 1.5],
+    ['the heading, by its ratio', zoomed.heading, before.heading * 1.5],
+    ['the gutter', zoomed.gutter, before.gutter * 1.5],
+  ];
+  for (const [what, measured, expected] of scaled) {
+    if (Math.abs(measured - expected) > 0.5) {
+      throw new Error(`${what} measured ${measured}, expected ${expected}`);
+    }
+  }
+  // Chrome does not move: the zoom is for reading the manuscript.
+  if (zoomed.sheetList !== before.sheetList || zoomed.statusBar !== before.statusBar) {
+    throw new Error(`the zoom moved the workbench around it: ${JSON.stringify(zoomed)}`);
+  }
+  if (zoomed.shown !== '150 %') {
+    throw new Error(`the status bar says ${JSON.stringify(zoomed.shown)}`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-zoom.png');
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  const stored = (): number | undefined =>
+    (JSON.parse(readFileSync(smoke.preferencesPath, 'utf8')) as { editorZoom?: number }).editorZoom;
+  await waitUntil('the zoom to reach the preference file', () => stored() === 150);
+
+  // The detent: a drag that lands beside the middle lands on it.
+  await dragZoom(window, 102);
+  await waitUntil('the detent to take it to 100', async () => (await measureZoom(window)).shown === '100 %');
+  const detent = await measureZoom(window);
+  if (detent.content !== before.content) {
+    throw new Error(`at the detent the text measures ${detent.content}, not ${before.content}`);
+  }
+
+  // The percentage is the way back to 100 %.
+  await dragZoom(window, 150);
+  await waitUntil('the zoom to grow again', async () => (await measureZoom(window)).shown === '150 %');
+  await clickText(window, 'wi-status-bar .zoom-value', '150');
+  await waitUntil('the reset to take it back', async () => (await measureZoom(window)).shown === '100 %');
+  await waitUntil('100 to reach the preference file', () => stored() === 100);
+
+  const back = await measureZoom(window);
+  if (back.content !== before.content || back.gutter !== before.gutter) {
+    throw new Error(`100 % is not where it started: ${JSON.stringify(back)}`);
+  }
+
+  console.log(
+    'smoke ok: the zoom scaled the text, its headings and the gutter and left the workbench ' +
+      'around them alone, snapped to 100 % near the middle, and went back to it from the percentage',
+  );
+}

@@ -7,6 +7,7 @@ import {
   readPreferences,
   type BooleanPreferenceKey,
   clampEditorFontSize,
+  clampEditorZoom,
   type ColumnWidths,
   type EditorFontFamily,
   type EditorTypography,
@@ -68,6 +69,7 @@ export class LayoutState {
   readonly #editorFontSize = signal(DEFAULT_PREFERENCES.editorFontSize);
   readonly #editorWordWrap = signal(DEFAULT_PREFERENCES.editorWordWrap);
   readonly #editorLineNumbers = signal(DEFAULT_PREFERENCES.editorLineNumbers);
+  readonly #editorZoom = signal(DEFAULT_PREFERENCES.editorZoom);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
     this.#bridge = bridge;
@@ -92,6 +94,8 @@ export class LayoutState {
   readonly editorFontSize = this.#editorFontSize.asReadonly();
   readonly editorWordWrap = this.#editorWordWrap.asReadonly();
   readonly editorLineNumbers = this.#editorLineNumbers.asReadonly();
+  /** The editor's zoom, in whole percent. SPEC.md §10.9. */
+  readonly editorZoom = this.#editorZoom.asReadonly();
   /** The four editor settings as the editor takes them. SPEC.md §13, §10.8. */
   readonly editorTypography = computed<EditorTypography>(() => ({
     fontFamily: this.#editorFontFamily(),
@@ -141,6 +145,7 @@ export class LayoutState {
     this.#editorFontSize.set(preferences.editorFontSize);
     this.#editorWordWrap.set(preferences.editorWordWrap);
     this.#editorLineNumbers.set(preferences.editorLineNumbers);
+    this.#editorZoom.set(preferences.editorZoom);
   }
 
   /** The record as it currently stands. */
@@ -152,6 +157,7 @@ export class LayoutState {
       editorFontSize: this.#editorFontSize(),
       editorWordWrap: this.#editorWordWrap(),
       editorLineNumbers: this.#editorLineNumbers(),
+      editorZoom: this.#editorZoom(),
       columnWidths: this.#columnWidths(),
       navigatorView: this.#navigatorView(),
       secondaryView: this.#secondaryView(),
@@ -209,6 +215,19 @@ export class LayoutState {
   /** Clamped, like a width: the field can say 3, the editor never shows it. */
   setEditorFontSize(size: number): void {
     this.#editorFontSize.set(clampEditorFontSize(size));
+    this.#store();
+  }
+
+  /**
+   * The zoom of SPEC.md §10.9. Clamped and snapped by the core's rule, so the
+   * slider, the record and a keyboard step all pass the same gate.
+   */
+  setEditorZoom(zoom: number): void {
+    const next = clampEditorZoom(zoom);
+    if (next === this.#editorZoom()) {
+      return;
+    }
+    this.#editorZoom.set(next);
     this.#store();
   }
 

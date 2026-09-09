@@ -290,4 +290,7 @@ export const LAYOUT_PREFERENCE_KEYS: readonly (keyof WorkbenchPreferences)[] = [
   'navigatorView',
   'secondaryView',
   'secondaryVisible',
+  // The zoom of SPEC.md §10.9 is set where it is used — a slider in the
+  // status bar — and remembered like a width, not listed in the dialog.
+  'editorZoom',
 ];

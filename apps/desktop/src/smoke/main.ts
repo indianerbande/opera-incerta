@@ -36,6 +36,7 @@ import {
   checkHeadingCursorRules,
   checkHeadingGestures,
   checkLineNumbers,
+  checkZoom,
   checkSheetSwitch,
   checkStatusBar,
   checkGfmDisplay,
@@ -208,6 +209,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await expectNoStrayDialog(window, 'checkSettings');
     await checkLineNumbers(smoke, window);
     await expectNoStrayDialog(window, 'checkLineNumbers');
+    await checkZoom(smoke, window);
+    await expectNoStrayDialog(window, 'checkZoom');
 
     await checkCommitting(smoke, window);
     await expectNoStrayDialog(window, 'checkCommitting');

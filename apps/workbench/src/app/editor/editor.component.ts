@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 import {
   DEFAULT_EDITOR_TYPOGRAPHY,
+  DEFAULT_EDITOR_ZOOM,
   type EditorAdapter,
   type EditorCursor,
   type EditorDocument,
@@ -63,8 +64,10 @@ export class EditorComponent {
    * adapter keeps no history for a sheet that was deleted or moved.
    */
   readonly retired = input<readonly string[]>([]);
-  /** Font, base size, wrapping — the author's, from the settings. SPEC.md §13. */
+  /** Font, base size, wrapping, line numbers — the author's settings. SPEC.md §13. */
   readonly typography = input<EditorTypography>(DEFAULT_EDITOR_TYPOGRAPHY);
+  /** How far the view is zoomed, in whole percent. SPEC.md §10.9. */
+  readonly zoom = input<number>(DEFAULT_EDITOR_ZOOM);
 
   /** Emitted after every change, with the text as it would be written. */
   readonly textChange = output<string>();
@@ -81,7 +84,11 @@ export class EditorComponent {
     const destroyRef = inject(DestroyRef);
 
     afterNextRender(() => {
-      const adapter = createCodeMirrorEditorAdapter(this.host().nativeElement, this.typography());
+      const adapter = createCodeMirrorEditorAdapter(
+        this.host().nativeElement,
+        this.typography(),
+        this.zoom(),
+      );
       adapter.onChange((text) => this.textChange.emit(text));
       adapter.onCursorChange((cursor) => this.cursorChange.emit(cursor));
       adapter.onHeadingMarkerActivate((activation) => this.menu.set(activation));
@@ -94,6 +101,11 @@ export class EditorComponent {
     effect(() => {
       const typography = this.typography();
       this.adapter()?.setTypography(typography);
+    });
+
+    effect(() => {
+      const zoom = this.zoom();
+      this.adapter()?.setZoom(zoom);
     });
 
     effect(() => {

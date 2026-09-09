@@ -50,6 +50,9 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'statusBar.positionLabel': 'Cursorposition',
   'statusBar.wrap': 'Umbruch',
   'statusBar.wrapTitle': 'Lange Zeilen in diesem Blatt umbrechen',
+  'statusBar.zoom': '{percent} %',
+  'statusBar.zoomLabel': 'Zoom des Editors',
+  'statusBar.zoomResetTitle': 'Zurück auf 100 %',
   'outline.empty': 'Keine Überschriften in diesem Blatt.',
   'sheetList.empty': 'Keine Blätter in dieser Gruppe.',
 

@@ -44,7 +44,9 @@ import {
   displayToMarkdown,
   headingPrefixRange,
   DEFAULT_EDITOR_TYPOGRAPHY,
+  DEFAULT_EDITOR_ZOOM,
   EDITOR_FONT_STACKS,
+  editorZoomFactor,
   HEADING_SCALE,
   markdownToDisplay,
   presentation,
@@ -64,6 +66,9 @@ import {
   type HeadingMarkerActivation,
   type HeadingMarkerListener,
 } from '@opera-incerta/core';
+
+/** The gutters' own size, before the zoom of SPEC.md §10.9 scales it. */
+const GUTTER_FONT_SIZE = 11;
 
 /**
  * The fixed part of the theme. Heading sizes are the core's ratios in `em`,
@@ -122,7 +127,7 @@ const editorTheme = EditorView.baseTheme({
     minWidth: '32px',
     padding: '0 6px',
     fontFamily: 'system-ui, sans-serif',
-    fontSize: '11px',
+    fontSize: `${GUTTER_FONT_SIZE}px`,
     color: 'rgba(128, 128, 128, 0.9)',
   },
   // The line numbers of SPEC.md §10.8. Right-aligned, so the digits line up
@@ -130,7 +135,7 @@ const editorTheme = EditorView.baseTheme({
   '.cm-lineNumbers .cm-gutterElement': {
     padding: '0 3px 0 8px',
     fontFamily: 'system-ui, sans-serif',
-    fontSize: '11px',
+    fontSize: `${GUTTER_FONT_SIZE}px`,
     fontVariantNumeric: 'tabular-nums',
     color: 'rgba(128, 128, 128, 0.75)',
   },
@@ -647,17 +652,23 @@ function applyHeadingLevel(view: EditorView, line: number, level: HeadingLevel |
 export function createCodeMirrorEditorAdapter(
   host: HTMLElement,
   typography: EditorTypography = DEFAULT_EDITOR_TYPOGRAPHY,
+  zoom: number = DEFAULT_EDITOR_ZOOM,
 ): EditorAdapter & TypographyAware {
-  return new CodeMirrorEditorAdapter(host, typography);
+  return new CodeMirrorEditorAdapter(host, typography, zoom);
 }
 
 /**
  * What the adapter shows text in. Not part of the core's `EditorAdapter`,
  * which speaks of text, lines, and heading levels only: this is the
  * component's own concern, and the shell reaches it through this face.
+ *
+ * Two calls, because they are two concepts: what the author **configured**
+ * (§13) and how far the view is **zoomed** (§10.9). The zoom never changes
+ * the configured size — it multiplies it on the way to the screen.
  */
 export interface TypographyAware {
   setTypography(typography: EditorTypography): void;
+  setZoom(zoom: number): void;
 }
 
 /**
@@ -672,13 +683,25 @@ function lineNumberGutter(typography: EditorTypography): Extension {
   return typography.lineNumbers ? lineNumbers() : [];
 }
 
-/** The theme for a typography: what the author set, as CSS. */
-function typographyTheme(typography: EditorTypography): Extension {
+/**
+ * The theme for a typography and a zoom: what the author set, times how far
+ * the view is zoomed (SPEC.md §13, §10.9).
+ *
+ * The gutters are in here too, because §10.9 scales the editor's text **and
+ * its gutters**: a marker or a line number left at eleven pixels beside
+ * doubled text is a column that no longer belongs to its lines. The heading
+ * ratios need nothing: they are `em` on the scaled base.
+ */
+function typographyTheme(typography: EditorTypography, zoom: number): Extension {
+  const factor = editorZoomFactor(zoom);
+  const gutterSize = `${GUTTER_FONT_SIZE * factor}px`;
   return EditorView.theme({
     '.cm-content': {
       fontFamily: EDITOR_FONT_STACKS[typography.fontFamily],
-      fontSize: `${typography.fontSize}px`,
+      fontSize: `${typography.fontSize * factor}px`,
     },
+    '.cm-marker-gutter': { fontSize: gutterSize },
+    '.cm-lineNumbers .cm-gutterElement': { fontSize: gutterSize },
   });
 }
 
@@ -689,6 +712,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
   readonly #wrapping = new Compartment();
   readonly #lineNumbers = new Compartment();
   #currentTypography: EditorTypography;
+  #currentZoom: number;
   /** One state per document: this is what gives each its own undo history. */
   readonly #states = new Map<string, EditorState>();
   readonly #listeners = new Set<EditorChangeListener>();
@@ -697,8 +721,9 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
   #openId: string | null = null;
   #destroyed = false;
 
-  constructor(host: HTMLElement, typography: EditorTypography) {
+  constructor(host: HTMLElement, typography: EditorTypography, zoom: number) {
     this.#currentTypography = typography;
+    this.#currentZoom = zoom;
     this.#view = new EditorView({
       state: EditorState.create({ extensions: [...this.#extensions()] }),
       parent: host,
@@ -715,30 +740,46 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
         (activation) => this.#activate(activation),
         () => this.#notifyCursor(),
       ),
-      this.#typography.of(typographyTheme(this.#currentTypography)),
+      this.#typography.of(typographyTheme(this.#currentTypography, this.#currentZoom)),
       this.#wrapping.of(this.#currentTypography.wordWrap ? EditorView.lineWrapping : []),
     ];
   }
 
   setTypography(typography: EditorTypography): void {
     this.#currentTypography = typography;
+    this.#reapply();
+  }
+
+  /** The zoom of SPEC.md §10.9. The configured size is untouched by it. */
+  setZoom(zoom: number): void {
+    this.#currentZoom = zoom;
+    this.#reapply();
+  }
+
+  /** Applies the current typography and zoom to every state this adapter holds. */
+  #reapply(): void {
     if (this.#destroyed) {
       return;
     }
     // Every kept state carries its own compartments; the visible one is
     // reconfigured now, the others when they are shown again.
-    this.#view.dispatch({ effects: this.#reconfigured(typography) });
+    this.#view.dispatch({ effects: this.#reconfigured() });
     for (const [id, state] of this.#states) {
       if (id !== this.#openId) {
-        this.#states.set(id, state.update({ effects: this.#reconfigured(typography) }).state);
+        this.#states.set(id, state.update({ effects: this.#reconfigured() }).state);
       }
     }
   }
 
-  /** What every kept state is reconfigured with when the settings change. */
-  #reconfigured(typography: EditorTypography): readonly StateEffect<unknown>[] {
+  /**
+   * What every kept state is reconfigured with when the settings or the zoom
+   * change. One list, because three compartments in two places had already
+   * grown apart by one entry once.
+   */
+  #reconfigured(): readonly StateEffect<unknown>[] {
+    const typography = this.#currentTypography;
     return [
-      this.#typography.reconfigure(typographyTheme(typography)),
+      this.#typography.reconfigure(typographyTheme(typography, this.#currentZoom)),
       this.#wrapping.reconfigure(typography.wordWrap ? EditorView.lineWrapping : []),
       this.#lineNumbers.reconfigure(lineNumberGutter(typography)),
     ];

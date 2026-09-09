@@ -47,6 +47,45 @@ export const DEFAULT_EDITOR_WORD_WRAP = true;
 export const DEFAULT_EDITOR_LINE_NUMBERS = false;
 
 /**
+ * The zoom of SPEC.md §10.9, in whole percent. Not a setting: a display
+ * factor with its own control in the status bar.
+ */
+export const EDITOR_ZOOM_BOUNDS = { min: 50, max: 200 } as const;
+
+export const DEFAULT_EDITOR_ZOOM = 100;
+
+/**
+ * The detent at 100 %, in percentage points either side. Dragging past the
+ * middle lands on it; the points it swallows are the price of being able to
+ * hit the middle at all.
+ */
+export const EDITOR_ZOOM_DETENT = 3;
+
+/**
+ * A zoom value as the editor may use it: whole percent, within bounds, and
+ * snapped to 100 near the middle.
+ *
+ * Applied on the way in from the slider **and** on the way in from the stored
+ * record, like a column width (SPEC.md §8.2): changed bounds must not drag an
+ * old value into absurdity.
+ */
+export function clampEditorZoom(value: number): number {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_EDITOR_ZOOM;
+  }
+  const whole = Math.round(value);
+  if (Math.abs(whole - DEFAULT_EDITOR_ZOOM) <= EDITOR_ZOOM_DETENT) {
+    return DEFAULT_EDITOR_ZOOM;
+  }
+  return Math.min(EDITOR_ZOOM_BOUNDS.max, Math.max(EDITOR_ZOOM_BOUNDS.min, whole));
+}
+
+/** The factor a size is multiplied by. 100 % is exactly 1. */
+export function editorZoomFactor(zoom: number): number {
+  return clampEditorZoom(zoom) / 100;
+}
+
+/**
  * Heading size as a multiple of the base. H5 and H6 sit at the base size and
  * differ by weight and style, as the adapter's theme has it.
  */

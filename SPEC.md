@@ -1508,7 +1508,7 @@ while omitting several fields entirely.
 ### 10.5 Editor status bar
 
 **Status: Accepted; built 2026-09-04 — the cursor position and the wrap
-switch; the zoom slider arrives with §18.**
+switch; the zoom slider of §10.9 joined them on 2026-09-09.**
 
 The status bar is divided: **information on the left, controls on the right**.
 
@@ -1516,7 +1516,7 @@ The status bar is divided: **information on the left, controls on the right**.
   line-number gutter (§10.8): the gutter numbers **all** lines, the status
   bar says **where the cursor is**. Established IDEs show both, and the gutter
   round therefore MUST NOT remove the cursor position.
-- Right: word-wrap toggle, and later the zoom slider (§18).
+- Right: word-wrap toggle and the zoom slider (§10.9).
 
 The editor header (not the status bar) carries the document name and the save
 action, plus the front matter switches from §10.4.
@@ -1708,6 +1708,47 @@ surface is the harmless starting state, and turning it on is one click.
 **What the numbers are not.** They are not addresses that survive editing:
 inserting a line above renumbers everything below it, as in any editor. What
 is stable about a sheet is its file and its front matter, never a line number.
+
+### 10.9 The editor zoom
+
+**Status: Accepted (2026-09-09), written before its implementation.**
+
+A slider at the **right of the status bar** (§10.5), beside the wrap switch,
+with the current factor as a percentage next to it.
+
+**50 % to 200 %, with a detent at 100 %.** The slider moves in whole
+percentage points, and the three points either side of 100 % belong to 100 %:
+dragging past the middle lands on it. The percentage itself is a control —
+activating it restores 100 %, the way double-clicking a column divider
+restores that column's width (§8.2).
+
+**Only the editor scales**, and inside it the text **and its gutters** (§10.2,
+§10.8), so the numbers and the heading markers stay in proportion to the lines
+they belong to. The project tree, the sheet list, the sidebar, the header and
+the status bar itself are chrome and do not move: the zoom is for reading the
+manuscript, not for resizing the workbench.
+
+**It is a display factor, not a setting.** The configured base size (§13) is
+untouched by it — which is exactly what makes the detent unambiguous: at
+100 % the editor shows the size the author configured, whatever that is. The
+heading ratios of §13 apply to the scaled base, so the whole hierarchy scales
+together.
+
+**One factor for the editor**, not one per sheet. It is remembered across
+sheets and across sessions — deliberately unlike the wrap switch of §10.5,
+which is a decision about reading *this* sheet *now*: a zoom the author set
+because of their eyes or their screen must not be forgotten when they open the
+next sheet.
+
+**Stored installation-locally** (§7.2), never in `.opera-incerta/`: a viewing
+preference must not travel through Git to another machine with another screen.
+It is remembered like a column width rather than listed in the settings dialog
+— the dialog holds what is configured, and this is set where it is used.
+"Reset all settings" (§13) restores it to 100 % with the rest of the record.
+
+**Deliberately not here.** Keyboard shortcuts and menu items for zooming in
+and out: the native menu has no View menu yet, and adding one is a decision
+about the whole menu rather than about this slider.
 
 ## 11. Secondary sidebar views
 
@@ -2290,12 +2331,10 @@ own specification update before implementation.
   visual line, heights measured rather than computed, off by default with a
   switch in Settings → Editor. The status bar kept its cursor position
   (§10.5).
-- **Editor zoom slider** at the bottom edge of the editor: 50 % minimum, 200 %
-  maximum, a distinct detent at 100 %. **Only the editor scales** — its text
-  and its gutters; library, tree, and sidebar are unaffected. It is a pure
-  display factor: the configured base size stays untouched, which is exactly
-  why the detent at 100 % is unambiguous. Stored installation-locally, never in
-  `.opera-incerta/` — a viewing preference must not travel through Git.
+- **Editor zoom slider** — specified as §10.9 and built 2026-09-09: in the
+  status bar at the editor's bottom edge, 50 % to 200 % with a detent at
+  100 %, scaling the editor's text and gutters and nothing else, stored
+  installation-locally.
 - **Inline markup rendering** (§10.3), staged as specified.
 - **Full GFM display** — built 2026-09-04 as §10.7: strikethrough, inline
   code, code blocks, block quotes, ordered and unordered lists, task lists,

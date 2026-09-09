@@ -222,13 +222,16 @@ import { Localization } from './localization/localization.js';
             [document]="document"
             [retired]="store.retiredHandles()"
             [typography]="editorTypography()"
+            [zoom]="layout.editorZoom()"
             (textChange)="store.noteText($event)"
             (cursorChange)="session.noteCursor($event)"
           />
           <wi-status-bar
             [cursor]="session.cursor()"
             [wrapping]="wrapping()"
+            [zoom]="layout.editorZoom()"
             (toggleWrap)="session.toggleWrap(document.id, layout.editorWordWrap())"
+            (zoomChange)="layout.setEditorZoom($event)"
           />
         } @else {
           <p class="hint">{{ i18n.t('app.selectSheet') }}</p>

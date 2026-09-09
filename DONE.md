@@ -6,6 +6,55 @@ documents").
 
 ---
 
+## 2026-09-09 — the editor zoom
+
+**What was open** (`SPEC.md` §18, Phase 2, and the promise §10.5 made when the
+status bar was built: "the zoom slider to follow").
+
+**What was decided first** (`SPEC.md` §10.9, written before the code). 50 % to
+200 %, in whole percentage points, with a **detent at 100 %**: the three points
+either side of the middle belong to it, so a drag past the middle lands on it.
+The percentage beside the slider is itself the way back to 100 %, the way
+double-clicking a divider restores a column's width. What scales: the editor's
+text, its headings by their ratios, **and its gutters** — a line number left at
+eleven pixels beside doubled text is a column that no longer belongs to its
+lines. What does not: everything that is chrome.
+
+The decision that shaped the code: **it is a display factor, not a setting.**
+The configured base size is untouched by it, which is what makes the detent
+unambiguous — at 100 % the editor shows the size the author configured,
+whatever that is. So it is not in the settings registry but among the layout
+preferences, remembered like a column width, and the adapter takes it through
+a second call rather than as a fourth field of the typography. And it is **one
+factor for the editor**, kept across sheets — deliberately unlike the wrap
+switch of §10.5, which is a decision about reading this sheet now: a zoom set
+because of someone's eyes must not be forgotten at the next sheet.
+
+**What changed.** `clampEditorZoom` and `editorZoomFactor` in the core, with
+the detent in the rule rather than in the slider — the record, the slider and
+any later keyboard step pass the same gate. `editorZoom` in the preference
+record and in `LAYOUT_PREFERENCE_KEYS`. The adapter's theme multiplies the
+configured size and the gutters' own size by the factor. The status bar gained
+the slider and the percentage button, and reports; it decides nothing.
+
+**Verification.** `pnpm run check` green: **1017 tests** — the rule at its
+bounds, at the detent and just past it, the record clamping a stored value,
+and the layout state storing what the slider reports. `pnpm run desktop:smoke`
+green across **thirty-nine checks**: at 150 % the text, the heading and the
+gutter each measure exactly half again, while the sheet list and the status
+bar do not move; the factor reaches the preference file; a drag to 102 % lands
+on 100 %; the percentage takes it back, to the sizes it started from.
+Screenshot looked at. Falsified twice: the detent removed from the rule (97
+and 102 arriving unchanged), and the gutters left out of the scaled theme
+(11 against 16.5, in the zoom check and nowhere else).
+
+**Lesson.** "Only the editor scales" is the kind of sentence that is easy to
+write and easy to half-implement: the text was scaling within minutes, and the
+gutters were not. The check that measures **what must not move** — the sheet
+list, the status bar — was as valuable as the one measuring what must.
+
+---
+
 ## 2026-09-09 — the line-number gutter
 
 **What was open** (`SPEC.md` §18, Phase 2). A second gutter column, left of

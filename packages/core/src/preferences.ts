@@ -14,8 +14,10 @@ import {
   DEFAULT_EDITOR_FONT_SIZE,
   DEFAULT_EDITOR_LINE_NUMBERS,
   DEFAULT_EDITOR_WORD_WRAP,
+  DEFAULT_EDITOR_ZOOM,
   EDITOR_FONT_FAMILIES,
   clampEditorFontSize,
+  clampEditorZoom,
   type EditorFontFamily,
 } from './editor-typography.js';
 import { COLUMN_BOUNDS, COLUMN_IDEAL_WIDTH, clampColumnWidth } from './layout.js';
@@ -57,6 +59,11 @@ export interface WorkbenchPreferences {
   readonly editorWordWrap: boolean;
   /** The line-number gutter of SPEC.md §10.8. */
   readonly editorLineNumbers: boolean;
+  /**
+   * The zoom of SPEC.md §10.9, in whole percent. Not a setting the dialog
+   * lists: it is set where it is used, and remembered like a column width.
+   */
+  readonly editorZoom: number;
   readonly showBlankLines: boolean;
   readonly showDeeperOutline: boolean;
   /**
@@ -84,6 +91,7 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   editorFontSize: DEFAULT_EDITOR_FONT_SIZE,
   editorWordWrap: DEFAULT_EDITOR_WORD_WRAP,
   editorLineNumbers: DEFAULT_EDITOR_LINE_NUMBERS,
+  editorZoom: DEFAULT_EDITOR_ZOOM,
   showBlankLines: false,
   showFrontMatter: false,
   frontMatterWritable: false,
@@ -139,6 +147,11 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
     editorLineNumbers: boolean_(
       stored['editorLineNumbers'],
       DEFAULT_PREFERENCES.editorLineNumbers,
+    ),
+    // Clamped on read as well as on write, like a width and like the base
+    // size (SPEC.md §8.2, §10.9).
+    editorZoom: clampEditorZoom(
+      typeof stored['editorZoom'] === 'number' ? stored['editorZoom'] : DEFAULT_PREFERENCES.editorZoom,
     ),
     showBlankLines: boolean_(stored['showBlankLines'], DEFAULT_PREFERENCES.showBlankLines),
     showFrontMatter: boolean_(stored['showFrontMatter'], DEFAULT_PREFERENCES.showFrontMatter),

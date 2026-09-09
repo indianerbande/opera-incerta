@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import type { EditorCursor } from '@opera-incerta/core';
+import { EDITOR_ZOOM_BOUNDS, type EditorCursor } from '@opera-incerta/core';
 import { Localization } from '../localization/localization.js';
 import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
 
@@ -7,9 +7,13 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
  * The editor's status bar. SPEC.md §10.5.
  *
  * Information on the left — where the cursor is — and controls on the right:
- * the wrap toggle for this sheet, and later the zoom slider (§18). Progress
- * figures belong to the inspector (§11), not here; the document's name and
- * the save action belong to the header above the text.
+ * the wrap toggle for this sheet (§10.5) and the zoom slider (§10.9).
+ * Progress figures belong to the inspector (§11), not here; the document's
+ * name and the save action belong to the header above the text.
+ *
+ * The bar reports; it decides nothing. The detent at 100 % and the bounds are
+ * the core's rule, applied where the value is stored — the slider only says
+ * what the author dragged it to.
  */
 @Component({
   selector: 'wi-status-bar',
@@ -29,6 +33,26 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
         (click)="toggleWrap.emit()"
       >
         {{ i18n.t('statusBar.wrap') }}
+      </button>
+
+      <input
+        type="range"
+        class="zoom"
+        [min]="bounds.min"
+        [max]="bounds.max"
+        step="1"
+        [value]="zoom()"
+        [attr.aria-label]="i18n.t('statusBar.zoomLabel')"
+        [title]="i18n.t('statusBar.zoomLabel')"
+        (input)="zoomChange.emit(value($event))"
+      />
+      <button
+        type="button"
+        class="zoom-value"
+        [title]="i18n.t('statusBar.zoomResetTitle')"
+        (click)="zoomChange.emit(100)"
+      >
+        {{ i18n.t('statusBar.zoom', { percent: zoom() }) }}
       </button>
     </div>
   `,
@@ -62,14 +86,43 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
       border-color: rgba(128, 128, 128, 0.4);
       background: rgba(128, 128, 128, 0.2);
     }
+    /* The zoom of SPEC.md §10.9: a slider, and the factor beside it. */
+    input.zoom {
+      width: 90px;
+      height: 12px;
+      margin: 0;
+      accent-color: rgba(128, 128, 128, 0.8);
+    }
+    .zoom-value {
+      padding: 1px 4px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-variant-numeric: tabular-nums;
+      /* The width of "200 %", so the bar does not shift while dragging. */
+      min-width: 40px;
+      text-align: right;
+    }
   `,
 })
 export class StatusBarComponent {
   protected readonly i18n = inject(Localization);
   protected readonly height = STATUS_BAR_HEIGHT;
 
+  protected readonly bounds = EDITOR_ZOOM_BOUNDS;
+
   readonly cursor = input.required<EditorCursor>();
   readonly wrapping = input.required<boolean>();
+  /** The editor's zoom, in whole percent. SPEC.md §10.9. */
+  readonly zoom = input.required<number>();
 
   readonly toggleWrap = output<void>();
+  /** A new zoom, as the slider or the reset button reports it. */
+  readonly zoomChange = output<number>();
+
+  protected value(event: Event): number {
+    return Number((event.target as HTMLInputElement).value);
+  }
 }

@@ -386,7 +386,9 @@ Component and state tests MUST cover:
   silently ignored call;
 - the four editor settings (`SPEC.md` §13, §10.8) handed to the editor as one
   value — family, base size, wrapping, line numbers — each reaching the
-  preference record, with the gutter off in the defaults.
+  preference record, with the gutter off in the defaults; and the zoom of
+  §10.9 beside them: stored, clamped to its bounds, and snapped to 100 % by
+  the core's rule wherever it arrives from.
 
 **The editor adapter has one contract suite for every implementation**
 (`CONVENTIONS.md` C-T11). It is written without a test framework so that the
@@ -485,6 +487,12 @@ Tests MUST cover:
   heading markers; and, for a line typed long enough to wrap, one number
   whose element is exactly as tall as the wrapped line — the measured height,
   not a computed row. Turned off again, and the typed line undone;
+- the editor zoom (`SPEC.md` §10.9), measured with computed styles: the
+  slider starting at 100 %; dragged to 150 % it scales the text, the heading
+  by its ratio and the gutter by exactly half again, while the sheet list and
+  the status bar beside them do not move; the factor reaching the preference
+  file; a drag to 102 % landing on the detent at 100 %; and the percentage
+  itself taking it back to 100 %, where the sizes are what they were;
 - the settings dialog (`SPEC.md` §13): opened through the native menu item
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the
