@@ -50,7 +50,7 @@ import { Localization } from '../localization/localization.js';
       <p class="hint">{{ i18n.t('identity.hint') }}</p>
       <div class="actions">
         <button type="button" class="decline" (click)="cancel.emit()">{{ i18n.t('identity.notNow') }}</button>
-        <button type="button" class="save" [disabled]="!valid()" (click)="submit()">{{ i18n.t('common.save') }}</button>
+        <button type="button" class="save primary" [disabled]="!valid()" (click)="submit()">{{ i18n.t('common.save') }}</button>
       </div>
     </wi-dialog>
   `,
@@ -65,7 +65,7 @@ import { Localization } from '../localization/localization.js';
     input {
       padding: 4px 6px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;

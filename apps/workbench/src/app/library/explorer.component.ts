@@ -76,10 +76,11 @@ import { WorkspaceStore } from '../workspace/workspace-store.js';
       display: flex;
       align-items: center;
       gap: 2px;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
     }
     .row.selected {
       background: var(--wi-row-selected);
+      box-shadow: inset 3px 0 0 var(--wi-accent);
     }
     .row:hover {
       background: var(--wi-row-hover);

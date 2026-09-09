@@ -108,7 +108,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
       width: 100%;
       padding: 5px 6px;
       border: 0;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;
@@ -120,6 +120,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
     }
     .row.selected {
       background: var(--wi-row-selected);
+      box-shadow: inset 3px 0 0 var(--wi-accent);
     }
     .line {
       display: flex;
@@ -139,7 +140,7 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
       max-width: 45%;
       overflow: hidden;
       padding: 0 6px;
-      border-radius: 999px;
+      border-radius: var(--wi-radius-pill);
       font-size: 10px;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -243,7 +244,7 @@ export class SheetListComponent {
     .option {
       padding: 2px 6px;
       border: 1px solid transparent;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;

@@ -68,7 +68,7 @@ import { Localization } from '../localization/localization.js';
         <button type="button" [disabled]="full()" (click)="add()">{{ i18n.t('categories.add') }}</button>
         <span class="spacer"></span>
         <button type="button" (click)="cancel.emit()">{{ i18n.t('common.cancel') }}</button>
-        <button type="button" (click)="confirm.emit(draft())">{{ i18n.t('common.save') }}</button>
+        <button type="button" class="primary" (click)="confirm.emit(draft())">{{ i18n.t('common.save') }}</button>
       </div>
       @if (full()) {
         <p class="hint">{{ i18n.t('categories.limit', { limit }) }}</p>
@@ -97,7 +97,7 @@ import { Localization } from '../localization/localization.js';
       height: 22px;
       padding: 0;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
     }
     input.name {
@@ -105,14 +105,14 @@ import { Localization } from '../localization/localization.js';
       min-width: 0;
       padding: 3px 6px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;
     }
     .badge {
       padding: 1px 8px;
-      border-radius: 999px;
+      border-radius: var(--wi-radius-pill);
       font-size: 11px;
       white-space: nowrap;
     }

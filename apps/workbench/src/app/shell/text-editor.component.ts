@@ -35,7 +35,7 @@ import { Localization } from '../localization/localization.js';
       height: 40vh;
       padding: 6px 8px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: 12px var(--wi-mono);

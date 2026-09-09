@@ -83,6 +83,21 @@
   --wi-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --wi-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
+  /* The geometry of SPEC.md §8.9: three radii, one scale, one height. */
+  --wi-radius-control: 7px;
+  --wi-radius-panel: 10px;
+  --wi-radius-dialog: 16px;
+  --wi-radius-pill: 999px;
+  --wi-space-1: 4px;
+  --wi-space-2: 6px;
+  --wi-space-3: 8px;
+  --wi-space-4: 12px;
+  --wi-space-5: 16px;
+  --wi-space-6: 20px;
+  --wi-control-height: 26px;
+  /* The status bar's band is 24px; what sits in it is smaller (§8.9, §10.5). */
+  --wi-control-height-compact: 18px;
+
   --wi-ink: #17263d;
   --wi-muted: #65758b;
   --wi-line: #d9e1ea;
@@ -323,58 +338,113 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Keyboard focus is never removed; it is drawn in the accent's own ring. */
+/*
+ * Keyboard focus is never removed. It is the accent itself rather than the
+ * soft ring the other application uses: at these smaller controls a 20 %
+ * outline is too faint to find (SPEC.md §8.9).
+ */
 :focus-visible {
   outline: 2px solid var(--wi-accent);
   outline-offset: 1px;
 }
 
 /*
- * What every dialog's content shares: its heading, its header row, its
- * actions row, its buttons, its hint. The dialog itself (`wi-dialog`) draws
- * the backdrop and the panel; these rules reach the content projected into
- * it, which a component's own encapsulated styles cannot. One place for
- * the chrome, so a dialog cannot misplace it (SPEC.md §8.7).
+ * What every dialog's content shares: its three bands, its buttons, its hint.
+ * The dialog itself (`wi-dialog`) draws the backdrop and the panel; these
+ * rules reach the content projected into it, which a component's own
+ * encapsulated styles cannot. One place for the chrome, so a dialog cannot
+ * misplace it (SPEC.md §8.7, §8.9).
+ *
+ * The heading and the actions row **bleed** to the panel's edges rather than
+ * each dialog being rebuilt around a header and a footer element: eleven
+ * dialogs project their content as it is, and this is what turns all of them
+ * into the same three bands.
  */
 wi-dialog h2 {
   margin: 0;
   font-size: 14px;
+  font-weight: 600;
+}
+
+wi-dialog .panel > h2:first-child,
+wi-dialog .panel > header:first-child {
+  margin: calc(-1 * var(--wi-space-4)) calc(-1 * var(--wi-space-5)) 0;
+  padding: var(--wi-space-4) var(--wi-space-5);
+  border-block-end: 1px solid var(--wi-line);
+  border-radius: calc(var(--wi-radius-dialog) - 1px) calc(var(--wi-radius-dialog) - 1px) 0 0;
+  background: var(--wi-surface-subtle);
 }
 
 wi-dialog header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--wi-space-3);
 }
 
 wi-dialog header h2 {
   flex: 1 1 auto;
 }
 
+/** The section's name over the heading: accent, small, widely tracked. */
+wi-dialog .eyebrow {
+  margin: 0 0 2px;
+  color: var(--wi-accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 wi-dialog .actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--wi-space-2);
+}
+
+wi-dialog .panel > .actions:last-child {
+  margin: 0 calc(-1 * var(--wi-space-5)) calc(-1 * var(--wi-space-4));
+  padding: var(--wi-space-3) var(--wi-space-5);
+  border-block-start: 1px solid var(--wi-line);
+  border-radius: 0 0 calc(var(--wi-radius-dialog) - 1px) calc(var(--wi-radius-dialog) - 1px);
+  background: var(--wi-surface-subtle);
 }
 
 wi-dialog button {
+  display: inline-flex;
   flex: none;
-  padding: 3px 10px;
-  border: 1px solid var(--wi-border);
-  border-radius: 4px;
+  height: var(--wi-control-height);
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--wi-line-strong);
+  border-radius: var(--wi-radius-control);
   background: var(--wi-control-bg);
   color: var(--wi-control-ink);
   font: inherit;
+  line-height: 1;
   cursor: default;
 }
 
-wi-dialog button:hover {
-  background: var(--wi-control-hover);
+wi-dialog button:hover:not(:disabled) {
+  border-color: var(--wi-accent);
+  background: var(--wi-accent-soft);
+}
+
+/* The one button that carries the action, last in its row (SPEC.md §8.9). */
+wi-dialog button.primary {
+  border-color: var(--wi-accent-strong);
+  background: var(--wi-accent);
+  color: var(--wi-accent-ink);
+  font-weight: 600;
+}
+
+wi-dialog button.primary:hover:not(:disabled) {
+  border-color: var(--wi-accent-strong);
+  background: var(--wi-accent-strong);
 }
 
 wi-dialog button:disabled {
-  opacity: 0.5;
+  opacity: 0.46;
 }
 
 wi-dialog .hint {

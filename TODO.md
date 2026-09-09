@@ -50,12 +50,12 @@ has to be consulted to build, verify or change the product.
    for the height to stop changing rather than for two frames.
 
 
-2. **The shape of the controls** (`SPEC.md` §8.8, "what this section does not
-   decide"). The colours and the face are one house now; the geometry is not.
-   Radii (4–5 px here against 9–18 px there), control heights, the spacing
-   scale, the anatomy of a dialog — header with an eyebrow line, a navigation
-   column, a footer — and the way an active entry is marked. One round, and
-   the smoke can measure most of it.
+2. **The region layout** (`SPEC.md` §8.9, "what this section does not
+   decide"). The controls and the dialogs are one house now; the three columns
+   still meet edge to edge, where the other application floats its panels on
+   the canvas with air between them. That is a question about the workbench's
+   anatomy — and it moves the widths and the dividers that §8.2 fixes and the
+   smoke measures, so it is its own round with its own specification change.
 
 3. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
    `density`, `language`, `colorScheme`, `accentPalette` and `fontFamily` are

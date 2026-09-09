@@ -111,7 +111,7 @@ import { Localization } from '../localization/localization.js';
     .side {
       padding: 6px 8px;
       border: 1px solid transparent;
-      border-radius: 6px;
+      border-radius: var(--wi-radius-panel);
     }
     .side.chosen {
       border-color: var(--wi-line-strong);

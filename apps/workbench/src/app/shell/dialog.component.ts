@@ -36,6 +36,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       position: fixed;
       inset: 0;
       background: var(--wi-backdrop);
+      backdrop-filter: blur(7px);
     }
     .panel {
       position: fixed;
@@ -43,10 +44,10 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       left: 50%;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 12px 14px;
-      border: 1px solid var(--wi-border);
-      border-radius: 8px;
+      gap: var(--wi-space-3);
+      padding: var(--wi-space-4) var(--wi-space-5);
+      border: 1px solid var(--wi-line-strong);
+      border-radius: var(--wi-radius-dialog);
       background: var(--wi-panel);
       box-shadow: var(--wi-dialog-shadow);
       font: 13px var(--wi-sans);

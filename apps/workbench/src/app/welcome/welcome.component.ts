@@ -29,7 +29,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
       </header>
 
       <div class="actions">
-        <button type="button" (click)="launcher.open()">{{ i18n.t('welcome.open') }}</button>
+        <button type="button" class="primary" (click)="launcher.open()">{{ i18n.t('welcome.open') }}</button>
         <button type="button" (click)="launcher.startCreating()">{{ i18n.t('welcome.new') }}</button>
       </div>
 
@@ -118,13 +118,30 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
       gap: 8px;
     }
     .actions button {
-      padding: 5px 12px;
-      border: 1px solid var(--wi-border);
-      border-radius: 5px;
-      background: none;
-      color: inherit;
+      display: inline-flex;
+      height: 30px;
+      align-items: center;
+      padding: 0 var(--wi-space-4);
+      border: 1px solid var(--wi-line-strong);
+      border-radius: var(--wi-radius-control);
+      background: var(--wi-control-bg);
+      color: var(--wi-control-ink);
       font: inherit;
+      line-height: 1;
       cursor: default;
+    }
+    .actions button:hover {
+      border-color: var(--wi-accent);
+      background: var(--wi-accent-soft);
+    }
+    .actions button.primary {
+      border-color: var(--wi-accent-strong);
+      background: var(--wi-accent);
+      color: var(--wi-accent-ink);
+      font-weight: 600;
+    }
+    .actions button.primary:hover {
+      background: var(--wi-accent-strong);
     }
     .recent {
       display: flex;
@@ -152,7 +169,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     .entry {
       display: flex;
       align-items: center;
-      border-radius: 5px;
+      border-radius: var(--wi-radius-control);
     }
     .entry:hover {
       background: var(--wi-row-hover);
@@ -184,7 +201,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     .missing {
       flex: none;
       padding: 0 5px;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: color-mix(in srgb, var(--wi-danger) 18%, transparent);
       color: var(--wi-danger);
       font-size: 11px;

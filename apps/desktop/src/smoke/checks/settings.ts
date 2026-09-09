@@ -409,6 +409,64 @@ export async function checkAppearance(smoke: Smoke, window: BrowserWindow): Prom
   writeFileSync(paletteEvidence, (await window.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${paletteEvidence}`);
 
+  // The shape of things, measured while a real dialog is open (SPEC.md §8.9).
+  const shape = (await window.webContents.executeJavaScript(
+    `(() => {
+       const panel = document.querySelector('wi-settings .panel') ?? document.querySelector('wi-dialog .panel');
+       const header = document.querySelector('wi-settings .panel > header');
+       const actions = document.querySelector('wi-settings .panel > .actions');
+       const category = document.querySelector('wi-settings .category.active');
+       const button = document.querySelector('wi-settings .actions button');
+       const read = (element) => (element === null ? null : getComputedStyle(element));
+       const panelStyle = read(panel);
+       const headerStyle = read(header);
+       const actionsStyle = read(actions);
+       return {
+         panelRadius: panelStyle?.borderTopLeftRadius ?? null,
+         panelShadow: (panelStyle?.boxShadow ?? 'none') !== 'none',
+         panelBackground: panelStyle?.backgroundColor ?? null,
+         headerBackground: headerStyle?.backgroundColor ?? null,
+         headerBorder: headerStyle?.borderBottomWidth ?? null,
+         actionsBackground: actionsStyle?.backgroundColor ?? null,
+         actionsBorder: actionsStyle?.borderTopWidth ?? null,
+         activeEdge: read(category)?.boxShadow ?? null,
+         buttonHeight: button === null ? 0 : Math.round(button.getBoundingClientRect().height),
+         buttonRadius: read(button)?.borderTopLeftRadius ?? null,
+       };
+     })()`,
+  )) as Record<string, unknown>;
+
+  const wrongShape: string[] = [];
+  if (shape['panelRadius'] !== '16px') {
+    wrongShape.push(`the dialog's corner is ${String(shape['panelRadius'])}, not 16px`);
+  }
+  if (shape['panelShadow'] !== true) {
+    wrongShape.push('the dialog is not lifted off the workbench');
+  }
+  if (shape['headerBackground'] === shape['panelBackground']) {
+    wrongShape.push('the header is not a band of its own');
+  }
+  if (shape['headerBorder'] === '0px' || shape['headerBorder'] === null) {
+    wrongShape.push('the header is not closed by a line');
+  }
+  if (shape['actionsBackground'] === shape['panelBackground']) {
+    wrongShape.push('the actions are not a band of their own');
+  }
+  if (shape['actionsBorder'] === '0px' || shape['actionsBorder'] === null) {
+    wrongShape.push('the actions are not opened by a line');
+  }
+  if (!String(shape['activeEdge']).includes('inset')) {
+    wrongShape.push(`the active category wears no accent edge: ${String(shape['activeEdge'])}`);
+  }
+  if (shape['buttonHeight'] !== 26 || shape['buttonRadius'] !== '7px') {
+    wrongShape.push(
+      `a button is ${String(shape['buttonHeight'])}px tall with a ${String(shape['buttonRadius'])} corner`,
+    );
+  }
+  if (wrongShape.length > 0) {
+    throw new Error(`the shape of things: ${wrongShape.join('; ')}`);
+  }
+
   // Back to what the checks after this one expect: the system's scheme, blue.
   await clickText(window, 'wi-settings fieldset.scheme label', 'Follow the system');
   await window.webContents.executeJavaScript(
@@ -426,6 +484,7 @@ export async function checkAppearance(smoke: Smoke, window: BrowserWindow): Prom
 
   console.log(
     'smoke ok: the packaged face loaded and the workbench is set in it; the dark scheme reached ' +
-      'the root, the tokens and the preference file; a palette changed the accent and went back',
+      'the root, the tokens and the preference file; a palette changed the accent and went back; ' +
+      'and the dialog measured three bands, a 16px corner, a 26px button and an accent edge',
   );
 }

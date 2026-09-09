@@ -6,6 +6,55 @@ documents").
 
 ---
 
+## 2026-09-09 — the shape of things
+
+**What was open** (`SPEC.md` §8.8, "what this section does not decide", and
+`TODO.md` §1 the same evening). The colours and the face were one house; the
+geometry was not — 4 and 5 and 6 pixel radii picked one at a time, buttons
+that were a padding rather than a height, and eleven dialogs that each drew
+their own idea of a heading and a row of actions.
+
+**What was decided first** (`SPEC.md` §8.9). Three radii and a pill — control
+7px, panel 10px, dialog 16px — and nothing else; one spacing scale (4, 6, 8,
+12, 16, 20); a control that **has a height** (26px, and 18px inside the
+status bar's 24px band, because a band cannot hold a control taller than
+itself); two kinds of button, of which the accented one appears **at most
+once** per dialog and last in its row; and one idiom for what is active,
+`inset 3px 0 0 var(--wi-accent)`, in the activity bars, the settings
+categories and a selected row alike.
+
+**The one deliberate divergence** is focus. The other application draws it
+with its 20 % ring; at these smaller controls that is too faint to find, so
+focus here is a 2px accent outline. It is written down as a divergence rather
+than left as a difference someone would later "fix" in either direction.
+
+**The dialog is three bands** — header, body, actions — on two surfaces, and
+this is the part worth remembering: the bands are made in the **global**
+stylesheet, by letting the projected heading and actions row bleed to the
+panel's edges. Eleven dialogs were not rebuilt around a header and a footer
+element; they project what they always projected, and all eleven now look like
+one dialog. §8.7 already said the chrome lives in one place; this is what that
+buys.
+
+**Verification.** `pnpm run check` green: **1022 tests**.
+`pnpm run desktop:smoke` green across **forty checks**, with the geometry
+measured on a dialog that is actually open — a 16px corner over a lifted
+panel, a header and an actions row that are each their own surface with their
+own line, an active category wearing the accent edge, a button 26px tall with
+a 7px corner — and, at the folder question, the affirmative button's
+background compared against the root's own `--wi-accent`. Dark and light
+screenshotted and looked at. Falsified: the dialog radius set to 8px fails in
+that measurement and nowhere else.
+
+**Lesson.** A design system is cheap to *apply* and expensive to *decide*. The
+whole implementation was tokens and a handful of rules; what took the time was
+writing down which radius a menu has and what happens to a control that will
+not fit its band. The values were already answered — they are the other
+application's — and even then the geometry needed a page of prose before a
+line of CSS.
+
+---
+
 ## 2026-09-09 — the visual system: one face, one palette, two schemes
 
 **What was open.** Nothing, in the specification's terms — and that was the

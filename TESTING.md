@@ -501,6 +501,13 @@ Tests MUST cover:
   a resolved scheme and a palette; Dark changing the token set, the editor's
   surface with it, and reaching the preference file; a palette changing the
   accent; and both going back to where they started;
+- the shape of things (`SPEC.md` §8.9), measured on a dialog that is actually
+  open: a 16px corner on a panel that is lifted off the workbench, a header
+  and an actions row that are each a band of their own — a different surface,
+  closed and opened by a line — an active category wearing the inset accent
+  edge, and a button 26px tall with a 7px corner; and, at the folder question,
+  the one affirmative button carrying the accent itself, compared against the
+  root's own `--wi-accent`;
 - the editor zoom (`SPEC.md` §10.9), measured with computed styles: the
   slider starting at 100 %; dragged to 150 % it scales the text, the heading
   by its ratio and the gutter by exactly half again, while the sheet list and

@@ -462,7 +462,7 @@ import { Localization } from './localization/localization.js';
     }
     .read-only {
       padding: 1px 5px;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: color-mix(in srgb, var(--wi-danger) 18%, transparent);
       color: var(--wi-danger);
     }
@@ -472,13 +472,21 @@ import { Localization } from './localization/localization.js';
       gap: 2px;
     }
     button {
-      padding: 2px 6px;
-      border: 1px solid var(--wi-border);
-      border-radius: 4px;
-      background: none;
-      color: inherit;
+      display: inline-flex;
+      height: var(--wi-control-height);
+      align-items: center;
+      padding: 0 var(--wi-space-3);
+      border: 1px solid var(--wi-line-strong);
+      border-radius: var(--wi-radius-control);
+      background: var(--wi-control-bg);
+      color: var(--wi-control-ink);
       font: inherit;
+      line-height: 1;
       cursor: default;
+    }
+    button:hover {
+      border-color: var(--wi-accent);
+      background: var(--wi-accent-soft);
     }
     .failure {
       position: fixed;
@@ -489,7 +497,7 @@ import { Localization } from './localization/localization.js';
       align-items: center;
       padding: 8px 10px;
       border: 1px solid var(--wi-danger-border);
-      border-radius: 6px;
+      border-radius: var(--wi-radius-panel);
       background: var(--wi-panel);
       box-shadow: var(--wi-panel-shadow);
       font: 12px var(--wi-sans);

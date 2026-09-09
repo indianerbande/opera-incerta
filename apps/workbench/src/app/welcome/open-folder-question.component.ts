@@ -50,7 +50,7 @@ import { Localization } from '../localization/localization.js';
           {{ dismissLabel() }}
         </button>
         @if (confirmLabel(); as label) {
-          <button type="button" class="confirm" #confirmButton (click)="confirm.emit()">
+          <button type="button" class="confirm primary" #confirmButton (click)="confirm.emit()">
             {{ label }}
           </button>
         }

@@ -133,7 +133,7 @@ import { Localization } from '../localization/localization.js';
     textarea {
       padding: 3px 5px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;

@@ -258,9 +258,12 @@ import { Localization } from '../localization/localization.js';
       border-inline-end: 1px solid var(--wi-separator);
     }
     .category {
-      padding: 4px 8px;
+      display: flex;
+      min-height: var(--wi-control-height);
+      align-items: center;
+      padding: 0 var(--wi-space-3);
       border: 1px solid transparent;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;
@@ -270,8 +273,11 @@ import { Localization } from '../localization/localization.js';
       background: var(--wi-row-hover);
     }
     .category.active {
-      border-color: var(--wi-border);
-      background: var(--wi-row-selected);
+      border-color: var(--wi-accent-border);
+      background: var(--wi-accent-soft);
+      box-shadow: inset 3px 0 0 var(--wi-accent);
+      color: var(--wi-accent);
+      font-weight: 600;
     }
     .content {
       display: flex;
@@ -349,7 +355,7 @@ import { Localization } from '../localization/localization.js';
       width: 5em;
       padding: 4px 6px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;
@@ -357,7 +363,7 @@ import { Localization } from '../localization/localization.js';
     .field input {
       padding: 4px 6px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;

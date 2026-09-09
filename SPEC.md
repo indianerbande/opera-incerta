@@ -1279,6 +1279,73 @@ is the next round's; this one is colour and face. And a theme *interface* for
 themes beyond these two schemes (§18, Phase 4) stays open: eight palettes
 over two schemes are a decided set, not an extension point.
 
+### 8.9 The shape of things
+
+**Status: Accepted (2026-09-09), written before its implementation.**
+
+§8.8 gave the workbench its colours and its face. This is its geometry: how
+round a corner is, how much air a control has, and what a dialog is made of.
+Like the colours, the values are the ones the author's other application uses,
+so that the two look built by the same hand.
+
+**Three radii and a pill**, as tokens, and nothing else:
+
+| Token | Value | Used by |
+| --- | --- | --- |
+| `--wi-radius-control` | 7px | buttons, inputs, rows, badges, switches |
+| `--wi-radius-panel` | 10px | menus, popovers, raised strips |
+| `--wi-radius-dialog` | 16px | the dialog panel |
+| `--wi-radius-pill` | 999px | a count or a state worn as a pill |
+
+**One spacing scale**: 4, 6, 8, 12, 16, 20 — `--wi-space-1` to `--wi-space-6`.
+A padding that is not on the scale is a decision that has to be argued.
+
+**A control has a height**, not a padding that happens to make one:
+`--wi-control-height` is 26px, with `0 9px` of side padding and a line height
+of 1. Denser than the other application's 30px, because this workbench puts
+three columns and two bars on the same screen; everything else about a control
+is the same. An icon button is square at that height. Inside the status bar,
+whose whole band is 24px (§10.5), controls take `--wi-control-height-compact`,
+18px — a band cannot hold a control taller than itself.
+
+**The two kinds of button.** The ordinary one is `--wi-control-bg` with a
+`--wi-line-strong` border and `--wi-control-ink` text; under the pointer it
+takes `--wi-accent-soft` and an accent border. The one that carries the action
+— Create, Save, Open, Commit — is `--wi-accent` with `--wi-accent-strong` and
+`--wi-accent-ink`. A dialog has **at most one** of the second kind, and it is
+the last one in the row.
+
+**What is active wears the accent on its edge**: `inset 3px 0 0
+var(--wi-accent)`, in the activity bars, the settings categories, and the
+selected row of a list. A selected row also takes `--wi-row-selected`; hover
+takes `--wi-row-hover`.
+
+**Focus is visible and is not the ring.** The other application draws focus
+with `--wi-focus-ring`, a 20 % accent; at this application's smaller controls
+that is too faint to find, so focus is a 2px `--wi-accent` outline with a 1px
+offset. This is a deliberate divergence, and the only one.
+
+**A dialog has three bands** (§8.7 keeps deciding what a dialog *does*; this is
+what it looks like):
+
+- a **header** on `--wi-surface-subtle`, closed by a line: the heading, and
+  optionally an **eyebrow** above it — the section's name in the accent,
+  uppercase, 10px, widely tracked;
+- a **body** on `--wi-panel`, which is where the content lives; and
+- a **footer** on `--wi-surface-subtle`, opened by a line, holding the actions
+  at its trailing edge.
+
+The panel is `--wi-radius-dialog`, bordered with `--wi-line-strong`, and lifted
+with `--wi-dialog-shadow` over a blurred `--wi-backdrop`. A dialog that has
+only a heading and a row of actions still has all three bands: that is what
+makes eleven dialogs look like one dialog.
+
+**What this section does not decide.** The region layout of §8.2 — the three
+columns, their widths, and the dividers between them — is untouched: whether
+the columns float as separate panels on the canvas with air between them is a
+question about the workbench's anatomy, not about the shape of its controls,
+and it would move measurements that §8.2 fixes.
+
 ## 9. Library
 
 ### 9.1 Project explorer

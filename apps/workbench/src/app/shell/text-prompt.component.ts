@@ -37,7 +37,7 @@ import { Localization } from '../localization/localization.js';
       }
       <div class="actions">
         <button type="button" (click)="cancel.emit()">{{ i18n.t('common.cancel') }}</button>
-        <button type="button" [disabled]="!valid()" (click)="submit()">{{ confirmLabel() }}</button>
+        <button type="button" class="primary" [disabled]="!valid()" (click)="submit()">{{ confirmLabel() }}</button>
       </div>
     </wi-dialog>
   `,
@@ -45,7 +45,7 @@ import { Localization } from '../localization/localization.js';
     input {
       padding: 4px 6px;
       border: 1px solid var(--wi-border);
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;

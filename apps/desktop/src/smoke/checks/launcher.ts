@@ -176,6 +176,25 @@ export async function checkOpeningAFolder(
   if (smoke.shell.projectWindow() !== null) {
     throw new Error('a project window appeared behind the question');
   }
+  // The one button that carries the action wears the accent (SPEC.md §8.9).
+  const primary = (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const button = document.querySelector('wi-open-folder-question button.primary');
+       if (button === null) { return null; }
+       const style = getComputedStyle(button);
+       const accent = getComputedStyle(document.documentElement).getPropertyValue('--wi-accent').trim();
+       const probe = document.createElement('span');
+       probe.style.color = accent;
+       document.body.append(probe);
+       const resolved = getComputedStyle(probe).color;
+       probe.remove();
+       return { background: style.backgroundColor, accent: resolved, weight: style.fontWeight };
+     })()`,
+  )) as { background: string; accent: string; weight: string } | null;
+  if (primary === null || primary.background !== primary.accent) {
+    throw new Error(`the affirmative button does not carry the accent: ${JSON.stringify(primary)}`);
+  }
+
   const evidence = join(smoke.evidenceDirectory, 'smoke-adopt-folder.png');
   writeFileSync(evidence, (await launcher.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${evidence}`);

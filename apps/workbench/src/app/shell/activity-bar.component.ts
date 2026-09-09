@@ -73,7 +73,7 @@ export interface ActivityItem<TId extends string = string> {
       width: 32px;
       height: 32px;
       border: 1px solid transparent;
-      border-radius: 6px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: var(--wi-muted);
       cursor: default;
@@ -119,9 +119,10 @@ export interface ActivityItem<TId extends string = string> {
       background: var(--wi-row-hover);
     }
     .item.active {
-      border-color: var(--wi-border);
-      background: var(--wi-row-selected);
-      color: inherit;
+      border-color: var(--wi-accent-border);
+      background: var(--wi-accent-soft);
+      box-shadow: inset 3px 0 0 var(--wi-accent);
+      color: var(--wi-accent);
     }
   `,
 })

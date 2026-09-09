@@ -53,7 +53,7 @@ import { Localization } from '../localization/localization.js';
       width: 100%;
       padding: 3px 6px;
       border: 0;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: 12px var(--wi-sans);

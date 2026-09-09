@@ -75,16 +75,24 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
       flex: 1 1 auto;
     }
     .wrap {
-      padding: 1px 7px;
+      display: inline-flex;
+      height: var(--wi-control-height-compact);
+      align-items: center;
+      padding: 0 var(--wi-space-2);
       border: 1px solid transparent;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;
+      line-height: 1;
+    }
+    .wrap:hover {
+      background: var(--wi-accent-soft);
     }
     .wrap.active {
-      border-color: var(--wi-border);
-      background: var(--wi-row-selected);
+      border-color: var(--wi-accent-border);
+      background: var(--wi-accent-soft);
+      color: var(--wi-accent);
     }
     /* The zoom of SPEC.md §10.9: a slider, and the factor beside it. */
     input.zoom {
@@ -96,7 +104,7 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
     .zoom-value {
       padding: 1px 4px;
       border: 1px solid transparent;
-      border-radius: 4px;
+      border-radius: var(--wi-radius-control);
       background: none;
       color: inherit;
       font: inherit;
