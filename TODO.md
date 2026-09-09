@@ -8,18 +8,18 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-03:** the library is complete — create, rename, place, delete —
+**State 2026-09-09:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
-of §10.6 with the watcher that triggers it, and source control (§12) up to and
-including amend and `.gitignore`. `pnpm run check` green on **Node 24**: 6
-projects, **1001 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across thirty checks,
+of §10.6 with the watcher that triggers it, source control (§12) up to and
+including amend and `.gitignore`, the GFM display (§10.7), and all four answers
+opening a folder can give (§8.6). `pnpm run check` green on **Node 24**: 8
+projects, **1011 tests**, plus the desktop and asset checks.
+`pnpm run desktop:smoke` green across thirty-seven checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
-open are the two source-control items below (creating a repository, and the git
-identity), the parts of §15 that this stage deliberately excludes, and the
-decision in §2.1.
+open are the parts of §15 that this stage deliberately excludes and the items
+below.
 
 The documents are **self-contained** since 2026-09-03: every requirement,
 measure and recorded defect stands in this repository, and no other repository
@@ -41,6 +41,11 @@ has to be consulted to build, verify or change the product.
    typed sequence — and the next run was green. Both look like input events
    delivered out of step with the renderer; if a third appears, the typing
    helper should wait for each character to land rather than for a frame.
+   A third kind, seen once on 2026-09-09: the front matter check measured the
+   foreign block at 36px where it needed 43px — one line under a scrollbar —
+   and the two runs after it, on the same code, were green. That check
+   measures immediately after a `rendered` wait; if it recurs, it should wait
+   for the height to stop changing rather than for two frames.
 
 
 ## 2. To decide before code exists

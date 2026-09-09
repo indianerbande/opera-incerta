@@ -22,9 +22,9 @@ const bridge = {
   windowRole: () => ipcRenderer.invoke(CHANNELS.windowRole),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
   createProject: (request: unknown) => ipcRenderer.invoke(CHANNELS.createProject, request),
+  adoptProject: (request: unknown) => ipcRenderer.invoke(CHANNELS.adoptProject, request),
   chooseProjectLocation: () => ipcRenderer.invoke(CHANNELS.chooseProjectLocation),
-  openRecentProject: (request: unknown) =>
-    ipcRenderer.invoke(CHANNELS.openRecentProject, request),
+  openProjectPath: (request: unknown) => ipcRenderer.invoke(CHANNELS.openProjectPath, request),
   forgetRecentProject: (request: unknown) =>
     ipcRenderer.invoke(CHANNELS.forgetRecentProject, request),
   currentProject: () => ipcRenderer.invoke(CHANNELS.currentProject),

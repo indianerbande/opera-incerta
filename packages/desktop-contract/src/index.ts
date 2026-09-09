@@ -74,8 +74,14 @@ function shape<T extends object>(fields: { readonly [K in keyof T]-?: Guard<T[K]
 }
 
 
-/** Contract version. A breaking change increments it and both sides check it. */
-export const CONTRACT_VERSION = 2;
+/**
+ * Contract version. A breaking change increments it and both sides check it.
+ *
+ * 3: opening reports what it found instead of only succeeding or failing
+ * ({@link ProjectOpenOutcome}), and the channel that opens a project by path
+ * is named for what it does rather than for the recent list it came from.
+ */
+export const CONTRACT_VERSION = 3;
 
 /** The global the preload script exposes on the renderer's `window`. */
 export const BRIDGE_GLOBAL = 'operaIncerta';
@@ -90,8 +96,9 @@ export const CHANNELS = {
   windowRole: 'opera-incerta:window/role',
   openProject: 'opera-incerta:project/open',
   createProject: 'opera-incerta:project/create',
+  adoptProject: 'opera-incerta:project/adopt',
   chooseProjectLocation: 'opera-incerta:project/choose-location',
-  openRecentProject: 'opera-incerta:project/open-recent',
+  openProjectPath: 'opera-incerta:project/open-path',
   currentProject: 'opera-incerta:project/current',
   recentProjects: 'opera-incerta:project/recent',
   forgetRecentProject: 'opera-incerta:project/forget-recent',
@@ -220,6 +227,76 @@ export interface ProjectSnapshot {
    */
   readonly categories: readonly PageCategory[];
 }
+
+/**
+ * What choosing a folder to open led to. SPEC.md §8.6.
+ *
+ * Opening is not "it worked or it failed": a folder the author points at may
+ * be a project, may be about to become one, or may be the folder *above* the
+ * project they meant. The main process classifies it and says so; deciding
+ * what to do about each answer is the launcher's, because each answer is a
+ * question to the author rather than an error.
+ *
+ * Every path here was handed out by the main process after the author chose
+ * the folder in the native chooser. The renderer sends one back to say which
+ * answer it is acting on; it never composes one.
+ */
+export type ProjectOpenOutcome =
+  /** A project, and it is now open. */
+  | { readonly kind: 'opened'; readonly snapshot: ProjectSnapshot }
+  /** The chooser was dismissed. Nothing happened, and nothing is reported. */
+  | { readonly kind: 'cancelled' }
+  /** No project in it and none below it: it can become one. */
+  | {
+      readonly kind: 'no-project';
+      readonly path: string;
+      readonly shortPath: string;
+      /** The folder's own name, which adoption takes as the display name. */
+      readonly folderName: string;
+    }
+  /** Not a project, but exactly one directly inside it. */
+  | {
+      readonly kind: 'single-subproject';
+      /** The subproject, not the folder that was chosen. */
+      readonly path: string;
+      readonly shortPath: string;
+      readonly name: string;
+    }
+  /** Not a project, and several inside it: the author says which. */
+  | {
+      readonly kind: 'multiple-subprojects';
+      readonly shortPath: string;
+      readonly names: readonly string[];
+    };
+
+/** The outcomes that are a question to the author rather than a result. */
+export type ProjectOpenQuestion = Exclude<
+  ProjectOpenOutcome,
+  { kind: 'opened' } | { kind: 'cancelled' }
+>;
+
+/** Runtime guard for what opening reports. */
+export const isProjectOpenOutcome: Guard<ProjectOpenOutcome> = (
+  value,
+): value is ProjectOpenOutcome => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  switch (value['kind']) {
+    case 'opened':
+      return isProjectSnapshot(value['snapshot']);
+    case 'cancelled':
+      return true;
+    case 'no-project':
+      return isNotEmpty(value['path']) && isString(value['shortPath']) && isNotEmpty(value['folderName']);
+    case 'single-subproject':
+      return isNotEmpty(value['path']) && isString(value['shortPath']) && isNotEmpty(value['name']);
+    case 'multiple-subprojects':
+      return isString(value['shortPath']) && arrayOf(isNotEmpty)(value['names']);
+    default:
+      return false;
+  }
+};
 
 /**
  * A command the native menu issued. SPEC.md §8.5.
@@ -420,12 +497,18 @@ export interface ChosenLocation {
   readonly shortPath: string;
 }
 
-/** A request naming a recent project by its path. */
-export interface RecentProjectRequest {
+/**
+ * A request naming a project directory by its absolute path.
+ *
+ * The path is always one the main process handed out — a recent entry, or a
+ * folder the author just chose — and the handler checks what is actually there
+ * before it acts, because a name is not a permission (SPEC.md §5.3).
+ */
+export interface ProjectPathRequest {
   readonly path: string;
 }
 
-export const isRecentProjectRequest: Guard<RecentProjectRequest> = shape<RecentProjectRequest>({
+export const isProjectPathRequest: Guard<ProjectPathRequest> = shape<ProjectPathRequest>({
   path: isNotEmpty,
 });
 
@@ -645,16 +728,31 @@ export interface OperaIncertaBridge {
   /** The project already open, for a project window that has just loaded. */
   currentProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   recentProjects(): Promise<BridgeResult<readonly RecentProjectEntry[]>>;
-  /** Opens a project from the recent list, by path. */
-  openRecentProject(request: RecentProjectRequest): Promise<BridgeResult<ProjectSnapshot | null>>;
+  /**
+   * Opens the project at a path: a recent entry, or the subproject that
+   * opening a folder offered.
+   */
+  openProjectPath(request: ProjectPathRequest): Promise<BridgeResult<ProjectSnapshot | null>>;
   /** Removes an entry from the recent list without touching the directory. */
-  forgetRecentProject(request: RecentProjectRequest): Promise<BridgeResult<null>>;
+  forgetRecentProject(request: ProjectPathRequest): Promise<BridgeResult<null>>;
   /** Opens the directory chooser for a project's parent. Null when cancelled. */
   chooseProjectLocation(): Promise<BridgeResult<ChosenLocation | null>>;
   /** Creates the project and opens it. */
   createProject(request: CreateProjectRequest): Promise<BridgeResult<ProjectSnapshot>>;
-  /** Opens the native directory chooser. Resolves to null when cancelled. */
-  openProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
+  /**
+   * Makes an existing folder a project and opens it. SPEC.md §8.6.
+   *
+   * Answers the `no-project` outcome of {@link openProject}: the folder keeps
+   * its files, and gets the record directory it lacked. The display name is
+   * the folder's own name, decided in the main process, so the renderer cannot
+   * name a project something the folder is not called.
+   */
+  adoptProject(request: ProjectPathRequest): Promise<BridgeResult<ProjectSnapshot>>;
+  /**
+   * Opens the native directory chooser and reports what the chosen folder
+   * turned out to be. SPEC.md §8.6.
+   */
+  openProject(): Promise<BridgeResult<ProjectOpenOutcome>>;
   /** Re-reads the open project from disk, after an external change. */
   reopenProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   closeProject(): Promise<BridgeResult<null>>;

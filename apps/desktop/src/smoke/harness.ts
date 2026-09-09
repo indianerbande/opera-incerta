@@ -119,6 +119,30 @@ export async function waitForProjectWindow(smoke: Smoke): Promise<BrowserWindow>
   throw new Error('the project window never appeared');
 }
 
+/**
+ * Waits for the launcher to be back and loaded, with its console forwarded.
+ *
+ * Closing a project builds a **new** welcome window, so a handle from before
+ * is destroyed and the check that goes on using it fails in a way that says
+ * nothing about the application.
+ *
+ * Loaded is not rendered: the renderer asks which window it is before it
+ * bootstraps the launcher, so the buttons arrive after `isLoading` is already
+ * false. The wait is for the buttons.
+ */
+export async function waitForLauncher(smoke: Smoke): Promise<BrowserWindow> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const window = smoke.shell.welcomeWindow();
+    if (window !== null && !window.isDestroyed() && !window.webContents.isLoading()) {
+      forwardConsole(window);
+      await waitForSelector(window, '.welcome .actions button');
+      return window;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error('the launcher never came back');
+}
+
 export async function isVisible(window: BrowserWindow, selector: string): Promise<boolean> {
   return (await window.webContents.executeJavaScript(
     `document.querySelector(${JSON.stringify(selector)}) !== null`,
@@ -148,6 +172,34 @@ export async function clickText(window: BrowserWindow, selector: string, text: s
     throw new Error(`no ${selector} containing ${text}`);
   }
   await rendered(window);
+}
+
+/**
+ * Clicks, and does not wait for a frame afterwards.
+ *
+ * For the one kind of click whose consequence is that **this window goes
+ * away**: opening or creating a project closes the launcher, and
+ * `requestAnimationFrame` in a window that is closing never runs, so the wait
+ * inside {@link clickText} would hang the whole run rather than fail it. This
+ * cost one hung run before it had a name.
+ */
+export async function clickAndLeave(
+  window: BrowserWindow,
+  selector: string,
+  text: string,
+): Promise<void> {
+  const clicked = (await window.webContents.executeJavaScript(
+    `(() => {
+       const element = [...document.querySelectorAll(${JSON.stringify(selector)})]
+         .find((candidate) => candidate.textContent.includes(${JSON.stringify(text)}));
+       if (element === undefined) { return false; }
+       element.click();
+       return true;
+     })()`,
+  )) as boolean;
+  if (!clicked) {
+    throw new Error(`no ${selector} containing ${text}`);
+  }
 }
 
 /** Types into the open prompt and confirms it. */

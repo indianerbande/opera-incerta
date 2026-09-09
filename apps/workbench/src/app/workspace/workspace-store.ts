@@ -218,21 +218,13 @@ export class WorkspaceStore {
    * Adopts the project the main process already has open.
    *
    * The project window is created *because* a project was opened, so it finds
-   * one waiting rather than asking for it.
+   * one waiting rather than asking for it. This is the workbench's only way
+   * into a project: choosing one is the launcher's business (SPEC.md §8.6),
+   * and a second opening path here was one the application never took.
    */
   async adoptOpenProject(): Promise<void> {
     await this.#withBridge(async (bridge) => {
       const snapshot = unwrapSnapshot(await bridge.currentProject());
-      if (snapshot !== null) {
-        this.#adopt(snapshot);
-        this.#selectedGroupPath.set('.');
-      }
-    });
-  }
-
-  async openProject(): Promise<void> {
-    await this.#withBridge(async (bridge) => {
-      const snapshot = unwrapSnapshot(await bridge.openProject());
       if (snapshot !== null) {
         this.#adopt(snapshot);
         this.#selectedGroupPath.set('.');

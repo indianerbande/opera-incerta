@@ -6,6 +6,76 @@ documents").
 
 ---
 
+## 2026-09-09 — a folder that is not a project, answered instead of refused
+
+**What was wrong.** Choosing a folder without `.opera-incerta/` put
+`Das Projekt ließ sich nicht öffnen (project/no-project)` in the launcher —
+the application's own inner state, shown to the author, with no way forward.
+`SPEC.md` §8.6 has specified four answers since it was written and only one
+was built: `ProjectSession.open` threw `project/${inspection.kind}` for the
+other three, the shell passed the code through, and the welcome window printed
+it. The adapter could adopt a folder all along (`createProject` is documented
+for exactly that, and `TESTING.md` §2.3 asks for its evidence); nothing above
+it ever asked.
+
+**What was decided first** (`SPEC.md` §8.6, now Implemented). Opening
+**reports what it found** rather than succeeding or throwing: five outcomes —
+opened, cancelled, and the three questions. Which question to ask and what a
+yes does is the launcher's, in the renderer, because that is where a click's
+meaning is decided (§8.7); a native message box would have been a second
+interface in front of the same decision. Adoption keeps every file and adds
+only the record directory, and the display name — the folder's own name — is
+the main process's to decide: the renderer says *which* folder was meant,
+never what the project is called. Several projects have no yes at all; the
+list names them and the author opens the one they mean, because guessing
+opens the wrong manuscript.
+
+**What changed.** The contract grew `ProjectOpenOutcome` with its guard, and
+`adoptProject`; `openRecentProject` became **`openProjectPath`**, named for
+what it does rather than for the list it came from, now that a subproject
+offer uses it too. Contract version 2 → 3. The shell classifies in one
+function, `openOrReport`, and adoption checks the directory is there and is
+not already a project before anything is written — `createProject` would
+otherwise have created a whole missing tree for a path that named nothing.
+The launcher holds the question as one signal and answers it; one dialog
+asks all three, with Return left to the affirmative button because nothing
+here is destructive. `WorkspaceStore.openProject` is **gone**: the workbench
+never opened a project — the launcher does — and a second opening path kept
+alive only by its own tests would have had to learn the new protocol for
+nothing.
+
+**Verification.** `pnpm run check` green: **1011 tests** across eight
+projects — seven launcher cases, one per answer and per way of getting it
+wrong, and the outcome guard by the kind it claims. `pnpm run desktop:smoke`
+green across **thirty-seven checks**: a folder holding two Markdown files
+raises the question, and until it is answered nothing is written and no
+window opens; answering makes it a project named after itself whose library
+is those two files, their bytes unchanged; the folder above then offers the
+one project inside it; a second project beside it and both are named with no
+way to say yes. Both dialogs screenshotted and looked at. Falsified four
+times: the answer sent to the wrong channel, the several-case allowed a yes,
+the guard let `opened` through without its snapshot, and adoption naming the
+project something other than the folder — each failed in its own check and
+nowhere else.
+
+**Lessons.**
+
+1. **A smoke that hangs is worse than one that fails.** `clickText` waits for
+   the next frame, and the click that opens a project closes the window it
+   waited in: `requestAnimationFrame` never ran, and the run sat there for
+   twelve minutes with no output. Two checks had their own click for this
+   reason without saying so. It is `clickAndLeave` now, and the reason is in
+   its documentation.
+2. **Loaded is not rendered.** `waitForLauncher` waited for `isLoading` to go
+   false, but the renderer asks which window it is before it bootstraps the
+   launcher, so the buttons arrive later. The wait is for the buttons.
+3. **A diagnostic code in front of the author is an unfinished branch.** The
+   code was correct and the message was honest; what was missing was the
+   decision about what to offer instead. Reading `SPEC.md` §8.6 against the
+   handler found three specified answers that no code had ever taken.
+
+---
+
 ## 2026-09-04 — the GFM display, with markdown-it behind it
 
 **What was open** (`SPEC.md` §18, `TODO.md` §2.1). The editor hid heading

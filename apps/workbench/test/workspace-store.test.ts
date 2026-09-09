@@ -84,7 +84,7 @@ function fakeBridge(overrides: Partial<OperaIncertaBridge> = {}): OperaIncertaBr
   return {
     ...baseBridge(),
     writes,
-    openProject: async (): Promise<BridgeResult<ProjectSnapshot | null>> => ({
+    currentProject: async (): Promise<BridgeResult<ProjectSnapshot | null>> => ({
       ok: true,
       value: snapshot,
     }),
@@ -107,10 +107,10 @@ function fakeBridge(overrides: Partial<OperaIncertaBridge> = {}): OperaIncertaBr
   };
 }
 
-describe('opening a project', () => {
+describe('adopting the open project', () => {
   it('adopts the snapshot and selects the root group', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
 
     expect(store.project()?.displayName).toBe('A Novel');
     expect(store.selectedGroupPath()).toBe('.');
@@ -119,7 +119,7 @@ describe('opening a project', () => {
 
   it('shows only the direct sheets of the selected group', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
 
     expect(store.visibleSheets().map((sheet) => sheet.displayName)).toEqual(['Preface']);
 
@@ -127,11 +127,11 @@ describe('opening a project', () => {
     expect(store.visibleSheets().map((sheet) => sheet.displayName)).toEqual(['A Scene']);
   });
 
-  it('reports a cancelled dialog as no change', async () => {
+  it('changes nothing when no project is open', async () => {
     const store = new WorkspaceStore(
-      fakeBridge({ openProject: async () => ({ ok: true, value: null }) }),
+      fakeBridge({ currentProject: async () => ({ ok: true, value: null }) }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
 
     expect(store.project()).toBeNull();
     expect(store.failure()).toBeNull();
@@ -140,10 +140,10 @@ describe('opening a project', () => {
   it('reports a refusal with the code the main process sent', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        openProject: async () => ({ ok: false, code: 'project/no-project', message: 'nope' }),
+        currentProject: async () => ({ ok: false, code: 'project/no-project', message: 'nope' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
 
     expect(store.project()).toBeNull();
     expect(store.failure()).toBe('project/no-project');
@@ -152,10 +152,10 @@ describe('opening a project', () => {
   it('refuses a malformed snapshot at the boundary', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        openProject: async () => ({ ok: true, value: { id: 'x' } as never }),
+        currentProject: async () => ({ ok: true, value: { id: 'x' } as never }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
 
     expect(store.failure()).toBe('bridge/malformed-snapshot');
     expect(store.project()).toBeNull();
@@ -165,7 +165,7 @@ describe('opening a project', () => {
 describe('opening a sheet', () => {
   it('reads its text through the handle and expands the tree to it', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('part-1/pre/note.md');
 
     expect(store.openSheet()?.displayName).toBe('Note');
@@ -176,7 +176,7 @@ describe('opening a sheet', () => {
 
   it('ignores a path that is not in the library', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('nowhere.md');
 
     expect(store.openSheet()).toBeNull();
@@ -187,7 +187,7 @@ describe('opening a sheet', () => {
       readSheet: async () => ({ ok: false, code: 'document/too-large', message: 'too big' }),
     });
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     expect(store.failure()).toBe('document/too-large');
@@ -198,7 +198,7 @@ describe('opening a sheet', () => {
 describe('editing and saving', () => {
   it('gives the editor the body, never the front matter', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     expect(store.editorDocument()?.text).toBe('# Preface\n');
@@ -207,7 +207,7 @@ describe('editing and saving', () => {
 
   it('is not dirty until the body differs from what was saved', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     expect(store.dirty()).toBe(false);
@@ -217,7 +217,7 @@ describe('editing and saving', () => {
 
   it('becomes clean again when the body returns to the saved state', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     store.noteText('changed');
@@ -228,7 +228,7 @@ describe('editing and saving', () => {
   it('reassembles the file on save, so the front matter survives', async () => {
     const bridge = fakeBridge();
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nSaved.\n');
     await store.save();
@@ -245,7 +245,7 @@ describe('editing and saving', () => {
   it('keeps foreign front matter through an edit to the body alone', async () => {
     const bridge = fakeBridge();
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     store.selectGroup('part-1');
     await store.selectSheet('part-1/scene.md');
     store.noteText('# A Scene\n\nRewritten.\n');
@@ -260,7 +260,7 @@ describe('editing and saving', () => {
   it('writes nothing when there is nothing to save', async () => {
     const bridge = fakeBridge();
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.save();
 
@@ -275,7 +275,7 @@ describe('editing and saving', () => {
       }),
     });
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     expect(store.diagnostics()[0]?.code).toBe('front-matter/namespace-not-a-mapping');
@@ -293,7 +293,7 @@ describe('editing and saving', () => {
         writeSheet: async () => ({ ok: false, code: 'document/too-large', message: 'too big' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('changed');
     await store.save();
@@ -331,7 +331,7 @@ describe('reloading after an external change', () => {
       },
     });
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     const selecting = store.selectSheet('preface.md');
     await settleUntil(() => reads.length === 1);
     reads.shift()?.resolve();
@@ -363,7 +363,7 @@ describe('reloading after an external change', () => {
 
   it('keeps the selected group and the open sheet', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     store.selectGroup('part-1');
     await store.selectSheet('part-1/scene.md');
     await store.reloadProject();
@@ -376,7 +376,7 @@ describe('reloading after an external change', () => {
 describe('closing', () => {
   it('clears everything, so nothing of the old project survives', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.closeProject();
 
@@ -391,7 +391,7 @@ describe('closing', () => {
 describe('without a shell', () => {
   it('reports the absent bridge rather than throwing', async () => {
     const store = new WorkspaceStore(null);
-    await store.openProject();
+    await store.adoptOpenProject();
 
     expect(store.hasBridge).toBe(false);
     expect(store.failure()).toBe('bridge/absent');
@@ -448,7 +448,7 @@ describe('creating and renaming', () => {
         readSheet: async () => ({ ok: true, value: '---\nopera-incerta:\n  title: A Late Arrival\n---\n' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.createSheet('part-1', 'A Late Arrival');
 
     // The list beside the editor has to show the sheet the editor holds.
@@ -467,7 +467,7 @@ describe('creating and renaming', () => {
         }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.createGroup('part-1', 'Chapter 2');
 
@@ -482,7 +482,7 @@ describe('creating and renaming', () => {
         renameSheet: async () => ({ ok: true, value: { snapshot, revealPath: null } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('part-1/scene.md');
     store.selectGroup('part-1');
     await store.renameSheet('preface.md', 'A Better Preface');
@@ -501,7 +501,7 @@ describe('creating and renaming', () => {
         },
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.renameSheet('preface.md', 'A Better Preface');
 
@@ -513,7 +513,7 @@ describe('creating and renaming', () => {
 
   it('names the open sheet by the title being edited, not the saved one', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.renameSheet('preface.md', 'A Better Preface');
 
@@ -524,7 +524,7 @@ describe('creating and renaming', () => {
 
   it('falls back to the saved name when the title is emptied', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.updateMetadata({ title: '   ' });
 
@@ -559,7 +559,7 @@ describe('reordering', () => {
         },
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.placeEntry('part-1/scene.md', 'part-1', 'pre');
 
     // An index would mean something else by the time the group is re-read.
@@ -572,7 +572,7 @@ describe('reordering', () => {
         placeEntry: async () => ({ ok: true, value: { snapshot: reordered, revealPath: null } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     store.selectGroup('part-1');
     await store.selectSheet('preface.md');
     store.selectGroup('part-1');
@@ -593,7 +593,7 @@ describe('reordering', () => {
         placeEntry: async () => ({ ok: false, code: 'entry/unknown', message: 'gone' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.placeEntry('ghost.md', '.', null);
 
     expect(store.failure()).toBe('entry/unknown');
@@ -607,7 +607,7 @@ describe('unsaved work during a library edit', () => {
       createGroup: async () => ({ ok: true, value: { snapshot, revealPath: 'part-2' } }),
     });
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nA paragraph nobody saved yet.\n');
     store.updateMetadata({ title: 'A Better Preface' });
@@ -630,7 +630,7 @@ describe('unsaved work during a library edit', () => {
         createGroup: async () => ({ ok: true, value: { snapshot, revealPath: 'part-2' } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.createGroup('.', 'Part 2');
 
@@ -685,12 +685,12 @@ describe('deleting', () => {
     const afterDeletion: ProjectSnapshot = { ...withoutPreface, handles: survivors };
     const store = new WorkspaceStore(
       fakeBridge({
-        openProject: async () => ({ ok: true, value: twoSheets }),
+        currentProject: async () => ({ ok: true, value: twoSheets }),
         deleteEntry: async () => ({ ok: true, value: { snapshot: afterDeletion, revealPath: null } }),
         readSheet: async () => ({ ok: true, value: 'Afterword\n' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     expect(store.retiredHandles()).toEqual([]);
 
     await store.deleteEntry('preface.md');
@@ -702,12 +702,12 @@ describe('deleting', () => {
   it('opens the sheet after the deleted one', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        openProject: async () => ({ ok: true, value: twoSheets }),
+        currentProject: async () => ({ ok: true, value: twoSheets }),
         deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPreface, revealPath: null } }),
         readSheet: async () => ({ ok: true, value: 'Afterword\n' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.deleteEntry('preface.md');
 
@@ -725,11 +725,11 @@ describe('deleting', () => {
     };
     const store = new WorkspaceStore(
       fakeBridge({
-        openProject: async () => ({ ok: true, value: twoSheets }),
+        currentProject: async () => ({ ok: true, value: twoSheets }),
         deleteEntry: async () => ({ ok: true, value: { snapshot: afterwordGone, revealPath: null } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('afterword.md');
     await store.deleteEntry('afterword.md');
 
@@ -749,7 +749,7 @@ describe('deleting', () => {
         deleteEntry: async () => ({ ok: true, value: { snapshot: emptyRoot, revealPath: null } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.deleteEntry('preface.md');
 
@@ -759,11 +759,11 @@ describe('deleting', () => {
   it('keeps the open sheet when some other entry is deleted', async () => {
     const store = new WorkspaceStore(
       fakeBridge({
-        openProject: async () => ({ ok: true, value: twoSheets }),
+        currentProject: async () => ({ ok: true, value: twoSheets }),
         deleteEntry: async () => ({ ok: true, value: { snapshot: twoSheets, revealPath: null } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.deleteEntry('part-1/scene.md');
 
@@ -776,7 +776,7 @@ describe('deleting', () => {
         deleteEntry: async () => ({ ok: true, value: { snapshot: withoutPart, revealPath: null } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     store.selectGroup('part-1/pre');
     await store.deleteEntry('part-1');
 
@@ -790,7 +790,7 @@ describe('deleting', () => {
         deleteEntry: async () => ({ ok: false, code: 'trash/unavailable', message: 'no trash' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.deleteEntry('preface.md');
 
     expect(store.failure()).toBe('trash/unavailable');
@@ -848,7 +848,7 @@ describe('moving into another group', () => {
         },
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.placeEntry('preface.md', 'part-1', null);
 
     expect(asked).toEqual({ path: 'preface.md', into: 'part-1', before: null });
@@ -856,7 +856,7 @@ describe('moving into another group', () => {
 
   it('reveals the sheet where it ended up, not where it was sent', async () => {
     const store = new WorkspaceStore(movingBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.placeEntry('preface.md', 'part-1', null);
 
@@ -869,7 +869,7 @@ describe('moving into another group', () => {
   it('carries what was unsaved in the moved sheet along with it', async () => {
     const bridge = movingBridge();
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nStill unsaved when it moved.\n');
 
@@ -886,7 +886,7 @@ describe('moving into another group', () => {
         placeEntry: async () => ({ ok: false, code: 'group/into-itself', message: 'no' }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.placeEntry('part-1', 'part-1/pre', null);
 
     expect(store.failure()).toBe('group/into-itself');
@@ -935,7 +935,7 @@ describe('moving a group the open sheet is in', () => {
       placeEntry: async () => ({ ok: true, value: { snapshot: nested, revealPath: 'part-2/part-1' } }),
     });
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('part-1/scene.md');
     store.noteText('# A Scene\n\nCarried along.\n');
 
@@ -957,7 +957,7 @@ describe('placing does not open', () => {
         placeEntry: async () => ({ ok: true, value: { snapshot, revealPath: 'part-1/scene.md' } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.placeEntry('part-1/scene.md', 'part-1', null);
 
@@ -972,7 +972,7 @@ describe('placing a group', () => {
         placeEntry: async () => ({ ok: true, value: { snapshot, revealPath: 'part-1/pre' } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.placeEntry('part-1/pre', 'part-1', null);
 
@@ -1017,7 +1017,7 @@ describe('re-reading a project with unsaved work', () => {
   it('keeps what was typed when the file did not change', async () => {
     const disk = mutableDisk();
     const store = new WorkspaceStore(disk.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nTyped, not saved.\n');
 
@@ -1030,7 +1030,7 @@ describe('re-reading a project with unsaved work', () => {
   it('takes the file when nothing was typed', async () => {
     const disk = mutableDisk();
     const store = new WorkspaceStore(disk.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     expect(store.editorDocument()?.text).toBe('# Preface\n');
 
@@ -1046,7 +1046,7 @@ describe('re-reading a project with unsaved work', () => {
   it('asks when both changed, and keeps the author’s version meanwhile', async () => {
     const disk = mutableDisk();
     const store = new WorkspaceStore(disk.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nTyped, not saved.\n');
 
@@ -1065,7 +1065,7 @@ describe('re-reading a project with unsaved work', () => {
   it('takes the file when the author says so', async () => {
     const disk = mutableDisk();
     const store = new WorkspaceStore(disk.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nTyped, not saved.\n');
     disk.change(changed);
@@ -1085,7 +1085,7 @@ describe('re-reading a project with unsaved work', () => {
     // debounced re-read arrives.
     const disk = mutableDisk();
     const store = new WorkspaceStore(disk.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.updateMetadata({ category: 'memory-1' });
     await store.save();
@@ -1102,7 +1102,7 @@ describe('re-reading a project with unsaved work', () => {
   it('takes no field it does not own, so a stray object cannot dirty the sheet', async () => {
     const disk = mutableDisk();
     const store = new WorkspaceStore(disk.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     // What a DOM Event looks like to Object.entries: one enumerable property.
@@ -1120,7 +1120,7 @@ describe('re-reading a project with unsaved work', () => {
         createGroup: async () => ({ ok: true, value: { snapshot, revealPath: 'part-2' } }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('Typed.\n');
     disk.change(changed);
@@ -1135,7 +1135,7 @@ describe('re-reading a project with unsaved work', () => {
 describe('page categories', () => {
   it('resolves the open sheet’s category, and an unknown id as none', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     expect(store.category()).toBeNull();
@@ -1149,7 +1149,7 @@ describe('page categories', () => {
 
   it('shows a category the author has chosen but not saved', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.updateMetadata({ category: 'draft' });
 
@@ -1172,7 +1172,7 @@ describe('page categories', () => {
         },
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     await store.saveCategories([{ id: 'review', name: 'Review', color: '#102040' }]);
 
@@ -1211,7 +1211,7 @@ describe('saying what to watch', () => {
   it('names the group on screen and the open document', async () => {
     const spy = watchingBridge();
     const store = new WorkspaceStore(spy.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     store.selectGroup('part-1');
     await store.selectSheet('part-1/scene.md');
 
@@ -1221,7 +1221,7 @@ describe('saying what to watch', () => {
   it('watches the group the *list* shows, not the one the sheet lives in', async () => {
     const spy = watchingBridge();
     const store = new WorkspaceStore(spy.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     // Opening a sheet from elsewhere — the outline, a reveal — does not move
     // the sheet list, so the group on screen is still the root.
     await store.selectSheet('part-1/scene.md');
@@ -1232,7 +1232,7 @@ describe('saying what to watch', () => {
   it('follows the selection as it moves', async () => {
     const spy = watchingBridge();
     const store = new WorkspaceStore(spy.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     store.selectGroup('part-1/pre');
 
     expect(spy.targets.at(-1)).toEqual({ group: 'part-1/pre', sheet: null });
@@ -1241,7 +1241,7 @@ describe('saying what to watch', () => {
   it('watches nothing once the project is closed', async () => {
     const spy = watchingBridge();
     const store = new WorkspaceStore(spy.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.closeProject();
 
     expect(spy.targets.at(-1)).toEqual({ group: null, sheet: null });
@@ -1250,7 +1250,7 @@ describe('saying what to watch', () => {
   it('re-reads when something changed, and says nothing when it did not', async () => {
     const spy = watchingBridge();
     const store = new WorkspaceStore(spy.bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     const stop = store.listenForExternalChanges();
 
@@ -1268,7 +1268,7 @@ describe('saying what to watch', () => {
 describe('what survives a re-read', () => {
   it('keeps the tree open where it was', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     store.toggleExpanded('part-1');
     store.toggleExpanded('part-1/pre');
 
@@ -1291,7 +1291,7 @@ describe('what survives a re-read', () => {
     const store = new WorkspaceStore(
       fakeBridge({ reopenProject: async () => ({ ok: true, value: withoutPart }) }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     store.toggleExpanded('part-1');
 
     await store.reloadProject();
@@ -1312,7 +1312,7 @@ describe('forgetting edits after a discard', () => {
           request.handle.id === 'a'.repeat(32) ? { ok: true, value: text } : { ok: true, value: 'Other\n' },
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nTyped, about to be discarded.\n');
     text = '# Preface, as committed\n';
@@ -1327,7 +1327,7 @@ describe('forgetting edits after a discard', () => {
 
   it('drops what the editor held for the discarded sheet', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nA change about to be discarded.\n');
     store.updateMetadata({ topic: 'harbour' });
@@ -1342,7 +1342,7 @@ describe('forgetting edits after a discard', () => {
 
   it('leaves the edits of another sheet alone', async () => {
     const store = new WorkspaceStore(fakeBridge());
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('Still being written.\n');
 
@@ -1371,7 +1371,7 @@ describe('a buffer dropped on purpose stays dropped', () => {
         },
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
     store.noteText('# Preface\n\nAbout to be discarded.\n');
 
@@ -1404,7 +1404,7 @@ describe('a sheet a merge has not finished with', () => {
   it('is shown, and never written back', async () => {
     const bridge = fakeBridge({ readSheet: async () => ({ ok: true, value: conflicted }) });
     const store = new WorkspaceStore(bridge);
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     // An author typing around markers would save a file that is neither
@@ -1426,7 +1426,7 @@ describe('a sheet a merge has not finished with', () => {
         }),
       }),
     );
-    await store.openProject();
+    await store.adoptOpenProject();
     await store.selectSheet('preface.md');
 
     expect(store.diagnostics()).toEqual([]);

@@ -4,6 +4,7 @@ import { LayoutState } from '../shell/layout-state.js';
 import { resolveBridge } from '../workspace/bridge.js';
 import { LauncherStore } from '../workspace/launcher-store.js';
 import { NewProjectDialogComponent } from './new-project-dialog.component.js';
+import { OpenFolderQuestionComponent } from './open-folder-question.component.js';
 
 /**
  * The launcher. SPEC.md §8.6.
@@ -16,7 +17,7 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
   // The same root element as the workbench: index.html holds one, and exactly
   // one of the two components is ever bootstrapped into it (SPEC.md §8.5).
   selector: 'wi-root',
-  imports: [NewProjectDialogComponent],
+  imports: [NewProjectDialogComponent, OpenFolderQuestionComponent],
   providers: [{ provide: Localization, useFactory: () => inject(WelcomeComponent).i18n }],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -70,6 +71,14 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
         <p class="failure" role="alert">{{ message(code) }}</p>
       }
     </div>
+
+    @if (launcher.question(); as question) {
+      <wi-open-folder-question
+        [question]="question"
+        (confirm)="launcher.answerQuestion()"
+        (cancel)="launcher.dismissQuestion()"
+      />
+    }
 
     @if (launcher.creating()) {
       <wi-new-project-dialog

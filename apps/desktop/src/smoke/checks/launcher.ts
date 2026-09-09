@@ -4,17 +4,20 @@
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserWindow, Menu } from 'electron';
 import { MENU_ACCELERATORS, menuItemId } from '../../application-menu.js';
 import {
   activateSidebar,
+  clickAndLeave,
   clickMenuItem,
   clickText,
-  forwardConsole,
+  headerTitle,
   isVisible,
   rendered,
+  sheetTitles,
+  waitForLauncher,
   waitForProjectWindow,
   waitForSelector,
   waitUntil,
@@ -59,18 +62,7 @@ export async function checkLauncherAndOpen(smoke: Smoke, launcher: BrowserWindow
     throw new Error(`expected an empty recent list: ${JSON.stringify(welcome)}`);
   }
 
-  const clicked = (await launcher.webContents.executeJavaScript(
-    `(() => {
-       const button = [...document.querySelectorAll('.actions button')]
-         .find((candidate) => candidate.textContent.includes('Open project'));
-       if (button === undefined) { return false; }
-       button.click();
-       return true;
-     })()`,
-  )) as boolean;
-  if (!clicked) {
-    throw new Error('no "Open project" button in the launcher');
-  }
+  await clickAndLeave(launcher, '.welcome .actions button', 'Open project');
 
   const window = await waitForProjectWindow(smoke);
   await waitForSelector(window, 'wi-root .workbench');
@@ -97,20 +89,7 @@ export async function checkReturnToLauncher(
   // Through the File menu, so the specified path — menu, window close, reset,
   // launcher — is the one under test (SPEC.md §8.5).
   clickMenuItem('project/close');
-
-  let launcher: BrowserWindow | null = null;
-  for (let attempt = 0; attempt < 100 && launcher === null; attempt += 1) {
-    const candidate = smoke.shell.welcomeWindow();
-    if (candidate !== null && !candidate.isDestroyed() && !candidate.webContents.isLoading()) {
-      launcher = candidate;
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-  }
-  if (launcher === null) {
-    throw new Error('closing the project did not bring the launcher back');
-  }
-  forwardConsole(launcher);
+  const launcher = await waitForLauncher(smoke);
 
   await waitForSelector(launcher, '.welcome .entry');
   const recent = (await launcher.webContents.executeJavaScript(
@@ -128,6 +107,164 @@ export async function checkReturnToLauncher(
   }
 
   console.log('smoke ok: closing the project returned to the launcher, with it listed as recent');
+  return launcher;
+}
+
+/** What the folder question is showing: its heading, text, list, and buttons. */
+interface FolderQuestion {
+  readonly title: string | null;
+  readonly body: string | null;
+  readonly where: string | null;
+  readonly listed: readonly string[];
+  readonly buttons: readonly string[];
+}
+
+async function folderQuestion(launcher: BrowserWindow): Promise<FolderQuestion> {
+  await waitForSelector(launcher, 'wi-open-folder-question');
+  return (await launcher.webContents.executeJavaScript(
+    `(() => {
+       const dialog = document.querySelector('wi-open-folder-question');
+       return {
+         title: dialog.querySelector('h2')?.textContent?.trim() ?? null,
+         body: dialog.querySelector('.body')?.textContent?.trim() ?? null,
+         where: dialog.querySelector('.where')?.textContent?.trim() ?? null,
+         listed: [...dialog.querySelectorAll('.projects li')].map((item) => item.textContent.trim()),
+         buttons: [...dialog.querySelectorAll('.actions button')].map((b) => b.textContent.trim()),
+       };
+     })()`,
+  )) as FolderQuestion;
+}
+
+/** Points the chooser at a folder and presses the launcher's Open button. */
+async function openFolder(smoke: Smoke, launcher: BrowserWindow, folder: string): Promise<void> {
+  smoke.chooseFolder(folder);
+  await clickAndLeave(launcher, '.welcome .actions button', 'Open project');
+}
+
+/**
+ * Opening a folder that is not a project. SPEC.md §8.6.
+ *
+ * The three answers other than "this is a project" are questions, and this
+ * drives all three through the real launcher: a folder of texts becomes a
+ * project, the folder above it offers the project inside it, and a folder
+ * holding two names both and opens neither.
+ *
+ * Returns the launcher, which is a **new** window after each project closes.
+ */
+export async function checkOpeningAFolder(
+  smoke: Smoke,
+  launcher: BrowserWindow,
+): Promise<BrowserWindow> {
+  const folder = join(smoke.plainParent, 'manuscript');
+  await openFolder(smoke, launcher, folder);
+
+  const adoption = await folderQuestion(launcher);
+  if (adoption.title !== 'Not a project yet') {
+    throw new Error(`the adoption question reads ${JSON.stringify(adoption.title)}`);
+  }
+  if (adoption.body === null || !adoption.body.includes('manuscript')) {
+    throw new Error(`the question does not name the folder: ${JSON.stringify(adoption.body)}`);
+  }
+  if (adoption.buttons.length !== 2 || !adoption.buttons.includes('Use as project')) {
+    throw new Error(`unexpected buttons: ${JSON.stringify(adoption.buttons)}`);
+  }
+  // Asking is not doing: nothing is written and nothing is opened until the
+  // author answers.
+  if (existsSync(join(folder, '.opera-incerta'))) {
+    throw new Error('the folder was made a project before the question was answered');
+  }
+  if (smoke.shell.projectWindow() !== null) {
+    throw new Error('a project window appeared behind the question');
+  }
+  const evidence = join(smoke.evidenceDirectory, 'smoke-adopt-folder.png');
+  writeFileSync(evidence, (await launcher.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  // The launcher goes away with this click, so nothing is awaited in it.
+  await clickAndLeave(launcher, 'wi-open-folder-question button.confirm', 'Use as project');
+  let window = await waitForProjectWindow(smoke);
+  await waitForSelector(window, 'wi-root .workbench');
+
+  const record = JSON.parse(
+    readFileSync(join(folder, '.opera-incerta', 'project.json'), 'utf8'),
+  ) as { displayName: string; id: string };
+  if (record.displayName !== 'manuscript') {
+    throw new Error(`adoption named the project ${JSON.stringify(record.displayName)}`);
+  }
+  if (await headerTitle(window, '') !== 'manuscript') {
+    throw new Error('the workbench does not show the adopted folder as the project');
+  }
+  // The texts that were there before are the library now, untouched — and
+  // they are listed by file name, because nothing has given them a title yet.
+  const sheets = await sheetTitles(window);
+  if (sheets.join(', ') !== 'first-light, the-ferry') {
+    throw new Error(`the adopted project does not list its texts: ${JSON.stringify(sheets)}`);
+  }
+  if (readFileSync(join(folder, 'first-light.md'), 'utf8') !== '# First light\n\nThe harbour, before six.\n') {
+    throw new Error('adoption rewrote a file it should not have touched');
+  }
+  console.log('smoke ok: a folder of texts became a project, and kept its texts as they were');
+
+  clickMenuItem('project/close');
+  launcher = await waitForLauncher(smoke);
+
+  // The folder above it holds exactly that one project now, so opening it
+  // offers the project rather than adopting the parent.
+  await openFolder(smoke, launcher, smoke.plainParent);
+  const offer = await folderQuestion(launcher);
+  if (offer.title !== 'The project is one level down') {
+    throw new Error(`the subproject question reads ${JSON.stringify(offer.title)}`);
+  }
+  if (offer.body === null || !offer.body.includes('manuscript')) {
+    throw new Error(`the offer does not name the project: ${JSON.stringify(offer.body)}`);
+  }
+
+  await clickAndLeave(launcher, 'wi-open-folder-question button.confirm', 'Open');
+  window = await waitForProjectWindow(smoke);
+  await waitForSelector(window, 'wi-root .workbench');
+  if (await headerTitle(window, '') !== 'manuscript') {
+    throw new Error('the offered subproject is not the project that opened');
+  }
+  console.log('smoke ok: a folder holding one project offered it, and opened that project');
+
+  clickMenuItem('project/close');
+  launcher = await waitForLauncher(smoke);
+
+  // A second project beside the first: now only the author knows which.
+  const second = join(smoke.plainParent, 'notes');
+  mkdirSync(join(second, '.opera-incerta'), { recursive: true });
+  writeFileSync(
+    join(second, '.opera-incerta', 'project.json'),
+    `${JSON.stringify({ id: 'notes', displayName: 'Notes', created: '2026-09-09T00:00:00.000Z' })}\n`,
+    'utf8',
+  );
+
+  await openFolder(smoke, launcher, smoke.plainParent);
+  const several = await folderQuestion(launcher);
+  if (several.title !== 'Several projects in this folder') {
+    throw new Error(`the list question reads ${JSON.stringify(several.title)}`);
+  }
+  if (several.listed.join(', ') !== 'manuscript, notes') {
+    throw new Error(`it lists ${JSON.stringify(several.listed)}`);
+  }
+  // Nothing to say yes to: one button, and it only takes the question away.
+  if (several.buttons.length !== 1 || several.buttons[0] !== 'Close') {
+    throw new Error(`the list offers ${JSON.stringify(several.buttons)}`);
+  }
+  const listEvidence = join(smoke.evidenceDirectory, 'smoke-several-projects.png');
+  writeFileSync(listEvidence, (await launcher.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${listEvidence}`);
+
+  await clickText(launcher, 'wi-open-folder-question button.cancel', 'Close');
+  await waitUntil(
+    'the question to go away',
+    async () => !(await isVisible(launcher, 'wi-open-folder-question')),
+  );
+  if (smoke.shell.projectWindow() !== null) {
+    throw new Error('naming several projects opened one of them');
+  }
+
+  console.log('smoke ok: a folder holding several named them all and opened none');
   return launcher;
 }
 
@@ -190,18 +327,7 @@ export async function checkCreateProject(smoke: Smoke, launcher: BrowserWindow):
     throw new Error('Create is not offered with a name and a location');
   }
 
-  const created = (await launcher.webContents.executeJavaScript(
-    `(() => {
-       const create = [...document.querySelectorAll('wi-new-project-dialog button')]
-         .find((button) => button.textContent.trim() === 'Create');
-       if (create === undefined) { return false; }
-       create.click();
-       return true;
-     })()`,
-  )) as boolean;
-  if (!created) {
-    throw new Error('no Create button');
-  }
+  await clickAndLeave(launcher, 'wi-new-project-dialog button', 'Create');
 
   const window = await waitForProjectWindow(smoke);
   await waitForSelector(window, 'wi-root .workbench');

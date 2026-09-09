@@ -2,10 +2,22 @@ import { describe, expect, it } from 'vitest';
 import type {
   MenuCommand,
   OperaIncertaBridge,
+  ProjectSnapshot,
   RecentProjectEntry,
 } from '@opera-incerta/desktop-contract';
 import { LauncherStore } from '../src/app/workspace/launcher-store.js';
 import { baseBridge } from './fake-bridge.js';
+
+/** A snapshot of an empty project, for the calls that answer with one. */
+function project(displayName: string): ProjectSnapshot {
+  return {
+    id: 'new',
+    displayName,
+    library: { kind: 'group', name: '', relativePath: '.', displayName, children: [] },
+    handles: {},
+    categories: [],
+  };
+}
 
 const here: RecentProjectEntry = {
   path: '/books/here',
@@ -28,11 +40,15 @@ function setUp(overrides: Partial<OperaIncertaBridge> = {}) {
     recentProjects: async () => ({ ok: true, value: recent }),
     openProject: async () => {
       calls.push('openProject');
+      return { ok: true, value: { kind: 'cancelled' } };
+    },
+    openProjectPath: async (request) => {
+      calls.push(`openPath ${request.path}`);
       return { ok: true, value: null };
     },
-    openRecentProject: async (request) => {
-      calls.push(`openRecent ${request.path}`);
-      return { ok: true, value: null };
+    adoptProject: async (request) => {
+      calls.push(`adopt ${request.path}`);
+      return { ok: true, value: project('Adopted') };
     },
     forgetRecentProject: async (request) => {
       calls.push(`forget ${request.path}`);
@@ -45,22 +61,7 @@ function setUp(overrides: Partial<OperaIncertaBridge> = {}) {
     }),
     createProject: async (request) => {
       calls.push(`create ${request.parentPath} ${request.displayName}`);
-      return {
-        ok: true,
-        value: {
-          id: 'new',
-          displayName: request.displayName,
-          library: {
-            kind: 'group',
-            name: '',
-            relativePath: '.',
-            displayName: request.displayName,
-            children: [],
-          },
-          handles: {},
-          categories: [],
-        },
-      };
+      return { ok: true, value: project(request.displayName) };
     },
     ...overrides,
   };
@@ -77,7 +78,7 @@ describe('the recent list', () => {
   it('opens an available entry through the bridge', async () => {
     const { store, calls } = setUp();
     await store.openRecent(here);
-    expect(calls).toEqual(['openRecent /books/here']);
+    expect(calls).toEqual(['openPath /books/here']);
     expect(store.failure()).toBeNull();
   });
 
@@ -104,6 +105,128 @@ describe('the recent list', () => {
     expect(store.failure()).toBe('project/not-a-project');
     await store.refresh();
     expect(store.failure()).toBeNull();
+  });
+});
+
+describe('opening a folder', () => {
+  const opened = { ok: true, value: { kind: 'opened', snapshot: project('A Novel') } } as const;
+  const notAProject = {
+    ok: true,
+    value: {
+      kind: 'no-project',
+      path: '/books/manuscript',
+      shortPath: '~/books/manuscript',
+      folderName: 'manuscript',
+    },
+  } as const;
+  const oneInside = {
+    ok: true,
+    value: {
+      kind: 'single-subproject',
+      path: '/books/shelf/novel',
+      shortPath: '~/books/shelf',
+      name: 'novel',
+    },
+  } as const;
+  const severalInside = {
+    ok: true,
+    value: {
+      kind: 'multiple-subprojects',
+      shortPath: '~/books/shelf',
+      names: ['novel', 'stories'],
+    },
+  } as const;
+
+  it('asks nothing when the folder is a project', async () => {
+    const { store } = setUp({ openProject: async () => opened });
+    await store.open();
+    expect(store.question()).toBeNull();
+    expect(store.failure()).toBeNull();
+  });
+
+  it('asks nothing when the chooser was dismissed', async () => {
+    const { store } = setUp();
+    await store.open();
+    expect(store.question()).toBeNull();
+    expect(store.failure()).toBeNull();
+  });
+
+  it('offers to adopt a folder that holds no project', async () => {
+    const { store, calls } = setUp({ openProject: async () => notAProject });
+    await store.open();
+
+    expect(store.question()).toEqual(notAProject.value);
+    await store.answerQuestion();
+
+    // The folder's own name is the main process's to decide; the answer only
+    // says which folder was meant.
+    expect(calls).toEqual(['adopt /books/manuscript']);
+    expect(store.question()).toBeNull();
+    expect(store.failure()).toBeNull();
+  });
+
+  it('offers the one project a folder holds, by its own path', async () => {
+    const { store, calls } = setUp({ openProject: async () => oneInside });
+    await store.open();
+
+    expect(store.question()?.kind).toBe('single-subproject');
+    await store.answerQuestion();
+
+    expect(calls).toEqual(['openPath /books/shelf/novel']);
+    expect(store.question()).toBeNull();
+  });
+
+  it('names several without opening any of them', async () => {
+    const { store, calls } = setUp({ openProject: async () => severalInside });
+    await store.open();
+
+    expect(store.question()).toEqual(severalInside.value);
+    // There is nothing to say yes to: the author opens the one they mean.
+    await store.answerQuestion();
+    expect(calls).toEqual([]);
+    expect(store.question()).toEqual(severalInside.value);
+
+    store.dismissQuestion();
+    expect(store.question()).toBeNull();
+  });
+
+  it('reports a refused adoption, with no question left standing', async () => {
+    const { store } = setUp({
+      openProject: async () => notAProject,
+      adoptProject: async () => ({ ok: false, code: 'project/already-exists', message: 'no' }),
+    });
+    await store.open();
+    await store.answerQuestion();
+
+    expect(store.failure()).toBe('project/already-exists');
+    expect(store.question()).toBeNull();
+  });
+
+  it('refuses an outcome of a shape it does not know', async () => {
+    const { store } = setUp({
+      openProject: async () => ({ ok: true, value: { kind: 'opened' } as never }),
+    });
+    await store.open();
+
+    expect(store.failure()).toBe('bridge/malformed-open-outcome');
+    expect(store.question()).toBeNull();
+  });
+
+  it('takes a standing question down when the next open begins', async () => {
+    let answered = false;
+    const { store } = setUp({
+      openProject: async () => {
+        const outcome = answered ? opened : notAProject;
+        answered = true;
+        return outcome;
+      },
+    });
+
+    await store.open();
+    expect(store.question()).not.toBeNull();
+
+    await store.open();
+    expect(store.question()).toBeNull();
   });
 });
 

@@ -11,11 +11,12 @@ project works by.
 
 ## Project status
 
-Opera Incerta is a young project with a working product. Six workspace projects
-(`packages/core`, `packages/desktop-contract`, `packages/project-node`,
-`packages/git-node`, `apps/workbench`, `apps/desktop`), a sandboxed Electron
-shell, the versioned preload bridge with runtime guards, the workbench regions,
-the library, the editor with its display model, and source control up to
+Opera Incerta is a young project with a working product. Eight workspace
+projects (`packages/core`, `packages/desktop-contract`, `packages/localization`,
+`packages/markdown`, `packages/project-node`, `packages/git-node`,
+`apps/workbench`, `apps/desktop`), a sandboxed Electron shell, the versioned
+preload bridge with runtime guards, the workbench regions, the library, the
+editor with its display model and its GFM display, and source control up to
 merging and amending are built, tested and committed.
 
 `DONE.md` is the record of what exists and why; `TODO.md` is what is open.
@@ -320,7 +321,7 @@ succeeded in this checkout. The following have:
   preload files;
 - `pnpm run desktop:smoke` launches the shell through its smoke entry
   (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
-  renderer through thirty-four checks, and writes `build/desktop/smoke*.png`;
+  renderer through thirty-seven checks, and writes `build/desktop/smoke*.png`;
 - `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
   real rendering engine and exits non-zero on any failed criterion;
 - `pnpm run spike:parser` runs the parser spike gate of `TESTING.md` §2.11

@@ -14,7 +14,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { dirname, join, relative } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   BrowserWindow,
@@ -42,9 +42,10 @@ import {
   isLibraryPathRequest,
   isLibraryPlaceRequest,
   isWatchTargetsRequest,
-  isRecentProjectRequest,
+  isProjectPathRequest,
   isWriteSheetRequest,
   type BridgeResult,
+  type ProjectOpenOutcome,
   type ProjectSnapshot,
 } from '@opera-incerta/desktop-contract';
 import {
@@ -415,14 +416,70 @@ export function startShell(options: ShellOptions = {}): Shell {
       return chosen.canceled ? null : (chosen.filePaths[0] ?? null);
     });
 
+  /**
+   * What the chosen folder is, and — when it is a project — the project.
+   * SPEC.md §8.6.
+   *
+   * The four answers of the inspection are four answers here: only the first
+   * is an open project, and the other three are questions the launcher puts to
+   * the author. None of them is a failure, so none of them throws.
+   */
+  async function openOrReport(directory: string): Promise<ProjectOpenOutcome> {
+    const inspection = await projectFiles.inspectFolder(directory);
+    switch (inspection.kind) {
+      case 'valid-project':
+        return { kind: 'opened', snapshot: await openProjectAt(directory) };
+      case 'no-project':
+        return {
+          kind: 'no-project',
+          path: directory,
+          shortPath: abbreviatePath(directory),
+          folderName: basename(directory),
+        };
+      case 'single-subproject':
+        return {
+          kind: 'single-subproject',
+          path: join(directory, inspection.relativePath),
+          shortPath: abbreviatePath(directory),
+          name: inspection.relativePath,
+        };
+      case 'multiple-subprojects':
+        return {
+          kind: 'multiple-subprojects',
+          shortPath: abbreviatePath(directory),
+          names: inspection.relativePaths,
+        };
+    }
+  }
+
   privileged(CHANNELS.openProject, acceptsNothing, async () => {
     const directory = await chooseProjectToOpen();
-    return directory === null ? null : await openProjectAt(directory);
+    return directory === null ? { kind: 'cancelled' } : await openOrReport(directory);
   });
 
-  privileged(CHANNELS.openRecentProject, isRecentProjectRequest, async (request) =>
+  privileged(CHANNELS.openProjectPath, isProjectPathRequest, async (request) =>
     openProjectAt(request.path),
   );
+
+  /**
+   * Adopts a folder the author chose. SPEC.md §8.6.
+   *
+   * The display name is the folder's own name, and nothing else in the folder
+   * is touched: adoption adds the record directory a project needs and leaves
+   * the manuscript exactly as it was.
+   *
+   * What is on disk is checked before anything is written, because a path is
+   * not a permission: an existing directory that is not already a project.
+   * Without the first check `createProject` would happily create the whole
+   * missing tree for a path that named nothing.
+   */
+  privileged(CHANNELS.adoptProject, isProjectPathRequest, async (request) => {
+    if (!(await projectFiles.isDirectory(request.path))) {
+      throw new ProjectSessionError('project/not-a-directory');
+    }
+    await projectFiles.createProject(request.path, basename(request.path));
+    return openProjectAt(request.path);
+  });
 
   const chooseProjectParent =
     options.chooseProjectParent ??
@@ -484,7 +541,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     return entries;
   });
 
-  privileged(CHANNELS.forgetRecentProject, isRecentProjectRequest, async (request) => {
+  privileged(CHANNELS.forgetRecentProject, isProjectPathRequest, async (request) => {
     recentProjects.forget(request.path);
     return null;
   });

@@ -13,6 +13,8 @@ import {
   isLibraryEditRequest,
   isLibraryPathRequest,
   isLibraryPlaceRequest,
+  isProjectOpenOutcome,
+  isProjectPathRequest,
   isRelativeEntryPath,
   isWatchTargetsRequest,
   isWriteSheetRequest,
@@ -88,6 +90,15 @@ describe('isLibraryPathRequest', () => {
     expect(isLibraryPathRequest({ path: '' })).toBe(false);
     expect(isLibraryPathRequest({})).toBe(false);
     expect(isLibraryPathRequest(null)).toBe(false);
+  });
+});
+
+describe('isProjectPathRequest', () => {
+  it('accepts a path and refuses an empty or missing one', () => {
+    expect(isProjectPathRequest({ path: '/books/novel' })).toBe(true);
+    expect(isProjectPathRequest({ path: '' })).toBe(false);
+    expect(isProjectPathRequest({})).toBe(false);
+    expect(isProjectPathRequest(null)).toBe(false);
   });
 });
 
@@ -197,6 +208,33 @@ describe('what comes back is checked too', () => {
     expect(isProjectSnapshot({ ...snapshot, library: { kind: 'sheet' } })).toBe(false);
     expect(isProjectSnapshot({ ...snapshot, library: null })).toBe(false);
     expect(isProjectSnapshot({ ...snapshot, categories: 'none' })).toBe(false);
+  });
+
+  it('checks an open outcome by the kind it claims', () => {
+    expect(isProjectOpenOutcome({ kind: 'opened', snapshot })).toBe(true);
+    expect(isProjectOpenOutcome({ kind: 'cancelled' })).toBe(true);
+    expect(
+      isProjectOpenOutcome({ kind: 'no-project', path: '/b/m', shortPath: '~/b/m', folderName: 'm' }),
+    ).toBe(true);
+    expect(
+      isProjectOpenOutcome({ kind: 'single-subproject', path: '/b/s/n', shortPath: '~/b/s', name: 'n' }),
+    ).toBe(true);
+    expect(isProjectOpenOutcome({ kind: 'multiple-subprojects', shortPath: '~/b/s', names: ['a'] })).toBe(
+      true,
+    );
+
+    // A kind that carries the wrong payload is the shape that would otherwise
+    // reach the launcher as a question with nothing to act on.
+    expect(isProjectOpenOutcome({ kind: 'opened' })).toBe(false);
+    expect(isProjectOpenOutcome({ kind: 'opened', snapshot: {} })).toBe(false);
+    expect(isProjectOpenOutcome({ kind: 'no-project', path: '', shortPath: '', folderName: 'm' })).toBe(
+      false,
+    );
+    expect(isProjectOpenOutcome({ kind: 'multiple-subprojects', shortPath: '~/b', names: [''] })).toBe(
+      false,
+    );
+    expect(isProjectOpenOutcome({ kind: 'adopted' })).toBe(false);
+    expect(isProjectOpenOutcome(null)).toBe(false);
   });
 
   it('checks a library edit result down to its snapshot', () => {

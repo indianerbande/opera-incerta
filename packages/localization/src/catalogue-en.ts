@@ -40,6 +40,7 @@ export const EN = {
   // --- shared buttons --------------------------------------------------------
   'common.cancel': 'Cancel',
   'common.close': 'Close',
+  'common.open': 'Open',
   'common.save': 'Save',
   'common.create': 'Create',
   'common.rename': 'Rename',
@@ -285,6 +286,17 @@ export const EN = {
   'newProject.previewBefore': 'Creates the folder',
   'newProject.previewAfter': '. The name above can change later; the folder name cannot.',
   'newProject.failed': 'Could not create the project ({code}).',
+  'openFolder.adoptTitle': 'Not a project yet',
+  'openFolder.adoptBody':
+    '“{folder}” holds no project. Make it one? The texts in it stay exactly as they are; ' +
+    'the project only adds a folder of its own for what it has to remember.',
+  'openFolder.adopt': 'Use as project',
+  'openFolder.subprojectTitle': 'The project is one level down',
+  'openFolder.subprojectBody':
+    'This folder is not a project itself, but it holds one: “{name}”. Open it?',
+  'openFolder.severalTitle': 'Several projects in this folder',
+  'openFolder.severalBody':
+    'This folder is not a project itself, and it holds several. Open the one you mean directly:',
 
   // --- the native menu -------------------------------------------------------
   'menu.file': '&File',

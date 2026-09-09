@@ -1095,6 +1095,35 @@ stays the author's decision.
 - several subprojects → inform the user and list them by name, asking them to
   open the intended one directly.
 
+**Status of the four: Implemented and validated (2026-09-09).**
+
+Three of them are questions, not failures, and that is the rule the interface
+follows: opening **reports what it found** rather than succeeding or throwing.
+The main process classifies the folder and answers with one of five outcomes —
+opened, cancelled, and the three questions — and the launcher decides what to
+ask, in its own dialog. A folder that is not a project used to arrive in the
+launcher as the diagnostic code `project/no-project`, which is the application
+telling the author its own inner state instead of offering the obvious next
+step.
+
+What each question does with a yes:
+
+- **adopt** — the folder keeps every file it has; the project adds only its
+  record directory. The display name is the folder's own name, and the main
+  process decides it: the renderer says *which* folder was meant, never what
+  the project is called. Refused where the directory is not there or is
+  already a project, because a path from the renderer is not a permission
+  (§5.3);
+- **the one subproject** — it opens by its own path, through the same handler
+  a recent entry uses;
+- **several** — nothing. There is no yes: the list names them and the author
+  opens the one they mean. Guessing here opens the wrong manuscript.
+
+The question is asked in the launcher's own dialog rather than in a native
+message box, because what a click means is decided in the renderer's flows
+(§8.7) and a native dialog would put a second, differently worded interface in
+front of the same decision.
+
 **Creating** asks for a display name and a parent directory, in that order and
 in one dialog, then creates the slug directory with
 `.opera-incerta/project.json` inside it and opens the project immediately.

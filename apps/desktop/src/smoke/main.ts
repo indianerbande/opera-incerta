@@ -43,6 +43,7 @@ import {
   checkCreateProject,
   checkLauncherAndOpen,
   checkMenuState,
+  checkOpeningAFolder,
   checkReturnToLauncher,
 } from './checks/launcher.js';
 import {
@@ -101,9 +102,25 @@ function prepareProject(): string {
   return destination;
 }
 
+/**
+ * A folder with texts in it and no project: what an author points at when
+ * they have been writing before they had this application (SPEC.md §8.6).
+ */
+function preparePlainFolder(): string {
+  const parent = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-plain-'));
+  const folder = join(parent, 'manuscript');
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(join(folder, 'first-light.md'), '# First light\n\nThe harbour, before six.\n', 'utf8');
+  writeFileSync(join(folder, 'the-ferry.md'), '# The ferry\n\nIt leaves without her.\n', 'utf8');
+  return parent;
+}
+
 const projectPath = prepareProject();
 const trashPath = mkdtempSync(join(tmpdir(), 'opera-incerta-trash-'));
 const createParent = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-new-'));
+const plainParent = preparePlainFolder();
+/** What the directory chooser answers next; checks point it elsewhere. */
+let folderToOpen = projectPath;
 const evidenceDirectory = join(repositoryRoot, 'build', 'desktop');
 mkdirSync(evidenceDirectory, { recursive: true });
 // The recent list and the preference record are installation-local state; a
@@ -120,7 +137,7 @@ writeFileSync(
 );
 
 const shell = startShell({
-  chooseProjectToOpen: () => Promise.resolve(projectPath),
+  chooseProjectToOpen: () => Promise.resolve(folderToOpen),
   chooseProjectParent: () => Promise.resolve(createParent),
   // Moved, never destroyed — the property a deletion check proves is the same
   // as with the desktop trash, without leaving rubbish there on every run.
@@ -136,6 +153,10 @@ const smoke: Smoke = {
   projectPath,
   trashPath,
   createParent,
+  plainParent,
+  chooseFolder: (absolutePath) => {
+    folderToOpen = absolutePath;
+  },
   preferencesPath: join(userDataPath, PREFERENCES_FILE),
   evidenceDirectory,
   git,
@@ -224,7 +245,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
 
     // Last, because it closes the window everything else needed.
     const launcherAgain = await checkReturnToLauncher(smoke, window);
-    await checkCreateProject(smoke, launcherAgain);
+    const launcherAfterFolders = await checkOpeningAFolder(smoke, launcherAgain);
+    await checkCreateProject(smoke, launcherAfterFolders);
 
     shell.exit(0);
   } catch (error: unknown) {

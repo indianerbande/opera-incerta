@@ -24,6 +24,17 @@ export interface Smoke {
   readonly trashPath: string;
   /** Where "new project" lands, instead of asking with a native chooser. */
   readonly createParent: string;
+  /**
+   * A directory holding `manuscript/` — two Markdown files and no project —
+   * for the folder that has to become one (SPEC.md §8.6).
+   */
+  readonly plainParent: string;
+  /**
+   * Points the directory chooser at a folder for the next open. The chooser
+   * is the one substitution the shell takes; a check that wants a different
+   * answer says so here rather than reaching into the shell.
+   */
+  chooseFolder(absolutePath: string): void;
   /** The preference record the shell writes under the smoke's user-data directory. */
   readonly preferencesPath: string;
   /** `build/desktop/`, where the screenshots (`smoke-*.png`) are written. */

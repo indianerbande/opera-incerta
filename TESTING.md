@@ -370,6 +370,13 @@ Component and state tests MUST cover:
   bridge, a cancelled chooser changing nothing, a failed creation keeping the
   dialog open with its code, and the menu driving the same actions as the
   buttons;
+- **each answer opening a folder can give** (`SPEC.md` §8.6): a project opens
+  with no question asked; a folder without one raises the adoption question
+  and answering it adopts *that* folder, the display name left to the main
+  process; one subproject is offered and opens by its own path; several are
+  named and answering does nothing at all; a refused adoption reports its code
+  with no question left standing; an outcome of an unknown shape is refused at
+  the boundary; and the next open takes a standing question down;
 - a drag row described from the model: a sheet placed among the sheets of
   its group by file name, a group among the subgroups of its parent with
   sheets not counted, the root as a destination without a parent, an
@@ -447,6 +454,14 @@ Tests MUST cover:
   pointed `GIT_CONFIG_GLOBAL` at an empty file first, the identity question
   follows, its answer is read back with `git config --local`, and the global
   file is still empty;
+- opening a folder that is not a project, all three answers through the real
+  launcher (`SPEC.md` §8.6): a folder holding two Markdown files and no
+  project raises the adoption question, and until it is answered nothing is
+  written and no project window appears; answering it makes that folder a
+  project named after itself, whose library is the two files it already had,
+  their bytes unchanged; the folder above it then holds exactly one project
+  and offers it by name; a second project beside it and both are listed with
+  no way to say yes, and dismissing the list opens nothing;
 - **no dialog nobody asked for**: between any two checks, no dialog is up —
   every check closes what it opens, so a prompt standing at a boundary is
   one the application raised on its own; and the dirty marker clearing when

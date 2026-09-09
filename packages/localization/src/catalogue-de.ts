@@ -37,6 +37,7 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
 
   'common.cancel': 'Abbrechen',
   'common.close': 'Schließen',
+  'common.open': 'Öffnen',
   'common.save': 'Speichern',
   'common.create': 'Anlegen',
   'common.rename': 'Umbenennen',
@@ -274,6 +275,17 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'newProject.previewBefore': 'Legt den Ordner',
   'newProject.previewAfter': ' an. Der Name oben kann sich später ändern; der Ordnername nicht.',
   'newProject.failed': 'Das Projekt ließ sich nicht anlegen ({code}).',
+  'openFolder.adoptTitle': 'Noch kein Projekt',
+  'openFolder.adoptBody':
+    '„{folder}“ enthält noch kein Projekt. Eines daraus machen? Die Texte darin bleiben, ' +
+    'wie sie sind; das Projekt legt nur einen eigenen Ordner für seine Aufzeichnungen an.',
+  'openFolder.adopt': 'Als Projekt verwenden',
+  'openFolder.subprojectTitle': 'Das Projekt liegt eine Ebene tiefer',
+  'openFolder.subprojectBody':
+    'Dieser Ordner ist selbst kein Projekt, enthält aber eines: „{name}“. Öffnen?',
+  'openFolder.severalTitle': 'Mehrere Projekte in diesem Ordner',
+  'openFolder.severalBody':
+    'Dieser Ordner ist selbst kein Projekt und enthält mehrere. Bitte das gemeinte direkt öffnen:',
 
   'menu.file': '&Datei',
   'menu.edit': '&Bearbeiten',
