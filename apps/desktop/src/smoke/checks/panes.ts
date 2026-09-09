@@ -344,6 +344,114 @@ export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): 
  * Through real pointer events, and then read back from the preference file —
  * so what is checked is that the width was stored, not that a signal changed.
  */
+/**
+ * The regions as panels on a canvas. SPEC.md §8.2.
+ *
+ * Measured rather than described: the rails flush against the window, eight
+ * pixels of air around and between the panels, and every panel with the same
+ * corner, border and lift. The air between two panels is the divider, so the
+ * gap is measured **as** the divider's own box.
+ */
+export async function checkRegionsAsPanels(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  const measured = (await window.webContents.executeJavaScript(
+    `(() => {
+       const box = (selector) => {
+         const element = document.querySelector(selector);
+         return element === null ? null : element.getBoundingClientRect();
+       };
+       const style = (selector) => {
+         const element = document.querySelector(selector);
+         return element === null ? null : getComputedStyle(element);
+       };
+       const rail = box('.workbench > .activity-bar');
+       const sections = [...document.querySelectorAll('.workbench > section')];
+       const dividers = [...document.querySelectorAll('.workbench > wi-resize-divider')];
+       return {
+         railLeft: rail === null ? -1 : Math.round(rail.left),
+         firstPanelLeft: sections.length === 0 ? -1 : Math.round(sections[0].getBoundingClientRect().left),
+         railWidth: rail === null ? -1 : Math.round(rail.width),
+         panelTops: sections.map((section) => Math.round(section.getBoundingClientRect().top)),
+         corners: sections.map((section) => getComputedStyle(section).borderTopLeftRadius),
+         borders: sections.map((section) => getComputedStyle(section).borderTopWidth),
+         lifted: sections.map((section) => getComputedStyle(section).boxShadow !== 'none'),
+         gaps: dividers.map((divider) => Math.round(divider.getBoundingClientRect().width)),
+         // The panel on either side of a divider must not overlap it.
+         seams: dividers.map((divider) => {
+           const gap = divider.getBoundingClientRect();
+           const before = divider.previousElementSibling?.getBoundingClientRect() ?? null;
+           const after = divider.nextElementSibling?.getBoundingClientRect() ?? null;
+           return before === null || after === null
+             ? -1
+             : Math.round(after.left - before.right);
+         }),
+         canvas: style('.workbench')?.backgroundColor ?? null,
+         panelColour: sections.length === 0 ? null : getComputedStyle(sections[0]).backgroundColor,
+       };
+     })()`,
+  )) as {
+    railLeft: number;
+    firstPanelLeft: number;
+    railWidth: number;
+    panelTops: readonly number[];
+    corners: readonly string[];
+    borders: readonly string[];
+    lifted: readonly boolean[];
+    gaps: readonly number[];
+    seams: readonly number[];
+    canvas: string | null;
+    panelColour: string | null;
+  };
+
+  const wrong: string[] = [];
+  if (measured.railLeft !== 0) {
+    wrongPush(wrong, `the leading rail is ${measured.railLeft}px from the window's edge, not flush`);
+  }
+  if (measured.firstPanelLeft !== measured.railWidth + 8) {
+    wrongPush(
+      wrong,
+      `the first panel starts at ${measured.firstPanelLeft}px, not eight past the ${measured.railWidth}px rail`,
+    );
+  }
+  if (measured.panelTops.length !== 4 || measured.panelTops.some((top) => top !== 8)) {
+    wrongPush(wrong, `the panels sit at ${JSON.stringify(measured.panelTops)}, not eight from the top`);
+  }
+  if (measured.corners.some((corner) => corner !== '10px')) {
+    wrongPush(wrong, `panel corners are ${JSON.stringify(measured.corners)}`);
+  }
+  if (measured.borders.some((border) => border === '0px')) {
+    wrongPush(wrong, `a panel has no border: ${JSON.stringify(measured.borders)}`);
+  }
+  if (measured.lifted.some((lift) => !lift)) {
+    wrongPush(wrong, 'a panel is not lifted off the canvas');
+  }
+  if (measured.gaps.length !== 3 || measured.gaps.some((gap) => gap !== 8)) {
+    wrongPush(wrong, `the dividers measure ${JSON.stringify(measured.gaps)}, not eight`);
+  }
+  if (measured.seams.some((seam) => seam !== 8)) {
+    wrongPush(wrong, `the air between two panels is ${JSON.stringify(measured.seams)}`);
+  }
+  if (measured.canvas === measured.panelColour) {
+    wrongPush(wrong, 'the panels are the same colour as the canvas they sit on');
+  }
+  if (wrong.length > 0) {
+    throw new Error(`the regions: ${wrong.join('; ')}`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-regions.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+  console.log(
+    'smoke ok: four panels on a canvas — eight pixels of air around and between them, the same ' +
+      'corner, border and lift on each, and the rails flush against the window',
+  );
+}
+
+/** Collects a complaint; kept apart so the list above reads as a list. */
+function wrongPush(into: string[], what: string): void {
+  into.push(what);
+}
+
 export async function checkColumnDragging(smoke: Smoke, window: BrowserWindow): Promise<void> {
   const before = (await window.webContents.executeJavaScript(
     `(() => {

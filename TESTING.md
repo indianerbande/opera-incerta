@@ -501,6 +501,12 @@ Tests MUST cover:
   a resolved scheme and a palette; Dark changing the token set, the editor's
   surface with it, and reaching the preference file; a palette changing the
   accent; and both going back to where they started;
+- the regions as panels (`SPEC.md` §8.2), measured in the running workbench:
+  the leading rail flush against the window, the first panel eight pixels past
+  it, all four panels eight from the top, the same corner, border and lift on
+  each, three dividers eight pixels wide, eight pixels of air between the
+  panels on either side of each — the gap **is** the divider, so the two are
+  measured as one thing — and a canvas that is not the panels' own colour;
 - the shape of things (`SPEC.md` §8.9), measured on a dialog that is actually
   open: a 16px corner on a panel that is lifted off the workbench, a header
   and an actions row that are each a band of their own — a different surface,

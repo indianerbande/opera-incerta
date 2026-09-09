@@ -321,7 +321,7 @@ succeeded in this checkout. The following have:
   preload files;
 - `pnpm run desktop:smoke` launches the shell through its smoke entry
   (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
-  renderer through forty checks, and writes `build/desktop/smoke*.png`;
+  renderer through forty-one checks, and writes `build/desktop/smoke*.png`;
 - `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
   real rendering engine and exits non-zero on any failed criterion;
 - `pnpm run spike:parser` runs the parser spike gate of `TESTING.md` §2.11

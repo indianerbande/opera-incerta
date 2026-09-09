@@ -6,6 +6,44 @@ documents").
 
 ---
 
+## 2026-09-09 — the regions as panels on a canvas
+
+**What was open** (`SPEC.md` §8.9, "what this section does not decide", and
+`TODO.md` §1 an hour later). The controls and the dialogs were one house; the
+three columns still met edge to edge, separated by hairlines, reading as one
+surface that had been divided rather than as three things.
+
+**What was decided first** (`SPEC.md` §8.2, extended). The activity bars are
+the window's **rails**: flush, full height, on the navigation ground, no
+corner of their own — they are chrome. Everything between them is canvas, and
+the four regions sit on it as panels with the panel radius, a line, and the
+panel shadow. The air is 8px, around the group and between the panels.
+
+**The decision worth keeping: between two panels, the gap is the divider.**
+The draggable strip of §8.2 *is* that air — so what one sees as separation is
+exactly what one grabs, and there is no hairline any more, because a gap
+already separates. It draws a short grip under the pointer and takes the
+accent while it is dragged. Widths keep their meaning: the stored number is
+the panel's own width, the air belongs to nobody, and at the minimum window
+size the panels, rails and five gaps take 1 038 px of 1 400.
+
+**Verification.** `pnpm run check` green: **1022 tests**.
+`pnpm run desktop:smoke` green across **forty-one checks**, the new one
+measuring the layout rather than describing it: the leading rail flush against
+the window, the first panel eight past it, all four panels eight from the top,
+the same corner, border and lift on each, three dividers eight wide, eight of
+air between the panels on either side of each, and a canvas that is not the
+panels' colour.
+
+**What looking found.** The screenshot showed the source control panel's
+branch line running into the panel's new left border — its content had always
+sat against the column's edge, and edge-to-edge columns had hidden it. It has
+inner air now. This is the third time in two days that the rule "the
+screenshot is looked at" has paid for itself, and each time the defect was one
+no green check would ever have reported.
+
+---
+
 ## 2026-09-09 — the shape of things
 
 **What was open** (`SPEC.md` §8.8, "what this section does not decide", and

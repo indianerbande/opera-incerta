@@ -14,9 +14,10 @@ of §10.6 with the watcher that triggers it, source control (§12) up to and
 including amend and `.gitignore`, the GFM display (§10.7), all four answers
 opening a folder can give (§8.6), the line-number gutter (§10.8), the
 editor zoom (§10.9) and the visual system (§8.8) with its packaged face, its
-two schemes and its eight palettes. `pnpm run check` green on **Node 24**: 8
+two schemes and its eight palettes, its geometry (§8.9) and its regions as
+panels on a canvas (§8.2). `pnpm run check` green on **Node 24**: 8
 projects, **1022 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across forty checks,
+`pnpm run desktop:smoke` green across forty-one checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
@@ -50,14 +51,7 @@ has to be consulted to build, verify or change the product.
    for the height to stop changing rather than for two frames.
 
 
-2. **The region layout** (`SPEC.md` §8.9, "what this section does not
-   decide"). The controls and the dialogs are one house now; the three columns
-   still meet edge to edge, where the other application floats its panels on
-   the canvas with air between them. That is a question about the workbench's
-   anatomy — and it moves the widths and the dividers that §8.2 fixes and the
-   smoke measures, so it is its own round with its own specification change.
-
-3. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
+2. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
    `density`, `language`, `colorScheme`, `accentPalette` and `fontFamily` are
    the same shape — a key, a list of options, a default — with five interfaces
    and five branches in the dialog. They want one `choice` kind with a

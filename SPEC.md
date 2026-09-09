@@ -927,6 +927,37 @@ components.
 of 1400 × 820 px. The minimum prevents a distorted layout; the sheet list stays
 deliberately narrow so the editor remains the dominant column.
 
+#### The regions are panels on a canvas
+
+**Accepted 2026-09-09**, completing the visual system of §8.8 and §8.9.
+
+The two activity bars are the window's **rails**: flush against its edges,
+full height, on `--wi-navigation-bg`, with no corner of their own. They are
+chrome, not content.
+
+Everything between them is **canvas** (`--wi-canvas`), and the four regions
+sit on it as **panels**: `--wi-panel`, `--wi-radius-panel`, a `--wi-line`
+border, and `--wi-panel-shadow`. A panel clips its content, so a header meets
+a rounded corner rather than running past it.
+
+**The air is 8px** (`--wi-space-3`) — around the group and between the panels.
+Between two panels **the gap is the divider**: the draggable strip of §8.2 is
+exactly that air, so it is both the separation one sees and the thing one
+grabs. It draws no line of its own, because the gap already separates; it
+shows the resize cursor, and takes the accent while it is dragged or focused.
+
+**What does not change.** A stored width is still the panel's own width, and
+the table above still holds: the air is not part of a column, and dragging
+still moves one number. At the minimum window width the panels, the rails and
+the five gaps together take 1 038 px of 1 400, so the editor keeps well over
+its 380 px.
+
+**Why.** Three columns that meet edge to edge read as one surface divided by
+lines; the same three with air around them read as three things, and the
+manuscript reads as the thing in the middle. The other application in this
+house is built that way, and this is the last piece that made the two look
+unrelated.
+
 ### 8.3 Panel headers
 
 **Status: Accepted.**

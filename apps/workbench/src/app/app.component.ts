@@ -406,37 +406,49 @@ import { Localization } from './localization/localization.js';
     }
   `,
   styles: `
+    /*
+     * The regions are panels on a canvas, and the activity bars are the
+     * window's rails (SPEC.md §8.2). The air between two panels is the
+     * divider itself, so the gap one sees is the thing one grabs.
+     */
     .workbench {
       display: flex;
       height: 100vh;
+      background: var(--wi-canvas);
       font: 13px/1.4 var(--wi-sans);
     }
     .workbench > * {
       overflow: hidden;
-      border-inline-end: 1px solid var(--wi-separator);
-    }
-    .workbench > :last-child {
-      border-inline-end: none;
     }
     .activity-bar {
       flex: none;
+      background: var(--wi-navigation-bg);
     }
-    /* The chrome sits on the navigation ground, the manuscript on a panel:
-     * the text is the raised thing in this application (SPEC.md §8.8). */
+    .workbench > section {
+      border: 1px solid var(--wi-line);
+      border-radius: var(--wi-radius-panel);
+      margin-block: var(--wi-space-3);
+      background: var(--wi-panel);
+      box-shadow: var(--wi-panel-shadow);
+    }
+    .workbench > section:first-of-type {
+      margin-inline-start: var(--wi-space-3);
+    }
+    .workbench > section:last-of-type {
+      margin-inline-end: var(--wi-space-3);
+    }
     .navigator,
     .sheet-list,
     .secondary-sidebar {
       display: flex;
       flex: none;
       flex-direction: column;
-      background: var(--wi-navigation-bg);
     }
     .editor {
       display: flex;
       flex: 1 1 auto;
       flex-direction: column;
       min-width: 380px;
-      background: var(--wi-panel);
     }
     .tree {
       overflow: auto;

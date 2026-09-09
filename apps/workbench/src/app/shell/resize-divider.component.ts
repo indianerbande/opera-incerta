@@ -3,7 +3,13 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
 /**
  * The draggable boundary between two columns. SPEC.md §8.2.
  *
- * A narrow hit area with a divider's appearance: 6 px to grab, 1 px to see.
+ * Between two panels **the divider is the air**: the 8 px gap of §8.2 is both
+ * the separation one sees and the thing one grabs, so it draws no line of its
+ * own — it shows a short grip under the pointer and takes the accent while it
+ * is dragged. Inside the editor, where the front matter blocks are sized by
+ * height, there is no gap to be: that orientation keeps its 6 px strip and its
+ * hairline.
+ *
  * The column's width lives in the layout state, and this only reports how far
  * the pointer moved — which is what keeps a view switch from ever moving a
  * column (`CONVENTIONS.md` C-U1).
@@ -35,9 +41,9 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
     :host {
       display: flex;
       flex: none;
+      align-items: center;
       justify-content: center;
-      width: 6px;
-      margin-inline: -3px;
+      width: var(--wi-space-3);
       cursor: col-resize;
       touch-action: none;
       user-select: none;
@@ -47,22 +53,27 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
       align-items: center;
       width: auto;
       height: 6px;
-      margin-inline: 0;
       margin-block: -3px;
       cursor: row-resize;
     }
+    /* A short grip rather than a full line: the gap is the separation. */
     .line {
-      width: 1px;
-      height: 100%;
-      background: var(--wi-separator);
+      width: 2px;
+      height: 28px;
+      border-radius: var(--wi-radius-pill);
+      background: transparent;
     }
     :host(.horizontal) .line {
       width: 100%;
       height: 1px;
+      border-radius: 0;
+      background: var(--wi-separator);
     }
-    :host(:hover) .line,
+    :host(:hover) .line {
+      background: var(--wi-line-strong);
+    }
     :host(.dragging) .line {
-      background: var(--wi-muted);
+      background: var(--wi-accent);
     }
   `,
 })

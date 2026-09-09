@@ -278,6 +278,9 @@ import { Localization } from '../localization/localization.js';
       flex: 1 1 auto;
       flex-direction: column;
       min-height: 0;
+      /* The panel is a panel now (SPEC.md §8.2): its content keeps away from
+         the edge instead of running into the border. */
+      padding-inline: var(--wi-space-2);
       font: 12px var(--wi-sans);
     }
     .branch-row {

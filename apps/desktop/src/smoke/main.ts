@@ -58,6 +58,7 @@ import {
 } from './checks/library.js';
 import {
   checkColumnDragging,
+  checkRegionsAsPanels,
   checkFrontMatterArea,
   checkPageCategories,
   checkPanes,
@@ -230,6 +231,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await expectNoStrayDialog(window, 'checkAmendAndIgnore');
 
     checkMenuState();
+    await checkRegionsAsPanels(smoke, window);
+    await expectNoStrayDialog(window, 'checkRegionsAsPanels');
     await checkColumnDragging(smoke, window);
     await expectNoStrayDialog(window, 'checkColumnDragging');
 
