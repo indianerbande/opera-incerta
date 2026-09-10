@@ -127,7 +127,11 @@ change:
 - the same core produces identical results in the renderer, in a worker, and in
   any Node.js-side tooling;
 - identical effective input produces deterministic output;
-- normal operation requires no network access and no local or remote service;
+- normal operation requires no network access and no local or remote service.
+  The **one** exception is the AI assistant (`SPEC.md` §15), which needs a
+  connection by its nature: without one it is unavailable and says so, while
+  everything else in the application works unchanged. No other feature may
+  acquire a network dependency without changing this line first;
 - user-visible preferences never modify a document, mark it dirty, or change
   file content; and
 - extensibility points (export, import, AI provider, file badges) are declared

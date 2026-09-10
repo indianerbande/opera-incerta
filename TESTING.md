@@ -1014,7 +1014,10 @@ Before the MVP may be called complete:
   pass on macOS, Windows, and Linux, each verified natively;
 - the editor component spike gate (§2.8) has passed and the component is
   recorded as accepted;
-- no network access is required at any point;
+- no network access is required at any point — and when the AI assistant
+  exists (`SPEC.md` §15), the release check includes **using the application
+  with the network unplugged**: everything works, the assistant alone says it
+  is unavailable, and nothing waits, retries or spins;
 - dependency and asset licenses are documented; and
 - a human has used the packaged application to write, structure, and save a
   real chapter, and has reported the result.

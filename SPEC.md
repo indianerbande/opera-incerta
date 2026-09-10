@@ -2575,6 +2575,26 @@ anything. Four rules make that exception carry its own weight:
 4. **No action runs unasked**, and the answer is a suggestion the author
    accepts, never an edit that has already happened.
 
+**And the rule that bounds all four (2026-09-10): the assistant needs the
+network. No connection, no assistant.**
+
+- Without a connection the assistant is **unavailable and says so**, in one
+  sentence, where the panel is. Not "failed", not a spinner, not a retry that
+  keeps trying: a plain statement that this one capability needs something
+  that is not there.
+- **Everything else keeps working.** The library, the editor, saving, the
+  search, source control against a local repository — none of them so much as
+  slows down. That is the invariant of `AGENTS.md` intact: the assistant is
+  the one named exception, and an exception that took the rest of the
+  application with it would not be one.
+- **Nothing is probed.** The application does not test the connection to find
+  out, does not poll, and reaches the network only inside a request the author
+  asked for. "No connection" is what a request reports back, not a state the
+  application maintains.
+- A request that is cut off changes **nothing**: the answer was a suggestion
+  waiting to be accepted, so an interrupted one leaves the manuscript exactly
+  as it was.
+
 Planned action shapes:
 
 - pass the **full text** of one sheet for revision, shortening, or style work;
