@@ -1,8 +1,9 @@
 # Opera Incerta Specification
 
-Status: Draft 0.1
+Status: Draft 0.4 — §6 to §14 are built and verified; §15, §18 and §19
+hold what is not
 
-Date: 2026-09-01
+Date: 2026-09-10
 
 Product name: Opera Incerta
 
@@ -1482,7 +1483,9 @@ that the query was too short.
 
 ### 10.1 Display model
 
-**Status: Accepted in principle; the component decision is draft (§5.4).**
+**Status: Accepted. The editing component it is built on — CodeMirror 6 — was
+accepted on 2026-09-01 (§5.4); this section's own rules never depended on
+which component renders them.**
 
 **Base principle:** on disk there is always pure, standard-conformant Markdown
 (`#`, `**text**`, `- item`, `> quote`, backticks, `[text](url)`). Any other
@@ -1637,7 +1640,11 @@ and links are covered by §10.3 and the roadmap.
 
 ### 10.3 Inline markup and the focus line
 
-**Status: Draft — the concept is decided, the mechanism needs its own round.**
+**Status: Accepted; built 2026-09-04 with the GFM display (§10.7).** The
+mechanism this section asked for is `presentation()` in the core: it turns the
+display model and the block model into instructions — a range hidden, a range
+replaced, a mark over a range — which the adapter draws one to one. The
+behaviour below is what it does.
 
 Presentation follows the established "hide the markers, show the effect"
 pattern: `*`/`_` and `**`/`__` delimiters are **fully hidden** in the display
@@ -2611,24 +2618,20 @@ own specification update before implementation.
 
 **Phase 3 — library and workflow**
 
-- Drag a sheet into another group: always move, never copy; the drop target
-  determines the position (appended at the end of that group's order). The file
-  moves physically and both `order` entries are rewritten in one write. Open
-  questions before implementation: name collision in the target directory
-  (a suffix would change the stable technical identifier, which otherwise never
-  happens), the sheet being open in the editor, dropping onto its own group
-  (a no-op), and whether multi-selection is in scope.
-- Source control "show diff" and "discard changes" (destructive, confirmation
-  required), and opening a file from the change list (only `.md`, resolved
-  against the repository root).
+- **Drag a sheet into another group** — built 2026-09-04: always a move, the
+  drop target deciding the position, the file moved and both `order` entries
+  rewritten in one write, a collision renamed on arrival, a drop onto its own
+  group a no-op. Multi-selection stayed out.
+- **Source control "show diff" and "discard changes"** — built 2026-09-04,
+  the destructive one behind a confirmation that words itself by what it will
+  do, and opening a file from the change list.
 - Recently edited sheets, per project rather than globally.
-- **Search.** Two separate features that are often confused: finding inside the
-  open sheet (the editor's own find, scoped to one document), and searching the
-  library (across every sheet, with the front matter fields as filters). Both
-  read the files; the local index of Phase 4 is a later performance cache and
-  never the source of truth. Neither is specified in detail yet: what is
-  searched (body only, or metadata too), how results are presented, and whether
-  a search is a temporary list or a saved view are open.
+- **Search** — both halves built, and they are two features, as this entry
+  always said: finding in the open sheet is §10.10 (2026-09-10), searching the
+  library is §9.3 (2026-09-10). The three questions this entry left open were
+  answered there: the body only, a flat list of matches, and a transient
+  search rather than a saved view. The local index of Phase 4 remains a later
+  performance cache and never the source of truth.
 - **Saved views (filters and favourites).** The domain model names them (§6.1)
   and nothing implements them. A saved view is a query over the library, never
   a second copy of the data: what it stores, where it is kept — shared in
@@ -2671,9 +2674,6 @@ depends on them:
 
 - trademark clearance for the accepted product name before public
   distribution;
-- the Markdown parser (§5.4), needed for full GFM rendering and for the
-  independent conformance cross-check of the front matter codec;
-- the mechanism for non-line-wise markup elements (§10.3);
 - the concrete import and export format list and its order;
 - which `AIProvider` implementations ship first and which is preselected;
 - the snapshot storage location and difference engine (§11);
@@ -2681,6 +2681,17 @@ depends on them:
   menu may offer text-rewriting actions that do not respect the display model;
 - the accessibility target for the workbench; and
 - the distribution channel and update mechanism.
+
+**Settled since this list was written**, kept here so that a decision is not
+made twice:
+
+- **the Markdown parser** (§5.4) — decided 2026-09-04: commonmark.js and
+  `yaml` are the test-time oracle, markdown-it the runtime parser behind the
+  GFM display (§10.7), its two deviations recorded in `DEPENDENCIES.md`;
+- **the mechanism for non-line-wise markup** (§10.3) — decided and built the
+  same day: `presentation()` in the core turns both models into instructions
+  the adapter draws, which is what made §10.7 a translation rather than a
+  second editor.
 
 ## 20. Sources consulted
 

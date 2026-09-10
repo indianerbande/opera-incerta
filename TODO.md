@@ -45,11 +45,13 @@ has to be consulted to build, verify or change the product.
    typed sequence — and the next run was green. Both look like input events
    delivered out of step with the renderer; if a third appears, the typing
    helper should wait for each character to land rather than for a frame.
-   A third kind, seen once on 2026-09-09: the front matter check measured the
-   foreign block at 36px where it needed 43px — one line under a scrollbar —
-   and the two runs after it, on the same code, were green. That check
-   measures immediately after a `rendered` wait; if it recurs, it should wait
-   for the height to stop changing rather than for two frames.
+   A third kind, seen twice on 2026-09-09: the front matter check measured the
+   foreign block at 36px where it needed 43px — one line under a scrollbar.
+   That one **has been dealt with**: the check waited two frames after a
+   `rendered`, and the block measures itself and grows to what it measured,
+   which a packaged face makes slower (§8.8). It waits for the settled height
+   now, and the entry stays only as the record of what the other two might
+   turn out to be.
 
 
 2. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
@@ -60,21 +62,11 @@ has to be consulted to build, verify or change the product.
    list.
 
 
-## 2. To decide before code exists
+## 2. Larger, not yet touched
 
-### 2.1 Markdown parser dependency
-
-**Decided and built 2026-09-04.** The gate of `TESTING.md` §2.11 was read as
-two: commonmark.js and `yaml` are the test-time oracle (`TESTING.md` §2.2),
-markdown-it is the parser behind the GFM display (`SPEC.md` §10.7), its two
-deviations settled in `DEPENDENCIES.md`. The other candidates' measurements
-stay there as the record. Nothing here is open.
-
----
-
-## 3. Larger, not yet touched
-
-Everything here waits on a decision from §2, on a user interface, or on both.
+Everything here waits on a decision from him, on a user interface, or on both.
+The decisions themselves are listed in `SPEC.md` §19; this is the work that
+follows them.
 
 - **The AI assistant and snapshots panes** — both are activity bar entries
   that say "not built yet". The AI panel is a docking point for the provider

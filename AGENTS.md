@@ -1,8 +1,9 @@
 # Opera Incerta Agent Instructions
 
-Status: Draft 0.3 — the MVP of `SPEC.md` §17 is built and verified
+Status: Draft 0.4 — the MVP of `SPEC.md` §17 is built and verified, and so
+is everything Phase 2 named
 
-Date: 2026-09-03
+Date: 2026-09-10
 
 This file defines **how** work happens in this repository. `SPEC.md` defines
 **what** is built. `TESTING.md` defines the **evidence** required to claim that

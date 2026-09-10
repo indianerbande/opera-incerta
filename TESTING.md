@@ -1,9 +1,10 @@
 # Opera Incerta Testing Strategy
 
-Status: Draft 0.2 — normative for implementation; the source gate, the
-desktop production check, and the shell smoke have run in this checkout
+Status: Draft 0.3 — normative for implementation; the source gate, the
+desktop production check, the editor spike and the shell smoke have all run in
+this checkout
 
-Date: 2026-09-01
+Date: 2026-09-10
 
 This document defines how Opera Incerta behavior is verified. `SPEC.md` defines
 the behavior; this document defines the **evidence** required to claim that the
@@ -13,12 +14,13 @@ Commands that have actually succeeded in this checkout are listed in
 `AGENTS.md`; the rest of the command list below is still **planned**. A command
 reaches the approved list only by succeeding here (`CONVENTIONS.md` C-T19).
 
-Layer coverage as of 2026-09-01: §2.1 and §2.2 are implemented and green; §2.3
-is implemented for the project adapter; §2.5 is implemented for the pure status
-parser; §2.7 is implemented for the source boundary, the renderer protocol, and
-the built artifacts. §2.4, §2.6, §2.9, and §2.10 await the code they cover.
+Layer coverage as of 2026-09-10: §2.1, §2.2, §2.3, §2.4, §2.5, §2.6, §2.7,
+§2.8, §2.10 and §2.11 are implemented and green — the last of them, §2.11, as
+the record of a spike whose decision has been taken (`SPEC.md` §19). **§2.9
+alone awaits the code it covers**: there are no modules yet, and the registry
+arrives with the first of them (`SPEC.md` §15).
 
-## Planned tooling
+## Tooling
 
 | Layer | Tool | Note |
 | --- | --- | --- |
@@ -28,7 +30,8 @@ the built artifacts. §2.4, §2.6, §2.9, and §2.10 await the code they cover.
 | Type safety | `tsc` over source and test projects | Test code is type-checked too |
 | Packaging | Electron Forge per host platform | Host-native; see `SPEC.md` §5.1 |
 
-Planned root scripts, one per gate:
+The root scripts, one per gate. All of them have run in this checkout except
+the two named at the end, which belong to the packaging round:
 
 - `build` — build every workspace package;
 - `typecheck` — build sources and type-check test projects;
@@ -40,8 +43,12 @@ Planned root scripts, one per gate:
   their notices;
 - `desktop:start` — unpackaged development launch;
 - `desktop:smoke` — build and smoke-test the packaged shell;
-- `desktop:package` / `desktop:make` — host-native artifacts; and
-- `check` — the complete gate: build, boundary checks, typecheck, tests.
+- `spike:editor` — the editor gate of §2.8 in a real rendering engine;
+- `spike:parser` — the parser gate of §2.11 against the fetched CommonMark
+  examples;
+- `check` — the complete gate: build, boundary checks, typecheck, tests; and
+- `desktop:package` / `desktop:make` — host-native artifacts, **not yet run
+  here** (`AGENTS.md`).
 
 All of these MUST run locally after dependency installation and MUST NOT
 require network access.
@@ -791,7 +798,9 @@ Tests MUST prove:
 
 ### 2.11 Markdown parser spike gate
 
-The Markdown parser (`SPEC.md` §5.4) is a draft decision. It is wanted for
+**The decision this gate was written for has been taken** (2026-09-04, `SPEC.md`
+§19, `DEPENDENCIES.md`); the gate stays as the record of how it was taken, and
+as the shape the next such decision follows. It was wanted for
 two things: the standard-conformance cross-check that §2.2 requires and the
 codec's own tests cannot supply, and the GFM rendering of the roadmap
 (`SPEC.md` §18). Before a candidate is accepted, a spike MUST demonstrate the

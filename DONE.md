@@ -6,6 +6,53 @@ documents").
 
 ---
 
+## 2026-09-10 — the documents say what is true again
+
+**What was wrong.** Nothing in the code. Six claims across four documents had
+outlived their truth, and in a project whose method is "decide it, record it,
+then build it", a document that lies is worse than a missing test: it is the
+thing every later round reads first.
+
+What was corrected, and to what:
+
+1. **`SPEC.md` §10.3** still read *"Draft — the mechanism needs its own
+   round"*. That mechanism was built on 2026-09-04: `presentation()` in the
+   core turns both models into instructions the adapter draws. It says so now.
+2. **§10.1** said the editing component was still a draft decision. CodeMirror
+   6 was accepted on 2026-09-01 (§5.4) — and the section's own rules never
+   depended on which component renders them, which is now the sentence that
+   stands there.
+3. **§19** listed the **Markdown parser** and the **inline markup mechanism**
+   as open. Both were settled on 2026-09-04. They are not deleted but moved
+   into a "settled since this list was written" block, with dates and where
+   the decision lives — a decision that vanishes is a decision that gets made
+   a second time.
+4. **§18 Phase 3** described three built things as future: dragging a sheet
+   into another group, source control's diff and discard, and the two
+   searches. Each now names what it became and when.
+5. **`TESTING.md`** claimed a layer coverage from 2026-09-01, when four layers
+   "awaited the code they cover". One does: §2.9, the module registry, which
+   arrives with the first module. It also called its scripts "planned" while
+   every one of them but the two packaging commands has run here; and §2.11
+   introduced itself as a gate for a decision that has since been taken.
+6. **`TODO.md`** held a §2 whose only entry was a *decided* item, in a file
+   whose first line says it holds open work and nothing else. It is gone from
+   there and stands in `DONE.md`, where it already was. The third smoke flake
+   entry said what should be done "if it recurs" — it recurred and was done
+   the same day; the entry says that now.
+
+**Verification.** `pnpm run check` green, **1041 tests** — no code changed, and
+that is the point: this round moved only what the documents assert. Every
+correction was checked against the round that made it true, in `DONE.md`.
+
+**Lesson.** Stale documentation accumulates exactly where the work went well:
+a feature gets built, its own section is updated, and the *other* sections
+that mentioned it as future stay behind. The cheap defence is to grep for the
+section number when a round closes — every `§10.3` in the repository, not just
+§10.3 itself.
+
+---
+
 ## 2026-09-10 — searching the library
 
 **What was open** (`SPEC.md` §18, Phase 3, and the three questions §18 said
