@@ -329,8 +329,14 @@ succeeded in this checkout. The following have:
   when no candidate passes every criterion — which, as of 2026-09-04, is the
   case.
 
-Not yet run here, and therefore not approved: `pnpm run desktop:start`,
-`desktop:package`, and `desktop:make`.
+- `pnpm run desktop:start` builds both and launches the real application
+  through Electron Forge — the workbench as an author meets it, on the
+  author's own user-data directory rather than the smoke's. First run here on
+  2026-09-10: the launcher appeared, and closing it ended the session with
+  exit code 0, which is the window model of `SPEC.md` §8.5 doing its work.
+
+Not yet run here, and therefore not approved: `pnpm run desktop:package` and
+`desktop:make`. Both belong to the packaging round (`TODO.md` §3).
 
 ## Documentation discipline
 
