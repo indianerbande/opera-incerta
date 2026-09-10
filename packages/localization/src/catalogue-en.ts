@@ -10,6 +10,7 @@ export const EN = {
   // --- views and the shell ---------------------------------------------------
   'view.explorer': 'Explorer',
   'view.sourceControl': 'Source control',
+  'view.search': 'Search',
   'view.inspector': 'Inspector',
   'view.outline': 'Outline',
   'view.ai': 'AI assistant',
@@ -65,6 +66,16 @@ export const EN = {
   'find.previous': 'Previous match',
   'outline.empty': 'No headings in this sheet.',
   'sheetList.empty': 'No sheets in this group.',
+  'search.label': 'Search the library',
+  'search.placeholder': 'Search every sheet',
+  'search.run': 'Search',
+  'search.running': 'Reading the sheets…',
+  'search.hint': 'Searches the text of every sheet in this project.',
+  'search.none': 'Nothing found.',
+  'search.hits.one': '{count} match',
+  'search.hits.other': '{count} matches',
+  'search.capped': '(the first of many — narrow the search)',
+  'search.failed': 'The search failed ({code}).',
 
   // --- the inspector ---------------------------------------------------------
   'inspector.words.one': 'word',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findMatches, matchAt, stepMatch } from '../src/index.js';
+import { findMatches, lineMatches, matchAt, stepMatch } from '../src/index.js';
 
 const text = 'The bell rang once.\nThe bell rang twice.\nSilence.';
 
@@ -52,5 +52,26 @@ describe('finding in a sheet (SPEC.md §10.10)', () => {
     expect(stepMatch(3, 2, 'forwards')).toBe(0);
     expect(stepMatch(3, 0, 'backwards')).toBe(2);
     expect(stepMatch(0, 0, 'forwards')).toBe(0);
+  });
+});
+
+describe('searching the library (SPEC.md §9.3)', () => {
+  const sheet = ['# The Harbour', '', 'The bell rang once.', 'It rang again.'].join('\n');
+
+  it('reports each match with the line it stands in, one-based', () => {
+    expect(lineMatches(sheet, 'rang')).toEqual([
+      { line: 3, text: 'The bell rang once.', from: 9, to: 13 },
+      { line: 4, text: 'It rang again.', from: 3, to: 7 },
+    ]);
+  });
+
+  it('ignores case, like the find in the editor', () => {
+    expect(lineMatches(sheet, 'HARBOUR')).toHaveLength(1);
+    expect(lineMatches(sheet, '')).toEqual([]);
+  });
+
+  it('stops at the limit, so a short query cannot flood the list', () => {
+    expect(lineMatches(sheet, 'a', 2)).toHaveLength(2);
+    expect(lineMatches(sheet, 'the').length).toBeGreaterThan(1);
   });
 });

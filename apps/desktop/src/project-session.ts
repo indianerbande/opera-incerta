@@ -8,11 +8,17 @@
  */
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import { MAX_DOCUMENT_BYTES, type ProjectSnapshot } from '@opera-incerta/desktop-contract';
+import {
+  MAX_DOCUMENT_BYTES,
+  SEARCH_RESULT_LIMIT,
+  type LibrarySearchResult,
+  type ProjectSnapshot,
+} from '@opera-incerta/desktop-contract';
 import {
   CodedError,
   type GroupEntry,
   arrivalName,
+  lineMatches,
   moveChild,
   parseSheet,
   projectDirectoryName,
@@ -144,6 +150,58 @@ export class ProjectSession {
       library,
       handles: exposed,
       categories: await this.#filesystem.readCategories(projectPath),
+    };
+  }
+
+  /**
+   * Searches the text of every sheet in the open project. SPEC.md §9.3.
+   *
+   * The **body** only: front matter is metadata, and the line numbers a result
+   * points at are the ones the editor shows, which start after it (§10.4).
+   * The library is walked in its own order, so the list reads in the order the
+   * manuscript does; a sheet that cannot be read is skipped rather than
+   * failing the search — one unreadable file must not hide every match in the
+   * project.
+   */
+  async searchLibrary(query: string): Promise<LibrarySearchResult> {
+    const current = this.#requireOpen();
+    const record = await this.#filesystem.readProject(current.path);
+    const structure = await this.#filesystem.readStructure(current.path);
+    const { root } = await scanLibrary(current.path, record.displayName, this.#filesystem, structure);
+
+    // One past the cap, so "there were more" is knowledge rather than a guess
+    // at exactly the limit.
+    const ceiling = SEARCH_RESULT_LIMIT + 1;
+    const hits: Array<LibrarySearchResult['hits'][number]> = [];
+
+    for (const sheet of sheetsOf(root)) {
+      if (hits.length >= ceiling) {
+        break;
+      }
+      let body: string;
+      try {
+        const text = await this.#filesystem.readSheet(join(current.path, sheet.relativePath));
+        body = parseSheet(text).sheet.body;
+      } catch {
+        // A sheet that cannot be read is skipped: one unreadable file must not
+        // hide every match in the project.
+        continue;
+      }
+      for (const match of lineMatches(body, query, ceiling - hits.length)) {
+        hits.push({
+          path: sheet.relativePath,
+          displayName: sheet.displayName,
+          line: match.line,
+          text: match.text,
+          from: match.from,
+          to: match.to,
+        });
+      }
+    }
+
+    return {
+      hits: hits.slice(0, SEARCH_RESULT_LIMIT),
+      capped: hits.length > SEARCH_RESULT_LIMIT,
     };
   }
 

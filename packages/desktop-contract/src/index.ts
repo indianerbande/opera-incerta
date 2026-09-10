@@ -132,6 +132,7 @@ export const CHANNELS = {
   gitDiff: 'opera-incerta:git/diff',
   gitVersions: 'opera-incerta:git/versions',
   menuCommand: 'opera-incerta:menu/command',
+  searchLibrary: 'opera-incerta:library/search',
   createSheet: 'opera-incerta:sheet/create',
   createGroup: 'opera-incerta:group/create',
   renameSheet: 'opera-incerta:sheet/rename',
@@ -492,6 +493,57 @@ export const isLibraryEditResult: Guard<LibraryEditResult> = shape<LibraryEditRe
   revealPath: nullable(isString),
 });
 
+/**
+ * The most matches a library search sends back. SPEC.md §9.3.
+ *
+ * A search that answers with four thousand rows is not an answer; the view
+ * says that there were more, and the author narrows the query.
+ */
+export const SEARCH_RESULT_LIMIT = 200;
+
+/** A search over the project's text. SPEC.md §9.3. */
+export interface LibrarySearchRequest {
+  readonly query: string;
+}
+
+export const isLibrarySearchRequest: Guard<LibrarySearchRequest> = shape<LibrarySearchRequest>({
+  query: isNonBlank,
+});
+
+/** One match: which sheet, which line, and the line itself. */
+export interface LibrarySearchHit {
+  /** The sheet's path inside the project, for opening it. */
+  readonly path: string;
+  /** What the library calls it — the title, or the file name. */
+  readonly displayName: string;
+  /** One-based, counted in the body the editor shows (§10.4). */
+  readonly line: number;
+  readonly text: string;
+  readonly from: number;
+  readonly to: number;
+}
+
+export interface LibrarySearchResult {
+  readonly hits: readonly LibrarySearchHit[];
+  /** True when {@link SEARCH_RESULT_LIMIT} cut the list short. */
+  readonly capped: boolean;
+}
+
+const isLibrarySearchHit: Guard<LibrarySearchHit> = shape<LibrarySearchHit>({
+  path: isNotEmpty,
+  displayName: isString,
+  line: isNumber,
+  text: isString,
+  from: isNumber,
+  to: isNumber,
+});
+
+/** Runtime guard for what a search sends back. */
+export const isLibrarySearchResult: Guard<LibrarySearchResult> = shape<LibrarySearchResult>({
+  hits: arrayOf(isLibrarySearchHit),
+  capped: isBoolean,
+});
+
 /** A chosen location, with a short form for display. */
 export interface ChosenLocation {
   readonly path: string;
@@ -754,6 +806,14 @@ export interface OperaIncertaBridge {
    * turned out to be. SPEC.md §8.6.
    */
   openProject(): Promise<BridgeResult<ProjectOpenOutcome>>;
+  /**
+   * Searches the text of every sheet in the open project. SPEC.md §9.3.
+   *
+   * The reading happens here, in the main process, like every other
+   * filesystem access: the renderer receives matches, never a path it could
+   * act on by itself.
+   */
+  searchLibrary(request: LibrarySearchRequest): Promise<BridgeResult<LibrarySearchResult>>;
   /** Re-reads the open project from disk, after an external change. */
   reopenProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   closeProject(): Promise<BridgeResult<null>>;

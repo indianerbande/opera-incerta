@@ -16,6 +16,7 @@ import {
 import { join } from 'node:path';
 import { type BrowserWindow } from 'electron';
 import {
+  activateSidebar,
   clickMenuItem,
   clickText,
   editorContains,
@@ -761,3 +762,127 @@ export function displayNameOf(projectPath: string, relativePath: string): string
 }
 
 /** Right-clicks the explorer node whose name is the given text. */
+
+/** What the search view is showing. SPEC.md §9.3. */
+interface SearchView {
+  readonly rows: readonly { sheet: string; line: string; marked: string }[];
+  readonly summary: string | null;
+  readonly hint: string | null;
+}
+
+async function searchView(window: BrowserWindow): Promise<SearchView> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const view = document.querySelector('wi-library-search');
+       return {
+         rows: [...(view?.querySelectorAll('.hit') ?? [])].map((row) => ({
+           sheet: row.querySelector('.sheet')?.textContent?.trim() ?? '',
+           line: row.querySelector('.line')?.textContent?.trim() ?? '',
+           marked: row.querySelector('mark')?.textContent ?? '',
+         })),
+         summary: view?.querySelector('.summary')?.textContent?.trim() ?? null,
+         hint: view?.querySelector('.hint')?.textContent?.trim() ?? null,
+       };
+     })()`,
+  )) as SearchView;
+}
+
+/** Types a query into the search view and runs it. */
+async function runSearch(window: BrowserWindow, query: string): Promise<void> {
+  await window.webContents.executeJavaScript(
+    `(() => {
+       const field = document.querySelector('wi-library-search input.query');
+       field.value = ${JSON.stringify(query)};
+       field.dispatchEvent(new Event('input', { bubbles: true }));
+     })()`,
+  );
+  await clickText(window, 'wi-library-search button.run', '');
+}
+
+/**
+ * Searching the library. SPEC.md §9.3.
+ *
+ * The navigator's third view: what it finds, where it finds it, what it
+ * deliberately does not search, and that opening a row lands on the line.
+ * Switching to it must not move the column, which is the standing rule for
+ * every view of a region (§8.2).
+ */
+export async function checkLibrarySearch(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  const width = async (): Promise<number> =>
+    (await window.webContents.executeJavaScript(
+      "document.querySelector('.navigator')?.getBoundingClientRect().width ?? 0",
+    )) as number;
+  const before = await width();
+
+  await activateSidebar(window, 'Search');
+  await waitForSelector(window, 'wi-library-search input.query');
+  if (Math.round(await width()) !== Math.round(before)) {
+    throw new Error('switching the navigator to the search moved the column');
+  }
+  if ((await searchView(window)).hint === null) {
+    throw new Error('the search view says nothing before a search has run');
+  }
+
+  // A word that stands in both sheets of the fixture.
+  await runSearch(window, 'the');
+  await waitUntil('the matches to arrive', async () => (await searchView(window)).rows.length > 1);
+
+  const found = await searchView(window);
+  const sheets = new Set(found.rows.map((row) => row.sheet));
+  if (sheets.size < 2) {
+    throw new Error(`the search found matches in one sheet only: ${JSON.stringify([...sheets])}`);
+  }
+  if (found.rows.some((row) => row.marked.toLowerCase() !== 'the')) {
+    throw new Error(`a row marks something else: ${JSON.stringify(found.rows.slice(0, 3))}`);
+  }
+  if (found.summary === null || !found.summary.includes(String(found.rows.length))) {
+    throw new Error(`the summary does not count the rows: ${JSON.stringify(found.summary)}`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-library-search.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  // Front matter is metadata, not text: a value that stands only there is not
+  // findable, however plainly it reads in the file.
+  await runSearch(window, 'Someone Else');
+  await waitUntil(
+    'the search to report nothing for a front matter value',
+    async () => (await searchView(window)).rows.length === 0,
+  );
+
+  // A row opens its sheet and lands on its line.
+  await runSearch(window, 'the');
+  await waitUntil('the matches again', async () => (await searchView(window)).rows.length > 1);
+  const target = (await searchView(window)).rows[0];
+  if (target === undefined) {
+    throw new Error('no row to open');
+  }
+  await clickText(window, 'wi-library-search .hit', target.marked);
+  // The editor's own header, not the first one in the window: the navigator
+  // has a header too, and it carries the project's name.
+  const openTitle = async (): Promise<string> =>
+    (await window.webContents.executeJavaScript(
+      `document.querySelector('.editor wi-panel-header .title')?.textContent?.trim() ?? ''`,
+    )) as string;
+  await waitUntil(
+    'the sheet to open',
+    async () => (await openTitle()).replace(' •', '').trim() === target.sheet,
+  );
+  const position = (await window.webContents.executeJavaScript(
+    `document.querySelector('wi-status-bar .position')?.textContent?.trim() ?? ''`,
+  )) as string;
+  if (!position.includes(`Ln ${target.line}`)) {
+    throw new Error(`the cursor is at ${JSON.stringify(position)}, not on line ${target.line}`);
+  }
+
+  // Back to source control, where the checks after this one expect to be.
+  await activateSidebar(window, 'Source control');
+  await waitForSelector(window, 'wi-source-control');
+
+  console.log(
+    'smoke ok: the library search found matches across sheets without touching front matter, ' +
+      'counted them, opened a row on its line, and left the column width alone',
+  );
+}

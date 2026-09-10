@@ -1437,6 +1437,47 @@ populated before the list measures its rows. Filling the cache asynchronously
 after the first render leaves rows measured at placeholder height
 (`CONVENTIONS.md` C-U3).
 
+### 9.3 Searching the library
+
+**Status: Accepted (2026-09-10), written before its implementation.**
+
+The larger of the two searches (§10.10 is the other): finding a passage
+anywhere in the project. It is a **third view of the navigator** (§8.1), with
+its own entry in the leading activity bar — a region holds interchangeable
+views, and this is one of them, beside the explorer and source control.
+
+**Only the text is searched.** The body of every sheet, as it stands on disk.
+Front matter is not searched — not the title, not the topic, not the keywords.
+Filtering a library *by* its metadata is a different feature with a different
+shape, and it belongs with the saved views of §18 rather than in a text
+search.
+
+**The results are a flat list, one row per match**: the sheet's display name,
+the line number, and the line itself with the match marked. Ordered by the
+library's own order, so the list reads in the order the manuscript does — not
+by relevance, which a manuscript does not have. Activating a row opens that
+sheet and reveals that line, which is the same path the outline already uses.
+
+**A search is transient.** It is neither stored in the project nor in the
+preference record: it lives with the window, like the wrap switch of §10.5.
+Closing the project forgets it. Saving a search as a view is the §18 question
+and stays open — deliberately, because a saved view is a query over the
+library, and deciding where such a query lives is a storage decision, not a
+search feature.
+
+**It runs when it is asked to**, on Return or the button, not on every
+keystroke: it reads every sheet in the project from disk, and a manuscript is
+not a small directory. The reading happens in the main process, like every
+other filesystem access (§5.3); the renderer receives matches, never paths it
+could act on.
+
+**Case is ignored**, by the same rule the editor's find uses — one rule, one
+place, both searches.
+
+**The cap.** At most 200 matches come back, and the view says when there were
+more. A search that returns four thousand rows is not an answer; it is a sign
+that the query was too short.
+
 ## 10. Editor
 
 ### 10.1 Display model

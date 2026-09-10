@@ -53,6 +53,7 @@ import {
   checkDeletion,
   checkExternalChange,
   checkLibraryEdits,
+  checkLibrarySearch,
   checkMovingBetweenGroups,
   checkReordering,
   checkWatchedChange,
@@ -239,6 +240,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await checkColumnDragging(smoke, window);
     await expectNoStrayDialog(window, 'checkColumnDragging');
 
+    await checkLibrarySearch(smoke, window);
+    await expectNoStrayDialog(window, 'checkLibrarySearch');
     await checkLibraryEdits(smoke, window);
     await expectNoStrayDialog(window, 'checkLibraryEdits');
     await checkReordering(smoke, window, projectPath);

@@ -89,3 +89,38 @@ export function stepMatch(
   const step = direction === 'forwards' ? 1 : -1;
   return (current + step + count) % count;
 }
+
+/** A match with the line it stands in. SPEC.md §9.3. */
+export interface LineMatch {
+  /** One-based, as the editor and the status bar count. */
+  readonly line: number;
+  /** The whole line, so the list can show the passage around the match. */
+  readonly text: string;
+  /** Where the match sits inside `text`. */
+  readonly from: number;
+  readonly to: number;
+}
+
+/**
+ * Every match in a text, line by line. SPEC.md §9.3.
+ *
+ * The same rule as {@link findMatches} — one search, one notion of a match —
+ * with the line number a result list needs to point at.
+ */
+export function lineMatches(text: string, query: string, limit = Number.POSITIVE_INFINITY): readonly LineMatch[] {
+  if (query.trim() === '') {
+    return [];
+  }
+
+  const found: LineMatch[] = [];
+  const lines = text.split('\n');
+  for (const [index, line] of lines.entries()) {
+    for (const match of findMatches(line, query)) {
+      if (found.length >= limit) {
+        return found;
+      }
+      found.push({ line: index + 1, text: line, from: match.from, to: match.to });
+    }
+  }
+  return found;
+}

@@ -15,9 +15,10 @@ including amend and `.gitignore`, the GFM display (§10.7), all four answers
 opening a folder can give (§8.6), the line-number gutter (§10.8), the
 editor zoom (§10.9) and the visual system (§8.8) with its packaged face, its
 two schemes and its eight palettes, its geometry (§8.9) and its regions as
-panels on a canvas (§8.2), and finding in the open sheet (§10.10). `pnpm run check` green on **Node 24**: 8
-projects, **1032 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across forty-two checks,
+panels on a canvas (§8.2), finding in the open sheet (§10.10) and
+searching the library (§9.3). `pnpm run check` green on **Node 24**: 8
+projects, **1041 tests**, plus the desktop and asset checks.
+`pnpm run desktop:smoke` green across forty-three checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains

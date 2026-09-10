@@ -28,6 +28,7 @@ export type { NavigatorView, SecondarySidebarView };
 export const NAVIGATOR_ITEMS: readonly ActivityItem<NavigatorView>[] = [
   { id: 'explorer', icon: 'icon-explorer', labelKey: 'view.explorer' },
   { id: 'sourceControl', icon: 'icon-source-control', labelKey: 'view.sourceControl' },
+  { id: 'search', icon: 'icon-search', labelKey: 'view.search' },
 ];
 
 export const SECONDARY_ITEMS: readonly ActivityItem<SecondarySidebarView>[] = [

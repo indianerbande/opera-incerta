@@ -1,6 +1,6 @@
 # Material Symbols asset source
 
-The seven SVG files in this directory are exact, unmodified copies of Google
+The eight SVG files in this directory are exact, unmodified copies of Google
 Material Symbols Outlined at weight 400, 24 px.
 
 - Upstream: <https://github.com/google/material-design-icons>
@@ -8,7 +8,8 @@ Material Symbols Outlined at weight 400, 24 px.
   `0.47.0`, which redistributes the upstream SVGs unchanged.
 - License: Apache License 2.0. The adjacent `LICENSE` is an unchanged copy of
   the upstream license and is packaged beside this notice.
-- Retrieved: 2026-09-02; `settings.svg` on 2026-09-04, from the same package version
+- Retrieved: 2026-09-02; `settings.svg` on 2026-09-04 and `search.svg` on
+  2026-09-10, both from the same package version
 
 | File | Activity bar entry |
 | --- | --- |
@@ -18,6 +19,7 @@ Material Symbols Outlined at weight 400, 24 px.
 | `toc.svg` | Outline |
 | `neurology.svg` | AI assistant |
 | `history.svg` | Snapshots |
+| `search.svg` | Search (the library search of `SPEC.md` §9.3) |
 | `settings.svg` | Settings (the tool entry at the foot of the leading bar) |
 
 They are presentation assets for the local workbench activity bars. They are

@@ -41,6 +41,7 @@ import {
   isBooleanRequest,
   isLibraryPathRequest,
   isLibraryPlaceRequest,
+  isLibrarySearchRequest,
   isWatchTargetsRequest,
   isProjectPathRequest,
   isWriteSheetRequest,
@@ -628,6 +629,11 @@ export function startShell(options: ShellOptions = {}): Shell {
     }
     return { snapshot, revealPath };
   }
+
+  /** Searching the project's text. SPEC.md §9.3. */
+  privileged(CHANNELS.searchLibrary, isLibrarySearchRequest, async (request) =>
+    session.searchLibrary(request.query),
+  );
 
   privileged(CHANNELS.createSheet, isLibraryEditRequest, async (request) =>
     libraryEdit(async () => session.createSheet(request.path, request.name)),

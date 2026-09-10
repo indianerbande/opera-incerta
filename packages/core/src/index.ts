@@ -114,8 +114,8 @@ export {
   resolveColorScheme,
 } from './appearance.js';
 export type { AccentPalette, ColorScheme, ResolvedColorScheme } from './appearance.js';
-export { findMatches, matchAt, stepMatch } from './search.js';
-export type { SearchMatch } from './search.js';
+export { findMatches, lineMatches, matchAt, stepMatch } from './search.js';
+export type { LineMatch, SearchMatch } from './search.js';
 export { LAYOUT_PREFERENCE_KEYS, SETTINGS, SETTINGS_CATEGORIES, settingsOf } from './settings.js';
 export {
   DEFAULT_EDITOR_FONT_FAMILY,

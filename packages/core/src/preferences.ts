@@ -36,7 +36,7 @@ export const PREFERENCES_KEY = 'opera-incerta.workbench.preferences';
 
 export const PREFERENCES_VERSION = 1;
 
-export type NavigatorView = 'explorer' | 'sourceControl';
+export type NavigatorView = 'explorer' | 'sourceControl' | 'search';
 
 /**
  * The interface language, or "whatever the system says". The catalogues and
@@ -112,7 +112,7 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   showDeeperOutline: false,
 };
 
-const NAVIGATOR_VIEWS: readonly string[] = ['explorer', 'sourceControl'];
+const NAVIGATOR_VIEWS: readonly string[] = ['explorer', 'sourceControl', 'search'];
 const INTERFACE_LANGUAGES: readonly string[] = ['system', 'en', 'de'];
 const SECONDARY_VIEWS: readonly string[] = ['inspector', 'outline', 'ai', 'snapshots'];
 

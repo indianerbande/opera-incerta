@@ -197,7 +197,11 @@ describe('persistence', () => {
 
 describe('the activity bar inventories', () => {
   it('cover every view of their region', () => {
-    expect(NAVIGATOR_ITEMS.map((item) => item.id)).toEqual(['explorer', 'sourceControl']);
+    expect(NAVIGATOR_ITEMS.map((item) => item.id)).toEqual([
+      'explorer',
+      'sourceControl',
+      'search',
+    ]);
     expect(SECONDARY_ITEMS.map((item) => item.id)).toEqual([
       'inspector',
       'outline',

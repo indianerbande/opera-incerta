@@ -20,6 +20,7 @@ import { Localization, systemLanguageTag } from '../localization/localization.js
 import type { Overlay } from '../shell/overlay.js';
 import { DESKTOP_BRIDGE, resolveBridge } from './bridge.js';
 import { LibraryActions } from './library-actions.js';
+import { LibrarySearchStore } from './library-search-store.js';
 import { SourceControlActions } from './source-control-actions.js';
 import { SourceControlStore } from './source-control-store.js';
 import { WorkspaceStore } from './workspace-store.js';
@@ -31,6 +32,7 @@ export const WORKBENCH_PROVIDERS: readonly Provider[] = [
   { provide: DESKTOP_BRIDGE, useFactory: resolveBridge },
   { provide: WorkspaceStore, useFactory: () => new WorkspaceStore(inject(DESKTOP_BRIDGE)) },
   { provide: SourceControlStore, useFactory: () => new SourceControlStore(inject(DESKTOP_BRIDGE)) },
+  { provide: LibrarySearchStore, useFactory: () => new LibrarySearchStore(inject(DESKTOP_BRIDGE)) },
   { provide: LayoutState, useFactory: () => new LayoutState(inject(DESKTOP_BRIDGE)) },
   {
     provide: Localization,

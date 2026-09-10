@@ -92,6 +92,9 @@ export interface ActivityItem<TId extends string = string> {
     .icon-source-control {
       mask-image: url('/icons/account_tree.svg');
     }
+    .icon-search {
+      mask-image: url('/icons/search.svg');
+    }
     .icon-inspector {
       mask-image: url('/icons/info.svg');
     }

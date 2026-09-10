@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -16,6 +18,7 @@ import {
   DensitySwitchComponent,
   SheetListComponent,
 } from './library/sheet-list.component.js';
+import { LibrarySearchComponent } from './library/library-search.component.js';
 import { SourceControlComponent } from './library/source-control.component.js';
 import { ActivityBarComponent, type ActivityItem } from './shell/activity-bar.component.js';
 import { startAppearance } from './shell/appearance.js';
@@ -26,7 +29,7 @@ import { FindBarComponent } from './editor/find-bar.component.js';
 import { StatusBarComponent } from './editor/status-bar.component.js';
 import { EditorSession } from './editor/editor-session.js';
 import { SettingsComponent } from './shell/settings.component.js';
-import type { GitIdentity } from '@opera-incerta/desktop-contract';
+import type { GitIdentity, LibrarySearchHit } from '@opera-incerta/desktop-contract';
 import { LibraryDrag, describeListEnd, describeRow, type OverRow } from './shell/library-drag.js';
 import { TextPromptComponent } from './shell/text-prompt.component.js';
 import {
@@ -80,6 +83,7 @@ import { Localization } from './localization/localization.js';
     FrontMatterBlockComponent,
     ExplorerNodeComponent,
     InspectorComponent,
+    LibrarySearchComponent,
     OutlineComponent,
     PanelHeaderComponent,
     ResizeDividerComponent,
@@ -120,16 +124,22 @@ import { Localization } from './localization/localization.js';
           }
         </wi-panel-header>
 
-        @if (layout.navigatorView() === 'explorer') {
-          <div class="tree" data-drop-list="group" data-parent=".">
-            @if (store.library(); as library) {
-              <wi-explorer-node [group]="library" />
-            } @else {
-              <p class="hint">{{ i18n.t('app.noProject') }}</p>
-            }
-          </div>
-        } @else {
-          <wi-source-control />
+        @switch (layout.navigatorView()) {
+          @case ('explorer') {
+            <div class="tree" data-drop-list="group" data-parent=".">
+              @if (store.library(); as library) {
+                <wi-explorer-node [group]="library" />
+              } @else {
+                <p class="hint">{{ i18n.t('app.noProject') }}</p>
+              }
+            </div>
+          }
+          @case ('search') {
+            <wi-library-search (reveal)="openSearchHit($event)" />
+          }
+          @default {
+            <wi-source-control />
+          }
         }
       </section>
 
@@ -609,6 +619,8 @@ export class AppComponent {
 
   protected readonly activityBarWidth = ACTIVITY_BAR_WIDTH;
   protected readonly session = inject(EditorSession);
+  /** For scheduling work after a render, when a signal alone is too early. */
+  readonly #injector = inject(Injector);
 
   /** This sheet's wrapping: its own switch, or the settings' default. SPEC.md §10.5. */
   protected readonly wrapping = computed(() =>
@@ -755,6 +767,19 @@ export class AppComponent {
   protected closeFind(): void {
     this.editor()?.clearSearch();
     this.session.stopFinding();
+  }
+
+  /**
+   * A match from the library search: open that sheet, then that line.
+   * SPEC.md §9.3 — the same path the outline takes, one step longer.
+   */
+  protected async openSearchHit(hit: LibrarySearchHit): Promise<void> {
+    await this.store.selectSheet(hit.path);
+    // The editor adopts the newly selected document in an effect of its own,
+    // which has not run yet: revealing here would move the cursor in the
+    // document that is on its way out. The reveal waits for the render that
+    // shows the new one.
+    afterNextRender(() => this.revealLine(hit.line), { injector: this.#injector });
   }
 
   protected revealLine(line: number): void {

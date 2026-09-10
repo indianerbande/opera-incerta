@@ -6,6 +6,61 @@ documents").
 
 ---
 
+## 2026-09-10 — searching the library
+
+**What was open** (`SPEC.md` §18, Phase 3, and the three questions §18 said
+had to be answered first). He answered them: **only the text**, **results as a
+list**, **transient — no saved view**. The rest follows from those three.
+
+**What was decided first** (`SPEC.md` §9.3). It is the navigator's **third
+view**, beside the explorer and source control, because a region holds
+interchangeable views and this is one of them. Only the body is searched:
+front matter is metadata, and filtering a library *by* metadata is the saved
+views question of §18, with a different shape. One row per match — sheet, line
+number, and the line itself with the match marked — in the library's own
+order, because a manuscript has an order and no relevance. A row opens its
+sheet and reveals its line. The search **runs when it is asked to**, not on
+every keystroke: it reads every sheet in the project from disk. At most 200
+matches come back, and the view says when there were more.
+
+**What changed.** `lineMatches` in the core, beside the find of §10.10 — one
+notion of a match for both searches. A channel that returns matches, never
+paths the renderer could act on; the reading happens in the main process,
+where every filesystem access lives. A store that holds the query and the
+hits for the window's lifetime and nothing longer. A view, an activity bar
+entry, and an eighth pinned icon with its provenance.
+
+**Verification.** `pnpm run check` green: **1041 tests** — the rule with its
+line numbers and its limit, and the store's six behaviours, among them "asks
+only when it is run". `pnpm run desktop:smoke` green across **forty-three
+checks**: switching the navigator to the search leaves the column width alone,
+a word standing in two sheets is found in two sheets, every row marks what it
+matched, and `Someone Else` — which stands in a sheet's front matter and
+nowhere else — is **not** found, which is what proves that only the text is
+searched. Then a row opens its sheet and lands on its line. Screenshot looked
+at.
+
+**Falsified three times**: an off-by-one line number fails the rule's test; a
+store that searches while the query is typed fails its own; and a search that
+reads the whole file instead of the body finds the front matter value and
+fails the smoke, by name.
+
+**What looking at the screenshot decided.** A row for a heading shows
+`## The Second Bell`, with the markers the editor hides. That is the honest
+consequence of searching the Markdown (§9.3) — the row shows the line as the
+file has it, and a search for `##` finding something is then no surprise. It
+is left as it is, deliberately.
+
+**Lesson — a signal is not a render.** Opening a match set the sheet and then
+revealed the line, and the cursor landed in the document that was on its way
+out: the editor adopts a new document in an effect of its own, which had not
+run yet. The reveal waits for the render now (`afterNextRender`). The same
+shape has bitten this project before, in the front matter block's measurement
+— anything that reads or moves the DOM after a state change has to wait for
+the frame that shows it.
+
+---
+
 ## 2026-09-10 — finding in the open sheet
 
 **What was open** (`SPEC.md` §18, Phase 3). Two things are called search, and
