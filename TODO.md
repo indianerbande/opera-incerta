@@ -8,16 +8,16 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-09 (evening):** the library is complete — create, rename, place, delete —
+**State 2026-09-10:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, source control (§12) up to and
 including amend and `.gitignore`, the GFM display (§10.7), all four answers
 opening a folder can give (§8.6), the line-number gutter (§10.8), the
 editor zoom (§10.9) and the visual system (§8.8) with its packaged face, its
 two schemes and its eight palettes, its geometry (§8.9) and its regions as
-panels on a canvas (§8.2). `pnpm run check` green on **Node 24**: 8
-projects, **1022 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across forty-one checks,
+panels on a canvas (§8.2), and finding in the open sheet (§10.10). `pnpm run check` green on **Node 24**: 8
+projects, **1032 tests**, plus the desktop and asset checks.
+`pnpm run desktop:smoke` green across forty-two checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains

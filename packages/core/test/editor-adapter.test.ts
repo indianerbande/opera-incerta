@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   displayToMarkdown,
+  findMatches,
   markdownToDisplay,
+  matchAt,
+  stepMatch,
   withHeadingLevel,
   type EditorAdapter,
   type EditorChangeListener,
@@ -11,6 +14,8 @@ import {
   type HeadingMarkerListener,
   type EditorCursor,
   type EditorCursorListener,
+  type EditorSearchState,
+  type SearchMatch,
 } from '../src/index.js';
 import { runEditorAdapterContract } from '../src/testing/index.js';
 
@@ -31,6 +36,13 @@ class FakeEditorAdapter implements EditorAdapter {
   #cursorListeners = new Set<EditorCursorListener>();
   #markerListeners = new Set<HeadingMarkerListener>();
   #destroyed = false;
+  /** What the find of SPEC.md §10.10 is on: the query and the current match. */
+  #search: { query: string; matches: readonly SearchMatch[]; current: number } = {
+    query: '',
+    matches: [],
+    current: -1,
+  };
+  #selection: SearchMatch | null = null;
 
   open(document_: EditorDocument): void {
     if (!this.#documents.has(document_.id)) {
@@ -61,6 +73,39 @@ class FakeEditorAdapter implements EditorAdapter {
 
   text(): string {
     return this.#current()?.text ?? '';
+  }
+
+  search(query: string): EditorSearchState {
+    const matches = findMatches(this.text(), query);
+    const cursor = this.#selection?.to ?? 0;
+    this.#search = { query, matches, current: matchAt(matches, cursor) ?? -1 };
+    return this.#reportSearch();
+  }
+
+  stepSearch(direction: 'forwards' | 'backwards'): EditorSearchState {
+    const { matches, current } = this.#search;
+    if (matches.length > 0) {
+      this.#search = { ...this.#search, current: stepMatch(matches.length, current, direction) };
+    }
+    return this.#reportSearch();
+  }
+
+  clearSearch(): void {
+    this.#search = { query: '', matches: [], current: -1 };
+    this.#selection = null;
+  }
+
+  selectedText(): string {
+    return this.#selection === null
+      ? ''
+      : this.text().slice(this.#selection.from, this.#selection.to);
+  }
+
+  /** The current match is selected, as it is in the real editor. */
+  #reportSearch(): EditorSearchState {
+    const match = this.#search.matches[this.#search.current];
+    this.#selection = match ?? null;
+    return { matches: this.#search.matches.length, current: this.#search.current + 1 };
   }
 
   focusedLine(): number {

@@ -56,6 +56,9 @@ export function runEditorAdapterContract(create: Create): readonly ContractCase[
   cases.push(caseChangeListener(create));
   cases.push(caseUnsubscribe(create));
   cases.push(caseMarkerListenerRegistration(create));
+  cases.push(caseSearchFindsAndCounts(create));
+  cases.push(caseSearchStepsAndWraps(create));
+  cases.push(caseSearchClears(create));
   cases.push(caseDestroyIsIdempotent(create));
 
   return cases;
@@ -329,4 +332,46 @@ function caseDestroyIsIdempotent(create: Create): ContractCase {
     secondFailed = true;
   }
   return check('destroy can be called twice', !secondFailed, `secondFailed=${String(secondFailed)}`);
+}
+
+/** Finding marks every match and reports where the author is. SPEC.md §10.10. */
+function caseSearchFindsAndCounts(create: Create): ContractCase {
+  const adapter = create();
+  adapter.open({ id: 's', text: 'one two one two one' });
+  const state = adapter.search('two');
+  return check(
+    'search reports how many matches there are and which one is current',
+    state.matches === 2 && state.current === 1,
+    `got ${state.current} of ${state.matches}`,
+  );
+}
+
+/** Stepping runs through the matches and comes round again. */
+function caseSearchStepsAndWraps(create: Create): ContractCase {
+  const adapter = create();
+  adapter.open({ id: 's', text: 'a b a b a' });
+  adapter.search('a');
+  const second = adapter.stepSearch('forwards');
+  const third = adapter.stepSearch('forwards');
+  const wrapped = adapter.stepSearch('forwards');
+  const back = adapter.stepSearch('backwards');
+  return check(
+    'stepping moves through the matches and wraps at both ends',
+    second.current === 2 && third.current === 3 && wrapped.current === 1 && back.current === 3,
+    `got ${second.current}, ${third.current}, ${wrapped.current}, then ${back.current}`,
+  );
+}
+
+/** An empty query and a clear both leave nothing marked. */
+function caseSearchClears(create: Create): ContractCase {
+  const adapter = create();
+  adapter.open({ id: 's', text: 'one two' });
+  adapter.search('two');
+  adapter.clearSearch();
+  const emptied = adapter.search('   ');
+  return check(
+    'an empty query matches nothing, rather than everything',
+    emptied.matches === 0 && emptied.current === 0,
+    `got ${emptied.current} of ${emptied.matches}`,
+  );
 }

@@ -22,6 +22,7 @@ import { startAppearance } from './shell/appearance.js';
 import { ContextMenuComponent } from './shell/context-menu.component.js';
 import { ConfirmPromptComponent } from './shell/confirm-prompt.component.js';
 import { IdentityPromptComponent } from './shell/identity-prompt.component.js';
+import { FindBarComponent } from './editor/find-bar.component.js';
 import { StatusBarComponent } from './editor/status-bar.component.js';
 import { EditorSession } from './editor/editor-session.js';
 import { SettingsComponent } from './shell/settings.component.js';
@@ -75,6 +76,7 @@ import { Localization } from './localization/localization.js';
     ContextMenuComponent,
     DensitySwitchComponent,
     EditorComponent,
+    FindBarComponent,
     FrontMatterBlockComponent,
     ExplorerNodeComponent,
     InspectorComponent,
@@ -215,6 +217,16 @@ import { Localization } from './localization/localization.js';
               [owned]="true"
             />
           }
+        }
+
+        @if (session.finding()) {
+          <wi-find-bar
+            [query]="session.query()"
+            [state]="session.searchState()"
+            (queryChange)="find($event)"
+            (step)="stepFind($event)"
+            (close)="closeFind()"
+          />
         }
 
         @if (store.editorDocument(); as document) {
@@ -565,6 +577,8 @@ export class AppComponent {
     const stopListening = this.#bridge?.onMenuCommand((command) => {
       if (command === 'sheet/save') {
         void this.store.save();
+      } else if (command === 'editor/find') {
+        this.openFind();
       } else if (command === 'settings/open') {
         this.overlay.set({ kind: 'settings', opener: 'menu' });
       }
@@ -714,6 +728,35 @@ export class AppComponent {
   );
 
   /** Outline navigation, routed to the editor. */
+  /**
+   * Finding in the open sheet. SPEC.md §10.10.
+   *
+   * The bar opens seeded with the selection, and every keystroke in it is a
+   * fresh search: the editor holds the matches, the session holds what to
+   * show, and this component only carries one to the other.
+   */
+  protected openFind(): void {
+    if (this.store.editorDocument() === null) {
+      return;
+    }
+    this.session.startFinding(this.editor()?.selectedText() ?? '');
+    this.find(this.session.query());
+  }
+
+  protected find(query: string): void {
+    this.session.noteQuery(query);
+    this.session.noteSearch(this.editor()?.search(query) ?? { matches: 0, current: 0 });
+  }
+
+  protected stepFind(direction: 'forwards' | 'backwards'): void {
+    this.session.noteSearch(this.editor()?.stepSearch(direction) ?? { matches: 0, current: 0 });
+  }
+
+  protected closeFind(): void {
+    this.editor()?.clearSearch();
+    this.session.stopFinding();
+  }
+
   protected revealLine(line: number): void {
     this.editor()?.revealLine(line);
   }

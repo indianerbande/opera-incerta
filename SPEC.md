@@ -1930,6 +1930,51 @@ It is remembered like a column width rather than listed in the settings dialog
 and out: the native menu has no View menu yet, and adding one is a decision
 about the whole menu rather than about this slider.
 
+### 10.10 Finding in the open sheet
+
+**Status: Accepted (2026-09-10), written before its implementation.**
+
+Two different things are called search, and this is the smaller one: finding a
+passage **in the sheet that is open**. Searching the library — across every
+sheet, with the front matter as filters — is a query over the project and gets
+its own round (§18); nothing here anticipates it.
+
+**A band above the text.** The find bar appears between the editor's header
+and the writing surface: it pushes the text down rather than floating over it,
+because a bar that covers the line you were looking for is a bar that has to
+be moved out of the way. It holds the field, how many matches there are and
+which one is current, a step back and a step forward, and a close.
+
+**It is opened from the menu.** Edit → Find… carries `Cmd/Ctrl+F`. The native
+menu owns its accelerators (§8.5): a key handler in the page would never see
+the keystroke, so Find is a menu command like Save, and the renderer acts on
+it. Escape closes the bar and returns the cursor to the text. Return steps to
+the next match, `Shift+Return` to the previous, and both wrap around.
+
+**What is searched is the sheet's Markdown**, the text the editor holds — not
+the display of §10.2 and §10.7. A word is found wherever it stands; a search
+for a marker that the display hides (`##`, `**`) finds it too, because it is
+in the file. The alternative — searching what is currently visible — would
+make a find depend on where the cursor happens to be, since the focus line
+shows its markers and every other line hides them.
+
+**Case is ignored**, always, with no switch. An author looking for a word is
+not thinking about its capitalisation; if that turns out to be wrong, a switch
+is a later decision and not a default.
+
+**What the bar reports**: `n of m`, or that there is nothing. The match the
+author is on is drawn differently from the others — all of them are marked,
+the current one is the one that is revealed and carries the accent.
+
+**Opening it with a selection** seeds the field with that selection, which is
+what every editor does and what makes "find the next one of these" one
+gesture.
+
+**Replacing is not here.** Find reads; replace writes, and writing needs its
+own decisions — what a single replacement does to the undo history, what "all"
+means when the matches straddle front matter, and whether it may run in a
+sheet that is not open. Those decisions are a separate round (§19).
+
 ## 11. Secondary sidebar views
 
 **Status: Inspector and Outline accepted; AI and Snapshots draft.**

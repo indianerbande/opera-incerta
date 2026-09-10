@@ -20,9 +20,9 @@ import {
   Compartment,
   EditorState,
   RangeSetBuilder,
+  StateEffect,
   StateField,
   type Extension,
-  type StateEffect,
 } from '@codemirror/state';
 import {
   Decoration,
@@ -41,6 +41,9 @@ import { parseBlocks } from '@opera-incerta/markdown';
 import {
   applyDotCommand,
   displayModel,
+  findMatches,
+  matchAt,
+  stepMatch,
   displayToMarkdown,
   headingPrefixRange,
   DEFAULT_EDITOR_TYPOGRAPHY,
@@ -61,6 +64,7 @@ import {
   type EditorCursor,
   type EditorCursorListener,
   type EditorDocument,
+  type EditorSearchState,
   type EditorTypography,
   type HeadingLevel,
   type HeadingMarkerActivation,
@@ -145,6 +149,16 @@ const editorTheme = EditorView.baseTheme({
   },
   // The line numbers of SPEC.md §10.8. Right-aligned, so the digits line up
   // and a document passing 99 lines does not shift its text.
+  // The find of SPEC.md §10.10: every match marked, the one the author is on
+  // marked as the accent itself.
+  '.cm-search-match': {
+    background: 'color-mix(in srgb, var(--wi-accent) 24%, transparent)',
+    borderRadius: '2px',
+  },
+  '.cm-search-current': {
+    background: 'var(--wi-accent)',
+    color: 'var(--wi-accent-ink)',
+  },
   '.cm-lineNumbers .cm-gutterElement': {
     padding: '0 3px 0 8px',
     fontFamily: 'var(--wi-sans)',
@@ -602,6 +616,7 @@ function extensions(
     displayModelField,
     blockModelField,
     presentationField,
+    searchField,
     dotCommandFilter,
     atomicHeadingSyntax,
     clipboardKeepsMarkdown,
@@ -683,6 +698,63 @@ export interface TypographyAware {
   setTypography(typography: EditorTypography): void;
   setZoom(zoom: number): void;
 }
+
+/**
+ * What is being searched for, and which match the author is on.
+ * SPEC.md §10.10.
+ *
+ * A state field rather than a plugin: the marks belong to the document's
+ * state, so switching sheets and coming back does not resurrect a search that
+ * was closed, and an edit remaps the matches with everything else.
+ */
+interface SearchState {
+  readonly query: string;
+  readonly matches: readonly { from: number; to: number }[];
+  /** Index into `matches`, or -1 when there are none. */
+  readonly current: number;
+}
+
+const EMPTY_SEARCH: SearchState = { query: '', matches: [], current: -1 };
+
+const setSearch = StateEffect.define<SearchState>();
+
+const searchField = StateField.define<SearchState>({
+  create() {
+    return EMPTY_SEARCH;
+  },
+  update(value, transaction) {
+    for (const effect of transaction.effects) {
+      if (effect.is(setSearch)) {
+        return effect.value;
+      }
+    }
+    if (!transaction.docChanged || value.query === '') {
+      return value;
+    }
+    // The text changed under the search: the matches are recomputed rather
+    // than mapped, because a typed character can make a match as easily as it
+    // can break one.
+    const matches = findMatches(transaction.state.doc.toString(), value.query);
+    const current = matchAt(matches, transaction.state.selection.main.head);
+    return { query: value.query, matches, current: current ?? -1 };
+  },
+  provide: (field) =>
+    EditorView.decorations.compute([field], (state) => {
+      const search = state.field(field);
+      const builder = new RangeSetBuilder<Decoration>();
+      search.matches.forEach((match, index) => {
+        builder.add(
+          match.from,
+          match.to,
+          index === search.current ? currentMatchMark : otherMatchMark,
+        );
+      });
+      return builder.finish();
+    }),
+});
+
+const otherMatchMark = Decoration.mark({ class: 'cm-search-match' });
+const currentMatchMark = Decoration.mark({ class: 'cm-search-match cm-search-current' });
 
 /**
  * The line-number gutter, or nothing. SPEC.md §10.8.
@@ -885,6 +957,63 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
    */
   setHeadingLevel(line: number, level: HeadingLevel | null): void {
     applyHeadingLevel(this.#view, line, level);
+  }
+
+  /**
+   * Marks every match and goes to the one at or after the cursor.
+   * SPEC.md §10.10.
+   *
+   * The match is **selected**, not merely marked: the author's next gesture —
+   * Escape and then typing — should land where they were looking.
+   */
+  search(query: string): EditorSearchState {
+    if (this.#destroyed) {
+      return { matches: 0, current: 0 };
+    }
+    const text = this.#view.state.doc.toString();
+    const matches = findMatches(text, query);
+    const current = matchAt(matches, this.#view.state.selection.main.head) ?? -1;
+    return this.#applySearch({ query, matches, current });
+  }
+
+  stepSearch(direction: 'forwards' | 'backwards'): EditorSearchState {
+    if (this.#destroyed) {
+      return { matches: 0, current: 0 };
+    }
+    const search = this.#view.state.field(searchField);
+    if (search.matches.length === 0) {
+      return { matches: 0, current: 0 };
+    }
+    return this.#applySearch({
+      ...search,
+      current: stepMatch(search.matches.length, search.current, direction),
+    });
+  }
+
+  clearSearch(): void {
+    if (!this.#destroyed) {
+      this.#view.dispatch({ effects: setSearch.of(EMPTY_SEARCH) });
+    }
+  }
+
+  selectedText(): string {
+    if (this.#destroyed) {
+      return '';
+    }
+    const { from, to } = this.#view.state.selection.main;
+    return this.#view.state.sliceDoc(from, to);
+  }
+
+  /** Puts a search into the state, and the view onto its current match. */
+  #applySearch(search: SearchState): EditorSearchState {
+    const match = search.matches[search.current];
+    this.#view.dispatch({
+      effects: setSearch.of(search),
+      ...(match === undefined
+        ? {}
+        : { selection: { anchor: match.from, head: match.to }, scrollIntoView: true }),
+    });
+    return { matches: search.matches.length, current: search.current + 1 };
   }
 
   undo(): void {

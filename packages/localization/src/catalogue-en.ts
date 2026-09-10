@@ -57,6 +57,12 @@ export const EN = {
   'statusBar.zoom': '{percent} %',
   'statusBar.zoomLabel': 'Editor zoom',
   'statusBar.zoomResetTitle': 'Back to 100 %',
+  'find.label': 'Find in this sheet',
+  'find.placeholder': 'Find',
+  'find.count': '{current} of {total}',
+  'find.none': 'nothing',
+  'find.next': 'Next match',
+  'find.previous': 'Previous match',
   'outline.empty': 'No headings in this sheet.',
   'sheetList.empty': 'No sheets in this group.',
 
@@ -326,6 +332,7 @@ export const EN = {
   'menu.newProject': 'New Project…',
   'menu.openProject': 'Open Project…',
   'menu.save': 'Save',
+  'menu.find': 'Find…',
   'menu.closeProject': 'Close Project',
   'menu.settings': 'Settings…',
 } as const;

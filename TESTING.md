@@ -384,6 +384,12 @@ Component and state tests MUST cover:
 - the layout state persisting the front matter switches, and typing the
   views it accepts so an unknown one is a compile error rather than a
   silently ignored call;
+- the find rule (`SPEC.md` §10.10) as a pure function: every occurrence in
+  order and case-ignored, a hidden marker found because it is in the file, an
+  empty or blank query matching nothing rather than everything, matches that
+  do not overlap themselves, the match at or after the cursor in either
+  direction, and both ends wrapping — plus three cases in the adapter contract
+  (`§2.6`), so the editor and the double answer alike;
 - the visual system's rule (`SPEC.md` §8.8): a chosen scheme resolving to
   itself and `system` to what the machine reports, the three schemes and eight
   palettes accepted and anything else refused, and both stored by the layout
@@ -501,6 +507,13 @@ Tests MUST cover:
   a resolved scheme and a palette; Dark changing the token set, the editor's
   surface with it, and reaching the preference file; a palette changing the
   accent; and both going back to where they started;
+- finding in the open sheet (`SPEC.md` §10.10), opened **through the native
+  menu item** because the menu owns `Cmd/Ctrl+F`: the field seeded with what
+  was selected, every match marked and counted — the marks in the text and the
+  count on the bar agreeing — the find **starting at the cursor** rather than
+  at the top, since the check leaves the cursor in the second line and the
+  match after it is the one that becomes current, Return and `Shift+Return`
+  wrapping at either end, and Escape closing the bar with no mark left behind;
 - the regions as panels (`SPEC.md` §8.2), measured in the running workbench:
   the leading rail flush against the window, the first panel eight pixels past
   it, all four panels eight from the top, the same corner, border and lift on

@@ -6,6 +6,61 @@ documents").
 
 ---
 
+## 2026-09-10 — finding in the open sheet
+
+**What was open** (`SPEC.md` §18, Phase 3). Two things are called search, and
+§18 says they are regularly confused: finding a passage in the sheet that is
+open, and querying the whole library. This is the first; the second keeps its
+own round and nothing here anticipates it.
+
+**What was decided first** (`SPEC.md` §10.10):
+
+1. **A band, not a floater.** The bar sits between the editor's header and the
+   text and pushes the writing surface down. A bar that covers the line one was
+   looking for is a bar that has to be moved out of the way.
+2. **It is opened from the menu.** The native menu owns its accelerators
+   (§8.5), so `Cmd/Ctrl+F` is an Edit-menu item that sends a command to the
+   renderer — exactly like Save. A key handler in the page would never see the
+   keystroke.
+3. **What is searched is the Markdown**, not the display of §10.2 and §10.7.
+   Searching what is *visible* would make a find depend on where the cursor
+   is, because the focus line shows the markers every other line hides.
+4. **Case is ignored, always**, with no switch; and **replacing is not here**,
+   because writing needs decisions that reading does not.
+
+**What changed.** A pure rule in the core — `findMatches`, `matchAt`,
+`stepMatch` — then four methods on the editor port (`search`, `stepSearch`,
+`clearSearch`, `selectedText`) with **three new cases in the adapter
+contract**, so the CodeMirror editor and the in-memory double answer alike. In
+the editor, a state field holds the query and its matches and recomputes them
+on every change; the current match is *selected*, not merely marked, so
+Escape leaves the cursor where the author was looking. The bar itself reports
+and asks, and decides nothing.
+
+**Verification.** `pnpm run check` green: **1032 tests** — the rule at its
+edges (case, hidden markers, an empty query, overlapping matches, both
+directions, both wraps). `pnpm run spike:editor` 7/7, its contract case now
+**19 cases** in a real rendering engine. `pnpm run desktop:smoke` green across
+**forty-two checks**: opened from the menu item, seeded with the selection,
+every match marked and counted with the marks and the count agreeing, the
+find starting at the cursor, both wraps, and nothing left behind after Escape.
+Screenshot looked at.
+
+**Falsified three times**, and two of them were aimed at the checks I had just
+written: a case-sensitive `findMatches` fails the rule's test; an adapter that
+stops at the last match instead of wrapping fails the contract in the spike,
+by name (`got 2, 3, 3, then 3`); and a find that is not seeded with the
+selection fails the smoke.
+
+**Lesson — twice the check was wrong, not the code.** The smoke first asked
+for a query with two matches in a sheet that had one, and then insisted the
+first match be current when the cursor sat past it — which is precisely what
+§10.10 says must *not* happen. Both times the application was right. A check
+written from memory of how editors behave is a check that has to be read
+against the specification before it is believed.
+
+---
+
 ## 2026-09-09 — the regions as panels on a canvas
 
 **What was open** (`SPEC.md` §8.9, "what this section does not decide", and

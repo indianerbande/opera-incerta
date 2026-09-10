@@ -52,6 +52,16 @@ export interface HeadingMarkerActivation {
 
 export type HeadingMarkerListener = (activation: HeadingMarkerActivation) => void;
 
+/**
+ * What the find bar of SPEC.md §10.10 shows: how many matches there are, and
+ * which one the author is on.
+ */
+export interface EditorSearchState {
+  readonly matches: number;
+  /** One-based position of the current match; 0 when there is none. */
+  readonly current: number;
+}
+
 export interface EditorAdapter {
   /**
    * Shows a document.
@@ -98,6 +108,22 @@ export interface EditorAdapter {
    * `SPEC.md` §10.2. A heading applies to exactly one line.
    */
   setHeadingLevel(line: number, level: HeadingLevel | null): void;
+
+  /**
+   * Marks every match of `query` and goes to the one at or after the cursor.
+   * SPEC.md §10.10. An empty query clears the search rather than matching
+   * everything.
+   */
+  search(query: string): EditorSearchState;
+
+  /** Steps to the next or previous match, wrapping at either end. */
+  stepSearch(direction: 'forwards' | 'backwards'): EditorSearchState;
+
+  /** Takes the marks away. The cursor stays where the last match left it. */
+  clearSearch(): void;
+
+  /** What is selected, for seeding the find field with it. */
+  selectedText(): string;
 
   undo(): void;
   redo(): void;

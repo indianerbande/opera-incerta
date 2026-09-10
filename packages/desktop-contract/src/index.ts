@@ -310,6 +310,7 @@ export const MENU_COMMANDS = [
   'project/open',
   'project/close',
   'sheet/save',
+  'editor/find',
   'settings/open',
 ] as const;
 

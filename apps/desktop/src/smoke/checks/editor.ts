@@ -900,3 +900,123 @@ export async function checkZoom(smoke: Smoke, window: BrowserWindow): Promise<vo
       'around them alone, snapped to 100 % near the middle, and went back to it from the percentage',
   );
 }
+
+/** What the find bar and the marked text report. SPEC.md §10.10. */
+interface FindState {
+  readonly open: boolean;
+  readonly query: string;
+  readonly count: string | null;
+  readonly marks: number;
+  readonly current: string | null;
+}
+
+async function findState(window: BrowserWindow): Promise<FindState> {
+  return (await window.webContents.executeJavaScript(
+    `(() => {
+       const bar = document.querySelector('wi-find-bar');
+       const field = bar?.querySelector('input.query') ?? null;
+       const current = document.querySelector('.cm-search-current');
+       return {
+         open: bar !== null,
+         query: field === null ? '' : field.value,
+         count: bar?.querySelector('.count')?.textContent?.trim() ?? null,
+         marks: document.querySelectorAll('.cm-search-match').length,
+         current: current === null ? null : current.textContent,
+       };
+     })()`,
+  )) as FindState;
+}
+
+/**
+ * Finding in the open sheet. SPEC.md §10.10.
+ *
+ * Opened from the native menu item, because the menu owns `Cmd+F` and a key
+ * handler in the page would never see it; then every match marked, the count
+ * read off the bar, the steps wrapping, and Escape leaving nothing behind.
+ */
+export async function checkFindInSheet(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  if ((await findState(window)).open) {
+    throw new Error('the find bar is up before anyone asked for it');
+  }
+
+  // A word selected first: opening the bar seeds the field with it.
+  const word = (await window.webContents.executeJavaScript(
+    `(() => {
+       const line = [...document.querySelectorAll('.cm-line')].find((candidate) =>
+         candidate.textContent.includes('nested group'));
+       if (line === undefined) { return null; }
+       const rect = line.getBoundingClientRect();
+       return { x: Math.round(rect.left + 30), y: Math.round(rect.top + rect.height / 2) };
+     })()`,
+  )) as { x: number; y: number } | null;
+  if (word === null) {
+    throw new Error('the smoke sheet does not hold the line the find check needs');
+  }
+  window.webContents.sendInputEvent({ type: 'mouseDown', x: word.x, y: word.y, button: 'left', clickCount: 2 });
+  window.webContents.sendInputEvent({ type: 'mouseUp', x: word.x, y: word.y, button: 'left', clickCount: 2 });
+  await rendered(window);
+
+  clickMenuItem('editor/find');
+  await waitForSelector(window, 'wi-find-bar input.query');
+  const seeded = await findState(window);
+  if (seeded.query.trim() === '') {
+    throw new Error('the field was not seeded with the selection');
+  }
+
+  // Now a query of its own. `ne` stands in "line" and in "nested" — two
+  // matches in a sheet that is two lines long, which is what this check needs:
+  // more than one, and a number it can read off the bar rather than assume.
+  await window.webContents.executeJavaScript(
+    `(() => {
+       const field = document.querySelector('wi-find-bar input.query');
+       field.value = 'ne';
+       field.dispatchEvent(new Event('input', { bubbles: true }));
+     })()`,
+  );
+  await waitUntil('the matches to be marked', async () => (await findState(window)).marks > 1);
+
+  const found = await findState(window);
+  const total = Number(found.count?.split(' ').at(-1) ?? 0);
+  if (total < 2 || found.marks !== total) {
+    throw new Error(`the bar says ${JSON.stringify(found.count)} for ${found.marks} marks`);
+  }
+  if (found.current === null) {
+    throw new Error('no match is drawn as the current one');
+  }
+  // The cursor is in the second line, where the word was double-clicked, so
+  // the match the find lands on is the one at or after it — not the first in
+  // the document (SPEC.md §10.10).
+  if (!found.count?.startsWith(`${total} `)) {
+    throw new Error(`the find did not start at the cursor: ${JSON.stringify(found.count)}`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-find.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  // Return steps forward and wraps round to the first; Shift+Return comes back.
+  await pressKey(window, 'Return');
+  await waitUntil(
+    'the step past the last match to wrap round',
+    async () => (await findState(window)).count?.startsWith('1 ') === true,
+  );
+  await pressKey(window, 'Return', ['shift']);
+  await waitUntil(
+    'the step back from the first to wrap round',
+    async () => (await findState(window)).count?.startsWith(`${total} `) === true,
+  );
+
+  // Escape closes it and takes the marks with it.
+  await pressKey(window, 'Escape');
+  await waitUntil('the bar to close', async () => !(await findState(window)).open);
+  const after = await findState(window);
+  if (after.marks !== 0) {
+    throw new Error(`${after.marks} marks were left behind`);
+  }
+
+  console.log(
+    'smoke ok: find opened from the menu seeded with the selection, marked every match, counted ' +
+      'them, started at the cursor, stepped forwards and back through the ring, and left nothing behind',
+  );
+}

@@ -17,6 +17,7 @@ import {
   type EditorAdapter,
   type EditorCursor,
   type EditorDocument,
+  type EditorSearchState,
   type EditorTypography,
   type HeadingLevel,
   type HeadingMarkerActivation,
@@ -147,6 +148,24 @@ export class EditorComponent {
   /** Outline navigation and diagnostics jump through here. */
   revealLine(line: number): void {
     this.adapter()?.revealLine(line);
+  }
+
+  /** Finding in the open sheet. SPEC.md §10.10. */
+  search(query: string): EditorSearchState {
+    return this.adapter()?.search(query) ?? { matches: 0, current: 0 };
+  }
+
+  stepSearch(direction: 'forwards' | 'backwards'): EditorSearchState {
+    return this.adapter()?.stepSearch(direction) ?? { matches: 0, current: 0 };
+  }
+
+  clearSearch(): void {
+    this.adapter()?.clearSearch();
+  }
+
+  /** What is selected, for seeding the find field. */
+  selectedText(): string {
+    return this.adapter()?.selectedText() ?? '';
   }
 
   /** The gutter menu of SPEC.md §10.2. */

@@ -108,6 +108,17 @@ export function installApplicationMenu(actions: MenuActions): void {
       { role: 'copy' },
       { role: 'paste' },
       { role: 'selectAll' },
+      { type: 'separator' },
+      // The menu owns the accelerator, so finding is a menu command like
+      // saving: a key handler in the page would never see Cmd+F (SPEC.md
+      // §8.5, §10.10).
+      {
+        id: 'menu:editor/find',
+        label: words('menu.find'),
+        accelerator: 'CmdOrCtrl+F',
+        enabled: hasProject,
+        click: rendererCommand('editor/find'),
+      },
     ],
   };
 
@@ -172,5 +183,6 @@ export const MENU_ACCELERATORS: Readonly<Record<MenuCommand, string>> = {
   'project/open': 'CmdOrCtrl+O',
   'project/close': 'CmdOrCtrl+Shift+W',
   'sheet/save': 'CmdOrCtrl+S',
+  'editor/find': 'CmdOrCtrl+F',
   'settings/open': 'CmdOrCtrl+,',
 };

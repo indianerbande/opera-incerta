@@ -53,6 +53,12 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'statusBar.zoom': '{percent} %',
   'statusBar.zoomLabel': 'Zoom des Editors',
   'statusBar.zoomResetTitle': 'Zurück auf 100 %',
+  'find.label': 'In diesem Blatt suchen',
+  'find.placeholder': 'Suchen',
+  'find.count': '{current} von {total}',
+  'find.none': 'nichts',
+  'find.next': 'Nächster Treffer',
+  'find.previous': 'Voriger Treffer',
   'outline.empty': 'Keine Überschriften in diesem Blatt.',
   'sheetList.empty': 'Keine Blätter in dieser Gruppe.',
 
@@ -314,6 +320,7 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'menu.newProject': 'Neues Projekt…',
   'menu.openProject': 'Projekt öffnen…',
   'menu.save': 'Speichern',
+  'menu.find': 'Suchen…',
   'menu.closeProject': 'Projekt schließen',
   'menu.settings': 'Einstellungen…',
 };
