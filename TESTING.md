@@ -396,7 +396,7 @@ Component and state tests MUST cover:
   clears rather than asks, a capped answer is reported as capped, a refusal
   keeps no stale hits, a malformed result is refused at the boundary, and
   clearing forgets everything — a search is transient;
-- the find rule (`SPEC.md` §10.10) as a pure function: every occurrence in
+- the find rule (`SPEC.md` §10.11) as a pure function: every occurrence in
   order and case-ignored, a hidden marker found because it is in the file, an
   empty or blank query matching nothing rather than everything, matches that
   do not overlap themselves, the match at or after the cursor in either
@@ -526,7 +526,7 @@ Tests MUST cover:
   in **front matter** is not found, however plainly it reads in the file —
   which is what proves that only the text is searched; and a row opens its
   sheet and lands on its line, read off the status bar;
-- finding in the open sheet (`SPEC.md` §10.10), opened **through the native
+- finding in the open sheet (`SPEC.md` §10.11), opened **through the native
   menu item** because the menu owns `Cmd/Ctrl+F`: the field seeded with what
   was selected, every match marked and counted — the marks in the text and the
   count on the bar agreeing — the find **starting at the cursor** rather than

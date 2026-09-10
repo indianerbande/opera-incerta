@@ -901,7 +901,7 @@ export async function checkZoom(smoke: Smoke, window: BrowserWindow): Promise<vo
   );
 }
 
-/** What the find bar and the marked text report. SPEC.md §10.10. */
+/** What the find bar and the marked text report. SPEC.md §10.11. */
 interface FindState {
   readonly open: boolean;
   readonly query: string;
@@ -928,7 +928,7 @@ async function findState(window: BrowserWindow): Promise<FindState> {
 }
 
 /**
- * Finding in the open sheet. SPEC.md §10.10.
+ * Finding in the open sheet. SPEC.md §10.11.
  *
  * Opened from the native menu item, because the menu owns `Cmd+F` and a key
  * handler in the page would never see it; then every match marked, the count
@@ -985,7 +985,7 @@ export async function checkFindInSheet(smoke: Smoke, window: BrowserWindow): Pro
   }
   // The cursor is in the second line, where the word was double-clicked, so
   // the match the find lands on is the one at or after it — not the first in
-  // the document (SPEC.md §10.10).
+  // the document (SPEC.md §10.11).
   if (!found.count?.startsWith(`${total} `)) {
     throw new Error(`the find did not start at the cursor: ${JSON.stringify(found.count)}`);
   }

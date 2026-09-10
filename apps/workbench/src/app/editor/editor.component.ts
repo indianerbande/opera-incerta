@@ -150,7 +150,7 @@ export class EditorComponent {
     this.adapter()?.revealLine(line);
   }
 
-  /** Finding in the open sheet. SPEC.md §10.10. */
+  /** Finding in the open sheet. SPEC.md §10.11. */
   search(query: string): EditorSearchState {
     return this.adapter()?.search(query) ?? { matches: 0, current: 0 };
   }

@@ -111,7 +111,7 @@ export function installApplicationMenu(actions: MenuActions): void {
       { type: 'separator' },
       // The menu owns the accelerator, so finding is a menu command like
       // saving: a key handler in the page would never see Cmd+F (SPEC.md
-      // §8.5, §10.10).
+      // §8.5, §10.11).
       {
         id: 'menu:editor/find',
         label: words('menu.find'),

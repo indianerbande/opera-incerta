@@ -3,7 +3,7 @@ import { findMatches, lineMatches, matchAt, stepMatch } from '../src/index.js';
 
 const text = 'The bell rang once.\nThe bell rang twice.\nSilence.';
 
-describe('finding in a sheet (SPEC.md §10.10)', () => {
+describe('finding in a sheet (SPEC.md §10.11)', () => {
   it('finds every occurrence, in order, ignoring case', () => {
     expect(findMatches(text, 'bell')).toEqual([
       { from: 4, to: 8 },

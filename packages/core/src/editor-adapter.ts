@@ -53,7 +53,7 @@ export interface HeadingMarkerActivation {
 export type HeadingMarkerListener = (activation: HeadingMarkerActivation) => void;
 
 /**
- * What the find bar of SPEC.md §10.10 shows: how many matches there are, and
+ * What the find bar of SPEC.md §10.11 shows: how many matches there are, and
  * which one the author is on.
  */
 export interface EditorSearchState {
@@ -111,7 +111,7 @@ export interface EditorAdapter {
 
   /**
    * Marks every match of `query` and goes to the one at or after the cursor.
-   * SPEC.md §10.10. An empty query clears the search rather than matching
+   * SPEC.md §10.11. An empty query clears the search rather than matching
    * everything.
    */
   search(query: string): EditorSearchState;

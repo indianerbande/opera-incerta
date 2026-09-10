@@ -741,7 +741,7 @@ export class AppComponent {
 
   /** Outline navigation, routed to the editor. */
   /**
-   * Finding in the open sheet. SPEC.md §10.10.
+   * Finding in the open sheet. SPEC.md §10.11.
    *
    * The bar opens seeded with the selection, and every keystroke in it is a
    * fresh search: the editor holds the matches, the session holds what to

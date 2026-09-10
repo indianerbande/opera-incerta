@@ -334,7 +334,7 @@ function caseDestroyIsIdempotent(create: Create): ContractCase {
   return check('destroy can be called twice', !secondFailed, `secondFailed=${String(secondFailed)}`);
 }
 
-/** Finding marks every match and reports where the author is. SPEC.md §10.10. */
+/** Finding marks every match and reports where the author is. SPEC.md §10.11. */
 function caseSearchFindsAndCounts(create: Create): ContractCase {
   const adapter = create();
   adapter.open({ id: 's', text: 'one two one two one' });

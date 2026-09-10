@@ -149,7 +149,7 @@ const editorTheme = EditorView.baseTheme({
   },
   // The line numbers of SPEC.md §10.8. Right-aligned, so the digits line up
   // and a document passing 99 lines does not shift its text.
-  // The find of SPEC.md §10.10: every match marked, the one the author is on
+  // The find of SPEC.md §10.11: every match marked, the one the author is on
   // marked as the accent itself.
   '.cm-search-match': {
     background: 'color-mix(in srgb, var(--wi-accent) 24%, transparent)',
@@ -701,7 +701,7 @@ export interface TypographyAware {
 
 /**
  * What is being searched for, and which match the author is on.
- * SPEC.md §10.10.
+ * SPEC.md §10.11.
  *
  * A state field rather than a plugin: the marks belong to the document's
  * state, so switching sheets and coming back does not resurrect a search that
@@ -961,7 +961,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
 
   /**
    * Marks every match and goes to the one at or after the cursor.
-   * SPEC.md §10.10.
+   * SPEC.md §10.11.
    *
    * The match is **selected**, not merely marked: the author's next gesture —
    * Escape and then typing — should land where they were looking.

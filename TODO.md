@@ -15,7 +15,7 @@ including amend and `.gitignore`, the GFM display (§10.7), all four answers
 opening a folder can give (§8.6), the line-number gutter (§10.8), the
 editor zoom (§10.9) and the visual system (§8.8) with its packaged face, its
 two schemes and its eight palettes, its geometry (§8.9) and its regions as
-panels on a canvas (§8.2), finding in the open sheet (§10.10) and
+panels on a canvas (§8.2), finding in the open sheet (§10.11) and
 searching the library (§9.3). `pnpm run check` green on **Node 24**: 8
 projects, **1041 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across forty-three checks,
@@ -54,15 +54,41 @@ has to be consulted to build, verify or change the product.
    turn out to be.
 
 
-2. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
+2. **Navigation and history** — the next round, decided 2026-09-10. Back and
+   forward through the sheets that were opened, per project, skipping a sheet
+   that is gone; and "recently edited", stored **in the project**
+   (`.opera-incerta/`) rather than installation-locally, because it says
+   something about the manuscript and should be the same on every machine.
+   Both are described in `SPEC.md` §18 and need one specification round of
+   their own before the code.
+
+3. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
    `density`, `language`, `colorScheme`, `accentPalette` and `fontFamily` are
    the same shape — a key, a list of options, a default — with five interfaces
    and five branches in the dialog. They want one `choice` kind with a
-   renderer hint. Not urgent; it grows by one with every setting that offers a
-   list.
+   renderer hint. **Decided 2026-09-10: with the sixth**, so the unification
+   has an occasion and pays for itself the moment it happens.
 
 
-## 2. Larger, not yet touched
+## 2. Decided, waiting for their round
+
+These need no further decision from him — `SPEC.md` says what they are:
+
+- **The editor's own context menu** (§10.10).
+- **Export**: PDF through LaTeX first, then DOCX and EPUB, with a single
+  Markdown export as their substrate (§15). **Import**: a Markdown folder.
+- **The AI assistant** (§15): Anthropic's provider first and preselected, the
+  key in the system keychain, the wide scope confirmed per request, and what
+  goes out shown before it goes. Using it is explicitly not normal operation.
+- **Snapshots** (§11): a snapshot is a commit, and the difference view is the
+  prose diff source control already owns.
+- **Saved views** (§18), stored in the project.
+- Highlighting special files, opening with an external application, a terminal
+  panel, and reading aloud (§18) — all four wanted.
+
+---
+
+## 3. Larger, still to weigh
 
 Everything here waits on a decision from him, on a user interface, or on both.
 The decisions themselves are listed in `SPEC.md` §19; this is the work that
@@ -121,5 +147,6 @@ follows them.
     control, confirm it works with no network, and uninstall without leaving
     project data behind. An artifact built on one operating system is evidence
     for that operating system only.
-- **Import, export, AI provider, snapshots** — each needs its own decision
-  round (`SPEC.md` §15, §19).
+- **What §19 still leaves open**: trademark clearance, the distribution
+  channel and update mechanism, and a formal accessibility target beyond the
+  rule of §8.10. The first two become due with the packaging round.

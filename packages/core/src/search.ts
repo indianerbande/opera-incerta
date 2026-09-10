@@ -1,5 +1,5 @@
 /**
- * Finding a passage in one sheet. SPEC.md §10.10.
+ * Finding a passage in one sheet. SPEC.md §10.11.
  *
  * The rule, not the interface: where the matches are, and which of them the
  * author is on. It runs over the sheet's Markdown — the text the editor holds

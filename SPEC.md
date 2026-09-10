@@ -1378,6 +1378,31 @@ the columns float as separate panels on the canvas with air between them is a
 question about the workbench's anatomy, not about the shape of its controls,
 and it would move measurements that §8.2 fixes.
 
+### 8.10 Reachable without a pointer
+
+**Status: Accepted (2026-09-10).**
+
+The accessibility target of this application is stated as a rule rather than as
+a standard: **every action is reachable without a pointer, every focused thing
+is visibly focused, and every control says what it is.**
+
+- A command that only a click can reach is a defect. Where a gesture is
+  inherently a drag (§6.8), the same operation has a menu item and a shortcut.
+- Focus is drawn, never removed (§8.9), and moves in the order things are read.
+- Every button, switch and row carries its own accessible name, in the
+  interface language (§14); an icon is decoration beside that name, never
+  instead of it.
+- A dialog holds focus while it is open and gives it back to what opened it
+  (§8.7).
+
+**Why not WCAG 2.1 AA as the promise.** That standard is a promise about
+contrast ratios, screen-reader semantics and much else, and it is only honest
+with tests to back it — a work strand of its own, not a line in a
+specification. The rule above is the part that decides whether this
+application can be used at all without a mouse, it is checkable in the smoke,
+and it does not claim more than has been verified. The formal target stays
+open (§19), and nothing here works against it later.
+
 ## 9. Library
 
 ### 9.1 Project explorer
@@ -1442,7 +1467,7 @@ after the first render leaves rows measured at placeholder height
 
 **Status: Accepted (2026-09-10), written before its implementation.**
 
-The larger of the two searches (§10.10 is the other): finding a passage
+The larger of the two searches (§10.11 is the other): finding a passage
 anywhere in the project. It is a **third view of the navigator** (§8.1), with
 its own entry in the leading activity bar — a region holds interchangeable
 views, and this is one of them, beside the explorer and source control.
@@ -1978,7 +2003,26 @@ It is remembered like a column width rather than listed in the settings dialog
 and out: the native menu has no View menu yet, and adding one is a decision
 about the whole menu rather than about this slider.
 
-### 10.10 Finding in the open sheet
+### 10.10 The editor's context menu
+
+**Status: Accepted (2026-09-10), not yet built.**
+
+The editor's context menu is the application's **own**, not the platform's
+filtered. It offers what this application understands: cut, copy and paste,
+the heading level of §10.2, and finding (§10.11).
+
+Why not the platform's: a system menu brings text-rewriting services with it —
+substitutions, transformations, "improve this" entries that arrive with an
+operating system update. None of them know the display model, and a service
+that rewrites what it takes for text can quietly rewrite Markdown into
+something the file did not say. Filtering that list means maintaining a list of
+what to remove, and being wrong the first time a new entry appears.
+
+The cost is stated plainly: the platform's own services are not reachable in
+the editor. They remain reachable everywhere else the operating system offers
+them.
+
+### 10.11 Finding in the open sheet
 
 **Status: Accepted (2026-09-10), written before its implementation.**
 
@@ -2025,7 +2069,8 @@ sheet that is not open. Those decisions are a separate round (§19).
 
 ## 11. Secondary sidebar views
 
-**Status: Inspector and Outline accepted; AI and Snapshots draft.**
+**Status: Inspector and Outline accepted and built; AI and Snapshots decided
+(2026-09-10) and not yet built.**
 
 - **Inspector** — metadata of the active sheet: progress (characters, words,
   reading time), topic, keywords, status, category, and notes. Progress counts
@@ -2042,12 +2087,14 @@ sheet that is not open. Those decisions are a separate round (§19).
 - **AI assistant** — a docking point for the provider interface (§15), not a
   full assistant in the first release.
 - **Snapshots** — per-sheet snapshots with a difference view and restore.
-  **Draft**: both the storage location (inside `.opera-incerta/`, visible to Git,
-  versus installation-local and not portable) and the difference engine (own
-  line diff in the core versus a dependency) are open, and restore is
-  destructive and therefore requires a confirmation prompt. The difference
-  presentation SHOULD be built once and used by both Snapshots and source
-  control (§12).
+  **Decided 2026-09-10: a snapshot is a commit.** There is no second history
+  beside the one the project already has — taking a snapshot writes a commit
+  (or tags one) in the project's repository, and the difference view is the
+  prose diff §12 already owns, built once and used by both. What follows from
+  that, and is binding: snapshots need a repository, and where there is none
+  the pane says so and offers the one source control already offers (§12);
+  restoring is destructive and asks first; and nothing is copied into
+  `.opera-incerta/`, because a second store is a second history that drifts.
 
 ## 12. Source control
 
@@ -2484,15 +2531,51 @@ core.**
 - When it is unclear whether something is core or module, start as a module —
   that is the safer default.
 
-**Import and export.** Candidates for export: Markdown (raw), PDF, DOCX, EPUB,
-plain text. For import: Markdown, DOCX (text extraction), plain text. Every
-format is its own module; export modules MUST strip front matter from the
-output. The concrete list and its order are open (§19).
+**Import and export.** Every format is its own module; export modules MUST
+strip front matter from the output.
+
+**Decided 2026-09-10 — the order.** Export begins with **PDF through LaTeX**:
+it is the way this author's books are actually set, it is deterministic, and
+it produces something finished rather than something to be finished elsewhere.
+It needs a TeX installation, and where there is none the module is **absent
+rather than broken** — the rule every module follows. DOCX and EPUB follow, in
+that order, for the exchange with editors and for reading. A single Markdown
+export — every sheet in the library's order, front matter stripped — is the
+substrate the others build on and comes with the first of them.
+
+Import begins with a **Markdown folder**: a directory of `.md` files becomes
+groups and sheets, with the collision rules of §6.5 and the folder structure as
+the library's own. Adoption (§8.6) already does half of this for a folder that
+is to *become* the project; import is the other half, for texts that come into
+one that exists.
 
 **AI integration.** Concrete AI actions never address a vendor directly; they
 address an `AIProvider` interface (input: text or structure plus action type;
 output: suggestion or revised text). Vendors are interchangeable
-implementations selected in settings. Planned action shapes:
+implementations selected in settings.
+
+**Decided 2026-09-10.** The first implementation is **Anthropic's**, and it is
+the preselected one. That is a deliberate exception to the invariant that this
+application needs no network (`AGENTS.md`): **using the assistant is not
+normal operation.** Everything else about the application keeps working with
+the network unplugged, and the assistant says what it is before it does
+anything. Four rules make that exception carry its own weight:
+
+1. **The key lives in the system's keychain**, through Electron's
+   `safeStorage` in the user-data directory — never in a preference record in
+   plain text, never in the project, never in a commit.
+2. **The scope may reach the whole project**, but the wide scope is granted
+   **per request**: an action that would send more than the selection says
+   which sheets and how much text, and is confirmed once, each time. A
+   standing switch is refused deliberately — the tenth request would look like
+   the first, and a project that is shared would leave the machine unnoticed.
+3. **What goes out is shown before it goes**: the provider, the sheets, the
+   number of characters, and the text itself, readable. A tool that sends text
+   somewhere without showing it is not a tool.
+4. **No action runs unasked**, and the answer is a suggestion the author
+   accepts, never an edit that has already happened.
+
+Planned action shapes:
 
 - pass the **full text** of one sheet for revision, shortening, or style work;
 - pass **structure only** — the outline of several chapters — to improve
@@ -2502,9 +2585,8 @@ implementations selected in settings. Planned action shapes:
   sheets.
 
 API credentials go to `safeStorage` (§5.3), never into a plain preference
-record and never into the project directory. No AI action runs without an
-explicit user request, and what leaves the machine is controlled by the privacy
-settings (§13).
+record and never into the project directory. What leaves the machine is
+controlled by the rules above and by the privacy settings (§13).
 
 ## 16. Diagnostics and failure behavior
 
@@ -2625,39 +2707,46 @@ own specification update before implementation.
 - **Source control "show diff" and "discard changes"** — built 2026-09-04,
   the destructive one behind a confirmation that words itself by what it will
   do, and opening a file from the change list.
-- Recently edited sheets, per project rather than globally.
+- **Recently edited sheets**, per project rather than globally — and stored
+  **in the project** (`.opera-incerta/`, decided 2026-09-10): it says something
+  about the manuscript, not about the installation, and after weeks away it is
+  where it is looked for, on whichever machine.
 - **Search** — both halves built, and they are two features, as this entry
-  always said: finding in the open sheet is §10.10 (2026-09-10), searching the
+  always said: finding in the open sheet is §10.11 (2026-09-10), searching the
   library is §9.3 (2026-09-10). The three questions this entry left open were
   answered there: the body only, a flat list of matches, and a transient
   search rather than a saved view. The local index of Phase 4 remains a later
   performance cache and never the source of truth.
 - **Saved views (filters and favourites).** The domain model names them (§6.1)
   and nothing implements them. A saved view is a query over the library, never
-  a second copy of the data: what it stores, where it is kept — shared in
-  `.opera-incerta/` or installation-local — and how it appears next to the
-  project tree are open.
+  a second copy of the data. **Decided 2026-09-10: they live in the project**
+  (`.opera-incerta/`, versioned) — a view like "everything in revision"
+  belongs to the manuscript and is the same on every machine and for everyone
+  working on it. What a view stores and how it appears beside the project tree
+  is the round's own to decide.
 - **Navigation history.** Back and forward through the sheets that were opened,
   as an IDE offers for files. Cheap to add and easy to get wrong: the history
   is per project, and a sheet that has been deleted is skipped rather than
   reopened.
 - Markdown import as a module, including collision and folder-structure rules.
-- Highlighting of special files (project governance and agent-instruction
-  files) in the tree and sheet list. This requires a **deliberate scanner
+- **Highlighting of special files** (project governance and agent-instruction
+  files) in the tree and sheet list — wanted (2026-09-10). This requires a **deliberate scanner
   extension** — hidden files and non-`.md` files are not scanned today — and a
   configurable matcher list, not merely styling.
-- "Open with an external application" using the operating system's registered
+- **"Open with an external application"** — wanted (2026-09-10) — using the operating system's registered
   application list, storing the choice by bundle or application identifier
   rather than by path, and saving before handing the file over.
 
 **Phase 4 — extension**
 
 - Export modules (PDF, DOCX, EPUB), each independently testable.
-- **Reading the text aloud**, as a module over the platform's speech synthesis:
+- **Reading the text aloud** — wanted (2026-09-10) — as a module over the
+  platform's speech synthesis:
   the manuscript is read, never sent anywhere, and the module is absent rather
   than degraded where no voice is installed.
 - The AI assistant panel over the provider interface (§15).
-- A terminal panel in the bottom region, working directory at the project root.
+- **A terminal panel** in the bottom region, working directory at the project
+  root — wanted (2026-09-10).
 - Snapshots with a shared difference view (§11).
 - Themes behind a theme **interface**. The two schemes and the eight palettes
   of §8.8 arrived on 2026-09-09 as a decided set; what stays open is whether a
@@ -2672,15 +2761,15 @@ own specification update before implementation.
 The following are deliberately open and MUST be decided before the code that
 depends on them:
 
-- trademark clearance for the accepted product name before public
+- **trademark clearance** for the accepted product name before public
   distribution;
-- the concrete import and export format list and its order;
-- which `AIProvider` implementations ship first and which is preselected;
-- the snapshot storage location and difference engine (§11);
-- whether the editor's context menu is filtered or fully owned — the platform
-  menu may offer text-rewriting actions that do not respect the display model;
-- the accessibility target for the workbench; and
-- the distribution channel and update mechanism.
+- the **distribution channel and update mechanism**; and
+- the **formal accessibility target**, beyond the rule §8.10 now states and
+  checks.
+
+All three were weighed on 2026-09-10 and deliberately left standing: none of
+them binds a line of code before the packaging round, and the first two become
+due together with it.
 
 **Settled since this list was written**, kept here so that a decision is not
 made twice:
@@ -2691,7 +2780,20 @@ made twice:
 - **the mechanism for non-line-wise markup** (§10.3) — decided and built the
   same day: `presentation()` in the core turns both models into instructions
   the adapter draws, which is what made §10.7 a translation rather than a
-  second editor.
+  second editor;
+- **the editor's context menu** — decided 2026-09-10 as the application's own
+  rather than the platform's filtered (§10.10);
+- **the accessibility rule** — decided 2026-09-10: reachable without a pointer
+  (§8.10). The formal standard stays open above;
+- **the import and export order** — decided 2026-09-10: PDF through LaTeX
+  first, DOCX and EPUB after it, a single Markdown export as their substrate;
+  import begins with a Markdown folder (§15);
+- **the first `AIProvider`** — decided 2026-09-10: Anthropic's, preselected,
+  with the key in the system keychain, the wide scope confirmed per request,
+  and what goes out shown before it goes (§15). Using the assistant is
+  explicitly not normal operation;
+- **snapshot storage and difference engine** — decided 2026-09-10: a snapshot
+  is a commit, and the difference is the prose diff §12 already owns (§11).
 
 ## 20. Sources consulted
 

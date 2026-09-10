@@ -13,7 +13,7 @@ import type { EditorCursor, EditorSearchState } from '@opera-incerta/core';
 export class EditorSession {
   readonly #cursor = signal<EditorCursor>({ line: 1, column: 1 });
   readonly #wrapOverrides = signal<ReadonlyMap<string, boolean>>(new Map());
-  /** The find of SPEC.md §10.10: whether the bar is up, and what it found. */
+  /** The find of SPEC.md §10.11: whether the bar is up, and what it found. */
   readonly #finding = signal(false);
   readonly #query = signal('');
   readonly #searchState = signal<EditorSearchState>({ matches: 0, current: 0 });

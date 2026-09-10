@@ -6,6 +6,80 @@ documents").
 
 ---
 
+## 2026-09-10 — the decision round: everything open, gone through
+
+**What this was.** Not code. He asked to go through everything open, question
+by question, and decide it. Sixteen questions in four rounds; what follows is
+what was decided and where it now stands, because a decision that lives only
+in a conversation is a decision that will be made again.
+
+**The next round**: navigation and history — back and forward through the
+sheets that were opened, plus "recently edited", **stored in the project**
+rather than installation-locally: it says something about the manuscript, and
+after weeks away it should be where it is looked for, on whichever machine.
+The same reasoning made **saved views** project-scoped (§18).
+
+**The editor's context menu** is the application's own, not the platform's
+filtered (§10.10). A system menu brings text-rewriting services that arrive
+with an operating system update and know nothing of the display model;
+filtering them means maintaining a list of what to remove and being wrong the
+first time a new entry appears. The cost — the platform's services are not
+reachable in the editor — is written down beside the decision.
+
+**Accessibility** is a rule rather than a standard (§8.10): every action
+reachable without a pointer, every focused thing visibly focused, every
+control saying what it is. Checkable in the smoke, and claiming no more than
+has been verified; WCAG 2.1 AA as a formal promise stays open in §19, where it
+belongs until there are tests behind it.
+
+**Export begins with PDF through LaTeX** — the way this author's books are
+actually set — then DOCX and EPUB, with a single Markdown export as the
+substrate they build on. **Import begins with a Markdown folder**, which
+adoption (§8.6) already does half of. Where no TeX is installed the module is
+absent rather than broken, which is the rule every module follows (§15).
+
+**Snapshots are commits** (§11). No second history beside the one the project
+already has, and the difference view is the prose diff §12 owns. The
+consequence is stated: snapshots need a repository, and where there is none
+the pane offers the one source control already offers.
+
+**The AI assistant** is the decision with teeth. He chose **Anthropic's
+provider first and preselected**, and a scope that may reach the whole
+project. That is a deliberate exception to this application's own invariant —
+normal operation needs no network — so the exception carries four rules with
+it (§15): the key lives in the **system keychain** through `safeStorage`,
+never in a preference record and never in the project; the wide scope is
+confirmed **per request**, with the sheets and the character count named,
+because a standing switch would make the tenth request look like the first;
+**what goes out is shown before it goes**, the text included; and no action
+runs unasked. `AGENTS.md`'s invariant now has one stated exception instead of
+a quiet contradiction.
+
+**Left open on purpose** (§19): trademark clearance, the distribution channel
+and the update mechanism, and a formal accessibility target. None of them
+binds a line of code before the packaging round, and the first two become due
+together with it.
+
+**Also decided**: the five list-shaped setting kinds are unified **with the
+sixth**, so the refactor has an occasion; and all four small Phase 4 leftovers
+— highlighting special files, opening with an external application, a terminal
+panel, and reading aloud — are wanted.
+
+**Verification.** `pnpm run check` green, **1041 tests**. The only code that
+changed was a section reference: the context menu took §10.10, so finding in
+the open sheet became §10.11 — renumbered in the specification, the testing
+document, both working documents and twelve source files, because a reference
+that points at the wrong section is the same defect as a stale status line,
+one day older.
+
+**Lesson.** Asking sixteen questions took less time than one of the rounds
+they will produce, and three of the answers changed what I would have built:
+the AI scope, where "recently edited" lives, and the export order. The
+temptation in a project like this is to decide such things while implementing
+them, in a commit message nobody reads again.
+
+---
+
 ## 2026-09-10 — the documents say what is true again
 
 **What was wrong.** Nothing in the code. Six claims across four documents had
@@ -70,7 +144,7 @@ sheet and reveals its line. The search **runs when it is asked to**, not on
 every keystroke: it reads every sheet in the project from disk. At most 200
 matches come back, and the view says when there were more.
 
-**What changed.** `lineMatches` in the core, beside the find of §10.10 — one
+**What changed.** `lineMatches` in the core, beside the find of §10.11 — one
 notion of a match for both searches. A channel that returns matches, never
 paths the renderer could act on; the reading happens in the main process,
 where every filesystem access lives. A store that holds the query and the
@@ -115,7 +189,7 @@ the frame that shows it.
 open, and querying the whole library. This is the first; the second keeps its
 own round and nothing here anticipates it.
 
-**What was decided first** (`SPEC.md` §10.10):
+**What was decided first** (`SPEC.md` §10.11):
 
 1. **A band, not a floater.** The bar sits between the editor's header and the
    text and pushes the writing surface down. A bar that covers the line one was
@@ -157,7 +231,7 @@ selection fails the smoke.
 **Lesson — twice the check was wrong, not the code.** The smoke first asked
 for a query with two matches in a sheet that had one, and then insisted the
 first match be current when the cursor sat past it — which is precisely what
-§10.10 says must *not* happen. Both times the application was right. A check
+§10.11 says must *not* happen. Both times the application was right. A check
 written from memory of how editors behave is a check that has to be read
 against the specification before it is believed.
 
