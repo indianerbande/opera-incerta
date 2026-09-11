@@ -1,9 +1,9 @@
 /**
- * Source control over the locally installed `git` executable. SPEC.md §12.
+ * Source control over the locally installed `git` executable. specification.md §12.
  *
  * No Git library dependency and no bundled binary: the author's own Git, with
  * their own credentials and configuration, is what synchronizes their
- * manuscript (CONVENTIONS.md C-P10). This module is a thin process wrapper —
+ * manuscript (conventions.md C-P10). This module is a thin process wrapper —
  * the parsing lives in the portable core.
  */
 import { execFile } from 'node:child_process';
@@ -35,7 +35,7 @@ export interface GitCommandRunner {
  * A failed Git invocation, carrying Git's own message unchanged.
  *
  * The `message` **is** what Git wrote, because that is what reaches the author
- * (SPEC.md §12): "does not appear to be a git repository" tells them what to
+ * (specification.md §12): "does not appear to be a git repository" tells them what to
  * do, while a summary of the exit code tells them nothing. The summary is the
  * fallback for a command that failed without saying anything. The `code` is
  * for the interface, read from the same words (`classifyGitFailure`): it can
@@ -65,7 +65,7 @@ export class GitError extends CodedError {
 }
 
 /**
- * There is no git to run. SPEC.md §12, CONVENTIONS.md C-P10.
+ * There is no git to run. specification.md §12, conventions.md C-P10.
  *
  * Its own code, because it is not a property of any command or repository:
  * a machine without git must not look like a project outside a repository,
@@ -112,7 +112,7 @@ export function createGitService(runner: GitCommandRunner = systemGitRunner): Gi
 class ProcessGitService implements GitService {
   readonly #runner: GitCommandRunner;
   /**
-   * One command at a time per directory. SPEC.md §12.
+   * One command at a time per directory. specification.md §12.
    *
    * Every bridge handler runs concurrently, and two git processes in one
    * repository at once — a status refresh racing a commit — fail on
@@ -131,7 +131,7 @@ class ProcessGitService implements GitService {
    * Resolves the repository root, or null when the path is not in a
    * repository. Every other call is made against this root, because porcelain
    * paths are relative to it and can point outside the project directory
-   * (SPEC.md §12).
+   * (specification.md §12).
    */
   async repositoryRoot(absolutePath: string): Promise<string | null> {
     const result = await this.#invoke(['rev-parse', '--show-toplevel'], absolutePath);
@@ -154,7 +154,7 @@ class ProcessGitService implements GitService {
 
   /**
    * Stages every path in one invocation, so the caller's in-flight guard
-   * applies once to the whole action rather than per file (SPEC.md §12).
+   * applies once to the whole action rather than per file (specification.md §12).
    * `--` separates paths from options, so a file named like a flag is safe.
    */
   async stage(repositoryRoot: string, paths: readonly string[]): Promise<void> {
@@ -217,7 +217,7 @@ class ProcessGitService implements GitService {
   async tracking(repositoryRoot: string): Promise<GitTracking | null> {
     // One command: the branch header of porcelain v2 carries the upstream and
     // the drift. No upstream is a normal state, not a failure — this
-    // application creates one only when asked to publish (SPEC.md §12).
+    // application creates one only when asked to publish (specification.md §12).
     const result = await this.#invoke(['status', '--porcelain=v2', '--branch'], repositoryRoot);
     return result.exitCode === 0 ? parseTrackingHeader(result.stdout) : null;
   }
@@ -250,7 +250,7 @@ class ProcessGitService implements GitService {
     // No separator here: `git switch --create` reads `--` as the start of
     // pathspecs and `--end-of-options` as a start point, and refuses both.
     // The name is checked against `isValidBranchName` before it gets here,
-    // which is what keeps a name beginning with `-` out (SPEC.md §12).
+    // which is what keeps a name beginning with `-` out (specification.md §12).
     await this.#run(['switch', '--create', name], repositoryRoot);
   }
 
@@ -260,7 +260,7 @@ class ProcessGitService implements GitService {
 
   async deleteBranch(repositoryRoot: string, name: string): Promise<void> {
     // `-d`, never `-D`: git refuses a branch whose work is not merged, and
-    // that refusal is exactly what the author needs to see (SPEC.md §12).
+    // that refusal is exactly what the author needs to see (specification.md §12).
     await this.#run(['branch', '--delete', '--end-of-options', name], repositoryRoot);
   }
 
@@ -314,7 +314,7 @@ class ProcessGitService implements GitService {
 
   async addRemote(repositoryRoot: string, name: string, url: string): Promise<void> {
     // `--` so that an address is never read as an option, whatever it starts
-    // with. The core refuses those addresses as well (SPEC.md §12).
+    // with. The core refuses those addresses as well (specification.md §12).
     await this.#run(['remote', 'add', '--', name, url], repositoryRoot);
   }
 
@@ -328,7 +328,7 @@ class ProcessGitService implements GitService {
 
   async pull(repositoryRoot: string): Promise<void> {
     // Never a merge: where a fast-forward is impossible, git refuses and says
-    // so, and that refusal is what the author is shown (SPEC.md §12).
+    // so, and that refusal is what the author is shown (specification.md §12).
     await this.#run(['pull', '--ff-only'], repositoryRoot);
   }
 
@@ -389,7 +389,7 @@ class ProcessGitService implements GitService {
    *
    * Deliberately no `--set-upstream`, no pull, no fetch: a missing remote or a
    * failed authentication surfaces Git's own message rather than the
-   * application inventing a remote layout (SPEC.md §12).
+   * application inventing a remote layout (specification.md §12).
    */
   async push(repositoryRoot: string): Promise<void> {
     await this.#run(['push'], repositoryRoot);

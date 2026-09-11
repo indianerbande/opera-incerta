@@ -19,7 +19,7 @@ Material Symbols Outlined at weight 400, 24 px.
 | `toc.svg` | Outline |
 | `neurology.svg` | AI assistant |
 | `history.svg` | Snapshots |
-| `search.svg` | Search (the library search of `SPEC.md` §9.3) |
+| `search.svg` | Search (the library search of `specification.md` §9.3) |
 | `settings.svg` | Settings (the tool entry at the foot of the leading bar) |
 
 They are presentation assets for the local workbench activity bars. They are

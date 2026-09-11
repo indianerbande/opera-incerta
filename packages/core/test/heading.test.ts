@@ -156,7 +156,7 @@ describe('withHeadingLevel', () => {
 
   it('does not carry a level into the next line', () => {
     // The rule an earlier implementation of this idea got wrong: pressing
-    // Return after a heading must start an ordinary paragraph (SPEC.md §10.2).
+    // Return after a heading must start an ordinary paragraph (specification.md §10.2).
     const heading = withHeadingLevel(plain, 2);
     const next: DisplayLine = {
       level: null,
@@ -230,7 +230,7 @@ describe('code blocks are verbatim, by CommonMark\'s rules', () => {
   });
 });
 
-describe('fence rules the standard oracle found (TESTING.md §2.11)', () => {
+describe('fence rules the standard oracle found (testing.md §2.11)', () => {
   it('does not open a backtick fence whose info string contains a backtick', () => {
     // CommonMark examples 138 and 145: these are code spans, not fences.
     for (const text of ['``` ```\naaa\n', '``` aa ```\nfoo\n']) {
@@ -262,7 +262,7 @@ describe('fence rules the standard oracle found (TESTING.md §2.11)', () => {
   });
 });
 
-describe('where indented code may start, by CommonMark (TESTING.md §2.2)', () => {
+describe('where indented code may start, by CommonMark (testing.md §2.2)', () => {
   const verbatim = (text: string): readonly boolean[] =>
     markdownToDisplay(text).map((line) => line.verbatim);
 

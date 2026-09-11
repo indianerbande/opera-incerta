@@ -12,7 +12,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Defining the project's page categories. SPEC.md §6.6.
+ * Defining the project's page categories. specification.md §6.6.
  *
  * They live with the project rather than with the installation, so this is not
  * a setting: it is project data, edited where the sheet that uses it is edited.
@@ -142,7 +142,7 @@ export class CategoryManagerComponent {
       return;
     }
     // The id is assigned once and never changes, which is what lets a name be
-    // changed freely afterwards (SPEC.md §6.6).
+    // changed freely afterwards (specification.md §6.6).
     this.draft.set([
       ...this.draft(),
       { id: crypto.randomUUID(), name: this.i18n.t('categories.new'), color: '#cccccc' },

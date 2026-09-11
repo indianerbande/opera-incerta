@@ -1038,7 +1038,7 @@ describe('re-reading a project with unsaved work', () => {
     disk.change(changed);
     await store.reloadProject();
 
-    // A silent reload is what an unmodified buffer deserves (SPEC.md §10.6).
+    // A silent reload is what an unmodified buffer deserves (specification.md §10.6).
     expect(store.conflict()).toBeNull();
     expect(store.dirty()).toBe(false);
     expect(store.editorDocument()?.text).toBe('# Changed elsewhere\n');
@@ -1542,7 +1542,7 @@ describe('going back and forward', () => {
   });
 });
 
-describe('the author’s own export stylesheets (SPEC.md §15.2)', () => {
+describe('the author’s own export stylesheets (specification.md §15.2)', () => {
   it('lists what the project has, and adopts the list a write returns', async () => {
     const written: Array<{ name: string; css: string }> = [];
     const store = new WorkspaceStore(

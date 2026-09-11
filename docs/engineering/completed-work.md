@@ -6,10 +6,67 @@ documents").
 
 ---
 
+## 2026-09-11 — the repository becomes something a stranger can read
+
+**What this was.** Not product code. The software had been working for a
+while; its documentation had not caught up, and the README still said **"Early
+scaffold … the product itself is not implemented yet"** — which had been false
+for weeks. This round brought the repository to the state a public release
+needs.
+
+**The documents moved.** The engineering sources — specification, testing,
+dependencies, conventions, roadmap, completed work — are now in
+`docs/engineering/`, English only, because a product contract must not be able
+to diverge between two translations. That cost **659 references to `SPEC.md`
+in source comments** plus about a hundred in prose, all rewritten
+mechanically and then verified by a check rather than by reading.
+
+**Public documentation, in both languages.** README, contributing, security,
+a documentation index, project status, build-from-source, platform matrix, a
+user guide, the AI statement, and release notes — ten pairs, English and
+German, each linking to the other.
+
+**Two new gates, and the reason they are gates.**
+
+`check:documentation` proves every relative link resolves, every translated
+pair exists, neither side is a stub, and each links to the other. Links inside
+fenced code are skipped: the specification documents Markdown and shows
+`[text](url)`, and following an example would be a fabricated failure.
+
+`check:public-source` looks for what cannot be taken back once pushed — a
+credential by file name, a token by shape, a real home directory. It searches
+for **shapes rather than for a list of our own secrets**, because such a list
+would have to contain them. Both run in `pnpm run check`: a check that runs
+only on release day protects only release day.
+
+**Honesty was the hard part, not the writing.** The platform matrix has five
+rows and **every native cell says "not run"** — because `desktop:make` has
+never been executed on any host. The project status lists import, the
+assistant, and snapshots as specified and absent. The accessibility section
+states the rule the project actually checks and explicitly declines to claim
+WCAG conformance. A release document that softened any of those would have
+been the first false thing in this repository.
+
+**What went wrong.** Reading the reference project changed this session's
+working directory, and two heredocs afterwards wrote into **it** rather than
+here — overwriting two of its files. They were restored from its own history
+within a minute, and the same content was rewritten here through absolute
+paths. The lesson is narrow and worth keeping: a relative path is only as
+good as the directory you think you are in, and a tool that changes that
+directory silently will eventually be believed.
+
+**Verification.** `pnpm run check` green, **1106 tests**, now including the
+two new gates. `pnpm run desktop:smoke` green across **45 checks** after a
+move that touched 170 files — which is the point of having it.
+`pnpm run spike:editor` 7/7. `pnpm audit --prod` reports no known
+vulnerabilities. Four falsifications for the new gates: a link pointed at
+nothing, a translation reduced to a stub, a token shape planted in a scratch
+file, and the licence removed. Each red for its own reason.
+
 ## 2026-09-11 — four stylesheets, and the author's own
 
 **What was built.** The open half of the export round, and the reason the PDF
-is set from HTML at all: `SPEC.md` §15.2 gained a section, written before the
+is set from HTML at all: `specification.md` §15.2 gained a section, written before the
 code.
 
 **Four supplied sheets**, which cannot be changed — a default one can edit
@@ -61,9 +118,9 @@ dialog as `smoke-export-stylesheet.png`.
 
 ## 2026-09-11 — export: the manuscript as one file, and as a set page
 
-**What was built.** `SPEC.md` §15.2, specified in this round before any of it
+**What was built.** `specification.md` §15.2, specified in this round before any of it
 was written — and it is the first **module** (§15.1), which is why
-`packages/export` exists and why `TESTING.md` §2.9 is no longer entirely open.
+`packages/export` exists and why `testing.md` §2.9 is no longer entirely open.
 
 **One assembly, two formats.** The library in its recorded order becomes one
 document: **a group turns into a heading at its depth**, and the headings of
@@ -132,7 +189,7 @@ not evidence.
 
 ## 2026-09-11 — where you have been: back, forward, and what was saved last
 
-**What was built.** The two ways back to a sheet of `SPEC.md` §9.4, which were
+**What was built.** The two ways back to a sheet of `specification.md` §9.4, which were
 specified in the same round before any of it was written.
 
 **Back and forward** is a linear history with a position in it, as a browser
@@ -263,7 +320,7 @@ thing every later round reads first.
 
 What was corrected, and to what:
 
-1. **`SPEC.md` §10.3** still read *"Draft — the mechanism needs its own
+1. **`specification.md` §10.3** still read *"Draft — the mechanism needs its own
    round"*. That mechanism was built on 2026-09-04: `presentation()` in the
    core turns both models into instructions the adapter draws. It says so now.
 2. **§10.1** said the editing component was still a draft decision. CodeMirror
@@ -278,20 +335,20 @@ What was corrected, and to what:
 4. **§18 Phase 3** described three built things as future: dragging a sheet
    into another group, source control's diff and discard, and the two
    searches. Each now names what it became and when.
-5. **`TESTING.md`** claimed a layer coverage from 2026-09-01, when four layers
+5. **`testing.md`** claimed a layer coverage from 2026-09-01, when four layers
    "awaited the code they cover". One does: §2.9, the module registry, which
    arrives with the first module. It also called its scripts "planned" while
    every one of them but the two packaging commands has run here; and §2.11
    introduced itself as a gate for a decision that has since been taken.
-6. **`TODO.md`** held a §2 whose only entry was a *decided* item, in a file
+6. **`roadmap.md`** held a §2 whose only entry was a *decided* item, in a file
    whose first line says it holds open work and nothing else. It is gone from
-   there and stands in `DONE.md`, where it already was. The third smoke flake
+   there and stands in `completed-work.md`, where it already was. The third smoke flake
    entry said what should be done "if it recurs" — it recurred and was done
    the same day; the entry says that now.
 
 **Verification.** `pnpm run check` green, **1041 tests** — no code changed, and
 that is the point: this round moved only what the documents assert. Every
-correction was checked against the round that made it true, in `DONE.md`.
+correction was checked against the round that made it true, in `completed-work.md`.
 
 **Lesson.** Stale documentation accumulates exactly where the work went well:
 a feature gets built, its own section is updated, and the *other* sections
@@ -303,11 +360,11 @@ section number when a round closes — every `§10.3` in the repository, not jus
 
 ## 2026-09-10 — searching the library
 
-**What was open** (`SPEC.md` §18, Phase 3, and the three questions §18 said
+**What was open** (`specification.md` §18, Phase 3, and the three questions §18 said
 had to be answered first). He answered them: **only the text**, **results as a
 list**, **transient — no saved view**. The rest follows from those three.
 
-**What was decided first** (`SPEC.md` §9.3). It is the navigator's **third
+**What was decided first** (`specification.md` §9.3). It is the navigator's **third
 view**, beside the explorer and source control, because a region holds
 interchangeable views and this is one of them. Only the body is searched:
 front matter is metadata, and filtering a library *by* metadata is the saved
@@ -358,12 +415,12 @@ the frame that shows it.
 
 ## 2026-09-10 — finding in the open sheet
 
-**What was open** (`SPEC.md` §18, Phase 3). Two things are called search, and
+**What was open** (`specification.md` §18, Phase 3). Two things are called search, and
 §18 says they are regularly confused: finding a passage in the sheet that is
 open, and querying the whole library. This is the first; the second keeps its
 own round and nothing here anticipates it.
 
-**What was decided first** (`SPEC.md` §10.11):
+**What was decided first** (`specification.md` §10.11):
 
 1. **A band, not a floater.** The bar sits between the editor's header and the
    text and pushes the writing surface down. A bar that covers the line one was
@@ -413,12 +470,12 @@ against the specification before it is believed.
 
 ## 2026-09-09 — the regions as panels on a canvas
 
-**What was open** (`SPEC.md` §8.9, "what this section does not decide", and
-`TODO.md` §1 an hour later). The controls and the dialogs were one house; the
+**What was open** (`specification.md` §8.9, "what this section does not decide", and
+`roadmap.md` §1 an hour later). The controls and the dialogs were one house; the
 three columns still met edge to edge, separated by hairlines, reading as one
 surface that had been divided rather than as three things.
 
-**What was decided first** (`SPEC.md` §8.2, extended). The activity bars are
+**What was decided first** (`specification.md` §8.2, extended). The activity bars are
 the window's **rails**: flush, full height, on the navigation ground, no
 corner of their own — they are chrome. Everything between them is canvas, and
 the four regions sit on it as panels with the panel radius, a line, and the
@@ -451,13 +508,13 @@ no green check would ever have reported.
 
 ## 2026-09-09 — the shape of things
 
-**What was open** (`SPEC.md` §8.8, "what this section does not decide", and
-`TODO.md` §1 the same evening). The colours and the face were one house; the
+**What was open** (`specification.md` §8.8, "what this section does not decide", and
+`roadmap.md` §1 the same evening). The colours and the face were one house; the
 geometry was not — 4 and 5 and 6 pixel radii picked one at a time, buttons
 that were a padding rather than a height, and eleven dialogs that each drew
 their own idea of a heading and a row of actions.
 
-**What was decided first** (`SPEC.md` §8.9). Three radii and a pill — control
+**What was decided first** (`specification.md` §8.9). Three radii and a pill — control
 7px, panel 10px, dialog 16px — and nothing else; one spacing scale (4, 6, 8,
 12, 16, 20); a control that **has a height** (26px, and 18px inside the
 status bar's 24px band, because a band cannot hold a control taller than
@@ -508,7 +565,7 @@ a palette that does not exist cannot be made dark. The author's other
 application, C4ML, has had a proper system for months; the two are meant to
 look like two programs from one house, and did not.
 
-**What was decided first** (`SPEC.md` §8.8, written before the code, after
+**What was decided first** (`specification.md` §8.8, written before the code, after
 three questions he answered): the same **values** as the other application
 under this project's own names; IBM Plex **packaged**, not borrowed from the
 system; and light, dark and the palettes **now** rather than later.
@@ -532,7 +589,7 @@ The four decisions worth keeping:
    (§13), serif by default, and the zoom of §10.9 scales it alone.
 
 **What changed.** Eight WOFF2 files with their licence, notice and pinned
-bytes (`DEPENDENCIES.md`, `check:assets`, which now covers fonts as well as
+bytes (`dependencies.md`, `check:assets`, which now covers fonts as well as
 icons); a token layer of some seventy declarations in `styles.css`; the two
 preferences, their registry entries and their controls — three radio buttons
 and eight swatches; the root element carrying `data-color-scheme` and
@@ -578,17 +635,17 @@ nowhere else.
 3. **A face arrives after the first paint.** The front matter block measures
    itself and grows to what it measured, and the smoke read that height one
    frame too early — twice, once before the fonts existed. It waits for the
-   height to settle now, which is what `TODO.md` §1 had predicted the remedy
+   height to settle now, which is what `roadmap.md` §1 had predicted the remedy
    would be.
 
 ---
 
 ## 2026-09-09 — the editor zoom
 
-**What was open** (`SPEC.md` §18, Phase 2, and the promise §10.5 made when the
+**What was open** (`specification.md` §18, Phase 2, and the promise §10.5 made when the
 status bar was built: "the zoom slider to follow").
 
-**What was decided first** (`SPEC.md` §10.9, written before the code). 50 % to
+**What was decided first** (`specification.md` §10.9, written before the code). 50 % to
 200 %, in whole percentage points, with a **detent at 100 %**: the three points
 either side of the middle belong to it, so a drag past the middle lands on it.
 The percentage beside the slider is itself the way back to 100 %, the way
@@ -634,16 +691,16 @@ list, the status bar — was as valuable as the one measuring what must.
 
 ## 2026-09-09 — the line-number gutter
 
-**What was open** (`SPEC.md` §18, Phase 2). A second gutter column, left of
+**What was open** (`specification.md` §18, Phase 2). A second gutter column, left of
 the heading markers, with one number per line — specified in the roadmap as a
 sentence, and nothing else.
 
-**What was decided first** (`SPEC.md` §10.8, written before the code). What is
+**What was decided first** (`specification.md` §10.8, written before the code). What is
 numbered: the **logical** lines of the writing surface, from 1, which is the
 same counting the status bar reports — front matter is not in the surface, so
 the two can never disagree. A wrapped line keeps **one** number, at its first
 visual line: a number per visual line would count something the file does not
-have. Heights are measured, not computed (`CONVENTIONS.md` C-U5) — a heading
+have. Heights are measured, not computed (`conventions.md` C-U5) — a heading
 is taller than body text, and that is exactly where a gutter drifts out of
 step with its text. And: **off by default, with a switch** in Settings →
 Editor. A manuscript is not source code; the numbers are for *talking about* a
@@ -684,14 +741,14 @@ compartment and a CSS rule.
 **What was wrong.** Choosing a folder without `.opera-incerta/` put
 `Das Projekt ließ sich nicht öffnen (project/no-project)` in the launcher —
 the application's own inner state, shown to the author, with no way forward.
-`SPEC.md` §8.6 has specified four answers since it was written and only one
+`specification.md` §8.6 has specified four answers since it was written and only one
 was built: `ProjectSession.open` threw `project/${inspection.kind}` for the
 other three, the shell passed the code through, and the welcome window printed
 it. The adapter could adopt a folder all along (`createProject` is documented
-for exactly that, and `TESTING.md` §2.3 asks for its evidence); nothing above
+for exactly that, and `testing.md` §2.3 asks for its evidence); nothing above
 it ever asked.
 
-**What was decided first** (`SPEC.md` §8.6, now Implemented). Opening
+**What was decided first** (`specification.md` §8.6, now Implemented). Opening
 **reports what it found** rather than succeeding or throwing: five outcomes —
 opened, cancelled, and the three questions. Which question to ask and what a
 yes does is the launcher's, in the renderer, because that is where a click's
@@ -744,19 +801,19 @@ nowhere else.
    launcher, so the buttons arrive later. The wait is for the buttons.
 3. **A diagnostic code in front of the author is an unfinished branch.** The
    code was correct and the message was honest; what was missing was the
-   decision about what to offer instead. Reading `SPEC.md` §8.6 against the
+   decision about what to offer instead. Reading `specification.md` §8.6 against the
    handler found three specified answers that no code had ever taken.
 
 ---
 
 ## 2026-09-04 — the GFM display, with markdown-it behind it
 
-**What was open** (`SPEC.md` §18, `TODO.md` §2.1). The editor hid heading
+**What was open** (`specification.md` §18, `roadmap.md` §2.1). The editor hid heading
 prefixes and inline delimiters and showed nothing else of Markdown: a quote
 was a line beginning with `>`, a list a line beginning with `-`, a rule
 three dashes. The runtime parser was decided but not taken.
 
-**What was decided first.** `SPEC.md` §10.7, written before the code: the
+**What was decided first.** `specification.md` §10.7, written before the code: the
 pattern of §10.2 and §10.3 applied to the rest — hide the markers, show the
 effect, except on the focus line — with a table saying, construct by
 construct, what shows off the focus line and what on it. Links, images,
@@ -775,7 +832,7 @@ never on a cursor move, and a third for the presentation with the display
 model's rhythm — with bullets, boxes, rules, and returns as widgets and the
 inline effects as marks. The production check now fails the build if the
 built renderer carries `argparse`, the parser's PSF-2.0 command-line
-dependency; `DEPENDENCIES.md` records both deviations the spike measured
+dependency; `dependencies.md` records both deviations the spike measured
 and how each is settled.
 
 **Verification.** `pnpm run check` green: **1001 tests** across eight
@@ -800,7 +857,7 @@ ceremony — it was the design.
 
 ## 2026-09-04 — the status bar: where the cursor is, and whether this sheet wraps
 
-**What was open** (`SPEC.md` §10.5). Accepted, not built: a bar under the
+**What was open** (`specification.md` §10.5). Accepted, not built: a bar under the
 text with the cursor position on the left and the wrap switch on the right,
 the zoom slider to follow with §18.
 
@@ -837,7 +894,7 @@ window — was the whole design; the bar was forty lines after that.
 
 ## 2026-09-04 — the editor's font, size, and wrapping as settings
 
-**What was open** (`SPEC.md` §13, Editor). The editor's typography was
+**What was open** (`specification.md` §13, Editor). The editor's typography was
 three constants in the adapter's theme: Georgia at 16 px with the heading
 sizes in `em` beside it, and line wrapping always on. The specification
 had named them settings from the start, with one rule: heading sizes keep
@@ -875,7 +932,7 @@ theme, whether the rule holds.
 
 ## 2026-09-04 — the interface speaks German, and the menu with it
 
-**What was open** (`TODO.md` §3, `SPEC.md` §14). Accepted since the first
+**What was open** (`roadmap.md` §3, `specification.md` §14). Accepted since the first
 day, built nowhere: every word of the interface sat in its template, the
 registry of the settings dialog carried English labels inside the
 text-free core, and the group-deletion warning chose between "1 sheet" and
@@ -961,7 +1018,7 @@ verification that did not happen. `&&` on every step, and the commit last.
 
 ## 2026-09-04 — a re-read that came too late, coalesced
 
-**What was open** (`TODO.md` §1, from the previous round). The merge check
+**What was open** (`roadmap.md` §1, from the previous round). The merge check
 once found no read-only notice within six seconds of the merge leaving
 conflict markers in the open sheet, and the two runs after it were green.
 
@@ -997,7 +1054,7 @@ it every time.
 
 ## 2026-09-04 — a conflict prompt nobody asked for, and the smoke that now looks
 
-**What was open** (`TODO.md` §1, from the settings round's screenshot). Behind
+**What was open** (`roadmap.md` §1, from the settings round's screenshot). Behind
 the settings dialog stood "This sheet changed on disk while you were editing
 it", up before the check began, and the title carried a dirty marker that
 never went away.
@@ -1031,7 +1088,7 @@ test. Falsified by putting the old output name back with the store's guard
 still in place: the run failed at the discarding check with a prompt
 nobody asked for — the guard alone is not enough, the name matters. Two
 flakes seen on the way, one keystroke too many and a merge re-read that
-came too late, are in `TODO.md` §1 with what they look like.
+came too late, are in `roadmap.md` §1 with what they look like.
 
 **Lesson.** The bug was in a *name*. Nothing in the type system objected,
 because the second call arrives through a template binding, and nothing in
@@ -1045,7 +1102,7 @@ looks", for every future round.
 
 ## 2026-09-04 — the settings dialog, for the settings that exist
 
-**What was open** (`TODO.md` §3, `SPEC.md` §13). The preference record
+**What was open** (`roadmap.md` §3, `specification.md` §13). The preference record
 existed and persisted the workbench layout and a handful of switches, each
 changed from wherever it happened to sit; there was no place that listed
 them, no reset, no way in from the menu, and the identity question of §12
@@ -1083,7 +1140,7 @@ did not name its opener: the smoke reported focus returned to `body`.
 
 **What the screenshot also showed** — a conflict prompt nobody asked for,
 up before the check began, from the save two checks earlier. Recorded in
-`TODO.md` §1 with its likeliest cause; it is the next round.
+`roadmap.md` §1 with its likeliest cause; it is the next round.
 
 **Lesson.** The first screenshot of the round was of the wrong thing: the
 dialog not yet painted, and behind it a prompt that had been standing there
@@ -1095,7 +1152,7 @@ expect; that is now on the list.
 
 ## 2026-09-04 — the standard oracle joins the gate, and finds a seventh thing
 
-**What was decided** (`TODO.md` §2.1, by the author the same day). The
+**What was decided** (`roadmap.md` §2.1, by the author the same day). The
 parser gate is read as two: commonmark.js, the reference implementation of
 CommonMark, and `yaml` are accepted as the test-time oracle, development
 dependencies of `packages/core` only. The runtime parser for the GFM
@@ -1110,7 +1167,7 @@ text lines are read by the reference parser, which must mark the same
 top-level ATX headings at the same level, put in code blocks exactly the
 lines the transform shows verbatim, and read back a heading the author set
 as that heading. The oracle's types stop at the file's edge
-(`CONVENTIONS.md` C-A6). `DEPENDENCIES.md`, `SPEC.md` §5.4 and `TESTING.md`
+(`conventions.md` C-A6). `dependencies.md`, `specification.md` §5.4 and `testing.md`
 §2.2 record the acceptance.
 
 The generated documents found what the specification's examples had not:
@@ -1119,7 +1176,7 @@ CommonMark starts it wherever a paragraph is not running — after a heading,
 a thematic break, a setext underline, a fence. `# Title` followed by four
 spaces of code showed the code as a paragraph. The rule now tracks whether a
 paragraph is running; setext headings themselves stay paragraphs to the
-transform, and that limit is written into `SPEC.md` §10.1 beside the
+transform, and that limit is written into `specification.md` §10.1 beside the
 others.
 
 **Verification.** `pnpm run check` green: **934 tests** — the oracle's
@@ -1140,7 +1197,7 @@ before it is committed.
 
 ## 2026-09-04 — two fence rules the oracle found, and two limits written down
 
-**What was open** (`TODO.md` §1, from the parser spike). Criterion 3 of the
+**What was open** (`roadmap.md` §1, from the parser spike). Criterion 3 of the
 parser gate compared `markdownToDisplay` with three conformant parsers over
 the specification's heading and code examples, and the parsers disagreed
 with the core in the same eight places.
@@ -1154,7 +1211,7 @@ backtick in its info string, as CommonMark allows. The fence pattern now
 captures what follows the run, and both rules read from that.
 
 The other four disagreements are limits of a transform that models no
-containers, and they are written into `SPEC.md` §10.1 rather than fixed: an
+containers, and they are written into `specification.md` §10.1 rather than fixed: an
 indented line after a blank line inside a list item is that item's
 paragraph to CommonMark and code to the core (examples 108, 109), which
 needs container awareness — the GFM display's round; and a whitespace-only
@@ -1179,7 +1236,7 @@ next reader can tell which is which.
 
 ## 2026-09-04 — four codec defects the oracle found, fixed the same day
 
-**What was open** (`TODO.md` §1, from the parser spike). The front matter
+**What was open** (`roadmap.md` §1, from the parser spike). The front matter
 the codec writes was read by an independent YAML parser for the first time,
 and thirteen of 181 generated sheets came back wrong. Four causes.
 
@@ -1216,13 +1273,13 @@ gate next.
 
 ## 2026-09-04 — the parser spike: measured, not accepted, and paid for already
 
-**What was open** (`TODO.md` §2.1). The Markdown parser was a candidate
+**What was open** (`roadmap.md` §2.1). The Markdown parser was a candidate
 since the first day, named as "the remark/micromark family" and never
-measured. `TESTING.md` §2.2 asks for a cross-check of the codec against an
+measured. `testing.md` §2.2 asks for a cross-check of the codec against an
 independent parser that the candidate would have to supply.
 
 **What was done.** A gate of seven criteria with fixed thresholds
-(`TESTING.md` §2.11) before any code ran; then `spikes/parser-markdown`,
+(`testing.md` §2.11) before any code ran; then `spikes/parser-markdown`,
 which measures four parsers — markdown-it, marked, commonmark.js, micromark
 with mdast — against the 652 examples of CommonMark 0.31.2, fetched by hash
 and never committed, and `yaml` against the codec's own output.
@@ -1231,13 +1288,13 @@ and never committed, and `yaml` against the codec's own output.
 commonmark.js are conformant; marked is not; micromark is nearly, but slow
 and forty-three packages wide. The two jobs — a test oracle now, a GFM
 display later — are best served by two packages, and whether the gate may be
-read that way is the author's decision, put in `TODO.md` §2.1 with a
+read that way is the author's decision, put in `roadmap.md` §2.1 with a
 recommendation.
 
 The cross-check paid before any decision: two fence defects in the display
 transform, and four in the codec — one of them a **data loss on read** of a
 file the application itself wrote (`keywords: ["a #comment", plain]` comes
-back as `["a`). All in `TODO.md` §1, each with the example that shows it.
+back as `["a`). All in `roadmap.md` §1, each with the example that shows it.
 
 **Verification.** `pnpm run spike:parser` prints seven tables and exits
 non-zero, which is the honest result. The spike measured itself wrong three
@@ -1258,7 +1315,7 @@ first run, against our own code.
 
 ## 2026-09-03 — the Electron runtime arrives with the install
 
-**What was open** (`TODO.md` §2). A clean checkout did not get the Electron
+**What was open** (`roadmap.md` §2). A clean checkout did not get the Electron
 binary from `pnpm install`, although `allowBuilds` named the package, and
 the runtime had to be fetched by running `install.js` by hand. The item
 asked for the pnpm 11 setting that makes one step suffice.
@@ -1275,7 +1332,7 @@ the command inside the desktop package. It is idempotent — the script
 checks `dist/version` and `path.txt` and exits when they match — so a
 repeated install costs nothing. `allowBuilds` keeps `electron: true` with a
 comment saying why it is not what fetches the binary. `README.md` and
-`DEPENDENCIES.md` say the same; the `PLATFORMS.md` bullet in `TODO.md`
+`dependencies.md` say the same; the `PLATFORMS.md` bullet in `roadmap.md`
 carries it into the packaging round.
 
 **Verification.** In a fresh clone: `pnpm install --frozen-lockfile` left
@@ -1294,7 +1351,7 @@ the option that would make it do it.
 
 ## 2026-09-03 — the identity git needs, asked once and kept local
 
-**What was open** (`TODO.md` §5, decided in `SPEC.md` §12). Without
+**What was open** (`roadmap.md` §5, decided in `specification.md` §12). Without
 `user.name` and `user.email` the first commit fails with "Author identity
 unknown" and three lines of `git config --global` advice. For an author who
 has never used git that is the normal case, and it arrived after creating,
@@ -1338,7 +1395,7 @@ the global file to make sure.
 
 ## 2026-09-03 — a project without a repository is offered one
 
-**What was open** (`TODO.md` §1.4, specified in `SPEC.md` §12 since the
+**What was open** (`roadmap.md` §1.4, specified in `specification.md` §12 since the
 gap check). The panel said the project was not inside a Git repository and
 offered nothing; a freshly created project is exactly that state.
 
@@ -1377,7 +1434,7 @@ reason for all of them.
 
 ## 2026-09-03 — the editor forgets a document that is gone
 
-**What was open** (`TODO.md` §1.7 until this round). The CodeMirror adapter
+**What was open** (`roadmap.md` §1.7 until this round). The CodeMirror adapter
 kept an `EditorState` — text, undo history, cursor, scroll position — per
 document id for as long as it lived, deleted sheets included. A memory
 question only for a very long session, and a boundary question before that:
@@ -1414,7 +1471,7 @@ implementation to keep everything forever.
 
 ## 2026-09-03 — the core rules the review found loose, tightened
 
-**What was open** (`TODO.md` §1.8 until this round): eleven rules in the
+**What was open** (`roadmap.md` §1.8 until this round): eleven rules in the
 portable core that the review had found wrong, loose, or in the wrong
 place, each confirmed against the built code before the round began.
 
@@ -1491,7 +1548,7 @@ case short of where the format's own rules end.
 
 ## 2026-09-03 — the port is the only way to the disk
 
-**What was open** (`TODO.md` §1.8 until this round). The `ProjectFilesystem`
+**What was open** (`roadmap.md` §1.8 until this round). The `ProjectFilesystem`
 port existed "so tests run against an in-memory double", and no double
 existed; the session and the shell reached past it to `node:fs` for what it
 did not offer — a directory to create, a file to move, a kind to know. The
@@ -1547,7 +1604,7 @@ implementation is a boundary nobody has tested.
 
 ## 2026-09-03 — one shape for a failure, and a contract that names what it carries
 
-**What was open** (`TODO.md` §1.8 until this round). Four error classes of
+**What was open** (`roadmap.md` §1.8 until this round). Four error classes of
 the same shape on four sides of the bridge, and the bridge duck-typing
 between them: anything with a `code` crossed with its message, which is how
 Node's `ENOENT` reached the renderer with an absolute path in it. `GitError`
@@ -1616,11 +1673,11 @@ what the rule is for.
 
 ## 2026-09-03 — the smoke waits for consequences, not for time
 
-**What was open** (`TODO.md` §1.8 until this round). Ninety `setTimeout`
+**What was open** (`roadmap.md` §1.8 until this round). Ninety `setTimeout`
 waits across the smoke's checks and helpers, thirty-six of them in source
 control: after a click, 250 ms; after a commit, 1,200 ms; after a drag, 700
 ms. Each one gave a fast machine and a slow one the same time, and was wrong
-for one of them — and `TODO.md` §1.6 records the one run in which it was
+for one of them — and `roadmap.md` §1.6 records the one run in which it was
 wrong for this one.
 
 **What changed.** Two primitives in `harness.ts`, and no third kind of wait:
@@ -1670,7 +1727,7 @@ that is too generous does: it makes every race look like it was won.
 
 ## 2026-09-03 — one git command at a time, and a machine without git
 
-**What was open** (`TODO.md` §1.8 until this round). Every bridge handler
+**What was open** (`roadmap.md` §1.8 until this round). Every bridge handler
 runs concurrently, so a status refresh racing a commit reached the author as
 an `index.lock` error; and `systemGitRunner` turned the `ENOENT` of a machine
 without git into exit code 1 with empty stderr, which `repositoryRoot`
@@ -1684,7 +1741,7 @@ running two commands.
 - **A queue per directory** in `ProcessGitService`: every command goes
   through one `#invoke`, which chains it behind the last command for that
   directory, succeed or fail, and lets other directories run alongside.
-  Reads wait too, deliberately (`SPEC.md` §12): a status beside a push is a
+  Reads wait too, deliberately (`specification.md` §12): a status beside a push is a
   lock error, a status after it is merely late, and the renderer's separate
   guards already keep a slow read from swallowing a click.
 - **`GitUnavailableError`**, code `git/not-installed`, thrown by the real
@@ -1727,7 +1784,7 @@ bottom before the words could exist at the top.
 
 ## 2026-09-03 — the renderer, second round: one dialog, one way in, rows from the model
 
-**What was open.** The first round took the flows out of the shell; `TODO.md`
+**What was open.** The first round took the flows out of the shell; `roadmap.md`
 §1.7 listed what the review had found beyond that, in the order to take it.
 This round took all of it but one line.
 
@@ -1777,7 +1834,7 @@ This round took all of it but one line.
 **What was left, and why.** The adapter keeps an `EditorState` per document
 id for as long as it lives, deleted sheets included. Forgetting one needs a
 word through the editor boundary in the core, which changes the contract
-suite; it is the one item still in `TODO.md` §1.7.
+suite; it is the one item still in `roadmap.md` §1.7.
 
 **Verification.** `pnpm run check` green: **817 tests** — twelve for the
 launcher store, five for the model-described rows, one for the persisting
@@ -1841,7 +1898,7 @@ unknown error three different ways.
   reset. The doubled line is gone.
 - **One error translator** (`toBridgeFailure` in `bridge.ts`). The
   workspace store shows the code, source control prefers git's own words —
-  that difference is intended (`SPEC.md` §12) and now sits on one function
+  that difference is intended (`specification.md` §12) and now sits on one function
   rather than three duck-typings. `SourceControlStore` gained the `#runRead`
   it was missing beside `#runWrite`; five reads that each carried the same
   seven lines are one line each.
@@ -1854,7 +1911,7 @@ the same lines. The dialog components themselves — their chrome is copied
 eight times, and that is the first item of the second round. So are the two
 ways state reaches components, the drag's DOM protocol, the welcome
 window's private store, and the layout state's inconsistencies; all in
-`TODO.md` §1.7 with the review's notes, so the next round starts from a
+`roadmap.md` §1.7 with the review's notes, so the next round starts from a
 list rather than a re-review.
 
 **Verification.** `pnpm run check` green: **800 tests** (30 new, in
@@ -1971,13 +2028,13 @@ core before anything was changed:
   area.
 
 **The decision.** The codec keeps its stated shape — a reader for the schema
-this project defines, no general YAML parser (`SPEC.md` §6.3) — and takes the
+this project defines, no general YAML parser (`specification.md` §6.3) — and takes the
 posture the namespace rules already had: **what it cannot read, it refuses
 with a diagnostic and marks read-only**, and in that state it claims nothing
 as owned, so even a mistaken write could not regenerate a field over the
 original. Two new codes, `front-matter/field-unreadable` and
 `front-matter/field-duplicated`, beside the three that existed. The reader's
-schema is now written down in `SPEC.md` §6.2: a scalar on the line for the
+schema is now written down in `specification.md` §6.2: a scalar on the line for the
 single fields, an inline list *or a block sequence* for `keywords` (the shape
 a hand most often writes, now read and written back inline), a scalar or a
 literal block for `notes` with the content's indentation read from its first
@@ -1993,7 +2050,7 @@ in the body, writable, and gain an owned block in front on the first save
 that needs one. The empty block stays front matter; a keyed block that is
 never closed stays unterminated and read-only.
 
-**What the generated test found.** `TESTING.md` §5 asked for generated
+**What the generated test found.** `testing.md` §5 asked for generated
 documents once the codec was stable; five hundred of them now run from a
 seeded vocabulary of owned, foreign, malformed and stray fragments, and every
 writable one must serialize to text that reads back to the same model,
@@ -2002,7 +2059,7 @@ run found a defect older than this round: a front matter whose **first lines
 were indented** — continuation lines with no key of their own — had those
 lines classified foreign, and the writer put the owned block in front of
 them; on the next read they continued *it*, and a field was duplicated. The
-writer now keeps such a leading run in front of the owned block (`SPEC.md`
+writer now keeps such a leading run in front of the owned block (`specification.md`
 §6.3, the one exception to "owned block first"). Two further failures were
 the test itself scanning the body, and were fixed in the test.
 
@@ -2040,10 +2097,10 @@ read every file the author can — confirmed with `../outside/secret.txt` and
 notification-only watch. The contract's request guards were uneven in the same
 way: one refused a leading `/`, another only an empty string, none a `..`.
 
-**What changed.** The rule of `SPEC.md` §5.3 — a request that looks like
+**What changed.** The rule of `specification.md` §5.3 — a request that looks like
 traversal is refused, not corrected, and containment is verified again after
 resolution — now has one implementation per line of defense, so no request
-type and no handler can leave it out (`CONVENTIONS.md` C-U7):
+type and no handler can leave it out (`conventions.md` C-U7):
 
 - **`isRelativeEntryPath`** in the contract, called by every request guard
   that carries a path: library edits, single paths, placements (both halves),
@@ -2096,11 +2153,11 @@ filesystem without it.
 on: a native macOS writing application for *what* the product does, and a
 TypeScript monorepo of the same shape for *how* it is built. Both were the
 author's own work, both were passing out of reach, and every document here cited
-them — `CONVENTIONS.md` alone carried 126 source citations, one per measure.
+them — `conventions.md` alone carried 126 source citations, one per measure.
 
 **What was done about it, in order.** First the gap check, because once the
 sources are out of reach a gap can no longer be closed against them: the functional specification was read
-end to end against `SPEC.md`, section by section, together with its open-work
+end to end against `specification.md`, section by section, together with its open-work
 list and the engineering documents. Nearly everything was already here, and in
 several places in a better form than the original. Six things were not:
 
@@ -2118,7 +2175,7 @@ several places in a better form than the original. Six things were not:
 - **Navigation history** — back and forward through the sheets that were open.
 - **Reading the text aloud**, as a module.
 
-All six are now in `SPEC.md`; the first two are also in `TODO.md` as the next
+All six are now in `specification.md`; the first two are also in `roadmap.md` as the next
 rounds, because they are small and their absence is felt. The concrete native
 build contract — host-native packaging, the ABI trap when maker helpers are
 built under a different Node, why Linux needs a DEB rather than an archive, and
@@ -2130,18 +2187,18 @@ that leaned on one was rewritten to stand alone. That is more than deleting
 text: a rule like "hand-built headers are a defect" was carried by *where it
 came from*, and now has to carry itself, so what it says is what was seen —
 each panel building its own header makes the separators sit at different
-heights. Lessons kept their weight and lost their footnote. `CONVENTIONS.md`
+heights. Lessons kept their weight and lost their footnote. `conventions.md`
 was reflowed where the removal left ragged paragraphs.
 
-**What was not done.** `DONE.md` is a log and was not rewritten; only the three
+**What was not done.** `completed-work.md` is a log and was not rewritten; only the three
 phrases that pointed outward were reworded. And no functionality was built this
 round — the task was to make sure nothing is lost, not to build what was found.
 
 **Verification.** `pnpm run check` green: **722 tests**. Beyond the gate, two
 mechanical checks: no occurrence of either project name, or of "functional
 template" / "technical template", survives anywhere in the repository outside
-build output; and every `§`-reference in `SPEC.md` and every `C-` measure id
-used in any document still resolves. The `CONVENTIONS.md` rewrap was checked to
+build output; and every `§`-reference in `specification.md` and every `C-` measure id
+used in any document still resolves. The `conventions.md` rewrap was checked to
 be 80 columns in characters, not bytes — em dashes are three bytes and made a
 byte count lie.
 
@@ -2266,7 +2323,7 @@ this check does not. The check confirms both halves: no file was created, and
 falsification run failed in an unrelated, much earlier check. Four runs
 straight afterwards — two clean, two falsified — were green, and the
 falsification then landed exactly where it was aimed. It is written down in
-`TODO.md` with the suspicion to test first, because a flaky check is worse than
+`roadmap.md` with the suspicion to test first, because a flaky check is worse than
 a missing one and pretending it did not happen is worse still.
 
 **Verification.** `pnpm run check` green: **697 tests**. The smoke now creates
@@ -2385,7 +2442,7 @@ of the work for a typical edit — and the search is bounded: beyond the bound
 the middle is reported as replaced wholesale. Coarse, but correct, and bounded
 work matters more than an ideal script for a file that was rewritten.
 
-A library was considered and not taken (`DEPENDENCIES.md`): it would have
+A library was considered and not taken (`dependencies.md`): it would have
 brought its own tokenizer, its own idea of a word and its own opinion about
 whitespace, none of it smaller than the hundred lines it replaces, and all of
 it to be understood before the result could be trusted.
@@ -2438,7 +2495,7 @@ file then appears to have removed lines, and two core tests fail as well. The
 screenshot shows Git's text with the header grey, the hunk blue and the added
 line green.
 
-**What a writer would want instead** is recorded in `TODO.md`: a word-level
+**What a writer would want instead** is recorded in `roadmap.md`: a word-level
 diff of prose rather than Git's line-based one. That is its own decision — it
 needs an algorithm, and possibly a dependency.
 
@@ -2509,7 +2566,7 @@ meant one of them doing the other's work.
 `.git` filter does not first break the check written for it. It breaks an
 *earlier* one: a failed push reports nothing, because the refresh storm
 overwrites the message before anyone can read it. That is precisely the harm
-`CONVENTIONS.md` C-F4 was written about, demonstrated more convincingly than
+`conventions.md` C-F4 was written about, demonstrated more convincingly than
 the check that was aiming at it.
 
 **Verification.** `pnpm run check` green: **618 tests**. The smoke's
@@ -2631,7 +2688,7 @@ same command now exits 1 with `[ERROR] This project requires Node.js ^24.15.0`.
 
 ## 2026-09-02 — four rounds towards the MVP, and the entries they should have had
 
-Written after the fact, together: four rounds went in without their `DONE.md`
+Written after the fact, together: four rounds went in without their `completed-work.md`
 entry, which `AGENTS.md` asks for in the same round. The lapse is recorded here
 rather than tidied away, because a rule kept only when convenient is not one.
 
@@ -2653,7 +2710,7 @@ content without pretending it is a different document, so the adapter port
 gained `replace`, with a case in the contract suite both adapters run.
 
 What is still missing is only the trigger — a watcher — which waits on the
-dependency decision in `TODO.md` §2.2.
+dependency decision in `roadmap.md` §2.2.
 
 ### The front matter area of §10.4
 
@@ -2715,7 +2772,7 @@ before, which is why it was written.
 
 **What exists.** A drag now says both things at once — which group an entry
 ends up in, and where in it. Dropping between the children of *another* group
-moves it there **and** puts it in that place (`SPEC.md` §6.8).
+moves it there **and** puts it in that place (`specification.md` §6.8).
 
 **Two operations became one, and that is the whole point.** `reorderEntry` and
 `moveEntry` were separate: a drag into another group could not say where, and
@@ -2757,7 +2814,7 @@ check says so.
 ## 2026-09-02 — moving between groups, and one owner for the whole drag
 
 **What exists.** A sheet is dragged from the sheet list onto a group in the
-tree; a group is dragged onto another group (`SPEC.md` §6.8). The middle half
+tree; a group is dragged onto another group (`specification.md` §6.8). The middle half
 of a group's row means the group itself, the quarter at each edge means between
 the rows — so a reorder and a move are the same gesture aimed differently, and
 hitting either does not demand precision.
@@ -2811,7 +2868,7 @@ insertion line — because this drop is an into and not a between.
 ## 2026-09-02 — deleting into the desktop trash
 
 **What exists.** A sheet or a group is deleted from its context menu, and
-deleting means moving to the **desktop trash** (`SPEC.md` §6.7). The
+deleting means moving to the **desktop trash** (`specification.md` §6.7). The
 application never removes a file itself: without a trash the operation is
 refused rather than falling back to something irreversible — the same rule the
 author's earlier writing application held to.
@@ -2863,7 +2920,7 @@ restore hint, and Cancel holding the keyboard.
 ## 2026-09-02 — reordering by drag, and the unsaved work it nearly cost
 
 **What exists.** Sheets can be dragged into a new order in the sheet list, and
-groups among their siblings in the tree (`SPEC.md` §6.4). The dragged row dims,
+groups among their siblings in the tree (`specification.md` §6.4). The dragged row dims,
 an insertion line shows where it would land, and the drop writes the group's
 `order` to `structure.json`.
 
@@ -2900,7 +2957,7 @@ editing state is now carried across the refresh and put back on top of the
 freshly read file. It surfaced only because the new drag check ran after the
 rename check and found the renamed title gone; the older checks had never
 looked after a second edit. The explicit refresh still has this hole, recorded
-in `TODO.md` where the §10.6 comparison rule belongs.
+in `roadmap.md` where the §10.6 comparison rule belongs.
 
 **Verification.** `pnpm run check` green: **506 tests**. The smoke's fifteenth
 check drags a sheet past the row below it and a group past its sibling with
@@ -2917,7 +2974,7 @@ check after it could have seen it.
 
 ## 2026-09-02 — creating and renaming sheets and groups
 
-**What exists.** The context menus of `SPEC.md` §6.4 and §6.5. Right-clicking a
+**What exists.** The context menus of `specification.md` §6.4 and §6.5. Right-clicking a
 group in the tree offers a new sheet, a new group, and a rename; right-clicking
 a sheet row offers a rename. A small prompt asks for the name and refuses an
 empty one.
@@ -2979,7 +3036,7 @@ both renamed sheets in the list, the new title in the header and the inspector.
 
 ## 2026-09-02 — draggable column dividers, and the preference record
 
-**What exists.** The three resizable columns of `SPEC.md` §8.2 can be dragged,
+**What exists.** The three resizable columns of `specification.md` §8.2 can be dragged,
 and everything about the workbench's appearance now survives a restart.
 
 The dividers needed persistence to be finished at all — "stored" is one of the
@@ -3109,7 +3166,7 @@ honest test anyway: it is the path an author takes.
 
 ## 2026-09-02 — the welcome window and the two-window model
 
-**What exists.** The launcher of `SPEC.md` §8.5 and §8.6: recent projects with
+**What exists.** The launcher of `specification.md` §8.5 and §8.6: recent projects with
 their abbreviated paths, open, new, and the choreography between the two
 windows.
 
@@ -3154,13 +3211,13 @@ user-data directory, so a test never writes into the author's list.
    carried its own complete fake. They now share one exhaustive base, so a
    forgotten channel fails to compile in one place instead of two — the
    shared-detail rule applies to test doubles as much as to panel headers
-   (`CONVENTIONS.md` C-U7).
+   (`conventions.md` C-U7).
 
 ---
 
 ## 2026-09-02 — the remaining panes, and Material Symbols
 
-**What exists.** Every pane of `SPEC.md` §8: the inspector, the outline, source
+**What exists.** Every pane of `specification.md` §8: the inspector, the outline, source
 control, and both activity bars switching between them.
 
 - **Inspector** — progress figures and the owned metadata fields. This is the
@@ -3224,7 +3281,7 @@ it, and saving it — end to end, through the real bridge, to the real file.
 - **The workspace store** holds the state and applies the core's rules. Its
   bridge is injected, so all of it is tested against a scripted double.
 - **The explorer, the sheet list, and a shared panel header.** The header is
-  the component `SPEC.md` §8.3 demands: fixed height, and the separator
+  the component `specification.md` §8.3 demands: fixed height, and the separator
   belongs to it, so no panel can misplace either.
 - **Sheet-list previews** carry the actual formatting from the file, sized by
   the core's geometric formula, with the three density steps.
@@ -3248,7 +3305,7 @@ The Second Bell
 
 Every test was green. The store had handed the editor the whole file, and
 nothing tested what the editor was *given* — only what it did with it. Two
-things were wrong at once: `SPEC.md` §10.4 puts front matter in its own area,
+things were wrong at once: `specification.md` §10.4 puts front matter in its own area,
 deliberately outside the writing surface; and an author editing that text could
 have broken their own metadata, or a foreign tool's, in a product whose central
 promise is that this cannot happen.
@@ -3340,14 +3397,14 @@ visibly until the space triggers it.
 second half an ordinary paragraph, because the prefix stays on the first line.
 That is what the file says, and special handling would mean the editor inventing
 Markdown. Cut at the visible start is genuinely unfinished and recorded as
-`TODO.md` §1.4: copying puts the prefix back, but cut removes only the
+`roadmap.md` §1.4: copying puts the prefix back, but cut removes only the
 selection and leaves an empty `##### ` behind.
 
 ---
 
 ## 2026-09-02 — dot commands and the gutter menu
 
-**What exists.** Both ways of setting a heading level from `SPEC.md` §10.2:
+**What exists.** Both ways of setting a heading level from `specification.md` §10.2:
 typing `.h1`…`.h6` at the start of a line, and clicking the level label in the
 gutter to pick from a menu.
 
@@ -3400,13 +3457,13 @@ is constructed; from then on the application speaks about text, lines, and
 heading levels. That is what let one contract suite — written without a test
 framework — run in both worlds: under Vitest against an in-memory double, and
 inside the real renderer against CodeMirror as criterion 7 of the spike. Both
-pass all eleven cases (`CONVENTIONS.md` C-T11). The suite is itself falsified
+pass all eleven cases (`conventions.md` C-T11). The suite is itself falsified
 by a test: a deliberately broken adapter must fail it, and does.
 
 **New in the core.** `inline.ts` — pure inline markup detection for the
 asterisk forms, strikethrough, and code spans, with escapes honored, code spans
 shadowing emphasis, and underscores deliberately left alone because that
-decision is still open (`SPEC.md` §10.3). `display-model.ts` — what the editor
+decision is still open (`specification.md` §10.3). `display-model.ts` — what the editor
 shows: which lines are headings and which character ranges are hidden, in
 document offsets. `DisplayLine` gained `verbatim`, so a fenced code block is
 recognized as one.
@@ -3422,7 +3479,7 @@ fenced line shown verbatim. Visually inspected in `build/desktop/smoke.png`.
 1. **The smoke found a specification violation on its first run.** The heading
    line still showed its `# ` prefix. The display model computed heading
    *classes* and inline *delimiters*, and nobody had told it to hide the
-   heading syntax itself — which `SPEC.md` §10.2 requires, and requires
+   heading syntax itself — which `specification.md` §10.2 requires, and requires
    unconditionally: heading level is a static paragraph attribute, so unlike an
    inline delimiter there is no syntax for the author to edit in place. Hidden
    ranges now carry a `kind`, and the two rules are visibly different.
@@ -3443,7 +3500,7 @@ and both earned their place today.
 
 ## 2026-09-01 — CodeMirror 6 accepted after the editor spike
 
-**Question.** Can CodeMirror 6 carry the display model of `SPEC.md` §10 —
+**Question.** Can CodeMirror 6 carry the display model of `specification.md` §10 —
 paragraph-level headings at different sizes, a gutter aligned to measured line
 heights, and inline markers hidden except on the cursor's line? It was the
 largest open technical decision, and every workbench view waited behind it.
@@ -3451,8 +3508,8 @@ largest open technical decision, and every workbench view waited behind it.
 **Method.** `spikes/editor-codemirror`, run in a real Chromium renderer through
 Electron rather than a DOM stub. A stub reports zero for every height, which
 would have turned three of the six criteria into tests that pass while proving
-nothing. The six thresholds were written into `TESTING.md` §2.8 **before** the
-spike ran (`CONVENTIONS.md` C-T14) and were not touched afterwards.
+nothing. The six thresholds were written into `testing.md` §2.8 **before** the
+spike ran (`conventions.md` C-T14) and were not touched afterwards.
 
 **Result: 6/6.**
 
@@ -3465,16 +3522,16 @@ spike ran (`CONVENTIONS.md` C-T14) and were not touched afterwards.
 | 5 | Paste | A real `ClipboardEvent` with CRLF, a tab, and Markdown arrived intact and round-tripped |
 | 6 | Typing latency | 112,020 characters, 200 keystrokes: median 5.8 ms, p95 6.6 ms against 16 ms |
 
-**Decision.** CodeMirror 6 is accepted as the editing surface (`SPEC.md` §5.4)
+**Decision.** CodeMirror 6 is accepted as the editing surface (`specification.md` §5.4)
 behind an Opera-Incerta-owned `EditorAdapter` interface, with the full
-dependency report in `DEPENDENCIES.md`. Monaco was ruled out on the criterion
+dependency report in `dependencies.md`. Monaco was ruled out on the criterion
 that mattered most: it assumes a uniform
 line height, and this product shows H1 at twice the body size in the same
 document.
 
 **Deliberately not done.** The component was not wired into `apps/workbench`.
 A spike answers a question; turning it into production architecture in the same
-step is the widening `AGENTS.md` forbids. The integration is `TODO.md` §1.4,
+step is the widening `AGENTS.md` forbids. The integration is `roadmap.md` §1.4,
 and the spike stays as evidence until that round carries its own tests.
 
 **Lessons.**
@@ -3482,7 +3539,7 @@ and the spike stays as evidence until that round carries its own tests.
 1. **Three of the six criteria first passed or failed for the wrong reason.**
    Heights read before the first real frame are CodeMirror's *estimates*, all
    identical — the very "computed, not measured" mistake the gate exists to
-   catch (`CONVENTIONS.md` C-U5), and it appeared inside the test for that
+   catch (`conventions.md` C-U5), and it appeared inside the test for that
    rule. An unexplained 4 px marker offset was the content padding. And
    criterion 2 passed while proving nothing, because its wrapped line carried
    no marker at all; rewritten to wrap a heading, it then failed on a third
@@ -3495,7 +3552,7 @@ and the spike stays as evidence until that round carries its own tests.
    exactly one marker rather than none.
 3. **The spike proved the portability invariant as a side effect.** Its browser
    bundle imports `@opera-incerta/core` for the heading transform, so the
-   portable core ran unchanged inside a Chromium bundle — `SPEC.md` §5.2
+   portable core ran unchanged inside a Chromium bundle — `specification.md` §5.2
    exercised rather than asserted.
 
 ---
@@ -3505,13 +3562,13 @@ and the spike stays as evidence until that round carries its own tests.
 **Decision.** Opera Incerta is licensed under the Apache License 2.0.
 
 **What changed.** `LICENSE` at the repository root, and a `license` field in
-all seven manifests. `SPEC.md` §1.1 and §5.1 record it, `SPEC.md` §19 no longer
-lists it as open, and `README.md` and `DEPENDENCIES.md` point at the file.
+all seven manifests. `specification.md` §1.1 and §5.1 record it, `specification.md` §19 no longer
+lists it as open, and `README.md` and `dependencies.md` point at the file.
 
 **What it does not do.** The repository license does not relicense any
 dependency: every package keeps its own license and notice obligations, and
-those notices ship with the application (`CONVENTIONS.md` C-L5). That was
-already the rule; it is now stated where a reader of `DEPENDENCIES.md` meets it
+those notices ship with the application (`conventions.md` C-L5). That was
+already the rule; it is now stated where a reader of `dependencies.md` meets it
 first.
 
 **Verification.** `pnpm run check` green, unchanged at **293 tests**, plus the
@@ -3524,7 +3581,7 @@ edit would have failed it.
 
 **Scope.** Build out every open item whose behavior was already specified and
 whose implementation required no pending decision. What remained afterwards is
-listed in `TODO.md`, and each remaining item names the decision or the user
+listed in `roadmap.md`, and each remaining item names the decision or the user
 interface it waits on.
 
 ### Portable rules (`packages/core`)
@@ -3554,7 +3611,7 @@ interface it waits on.
   pinned dependencies, sandboxed window options, absence of `loadFile`, a
   preload limited to one global and to declared channels, and the renderer's
   content-security policy.
-- `examples/` — four original fixture projects from the `TESTING.md` §3
+- `examples/` — four original fixture projects from the `testing.md` §3
   catalog, read by an integration test rather than left as sample content.
 
 **Verification.** `pnpm run check` green: **293 tests** across 6 projects (core
@@ -3601,7 +3658,7 @@ unstaging before the first commit (§12).
 
 **What exists.** `packages/core/src/front-matter.ts`: `parseSheet` and
 `serializeSheet`, the reader and writer for the head of every `.md` file
-(`SPEC.md` §6.2, §6.3). 43 new tests against 534 lines of implementation.
+(`specification.md` §6.2, §6.3). 43 new tests against 534 lines of implementation.
 
 **Shape of the solution.** Owned fields are parsed into a typed
 `SheetMetadata`; everything foreign is held as unmodified raw lines; unknown
@@ -3619,7 +3676,7 @@ per key whether a top-level `status` was ours, which is exactly the judgement
 no code can make correctly.
 
 **Verification.** `pnpm run check` green: **98 tests** across 6 projects, 71 of
-them in the core. The suite covers every item of `TESTING.md` §2.2 —
+them in the core. The suite covers every item of `testing.md` §2.2 —
 round-trip losslessness across nested mappings, sequences, folded blocks,
 comments and unkeyed lines; idempotence; namespace ownership including a
 top-level foreign `title`, `status`, `topic`, `keywords`, `category`, and
@@ -3630,7 +3687,7 @@ fifteen scalar-quoting cases from `2024` through emoji to the empty string.
 **Not yet proven:** that the output is standard-conformant to an *independent*
 parser. The tests prove that our reader accepts what our writer produces. The
 cross-check needs the Markdown/YAML dependency that is not accepted yet, and it
-is recorded as `TODO.md` §1.1 rather than quietly assumed.
+is recorded as `roadmap.md` §1.1 rather than quietly assumed.
 
 **Lessons.**
 
@@ -3658,7 +3715,7 @@ is recorded as `TODO.md` §1.1 rather than quietly assumed.
 
 **Decision.** Every field the application owns is nested under one top-level
 key, `opera-incerta:`. Every other top-level key is foreign, regardless of its
-name (`SPEC.md` §6.2, now Accepted).
+name (`specification.md` §6.2, now Accepted).
 
 **Why it matters more than it looks.** The round-trip rule of §6.3 protects
 against *losing* foreign data. It cannot protect against *reinterpreting* it: a
@@ -3679,8 +3736,8 @@ released format. Deciding it after the first written manuscript would have cost
 a migration for every file — the same window that closed for the identifier
 alignment below.
 
-**Verification.** Documentation only: `SPEC.md` §6.2/§6.3, the evidence list in
-`TESTING.md` §2.2, and `TODO.md`. No code was written — the codec itself is the
+**Verification.** Documentation only: `specification.md` §6.2/§6.3, the evidence list in
+`testing.md` §2.2, and `roadmap.md`. No code was written — the codec itself is the
 next step and is now unblocked.
 
 ---
@@ -3699,16 +3756,16 @@ before relinking, because the package names those artifacts were built under no
 longer exist.
 
 **Why it was allowed now, and why it is the last time.** The naming rule
-(`CONVENTIONS.md` C-N1) exists to stop a product rename from reaching
+(`conventions.md` C-N1) exists to stop a product rename from reaching
 identifiers that live in user files. Nothing had shipped: no release artifact,
 no user project, no stored preference, no committed history. That is the only
 condition under which aligning the two names is free, and it no longer holds
-after the first written project. `SPEC.md` §1.1 records the decision and its
+after the first written project. `specification.md` §1.1 records the decision and its
 superseded predecessor.
 
 **The checkout directory too.** `writers-ide/` was renamed to
 `opera-incerta/`. It is the one name that is *not* part of the contract
-(`SPEC.md` §5.2) — nothing in the repository refers to it — but leaving it
+(`specification.md` §5.2) — nothing in the repository refers to it — but leaving it
 would have made every path in a report contradict the project it names. pnpm's
 workspace symlinks are relative and survived the move untouched; the session's
 working directory had to be moved explicitly, which is the only manual step.
@@ -3720,10 +3777,10 @@ from the renamed directory: check green, smoke green, evidence written to
 `build/desktop/smoke.png` under the new path.
 
 **Lesson.** A repository-wide string replacement rewrote history: the previous
-`DONE.md` entry recorded `writers-ide` as a deliberate decision, and the
+`completed-work.md` entry recorded `writers-ide` as a deliberate decision, and the
 replacement silently turned it into `opera-incerta`, making the entry claim the
-opposite of what happened. Historical reasoning in `DONE.md` is a record, not
-live text (`CONVENTIONS.md` C-D3) — a mechanical rename MUST skip it, and this
+opposite of what happened. Historical reasoning in `completed-work.md` is a record, not
+live text (`conventions.md` C-D3) — a mechanical rename MUST skip it, and this
 one had to be repaired by hand.
 
 ---
@@ -3734,14 +3791,14 @@ one had to be repaired by hand.
 > to `opera-incerta` as well; see the entry above. The names below are the ones
 > that were current when this decision was made, and are preserved as written.
 
-**Decision.** The visible product name is **Opera Incerta** (`SPEC.md` §1.1,
+**Decision.** The visible product name is **Opera Incerta** (`specification.md` §1.1,
 accepted). Chrome, window titles, headings, and documentation titles use it.
 
 **What deliberately did not change.** The technical name `writers-ide` stays:
 package namespace `@writers-ide/*`, project marker `.writers-ide/`, bridge
 global `writersIde`, channel prefix `writers-ide:`, and the smoke environment
 variable. That separation is exactly why the rename touched 18 files and no
-identifier a user's files could ever contain (`CONVENTIONS.md` C-N1).
+identifier a user's files could ever contain (`conventions.md` C-N1).
 
 **Verification.** `pnpm run check` green (55 tests, unchanged count);
 `pnpm run desktop:smoke` green — the smoke check asserts the rendered heading,
@@ -3749,7 +3806,7 @@ so it would have failed had the renderer and the shell disagreed about the
 name.
 
 **Still open:** trademark clearance before public distribution, and the
-application icon (`SPEC.md` §1.1, §19).
+application icon (`specification.md` §1.1, §19).
 
 ---
 
@@ -3767,7 +3824,7 @@ apps/workbench             Angular renderer: the region skeleton
 apps/desktop               Electron shell: window, preload bridge, smoke check
 ```
 
-**Why these first.** The scaffold had to prove the boundaries that `SPEC.md`
+**Why these first.** The scaffold had to prove the boundaries that `specification.md`
 §5.2 and §5.3 declare, not just describe them. The portable packages compile
 with `"types": []`, so a host API cannot slip into them unnoticed. The renderer
 consumes `@opera-incerta/core` and `@opera-incerta/desktop-contract`, which proves
@@ -3777,10 +3834,10 @@ up incomplete.
 
 **Content, not filler.** The three rules in `packages/core` (slug generation
 with collision suffix, column-width clamping, computed category text color) and
-the contract guards are all fully specified in `SPEC.md`, so they could be
+the contract guards are all fully specified in `specification.md`, so they could be
 implemented and tested rather than stubbed. Ports for the two Node adapters are
 declared as interfaces only: public module interfaces come before their
-implementation (`CONVENTIONS.md` C-A16), and inventing a filesystem
+implementation (`conventions.md` C-A16), and inventing a filesystem
 implementation ahead of its specification round would have been the widening
 `AGENTS.md` forbids.
 
@@ -3793,11 +3850,11 @@ implementation ahead of its specification round would have been the widening
   (`wi-root h1` reads "Opera Incerta"), the preload bridge answers
   `contractVersion()` with 1, and a screenshot is written to
   `build/desktop/smoke.png`.
-- Visual inspection of that screenshot: the six regions of `SPEC.md` §8.2 appear
+- Visual inspection of that screenshot: the six regions of `specification.md` §8.2 appear
   in order with the specified widths — activity bar, navigator, sheet list, a
   dominant editor, secondary sidebar, activity bar.
 - Not run: `desktop:package` and `desktop:make`. They are therefore not listed
-  as approved commands anywhere (`CONVENTIONS.md` C-T19).
+  as approved commands anywhere (`conventions.md` C-T19).
 
 **Lessons — each one cost a failed run.**
 
@@ -3825,9 +3882,9 @@ implementation ahead of its specification round would have been the widening
 6. **Electron's postinstall did not run under `allowBuilds`.** The 306 MB
    runtime was missing until `install.js` was executed directly in the store
    directory, where it completed instantly from the local Electron cache. A
-   clean checkout currently needs that extra step — open item in `TODO.md` §1.7.
+   clean checkout currently needs that extra step — open item in `roadmap.md` §1.7.
 
 **Deliberately not done.** No `git init`, no commit: initializing a repository
-was not requested (`CONVENTIONS.md` C-G3). Package names in this entry predate
+was not requested (`conventions.md` C-G3). Package names in this entry predate
 the identifier alignment recorded above. No package carries a `license` field,
 because the project license is still open.

@@ -6,7 +6,7 @@ import { SourceControlStore } from '../workspace/source-control-store.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * The source control panel. SPEC.md §12.
+ * The source control panel. specification.md §12.
  *
  * The established commit layout, top to bottom: the changed files with a
  * checkbox each, a message field, and the two commit actions. Checked means
@@ -15,7 +15,7 @@ import { Localization } from '../localization/localization.js';
  * Below that, what the branch tracks and the actions on it: fetch, pull,
  * merge, publish, branches, amend, the ignore list, discarding. Everything
  * that needs a question first goes through `SourceControlActions`, which
- * puts up the dialog; the plain operations go to the store (SPEC.md §8.7).
+ * puts up the dialog; the plain operations go to the store (specification.md §8.7).
  */
 @Component({
   selector: 'wi-source-control',
@@ -25,11 +25,11 @@ import { Localization } from '../localization/localization.js';
       @if (store.failure(); as reason) {
         <!-- Before any repository is known, a failure is about the machine
              rather than the project: git itself is missing, or cannot be
-             asked. Said in its own words (SPEC.md §12). -->
+             asked. Said in its own words (specification.md §12). -->
         <p class="failure" role="alert">{{ wording(reason) }}</p>
       } @else if (store.loaded()) {
         <!-- A normal starting point, and the one offer that fits it
-             (SPEC.md §12). Nothing is staged or committed by it. -->
+             (specification.md §12). Nothing is staged or committed by it. -->
         <div class="no-repository">
           <p class="hint">{{ i18n.t('sourceControl.noRepository') }}</p>
           <button type="button" class="create-repository" (click)="actions.createRepository()">
@@ -98,7 +98,7 @@ import { Localization } from '../localization/localization.js';
 
         @if (store.identityMissing()) {
           <!-- The way back to the question a created repository asked, for an
-               author who declined it then (SPEC.md §12). -->
+               author who declined it then (specification.md §12). -->
           <div class="identity-row">
             <span class="hint">{{ i18n.t('sourceControl.noAuthor') }}</span>
             <button type="button" class="set-identity" (click)="actions.askForIdentity()">
@@ -262,7 +262,7 @@ import { Localization } from '../localization/localization.js';
       border-radius: var(--wi-radius-control);
       background: color-mix(in srgb, var(--wi-danger) 18%, transparent);
       color: var(--wi-danger);
-      /* Git output is tool output: shown as it came (SPEC.md §12, §14.2). */
+      /* Git output is tool output: shown as it came (specification.md §12, §14.2). */
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -278,7 +278,7 @@ import { Localization } from '../localization/localization.js';
       flex: 1 1 auto;
       flex-direction: column;
       min-height: 0;
-      /* The panel is a panel now (SPEC.md §8.2): its content keeps away from
+      /* The panel is a panel now (specification.md §8.2): its content keeps away from
          the edge instead of running into the border. */
       padding-inline: var(--wi-space-2);
       font: 12px var(--wi-sans);
@@ -505,7 +505,7 @@ export class SourceControlComponent {
     return entry.groups.includes('untracked');
   }
 
-  /** A conflict needs a decision, not a checkbox. SPEC.md §12. */
+  /** A conflict needs a decision, not a checkbox. specification.md §12. */
   protected isConflicted(entry: GitFileStatus): boolean {
     return isConflicted(entry);
   }
@@ -533,7 +533,7 @@ export class SourceControlComponent {
 
   /**
    * The one failure the panel words itself. Every other failure is git's own
-   * message and is shown as it came (SPEC.md §12); this one has no words of
+   * message and is shown as it came (specification.md §12); this one has no words of
    * git's, because there is no git.
    */
   protected wording(reason: string): string {

@@ -134,7 +134,7 @@ describe('isRelativeEntryPath', () => {
   });
 
   it('refuses every way out of the root rather than correcting it', () => {
-    // SPEC.md §5.3: a request that looks like traversal is refused, not fixed.
+    // specification.md §5.3: a request that looks like traversal is refused, not fixed.
     expect(isRelativeEntryPath('../secret.md')).toBe(false);
     expect(isRelativeEntryPath('part-1/../../secret.md')).toBe(false);
     expect(isRelativeEntryPath('part-1/..')).toBe(false);

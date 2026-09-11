@@ -1,5 +1,5 @@
 /**
- * What an author may call a stylesheet of their own. SPEC.md §15.2.
+ * What an author may call a stylesheet of their own. specification.md §15.2.
  *
  * A name becomes a file name in `.opera-incerta/styles/`, and it is also what
  * the dialog lists. Unlike a sheet's title (§6.4), the two are **not**

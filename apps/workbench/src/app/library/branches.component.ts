@@ -4,7 +4,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * The branches of the project, and what can be done with them. SPEC.md §12.
+ * The branches of the project, and what can be done with them. specification.md §12.
  *
  * Switching replaces files in the working tree wholesale, which is why the
  * shell refuses it while the editor holds unsaved work: git cannot know about

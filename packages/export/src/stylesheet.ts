@@ -1,5 +1,5 @@
 /**
- * How the exported document is set. SPEC.md §15.2.
+ * How the exported document is set. specification.md §15.2.
  *
  * Four supplied sheets, plain on purpose: this export is not a print file. No
  * title page, no running heads, no print geometry — those are decisions a

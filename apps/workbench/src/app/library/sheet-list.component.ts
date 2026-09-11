@@ -20,7 +20,7 @@ import { Localization } from '../localization/localization.js';
 const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
 
 /**
- * The sheet list. SPEC.md §9.2.
+ * The sheet list. specification.md §9.2.
  *
  * Each row shows the title plus preview lines carrying the **actual
  * formatting from the file** — a heading line appears larger in the preview
@@ -28,13 +28,13 @@ const DENSITIES = Object.keys(PREVIEW_DENSITIES) as readonly PreviewDensity[];
  * the core, deliberately independent of the real editor sizes: differences
  * must stay visible without the smallest step becoming unreadable.
  *
- * Rows can be dragged into a new order (SPEC.md §6.4) or onto a group in the
+ * Rows can be dragged into a new order (specification.md §6.4) or onto a group in the
  * tree to move there (§6.8). The dragging itself is not handled here: a row
  * only *names* itself in the DOM — its kind and its path — and the shell,
  * which contains both library columns, measures and decides
  * (`shell/library-drag.ts`).
  *
- * Reads the store and the layout directly (SPEC.md §8.7): what it shows is
+ * Reads the store and the layout directly (specification.md §8.7): what it shows is
  * the selected group's sheets at the chosen density, and nothing about that
  * is the shell's to pass along.
  */
@@ -176,7 +176,7 @@ export class SheetListComponent {
 
   /**
    * The category a row shows, or null. An id naming nothing shows nothing:
-   * a deleted category leaves its id behind on purpose (SPEC.md §6.6).
+   * a deleted category leaves its id behind on purpose (specification.md §6.6).
    */
   protected badge(sheet: SheetEntry): PageCategory | null {
     return findCategory(this.categories(), sheet.category);
@@ -219,7 +219,7 @@ export class SheetListComponent {
   }
 }
 
-/** The density switcher of the sheet list header. SPEC.md §9.2. */
+/** The density switcher of the sheet list header. specification.md §9.2. */
 @Component({
   selector: 'wi-density-switch',
   changeDetection: ChangeDetectionStrategy.OnPush,

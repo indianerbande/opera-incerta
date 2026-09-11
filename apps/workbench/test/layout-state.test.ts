@@ -100,7 +100,7 @@ describe('column widths', () => {
   });
 
   it('never lets a view switch move a column', () => {
-    // The regression this guards (CONVENTIONS.md C-U1).
+    // The regression this guards (conventions.md C-U1).
     const layout = new LayoutState();
     layout.resizeColumn('navigator', 25);
     const width = layout.columnWidths().navigator;
@@ -231,7 +231,7 @@ describe('the activity bar inventories', () => {
   });
 });
 
-describe('the settings dialog’s way in (SPEC.md §13)', () => {
+describe('the settings dialog’s way in (specification.md §13)', () => {
   it('sets a switch by key and stores it', () => {
     const bridge = storingBridge();
     const layout = new LayoutState(bridge);
@@ -257,7 +257,7 @@ describe('the settings dialog’s way in (SPEC.md §13)', () => {
   });
 });
 
-describe('the appearance (SPEC.md §8.8)', () => {
+describe('the appearance (specification.md §8.8)', () => {
   it('keeps the scheme and the palette, and stores both', () => {
     const bridge = storingBridge();
     const layout = new LayoutState(bridge);
@@ -274,7 +274,7 @@ describe('the appearance (SPEC.md §8.8)', () => {
   });
 });
 
-describe('the editor settings (SPEC.md §13)', () => {
+describe('the editor settings (specification.md §13)', () => {
   it('stores family, size, wrapping and line numbers, and hands the editor all four at once', () => {
     const bridge = storingBridge();
     const layout = new LayoutState(bridge);
@@ -282,7 +282,7 @@ describe('the editor settings (SPEC.md §13)', () => {
       fontFamily: 'serif',
       fontSize: 16,
       wordWrap: true,
-      // Off until it is asked for (SPEC.md §10.8).
+      // Off until it is asked for (specification.md §10.8).
       lineNumbers: false,
     });
 
@@ -311,7 +311,7 @@ describe('the editor settings (SPEC.md §13)', () => {
     ]);
   });
 
-  it('keeps the zoom, clamped and snapped, and stores it (SPEC.md §10.9)', () => {
+  it('keeps the zoom, clamped and snapped, and stores it (specification.md §10.9)', () => {
     const bridge = storingBridge();
     const layout = new LayoutState(bridge);
     expect(layout.editorZoom()).toBe(100);

@@ -1,15 +1,15 @@
 # Editor spike — CodeMirror 6
 
 Status: Completed 2026-09-01, all six criteria passed; the component is
-accepted in `SPEC.md` §5.4
+accepted in `specification.md` §5.4
 
 This spike answers one question: can CodeMirror 6 carry the display model of
-`SPEC.md` §10 — paragraph-level heading formatting at different sizes, a gutter
+`specification.md` §10 — paragraph-level heading formatting at different sizes, a gutter
 aligned to measured line heights, and inline markers hidden everywhere except
 on the cursor's line?
 
 It is **not** production architecture. The integration into `apps/workbench` is
-its own round (`TODO.md`); this package exists as the evidence behind the
+its own round (`roadmap.md`); this package exists as the evidence behind the
 decision and may be deleted once that integration carries its own tests.
 
 ## Running it
@@ -33,11 +33,11 @@ proving nothing. The exit code is the verdict.
 | 5 | Paste | A real `ClipboardEvent` with CRLF, a tab, and Markdown arrived intact and round-tripped through the display transform |
 | 6 | Typing latency | 112,020 characters, 200 keystrokes: median 5.8 ms, p95 6.6 ms against a 16 ms threshold |
 
-Thresholds were fixed in `TESTING.md` §2.8 before the spike ran
-(`CONVENTIONS.md` C-T14).
+Thresholds were fixed in `testing.md` §2.8 before the spike ran
+(`conventions.md` C-T14).
 
 ## What it also demonstrated
 
 The renderer bundle imports `@opera-incerta/core` for its heading transform.
 The portable core therefore runs unchanged inside a browser bundle, which is
-the portability invariant of `SPEC.md` §5.2 exercised rather than asserted.
+the portability invariant of `specification.md` §5.2 exercised rather than asserted.

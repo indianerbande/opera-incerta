@@ -91,7 +91,7 @@ describe('foreign-front-matter', () => {
   });
 
   it('moves a trailing owned block to the front once, and only once', async () => {
-    // SPEC.md §6.3: owned fields are written first, foreign lines follow in
+    // specification.md §6.3: owned fields are written first, foreign lines follow in
     // their original relative order. A file whose block sat at the end is
     // therefore reordered on the first save — and never again.
     const original = await readFile(join(root, 'obsidian-note.md'), 'utf8');

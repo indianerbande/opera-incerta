@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
- * The header of every panel. SPEC.md §8.3.
+ * The header of every panel. specification.md §8.3.
  *
  * **Hand-built headers are a defect, not a matter of taste.** Built the other
  * way round — each panel with its own header — the height follows the content,
@@ -64,7 +64,7 @@ export class PanelHeaderComponent {
 
   /**
    * User data — a project name, a file name. Never a translation key, which is
-   * why it is a separate input rather than the same one (SPEC.md §14.2).
+   * why it is a separate input rather than the same one (specification.md §14.2).
    */
   readonly verbatimTitle = input<string | null>(null);
 }

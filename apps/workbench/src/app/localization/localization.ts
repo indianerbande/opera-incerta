@@ -11,7 +11,7 @@ import {
 } from '@opera-incerta/localization';
 
 /**
- * The one localization service. SPEC.md §14, §13.
+ * The one localization service. specification.md §14, §13.
  *
  * Owns nothing but the resolved language: the catalogues and the rules live
  * in `@opera-incerta/localization`, the choice lives in the preference record.
@@ -21,7 +21,7 @@ import {
  *
  * Interface text and user data stay apart in the type: `t` takes a
  * `MessageKey`, never a string, so a category name or a sheet title cannot be
- * handed to it by accident (§14.2, `CONVENTIONS.md` C-N4).
+ * handed to it by accident (§14.2, `conventions.md` C-N4).
  */
 export class Localization {
   readonly language: Signal<Language>;

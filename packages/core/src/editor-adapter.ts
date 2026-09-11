@@ -1,6 +1,6 @@
 /**
  * The boundary between the display model and whichever component renders it.
- * SPEC.md §5.4, §10.
+ * specification.md §5.4, §10.
  *
  * Deliberately free of DOM types. The component is chosen when the adapter is
  * constructed; from then on the application speaks about text, lines, and
@@ -21,7 +21,7 @@ export interface EditorDocument {
 export type EditorChangeListener = (text: string) => void;
 
 /**
- * Where the cursor is, as the status bar says it. SPEC.md §10.5.
+ * Where the cursor is, as the status bar says it. specification.md §10.5.
  *
  * One-based, and the column counts the visible text of the line: a hidden
  * heading prefix is not part of what the author sees, so it is not part of
@@ -35,7 +35,7 @@ export interface EditorCursor {
 export type EditorCursorListener = (cursor: EditorCursor) => void;
 
 /**
- * The author activated a heading marker in the gutter. SPEC.md §10.2.
+ * The author activated a heading marker in the gutter. specification.md §10.2.
  *
  * Carries plain numbers rather than an event: the adapter reports *what* was
  * activated and *where* on screen, and the view decides what to show there.
@@ -53,7 +53,7 @@ export interface HeadingMarkerActivation {
 export type HeadingMarkerListener = (activation: HeadingMarkerActivation) => void;
 
 /**
- * What the find bar of SPEC.md §10.11 shows: how many matches there are, and
+ * What the find bar of specification.md §10.11 shows: how many matches there are, and
  * which one the author is on.
  */
 export interface EditorSearchState {
@@ -68,7 +68,7 @@ export interface EditorAdapter {
    *
    * Switching away and back MUST preserve that document's undo history, cursor,
    * and scroll position for as long as the project stays open
-   * (`SPEC.md` §6, "per-document editing state").
+   * (`specification.md` §6, "per-document editing state").
    */
   open(document: EditorDocument): void;
 
@@ -81,7 +81,7 @@ export interface EditorAdapter {
    * Distinct from `open`, which seeds a document once and then leaves the
    * buffer to the editor. This is for the case where the content was replaced
    * from outside — the author took the version on disk after a conflict
-   * (SPEC.md §10.6) — and re-opening would be a lie about identity.
+   * (specification.md §10.6) — and re-opening would be a lie about identity.
    */
   replace(text: string): void;
 
@@ -91,7 +91,7 @@ export interface EditorAdapter {
   /** One-based line holding the cursor. */
   focusedLine(): number;
 
-  /** Line and visible column of the cursor. SPEC.md §10.5. */
+  /** Line and visible column of the cursor. specification.md §10.5. */
   cursor(): EditorCursor;
 
   /**
@@ -105,13 +105,13 @@ export interface EditorAdapter {
 
   /**
    * Applies or removes a heading level on one line — the gutter menu of
-   * `SPEC.md` §10.2. A heading applies to exactly one line.
+   * `specification.md` §10.2. A heading applies to exactly one line.
    */
   setHeadingLevel(line: number, level: HeadingLevel | null): void;
 
   /**
    * Marks every match of `query` and goes to the one at or after the cursor.
-   * SPEC.md §10.11. An empty query clears the search rather than matching
+   * specification.md §10.11. An empty query clears the search rather than matching
    * everything.
    */
   search(query: string): EditorSearchState;

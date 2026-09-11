@@ -1,5 +1,5 @@
 /**
- * Sheet-list preview geometry. SPEC.md §9.2.
+ * Sheet-list preview geometry. specification.md §9.2.
  *
  * Preview line sizes follow their own geometric formula, deliberately
  * independent of the real editor sizes: differences must stay visible without
@@ -27,10 +27,10 @@ export const PREVIEW_DENSITIES = {
 
 export const DEFAULT_PREVIEW_DENSITY: PreviewDensity = 'standard';
 
-/** Base size in CSS pixels: body text and H6 in a preview. SPEC.md §9.2. */
+/** Base size in CSS pixels: body text and H6 in a preview. specification.md §9.2. */
 export const PREVIEW_BASE_FONT_SIZE = 12;
 
-/** Growth per heading level upward from the base. SPEC.md §9.2. */
+/** Growth per heading level upward from the base. specification.md §9.2. */
 export const PREVIEW_STEP_RATIO = 1.05;
 
 /** How many preview lines a row shows below its title. */

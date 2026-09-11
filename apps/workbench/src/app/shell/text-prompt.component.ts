@@ -11,7 +11,7 @@ import { DialogComponent } from './dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Asking for one line of text. SPEC.md §6.4, §6.5.
+ * Asking for one line of text. specification.md §6.4, §6.5.
  *
  * Used for every naming action: a new sheet, a new group, a rename. Confirming
  * is refused for an empty or whitespace-only value, because a nameless entry

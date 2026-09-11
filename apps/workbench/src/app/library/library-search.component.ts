@@ -4,7 +4,7 @@ import { Localization } from '../localization/localization.js';
 import { LibrarySearchStore } from '../workspace/library-search-store.js';
 
 /**
- * Searching the library. SPEC.md §9.3.
+ * Searching the library. specification.md §9.3.
  *
  * The navigator's third view: a field, and a flat list of matches — the sheet,
  * the line, and the line itself with the match marked. Activating a row opens

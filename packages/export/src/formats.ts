@@ -1,5 +1,5 @@
 /**
- * The registry of export formats. SPEC.md §15.1, §15.2.
+ * The registry of export formats. specification.md §15.1, §15.2.
  *
  * One list with a declared interface, which is what "modules register in one
  * registry" means while there is one module. It is deliberately not a plugin

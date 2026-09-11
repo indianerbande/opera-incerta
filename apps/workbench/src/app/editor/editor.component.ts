@@ -26,7 +26,7 @@ import { createCodeMirrorEditorAdapter, type TypographyAware } from './codemirro
 import { HeadingMenuComponent } from './heading-menu.component.js';
 
 /**
- * Hosts the editor adapter. SPEC.md §10.
+ * Hosts the editor adapter. specification.md §10.
  *
  * The component owns the element and the lifecycle, nothing else: it holds no
  * document state, applies no Markdown rule, and would work unchanged against
@@ -65,14 +65,14 @@ export class EditorComponent {
    * adapter keeps no history for a sheet that was deleted or moved.
    */
   readonly retired = input<readonly string[]>([]);
-  /** Font, base size, wrapping, line numbers — the author's settings. SPEC.md §13. */
+  /** Font, base size, wrapping, line numbers — the author's settings. specification.md §13. */
   readonly typography = input<EditorTypography>(DEFAULT_EDITOR_TYPOGRAPHY);
-  /** How far the view is zoomed, in whole percent. SPEC.md §10.9. */
+  /** How far the view is zoomed, in whole percent. specification.md §10.9. */
   readonly zoom = input<number>(DEFAULT_EDITOR_ZOOM);
 
   /** Emitted after every change, with the text as it would be written. */
   readonly textChange = output<string>();
-  /** Where the cursor is, after every move. SPEC.md §10.5. */
+  /** Where the cursor is, after every move. specification.md §10.5. */
   readonly cursorChange = output<EditorCursor>();
 
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
@@ -116,7 +116,7 @@ export class EditorComponent {
         return;
       }
       // The same document with other text means its content was replaced from
-      // outside — the author took the version on disk (SPEC.md §10.6).
+      // outside — the author took the version on disk (specification.md §10.6).
       // Re-opening it would throw away the undo history of a document that
       // never stopped being the same one.
       if (adapter.openDocumentId() === document_.id) {
@@ -150,7 +150,7 @@ export class EditorComponent {
     this.adapter()?.revealLine(line);
   }
 
-  /** Finding in the open sheet. SPEC.md §10.11. */
+  /** Finding in the open sheet. specification.md §10.11. */
   search(query: string): EditorSearchState {
     return this.adapter()?.search(query) ?? { matches: 0, current: 0 };
   }
@@ -168,7 +168,7 @@ export class EditorComponent {
     return this.adapter()?.selectedText() ?? '';
   }
 
-  /** The gutter menu of SPEC.md §10.2. */
+  /** The gutter menu of specification.md §10.2. */
   setHeadingLevel(line: number, level: HeadingLevel | null): void {
     this.adapter()?.setHeadingLevel(line, level);
   }

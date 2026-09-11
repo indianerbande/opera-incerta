@@ -1,5 +1,5 @@
 /**
- * The editor's typography as a rule. SPEC.md §13 (Editor), §10.1, §10.8.
+ * The editor's typography as a rule. specification.md §13 (Editor), §10.1, §10.8.
  *
  * Four settings and one invariant. The settings: a font family from a
  * curated list — never a system font picker — a base size within bounds,
@@ -15,7 +15,7 @@
  */
 import type { HeadingLevel } from './heading.js';
 
-/** The curated families. The id is what the record stores (`CONVENTIONS.md` C-N3). */
+/** The curated families. The id is what the record stores (`conventions.md` C-N3). */
 export type EditorFontFamily = 'serif' | 'sans' | 'mono';
 
 export const EDITOR_FONT_FAMILIES: readonly EditorFontFamily[] = ['serif', 'sans', 'mono'];
@@ -23,11 +23,11 @@ export const EDITOR_FONT_FAMILIES: readonly EditorFontFamily[] = ['serif', 'sans
 /**
  * The stacks behind the ids: families a desktop can be expected to have,
  * with the generic family last. Presentation, not text — no word an author
- * reads is in here (SPEC.md §14.3).
+ * reads is in here (specification.md §14.3).
  */
 export const EDITOR_FONT_STACKS: Readonly<Record<EditorFontFamily, string>> = {
   serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
-  // The two packaged faces first (SPEC.md §8.8): where the application brings
+  // The two packaged faces first (specification.md §8.8): where the application brings
   // a face, the manuscript may use it and look the same everywhere. The serif
   // is not packaged, so it names what a desktop is likely to have.
   sans: "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif",
@@ -44,13 +44,13 @@ export const DEFAULT_EDITOR_FONT_SIZE = 16;
 export const DEFAULT_EDITOR_WORD_WRAP = true;
 
 /**
- * The line-number gutter is off until it is asked for. SPEC.md §10.8: a
+ * The line-number gutter is off until it is asked for. specification.md §10.8: a
  * manuscript is not source code, and the quieter surface is where to start.
  */
 export const DEFAULT_EDITOR_LINE_NUMBERS = false;
 
 /**
- * The zoom of SPEC.md §10.9, in whole percent. Not a setting: a display
+ * The zoom of specification.md §10.9, in whole percent. Not a setting: a display
  * factor with its own control in the status bar.
  */
 export const EDITOR_ZOOM_BOUNDS = { min: 50, max: 200 } as const;
@@ -69,7 +69,7 @@ export const EDITOR_ZOOM_DETENT = 3;
  * snapped to 100 near the middle.
  *
  * Applied on the way in from the slider **and** on the way in from the stored
- * record, like a column width (SPEC.md §8.2): changed bounds must not drag an
+ * record, like a column width (specification.md §8.2): changed bounds must not drag an
  * old value into absurdity.
  */
 export function clampEditorZoom(value: number): number {

@@ -5,7 +5,7 @@ import { Localization } from '../localization/localization.js';
 const LEVELS: readonly HeadingLevel[] = [1, 2, 3, 4, 5, 6];
 
 /**
- * The menu behind a gutter marker. SPEC.md §10.2.
+ * The menu behind a gutter marker. specification.md §10.2.
  *
  * Choosing a level or removing the heading entirely; the active level carries a
  * checkmark. It knows nothing about the editor — it reports a choice, and the

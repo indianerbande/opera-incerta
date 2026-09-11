@@ -2,7 +2,7 @@ import { effect, signal, type Signal } from '@angular/core';
 import { resolveColorScheme, type AccentPalette, type ColorScheme } from '@opera-incerta/core';
 
 /**
- * Puts the visual system on the root element. SPEC.md §8.8.
+ * Puts the visual system on the root element. specification.md §8.8.
  *
  * Two attributes and one question to the machine. `system` is resolved here
  * rather than in CSS — a second copy of the dark tokens under

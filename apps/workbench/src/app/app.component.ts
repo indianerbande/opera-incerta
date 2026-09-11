@@ -59,7 +59,7 @@ import { ACTIVITY_BAR_WIDTH } from './workbench-layout.js';
 import { Localization } from './localization/localization.js';
 
 /**
- * The workbench shell. SPEC.md §8, §8.7.
+ * The workbench shell. specification.md §8, §8.7.
  *
  * It composes the regions and renders whatever overlay is up. What a click
  * *means* — which menu an entry gets, what a prompt asks, what confirming does
@@ -99,7 +99,7 @@ import { Localization } from './localization/localization.js';
     TextPromptComponent,
   ],
   // The whole library drag lives here, because this is the one element that
-  // contains both columns it can run between (SPEC.md §6.8).
+  // contains both columns it can run between (specification.md §6.8).
   host: {
     '(pointerdown)': 'onPointerDown($event)',
     '(pointermove)': 'onPointerMove($event)',
@@ -222,7 +222,7 @@ import { Localization } from './localization/localization.js';
 
         @if (layout.showFrontMatter() && store.openSheet() !== null) {
           <!-- Foreign first: it is what an author of a project shared with
-               other tools actually came here to look at (SPEC.md §10.4). -->
+               other tools actually came here to look at (specification.md §10.4). -->
           @if (store.foreignLines().length > 0) {
             <wi-front-matter-block
               [label]="i18n.t('app.frontMatter.foreign')"
@@ -326,7 +326,7 @@ import { Localization } from './localization/localization.js';
       />
     </div>
 
-    <!-- One overlay at a time (SPEC.md §8.7). The conflict prompt below is
+    <!-- One overlay at a time (specification.md §8.7). The conflict prompt below is
          the store's own and may stand beside it: it is raised by a re-read,
          not by a click. -->
     @if (overlay(); as open) {
@@ -460,7 +460,7 @@ import { Localization } from './localization/localization.js';
   styles: `
     /*
      * The regions are panels on a canvas, and the activity bars are the
-     * window's rails (SPEC.md §8.2). The air between two panels is the
+     * window's rails (specification.md §8.2). The air between two panels is the
      * divider itself, so the gap one sees is the thing one grabs.
      */
     .workbench {
@@ -576,17 +576,17 @@ import { Localization } from './localization/localization.js';
 export class AppComponent {
   protected readonly i18n = inject(Localization);
   // Everything below is provided once, in `WORKBENCH_PROVIDERS`, and injected
-  // here and in every region that reads it (SPEC.md §8.7).
+  // here and in every region that reads it (specification.md §8.7).
   readonly #bridge = inject(DESKTOP_BRIDGE);
   protected readonly store = inject(WorkspaceStore);
   protected readonly sourceControl = inject(SourceControlStore);
   protected readonly layout = inject(LayoutState);
-  /** What lies over the workbench, if anything. SPEC.md §8.7. */
+  /** What lies over the workbench, if anything. specification.md §8.7. */
   protected readonly overlay = inject(OVERLAY);
   protected readonly libraryActions = inject(LibraryActions);
   protected readonly gitActions = inject(SourceControlActions);
   /**
-   * Dragging in the library. SPEC.md §6.4, §6.8.
+   * Dragging in the library. specification.md §6.4, §6.8.
    *
    * The columns name their rows in the DOM and draw what this says; the
    * measuring happens here, where both of them are in reach. `elementFromPoint`
@@ -604,12 +604,12 @@ export class AppComponent {
     void this.store.adoptOpenProject();
     void this.layout.load();
 
-    // The document's language follows the interface language (SPEC.md §14).
+    // The document's language follows the interface language (specification.md §14).
     effect(() => {
       document.documentElement.lang = this.i18n.language();
     });
 
-    // And its scheme and palette follow the appearance settings (SPEC.md §8.8).
+    // And its scheme and palette follow the appearance settings (specification.md §8.8).
     const stopAppearance = startAppearance(
       document.documentElement,
       this.layout.colorScheme,
@@ -618,7 +618,7 @@ export class AppComponent {
     inject(DestroyRef).onDestroy(stopAppearance);
 
     // Saving arrives from the menu, not from a key handler: the menu item owns
-    // Cmd+S, so the keystroke never reaches this page (SPEC.md §8.5).
+    // Cmd+S, so the keystroke never reaches this page (specification.md §8.5).
     const stopListening = this.#bridge?.onMenuCommand((command) => {
       if (command === 'sheet/save') {
         void this.store.save();
@@ -629,7 +629,7 @@ export class AppComponent {
       } else if (command === 'go/forward') {
         void this.store.step('forward');
       } else if (command === 'export/markdown') {
-        // Markdown carries no stylesheet, so it opens no dialog (SPEC.md §15.2).
+        // Markdown carries no stylesheet, so it opens no dialog (specification.md §15.2).
         void this.store.exportDocument('markdown', null);
       } else if (command === 'export/pdf') {
         void this.openExportDialog(null);
@@ -638,7 +638,7 @@ export class AppComponent {
       }
     });
     // A change under the group or the open document arrives without anyone
-    // asking (SPEC.md §10.6). What it means is decided by re-reading.
+    // asking (specification.md §10.6). What it means is decided by re-reading.
     const stopWatching = this.store.listenForExternalChanges();
     const stopWatchingRepository = this.sourceControl.listenForRepositoryChanges();
     inject(DestroyRef).onDestroy(() => {
@@ -650,7 +650,7 @@ export class AppComponent {
     // Source control reads when its view is shown, and after a save: both are
     // moments when what git reports has just changed. While it is on screen —
     // and only then — the repository is watched, so a change made elsewhere
-    // arrives without asking (SPEC.md §12).
+    // arrives without asking (specification.md §12).
     effect(() => {
       const showing =
         this.layout.navigatorView() === 'sourceControl' && this.store.project() !== null;
@@ -666,7 +666,7 @@ export class AppComponent {
   /** For scheduling work after a render, when a signal alone is too early. */
   readonly #injector = inject(Injector);
 
-  /** This sheet's wrapping: its own switch, or the settings' default. SPEC.md §10.5. */
+  /** This sheet's wrapping: its own switch, or the settings' default. specification.md §10.5. */
   protected readonly wrapping = computed(() =>
     this.session.isWrapping(this.store.editorDocument()?.id ?? null, this.layout.editorWordWrap()),
   );
@@ -676,7 +676,7 @@ export class AppComponent {
     ...this.layout.editorTypography(),
     wordWrap: this.wrapping(),
   }));
-  /** The one tool of the leading bar: the settings dialog (SPEC.md §13). */
+  /** The one tool of the leading bar: the settings dialog (specification.md §13). */
   protected readonly toolItems: readonly ActivityItem[] = [
     { id: 'settings', icon: 'icon-settings', labelKey: 'view.settings' },
   ];
@@ -778,14 +778,14 @@ export class AppComponent {
     }
   }
 
-  /** The outline at the depth the layout preference asks for. SPEC.md §11. */
+  /** The outline at the depth the layout preference asks for. specification.md §11. */
   protected readonly visibleOutlineEntries = computed(() =>
     visibleOutline(this.store.outline(), this.layout.showDeeperOutline()),
   );
 
   /** Outline navigation, routed to the editor. */
   /**
-   * Finding in the open sheet. SPEC.md §10.11.
+   * Finding in the open sheet. specification.md §10.11.
    *
    * The bar opens seeded with the selection, and every keystroke in it is a
    * fresh search: the editor holds the matches, the session holds what to
@@ -815,10 +815,10 @@ export class AppComponent {
 
   /**
    * A match from the library search: open that sheet, then that line.
-   * SPEC.md §9.3 — the same path the outline takes, one step longer.
+   * specification.md §9.3 — the same path the outline takes, one step longer.
    */
   /**
-   * What an export has to say, in the interface's language. SPEC.md §15.2.
+   * What an export has to say, in the interface's language. specification.md §15.2.
    *
    * The store holds the outcome; the words are here, where the catalogue is
    * (§14.2). The keys are literal, which is what the localization test
@@ -835,7 +835,7 @@ export class AppComponent {
   });
 
   /**
-   * The sheets that were saved most recently, as a menu. SPEC.md §9.4.
+   * The sheets that were saved most recently, as a menu. specification.md §9.4.
    *
    * The list is paths; what the author reads is what the library calls them,
    * and a path the library no longer has is left out rather than offered.
@@ -862,7 +862,7 @@ export class AppComponent {
   }
 
   /**
-   * Opens the stylesheet dialog for a PDF. SPEC.md §15.2.
+   * Opens the stylesheet dialog for a PDF. specification.md §15.2.
    *
    * The project's own sheets are fetched first: a dialog that listed them a
    * moment later would make the author choose from a list that changed under

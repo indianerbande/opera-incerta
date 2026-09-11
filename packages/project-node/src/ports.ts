@@ -1,39 +1,39 @@
 /**
- * Project and library adapter ports. SPEC.md §5.2, §6, §7.
+ * Project and library adapter ports. specification.md §5.2, §6, §7.
  *
  * This package owns every filesystem access; the portable core owns the rules
  * and the record types. The ports are declared separately from their
  * implementation so that consumers can be tested against a double
- * (CONVENTIONS.md C-A3, C-A16).
+ * (conventions.md C-A3, C-A16).
  */
 import type { PageCategory, ProjectRecord, StructureRecord } from '@opera-incerta/core';
 
 /** The hidden directory that marks a directory as a Opera Incerta project. */
 export const PROJECT_DIRECTORY = '.opera-incerta';
 
-/** Files inside {@link PROJECT_DIRECTORY}. SPEC.md §7.1. */
+/** Files inside {@link PROJECT_DIRECTORY}. specification.md §7.1. */
 export const PROJECT_FILES = {
   project: 'project.json',
   categories: 'categories.json',
   structure: 'structure.json',
-  /** The recently edited sheets of SPEC.md §9.4. */
+  /** The recently edited sheets of specification.md §9.4. */
   recent: 'recent.json',
 } as const;
 
 /**
  * Directories inside {@link PROJECT_DIRECTORY}.
  *
- * `styles` holds the author's own export stylesheets (SPEC.md §15.2): a set
+ * `styles` holds the author's own export stylesheets (specification.md §15.2): a set
  * made for this book belongs to the book, and travels with it.
  */
 export const PROJECT_DIRECTORIES = {
   styles: 'styles',
 } as const;
 
-/** Sheets are plain Markdown files. SPEC.md §6.1. */
+/** Sheets are plain Markdown files. specification.md §6.1. */
 export const SHEET_EXTENSION = '.md';
 
-/** What inspecting a chosen directory found. SPEC.md §8.6. */
+/** What inspecting a chosen directory found. specification.md §8.6. */
 export type FolderInspection =
   | { readonly kind: 'valid-project' }
   | { readonly kind: 'no-project' }
@@ -64,7 +64,7 @@ export interface ProjectFilesystem {
   readStructure(projectPath: string): Promise<StructureRecord>;
   writeStructure(projectPath: string, structure: StructureRecord): Promise<void>;
   /**
-   * The recently edited sheets, as project-relative paths (SPEC.md §9.4).
+   * The recently edited sheets, as project-relative paths (specification.md §9.4).
    *
    * A convenience and never a source of truth: an unreadable or conflicted
    * file reads as an empty list rather than failing the project.
@@ -72,7 +72,7 @@ export interface ProjectFilesystem {
   readRecentSheets(projectPath: string): Promise<readonly string[]>;
   writeRecentSheets(projectPath: string, paths: readonly string[]): Promise<void>;
   /**
-   * The author's own export stylesheets, by name, sorted (SPEC.md §15.2).
+   * The author's own export stylesheets, by name, sorted (specification.md §15.2).
    *
    * A project with no such directory has none — that is the ordinary case,
    * not a failure — and a file the naming rule cannot read is left out rather
@@ -99,7 +99,7 @@ export interface ProjectFilesystem {
 /**
  * Watches a project for external changes. A change notification is never
  * evidence of a change on its own: the consumer compares actual content
- * against its loaded baseline (SPEC.md §10.6, CONVENTIONS.md C-F2).
+ * against its loaded baseline (specification.md §10.6, conventions.md C-F2).
  */
 export interface LibraryWatcher {
   /**

@@ -1,5 +1,5 @@
 /**
- * The document as a page that can be printed. SPEC.md §15.2.
+ * The document as a page that can be printed. specification.md §15.2.
  *
  * The parser here is **not** the editor's. The editor shows what stands in
  * the file and leaves tables and links to their own rounds
@@ -36,7 +36,7 @@ export interface DocumentHtmlOptions {
   /** The project's display name. It titles the page; it is not printed. */
   readonly title: string;
   readonly parts: readonly DocumentPart[];
-  /** Defaults to the plain one of SPEC.md §15.2; a chosen one is open work. */
+  /** Defaults to the plain one of specification.md §15.2; a chosen one is open work. */
   readonly stylesheet?: string;
 }
 

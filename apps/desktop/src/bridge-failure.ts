@@ -1,5 +1,5 @@
 /**
- * What a thrown error becomes on the bridge. SPEC.md §16.
+ * What a thrown error becomes on the bridge. specification.md §16.
  *
  * Only a failure that was *meant* for the renderer crosses with its words: a
  * `CodedError` carries a stable code and either the tool's own message or

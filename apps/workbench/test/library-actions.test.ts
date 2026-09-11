@@ -224,7 +224,7 @@ describe('the sheet menu', () => {
     const { actions, overlay } = await setUp();
     actions.openSheetMenu('preface.md', 'Preface', at);
     const open = overlay();
-    // SPEC.md §15.2: the whole document is in the File menu; the part that
+    // specification.md §15.2: the whole document is in the File menu; the part that
     // begins at a sheet belongs to that sheet.
     expect(open?.kind === 'menu' ? open.entries.map((e) => e.label) : []).toEqual([
       'Rename…',

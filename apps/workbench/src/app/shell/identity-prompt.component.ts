@@ -12,7 +12,7 @@ import { DialogComponent } from './dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Asking who commits are by. SPEC.md §12.
+ * Asking who commits are by. specification.md §12.
  *
  * Put up when a repository is created on a machine without a global identity,
  * and reachable from the panel afterwards. The hint says the one thing the

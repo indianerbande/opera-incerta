@@ -13,7 +13,7 @@ import type { EditorSearchState } from '@opera-incerta/core';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Finding in the open sheet. SPEC.md §10.11.
+ * Finding in the open sheet. specification.md §10.11.
  *
  * A band between the editor's header and the text: it pushes the writing
  * surface down rather than floating over it, because a bar that covers the

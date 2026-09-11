@@ -5,7 +5,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Naming a new project and choosing where it goes. SPEC.md §6.1, §8.6.
+ * Naming a new project and choosing where it goes. specification.md §6.1, §8.6.
  *
  * It shows the directory name it will create. The display name is what the
  * author writes and can change later; the directory name is a slug of it and

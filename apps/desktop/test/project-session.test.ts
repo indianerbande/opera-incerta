@@ -138,7 +138,7 @@ describe('resolving handles', () => {
     await session.writeStylesheet('My Novel', 'body { color: teal; }');
     expect(await session.listStylesheets()).toEqual(['My Novel']);
     // It is a file in the project, which is what makes it travel with the
-    // manuscript (SPEC.md §15.2).
+    // manuscript (specification.md §15.2).
     expect(
       await readFile(join(root, PROJECT_DIRECTORY, 'styles', 'My Novel.css'), 'utf8'),
     ).toBe('body { color: teal; }');
@@ -153,7 +153,7 @@ describe('resolving handles', () => {
     await session.open(root);
 
     // The project changed, or the file was deleted. It is never a reason not
-    // to export (SPEC.md §15.2).
+    // to export (specification.md §15.2).
     const css = await session.resolveStylesheet('Gone With The Other Project');
     expect(css).toBe(await session.resolveStylesheet(null));
     expect(css).toContain('Georgia');
@@ -169,7 +169,7 @@ describe('resolving handles', () => {
     expect(await session.recentSheets()).toEqual(['chapter.md', 'part-1/scene.md']);
 
     // It survives the session, because it is written into the project and
-    // read back when the project is opened again (SPEC.md §9.4).
+    // read back when the project is opened again (specification.md §9.4).
     const reopened = await new ProjectSession().open(root);
     expect(reopened.recentSheets).toEqual(['chapter.md', 'part-1/scene.md']);
   });
@@ -464,7 +464,7 @@ describe('reordering', () => {
     await session.placeEntry('part-1', '.', 'appendix.md');
 
     // A partial order would leave the rest to be appended alphabetically,
-    // scrambling the arrangement just made (SPEC.md §6.4).
+    // scrambling the arrangement just made (specification.md §6.4).
     expect(await recordedOrder('.')).toEqual(['part-1', 'appendix.md', 'chapter.md']);
   });
 
@@ -805,7 +805,7 @@ describe('page categories', () => {
 });
 
 describe('containedPath', () => {
-  // The second line of defense of SPEC.md §5.3: the contract refuses a path
+  // The second line of defense of specification.md §5.3: the contract refuses a path
   // that looks like a way out; this refuses one that is.
   it('resolves a path inside the root', async () => {
     await expect(containedPath(root, 'part-1/scene.md', 'x/outside')).resolves.toBe(

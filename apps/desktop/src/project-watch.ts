@@ -1,10 +1,10 @@
 /**
- * What the main process is watching on the renderer's behalf. SPEC.md §10.6.
+ * What the main process is watching on the renderer's behalf. specification.md §10.6.
  *
  * Targets are named by the interface, because only it knows what the author is
  * looking at: the group whose sheet list is on screen, the document in the
  * editor, and — while source control is showing — the repository, watched
- * recursively (SPEC.md §12).
+ * recursively (specification.md §12).
  *
  * The two are set **independently**: the selection moves constantly while the
  * panel's visibility rarely changes, and one must not disturb the other.
@@ -23,9 +23,9 @@ export interface WatchTargets {
 }
 
 export interface WatchListeners {
-  /** The group on screen or the open document changed. SPEC.md §10.6. */
+  /** The group on screen or the open document changed. specification.md §10.6. */
   readonly onLibraryChange: () => void;
-  /** The working tree changed. SPEC.md §12. */
+  /** The working tree changed. specification.md §12. */
   readonly onRepositoryChange: () => void;
 }
 

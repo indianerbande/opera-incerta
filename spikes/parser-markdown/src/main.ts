@@ -1,11 +1,11 @@
 /**
- * The Markdown parser spike. TESTING.md §2.11 fixes the seven criteria and
+ * The Markdown parser spike. testing.md §2.11 fixes the seven criteria and
  * their thresholds; this program measures each candidate against them and
  * prints one table per criterion. The exit code is the verdict: zero when at
  * least one candidate passes every criterion.
  *
  * Disposable. Nothing here is production architecture, and no candidate's
- * types leave this file (CONVENTIONS.md C-A6 begins where this spike ends).
+ * types leave this file (conventions.md C-A6 begins where this spike ends).
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';

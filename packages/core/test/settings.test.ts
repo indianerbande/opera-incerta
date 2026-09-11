@@ -8,7 +8,7 @@ import {
   settingsOf,
 } from '../src/index.js';
 
-describe('the settings registry (SPEC.md §13)', () => {
+describe('the settings registry (specification.md §13)', () => {
   it('registers every preference that is not layout exactly once', () => {
     const recordKeys = Object.keys(DEFAULT_PREFERENCES).filter(
       (key) => !(LAYOUT_PREFERENCE_KEYS as readonly string[]).includes(key),
@@ -60,7 +60,7 @@ describe('the settings registry (SPEC.md §13)', () => {
   });
 });
 
-describe('the registry is text-free (SPEC.md §14.3)', () => {
+describe('the registry is text-free (specification.md §14.3)', () => {
   it('names keys of the catalogue, never words', () => {
     for (const category of SETTINGS_CATEGORIES) {
       expect(category.labelKey).toMatch(/^settings\.category\.\w+\.label$/u);

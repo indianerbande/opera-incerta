@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Disposable spike: which CommonMark/GFM parser satisfies the parser gate in TESTING.md §2.11?",
+  "description": "Disposable spike: which CommonMark/GFM parser satisfies the parser gate in testing.md §2.11?",
   "license": "Apache-2.0",
   "scripts": {
     "build": "tsc -p tsconfig.json",

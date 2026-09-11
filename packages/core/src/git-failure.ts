@@ -1,5 +1,5 @@
 /**
- * What a failed git command was about, read from its own words. SPEC.md §12.
+ * What a failed git command was about, read from its own words. specification.md §12.
  *
  * Git's message is what the author is shown, unchanged. The **code** is for
  * the interface, which cannot act on prose: a push refused for want of an

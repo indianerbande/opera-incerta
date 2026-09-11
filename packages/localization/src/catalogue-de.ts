@@ -1,6 +1,6 @@
 /**
  * The German catalogue. Typed against the English keys, so a key missing
- * here is a compile error, not a silent fallback. SPEC.md §14.1.
+ * here is a compile error, not a silent fallback. specification.md §14.1.
  */
 import type { EN } from './catalogue-en.js';
 
@@ -342,7 +342,7 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'menu.closeProject': 'Projekt schließen',
   'menu.settings': 'Einstellungen…',
 
-  // Writing the manuscript out. SPEC.md §15.2.
+  // Writing the manuscript out. specification.md §15.2.
   'export.markdown': 'Markdown…',
   'export.pdf': 'PDF…',
   'export.markdownFromHere': 'Markdown ab hier exportieren…',

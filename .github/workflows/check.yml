@@ -1,0 +1,72 @@
+name: Source check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build and test on Node.js 24
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.24.0
+          run_install: false
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Audit production dependencies
+        run: pnpm run security:audit-production
+      - name: Build, type-check, test, and verify the boundaries
+        run: pnpm run check
+
+  # The desktop check drives a real Electron window, so it needs a display.
+  # It is the gate that proves behaviour rather than modules, which is why it
+  # runs here as well as on a developer's machine.
+  smoke:
+    name: Drive the real application
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.24.0
+          run_install: false
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Give the shell an identity for its Git checks
+        run: |
+          git config --global user.email "check@opera-incerta.invalid"
+          git config --global user.name "Opera Incerta Check"
+      - name: Run the desktop check under a virtual display
+        run: xvfb-run --auto-servernum pnpm run desktop:smoke
+      # Uploading the screenshots as an artifact is worth adding, but only
+      # with a SHA that has been verified against the action's repository.
+      # An unverified pin is worse than none: it looks like diligence and is
+      # a guess. See the roadmap.

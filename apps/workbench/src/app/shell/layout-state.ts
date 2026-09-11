@@ -24,7 +24,7 @@ import type { ActivityItem } from './activity-bar.component.js';
 
 export type { NavigatorView, SecondarySidebarView };
 
-/** The entries of the two bars, by the key of their name (SPEC.md §14). */
+/** The entries of the two bars, by the key of their name (specification.md §14). */
 export const NAVIGATOR_ITEMS: readonly ActivityItem<NavigatorView>[] = [
   { id: 'explorer', icon: 'icon-explorer', labelKey: 'view.explorer' },
   { id: 'sourceControl', icon: 'icon-source-control', labelKey: 'view.sourceControl' },
@@ -42,14 +42,14 @@ export type ResizableColumn = keyof ColumnWidths;
 
 /**
  * What the workbench looks like: which view each region shows, whether the
- * sidebar is open, and how wide each column is. SPEC.md §8.1, §8.2, §8.4.
+ * sidebar is open, and how wide each column is. specification.md §8.1, §8.2, §8.4.
  *
  * Three properties the specification demands of a column width, and how each
  * is met here:
  *
  * - **Stable** — the width belongs to this state, never to a layout container,
  *   so switching the view inside a region cannot move it
- *   (`CONVENTIONS.md` C-U1).
+ *   (`conventions.md` C-U1).
  * - **Draggable** — a divider reports pixels, and the setter applies them.
  * - **Persisted** — the setter clamps and stores immediately, and a stored
  *   value is clamped again on read.
@@ -75,7 +75,7 @@ export class LayoutState {
   readonly #editorWordWrap = signal(DEFAULT_PREFERENCES.editorWordWrap);
   readonly #editorLineNumbers = signal(DEFAULT_PREFERENCES.editorLineNumbers);
   readonly #editorZoom = signal(DEFAULT_PREFERENCES.editorZoom);
-  /** Which stylesheet last set a PDF. SPEC.md §15.2, §13. */
+  /** Which stylesheet last set a PDF. specification.md §15.2, §13. */
   readonly #exportStylesheet = signal(DEFAULT_PREFERENCES.exportStylesheet);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
@@ -91,23 +91,23 @@ export class LayoutState {
   readonly sheetListDensity = this.#sheetListDensity.asReadonly();
   readonly showBlankLines = this.#showBlankLines.asReadonly();
   readonly showDeeperOutline = this.#showDeeperOutline.asReadonly();
-  /** The three switches of the front matter area. SPEC.md §10.4. */
+  /** The three switches of the front matter area. specification.md §10.4. */
   readonly showFrontMatter = this.#showFrontMatter.asReadonly();
   readonly frontMatterWritable = this.#frontMatterWritable.asReadonly();
   readonly showOwnedFrontMatter = this.#showOwnedFrontMatter.asReadonly();
-  /** The stored language choice; the localization service resolves it. SPEC.md §14. */
+  /** The stored language choice; the localization service resolves it. specification.md §14. */
   readonly interfaceLanguage = this.#interfaceLanguage.asReadonly();
-  /** How the workbench looks. SPEC.md §8.8; `system` is resolved on the way to the DOM. */
+  /** How the workbench looks. specification.md §8.8; `system` is resolved on the way to the DOM. */
   readonly colorScheme = this.#colorScheme.asReadonly();
   readonly accentPalette = this.#accentPalette.asReadonly();
   readonly editorFontFamily = this.#editorFontFamily.asReadonly();
   readonly editorFontSize = this.#editorFontSize.asReadonly();
   readonly editorWordWrap = this.#editorWordWrap.asReadonly();
   readonly editorLineNumbers = this.#editorLineNumbers.asReadonly();
-  /** The editor's zoom, in whole percent. SPEC.md §10.9. */
+  /** The editor's zoom, in whole percent. specification.md §10.9. */
   readonly editorZoom = this.#editorZoom.asReadonly();
   readonly exportStylesheet = this.#exportStylesheet.asReadonly();
-  /** The four editor settings as the editor takes them. SPEC.md §13, §10.8. */
+  /** The four editor settings as the editor takes them. specification.md §13, §10.8. */
   readonly editorTypography = computed<EditorTypography>(() => ({
     fontFamily: this.#editorFontFamily(),
     fontSize: this.#editorFontSize(),
@@ -236,7 +236,7 @@ export class LayoutState {
   }
 
   /**
-   * The zoom of SPEC.md §10.9. Clamped and snapped by the core's rule, so the
+   * The zoom of specification.md §10.9. Clamped and snapped by the core's rule, so the
    * slider, the record and a keyboard step all pass the same gate.
    */
   setEditorZoom(zoom: number): void {
@@ -249,7 +249,7 @@ export class LayoutState {
   }
 
   /**
-   * Remembers the stylesheet that was just used. SPEC.md §15.2.
+   * Remembers the stylesheet that was just used. specification.md §15.2.
    *
    * Installation-local, because it is a habit rather than a property of the
    * manuscript — the stylesheets themselves live in the project.
@@ -312,13 +312,13 @@ export class LayoutState {
     return this.#switches()[key]();
   }
 
-  /** Sets a switch by key — the settings dialog's way in. SPEC.md §13. */
+  /** Sets a switch by key — the settings dialog's way in. specification.md §13. */
   setSwitch(key: BooleanPreferenceKey, value: boolean): void {
     this.#switches()[key].set(value);
     this.#store();
   }
 
-  /** Reset restores the complete default record, layout included. SPEC.md §13. */
+  /** Reset restores the complete default record, layout included. specification.md §13. */
   resetPreferences(): void {
     this.apply(DEFAULT_PREFERENCES);
     this.#store();

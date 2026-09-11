@@ -1,17 +1,17 @@
 /**
- * The block structure of a document, read with markdown-it. SPEC.md §10.7,
+ * The block structure of a document, read with markdown-it. specification.md §10.7,
  * §5.4.
  *
  * This is the translation layer the dependency decision asked for
- * (`CONVENTIONS.md` C-A6): markdown-it's tokens come in, the core's own
+ * (`conventions.md` C-A6): markdown-it's tokens come in, the core's own
  * `BlockModel` goes out, and no token leaves this file. The parser runs in
  * its CommonMark preset — what it adds beyond that, the core decides for
  * itself: strikethrough and code spans are the core's inline rule, task list
  * items are the rule below, tables and links wait for their own rounds.
  *
- * markdown-it was measured against the gate of `TESTING.md` §2.11 on
+ * markdown-it was measured against the gate of `testing.md` §2.11 on
  * 2026-09-04 and accepted for this display with two deviations recorded in
- * `DEPENDENCIES.md`: no task list items of its own, and a PSF-2.0 dependency
+ * `dependencies.md`: no task list items of its own, and a PSF-2.0 dependency
  * that serves only its command-line tool and never reaches a bundle.
  */
 import MarkdownIt from 'markdown-it';

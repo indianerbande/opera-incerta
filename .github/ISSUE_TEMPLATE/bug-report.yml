@@ -1,0 +1,79 @@
+name: Bug report
+description: Report reproducible incorrect behaviour in Opera Incerta
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Please do not include manuscript content you would not publish, credentials, or personal filesystem paths. A security vulnerability belongs in the private channel linked from the issue chooser.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The release tag, or the full commit you built from.
+      placeholder: v0.1.0-beta.1
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and architecture
+      placeholder: macOS 15 arm64, Windows 11 x64, Ubuntu 26.04 x64
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where did it happen?
+      options:
+        - The library — groups, sheets, renaming, ordering, deleting
+        - The editor — writing, formatting, front matter
+        - Search or navigation
+        - Source control
+        - Export
+        - Settings or appearance
+        - Building or starting from source
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, from a freshly opened application if possible.
+      placeholder: |
+        1. Open a project
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: manuscript
+    attributes:
+      label: The smallest file that shows it, if a file is involved
+      description: Reduce it to the least text that still misbehaves — and remove anything you would not publish.
+      render: markdown
+  - type: checkboxes
+    id: data-loss
+    attributes:
+      label: Did anything get lost?
+      options:
+        - label: Text I had written was lost or changed without my asking
+        - label: A file was renamed, moved, or deleted without my asking
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: Screenshots are welcome. If the application printed a code (for example `sheet/read-only`), include it.

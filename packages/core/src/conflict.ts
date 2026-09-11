@@ -1,6 +1,6 @@
 /**
  * Reading and resolving the conflict markers Git leaves in a merged file.
- * SPEC.md §12.
+ * specification.md §12.
  *
  * A merge writes markers **into the manuscript**:
  *

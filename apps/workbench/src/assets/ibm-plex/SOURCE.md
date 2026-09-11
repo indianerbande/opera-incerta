@@ -1,7 +1,7 @@
 # IBM Plex asset source
 
 The eight WOFF2 files in this directory are exact, unmodified copies of IBM
-Plex, the interface face of the workbench (`SPEC.md` §8.8).
+Plex, the interface face of the workbench (`specification.md` §8.8).
 
 - Upstream: <https://github.com/IBM/plex>, release `v6.4.2`, commit
   `242c4cccd37e87985a5337815c99b960ef13c65c`.
@@ -25,7 +25,7 @@ Plex, the interface face of the workbench (`SPEC.md` §8.8).
 | `IBMPlexMono-Italic.woff2` | the same, italic |
 
 They are packaged rather than taken from the system because an interface that
-looks different on every machine cannot be designed (`SPEC.md` §8.8). They are
+looks different on every machine cannot be designed (`specification.md` §8.8). They are
 presentation only: no word an author reads is decided here, and no manuscript
 carries them — an exported document is Markdown, and the fonts never leave the
 application.

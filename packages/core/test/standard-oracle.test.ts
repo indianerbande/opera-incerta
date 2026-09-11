@@ -12,7 +12,7 @@ import {
 } from '../src/index.js';
 
 /**
- * The standard oracle. TESTING.md §2.2 asks that what the codec and the
+ * The standard oracle. testing.md §2.2 asks that what the codec and the
  * display transform write is standard-conformant and readable by an
  * independent parser; the codec's own tests cannot say so, because a writer
  * and a reader that agree with each other agree just as well on a wrong
@@ -21,8 +21,8 @@ import {
  *
  * commonmark.js is the reference implementation of CommonMark and `yaml`
  * reads YAML 1.2; both are development dependencies of this package only
- * (`DEPENDENCIES.md`). Nothing of either reaches the core's public types
- * (`CONVENTIONS.md` C-A6): this file translates their output into line
+ * (`dependencies.md`). Nothing of either reaches the core's public types
+ * (`conventions.md` C-A6): this file translates their output into line
  * numbers and plain values before comparing.
  */
 
@@ -196,7 +196,7 @@ const ATX = /^ {0,3}#{1,6}(?:[ \t]|$)/u;
 /**
  * Lines a document can be made of. Deliberately without list markers, block
  * quotes, and whitespace-only lines: the transform models no containers, and
- * those are its recorded limits (`SPEC.md` §10.1), not what this proves.
+ * those are its recorded limits (`specification.md` §10.1), not what this proves.
  */
 const VOCABULARY: readonly string[] = [
   '# Title',

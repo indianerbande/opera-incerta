@@ -1,11 +1,11 @@
 /**
- * Coordination for refreshes and writes. SPEC.md §10.6 and §12.
+ * Coordination for refreshes and writes. specification.md §10.6 and §12.
  *
  * Two rules, each paid for with a defect:
  *
  * - **Separate guards for reading and writing.** One shared "busy" flag lets a
  *   background refresh swallow a user action, which presents to the user as
- *   "the click did nothing" (CONVENTIONS.md C-F3).
+ *   "the click did nothing" (conventions.md C-F3).
  * - **Coalesce, do not queue.** A refresh requested while one is running
  *   schedules exactly one more, so a change made after the running read began
  *   is still seen, without a pile-up of redundant reads.
@@ -137,7 +137,7 @@ export class ExclusiveTask {
 
 /**
  * How long a burst of filesystem events is allowed to settle before it counts
- * as one change. SPEC.md §12.
+ * as one change. specification.md §12.
  *
  * Measured rather than guessed at: one atomic save of a single sheet produced
  * seven events on macOS, including two for directories that had not changed.

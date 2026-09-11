@@ -3,7 +3,7 @@ import { DialogComponent } from './dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * A small editor for one plain-text file that is not a sheet. SPEC.md §12.
+ * A small editor for one plain-text file that is not a sheet. specification.md §12.
  *
  * `.gitignore` is what it is for. It belongs to the project but not to the
  * manuscript, so it is edited here rather than in the writing surface, which

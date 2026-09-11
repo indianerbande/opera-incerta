@@ -1,5 +1,5 @@
 /**
- * Writing the manuscript out. SPEC.md §15.2.
+ * Writing the manuscript out. specification.md §15.2.
  *
  * The assembly and both renderings are pure and live in
  * `@opera-incerta/export`. What is here is the part that cannot be: choosing
@@ -56,7 +56,7 @@ export function exportFileName(title: string, extension: string): string {
  * security relaxations. It loads a `data:` URL because the document is
  * self-contained — nothing is fetched, so nothing needs a protocol or an
  * origin — and because handing it to the renderer's own scheme would mean
- * serving author text from the application's origin (SPEC.md §5.3).
+ * serving author text from the application's origin (specification.md §5.3).
  *
  * Page numbers come from the printer's footer rather than from the
  * stylesheet: Chromium sets `@page` margins but not the margin boxes that
@@ -130,7 +130,7 @@ export interface ExportDependencies {
  *
  * Nothing is written before the author has named a destination, and an
  * assembly with no text in it reports `empty` rather than writing a file that
- * says nothing (SPEC.md §15.2).
+ * says nothing (specification.md §15.2).
  */
 export async function runExport(
   document: AssembledDocument,

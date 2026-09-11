@@ -1,5 +1,5 @@
 /**
- * Editor spike, host half. TESTING.md §2.8.
+ * Editor spike, host half. testing.md §2.8.
  *
  * Runs the criteria in a real Chromium renderer and reports the result. The
  * exit code is the verdict: a spike that cannot fail is not evidence.
@@ -44,7 +44,7 @@ void app.whenReady().then(async () => {
       return;
     }
 
-    console.log('CodeMirror 6 editor spike — TESTING.md §2.8\n');
+    console.log('CodeMirror 6 editor spike — testing.md §2.8\n');
     for (const criterion of result.criteria) {
       const mark = criterion.passed ? 'PASS' : 'FAIL';
       console.log(`${mark}  ${criterion.id}. ${criterion.name}`);

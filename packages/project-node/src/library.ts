@@ -1,6 +1,6 @@
 /**
  * The library scan: the folder tree as the application shows it.
- * SPEC.md §6.1, §6.4, §9.1.
+ * specification.md §6.1, §6.4, §9.1.
  *
  * The folder structure *is* the library. This turns a directory tree into the
  * tree the navigator shows, applying the two things `structure.json` adds on
@@ -20,7 +20,7 @@ import {
   type StructureRecord,
 } from '@opera-incerta/core';
 
-/** Enough lines for the largest density step. SPEC.md §9.2. */
+/** Enough lines for the largest density step. specification.md §9.2. */
 const PREVIEW_LINE_LIMIT = PREVIEW_DENSITIES.large.totalLines - 1;
 import { isGroupDirectory, isSheetFile } from './node-filesystem.js';
 import type { DirectoryEntry, ProjectFilesystem } from './ports.js';
@@ -65,7 +65,7 @@ export interface ScanOptions {
  * Hidden entries are skipped, which includes the `.opera-incerta/` marker
  * directory: it holds metadata about the library, not part of it. A sheet
  * whose front matter cannot be read keeps its file name as display name rather
- * than disappearing from the tree (SPEC.md §16).
+ * than disappearing from the tree (specification.md §16).
  */
 export async function scanLibrary(
   projectPath: string,

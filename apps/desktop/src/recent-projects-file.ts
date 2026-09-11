@@ -1,5 +1,5 @@
 /**
- * The recent-projects list on disk. SPEC.md §7.2, §8.6.
+ * The recent-projects list on disk. specification.md §7.2, §8.6.
  *
  * Installation-local: it lives in the Electron user-data directory and is
  * never synchronized, because which projects *this machine* opened is not part

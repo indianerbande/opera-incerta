@@ -331,7 +331,7 @@ export async function fillPrompt(window: BrowserWindow, value: string): Promise<
   }
 }
 
-/** The menu offers what is possible, and only that. SPEC.md §8.5. */
+/** The menu offers what is possible, and only that. specification.md §8.5. */
 
 export async function typeText(window: BrowserWindow, text: string): Promise<void> {
   for (const character of text) {
@@ -427,7 +427,7 @@ export async function toggleSwitch(window: BrowserWindow, label: string): Promis
 
 /**
  * Checks that the library views show the project the launcher opened, and
- * selects a sheet. SPEC.md §9.
+ * selects a sheet. specification.md §9.
  */
 export async function selectSmokeSheet(window: BrowserWindow): Promise<void> {
   await waitForSelector(window, 'wi-sheet-list .row');

@@ -1,9 +1,9 @@
 /**
- * Parser for `git status --porcelain=v1 -z`. SPEC.md §12.
+ * Parser for `git status --porcelain=v1 -z`. specification.md §12.
  *
  * A pure function in the core, so the source-control view can be tested
  * against recorded Git output without a repository, and so the process
- * adapter stays a thin wrapper (TESTING.md §2.5).
+ * adapter stays a thin wrapper (testing.md §2.5).
  *
  * Paths are relative to the **repository root**, not the project root, and can
  * point outside the project directory. Callers resolve them against the root
@@ -24,7 +24,7 @@ export interface GitFileStatus {
   readonly groups: readonly GitFileGroup[];
 }
 
-/** What a branch tracks and how far the two have drifted. SPEC.md §12. */
+/** What a branch tracks and how far the two have drifted. specification.md §12. */
 export interface GitTracking {
   /** The upstream's name, as git prints it — `origin/main`. */
   readonly upstream: string;
@@ -65,20 +65,20 @@ export function parseTrackingHeader(output: string): GitTracking | null {
   return upstream === null || upstream === '' ? null : { upstream, ahead, behind };
 }
 
-/** A local branch. SPEC.md §12. */
+/** A local branch. specification.md §12. */
 export interface GitBranch {
   readonly name: string;
   readonly current: boolean;
 }
 
-/** A remote, by name and address. SPEC.md §12. */
+/** A remote, by name and address. specification.md §12. */
 export interface GitRemote {
   readonly name: string;
   readonly url: string;
 }
 
 /**
- * Who a commit is by. SPEC.md §12.
+ * Who a commit is by. specification.md §12.
  *
  * Both go into every commit and travel with the manuscript to whatever
  * remote it is pushed to; the question that asks for them says so.
@@ -175,7 +175,7 @@ export function isFullyStaged(entry: GitFileStatus): boolean {
   return entry.groups.includes('staged') && !entry.groups.includes('unstaged');
 }
 
-/** The state of the select-all checkbox above the change list. SPEC.md §12. */
+/** The state of the select-all checkbox above the change list. specification.md §12. */
 export type SelectAllState = 'none' | 'some' | 'all';
 
 export function selectAllState(entries: readonly GitFileStatus[]): SelectAllState {
@@ -191,14 +191,14 @@ export function selectAllState(entries: readonly GitFileStatus[]): SelectAllStat
 
 /**
  * Whether a commit may be attempted: staged changes and a non-empty message.
- * SPEC.md §12.
+ * specification.md §12.
  */
 export function canCommit(entries: readonly GitFileStatus[], message: string): boolean {
   return message.trim() !== '' && entries.some((entry) => entry.groups.includes('staged'));
 }
 
 /**
- * `.gitignore` with one more path in it. SPEC.md §12.
+ * `.gitignore` with one more path in it. specification.md §12.
  *
  * Idempotent: a path already listed is not listed twice, whether or not the
  * file ends with a newline. The file's own line ending is kept, because a
@@ -221,7 +221,7 @@ export function withIgnoredPath(contents: string, path: string): string {
 }
 
 /**
- * Whether a branch name is one worth handing to git. SPEC.md §12.
+ * Whether a branch name is one worth handing to git. specification.md §12.
  *
  * Git's own `check-ref-format` is the authority and has the last word; this
  * catches the shapes that would be misread rather than refused — a name
@@ -242,7 +242,7 @@ export function isValidBranchName(value: string): boolean {
 
 /**
  * Whether a remote's address is one this application will accept.
- * SPEC.md §12.
+ * specification.md §12.
  *
  * Git's transports include `ext::`, which **runs a command**: a pasted address
  * of that shape would execute it on the author's machine at the next fetch. An
@@ -269,7 +269,7 @@ export function isSafeRemoteUrl(value: string): boolean {
 }
 
 /**
- * Whether an entry is an unresolved merge conflict. SPEC.md §12.
+ * Whether an entry is an unresolved merge conflict. specification.md §12.
  *
  * It counts as unstaged for the purpose of the change list — it is certainly
  * not ready to commit — but it needs a decision rather than a checkbox, and
@@ -283,7 +283,7 @@ export function isConflicted(entry: GitFileStatus): boolean {
  * Whether a filesystem event should trigger a status refresh.
  *
  * `git status` opportunistically writes inside `.git`; without this filter
- * every refresh would re-trigger itself (SPEC.md §12, CONVENTIONS.md C-F4).
+ * every refresh would re-trigger itself (specification.md §12, conventions.md C-F4).
  */
 export function touchesWorkingTree(changedPaths: readonly string[]): boolean {
   return changedPaths.some((path) => !path.split(/[/\\]/).includes('.git'));

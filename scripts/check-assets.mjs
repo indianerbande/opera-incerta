@@ -1,7 +1,7 @@
 /**
  * Pins the packaged visual assets.
  *
- * An asset is a dependency (`CONVENTIONS.md` C-L4): its origin, its licence,
+ * An asset is a dependency (`conventions.md` C-L4): its origin, its licence,
  * and its bytes are part of what ships. A silently replaced icon would be an
  * undocumented third-party file in the application, so the bytes are checked
  * rather than trusted, and the licence and notice must be present beside them.
@@ -67,7 +67,7 @@ if (!licence.includes('Apache License')) {
 }
 
 /**
- * The interface face of SPEC.md §8.8, from IBM Plex v6.4.2. Same rule as the
+ * The interface face of specification.md §8.8, from IBM Plex v6.4.2. Same rule as the
  * icons: the bytes ship, so the bytes are checked.
  */
 const fontDirectory = join(repositoryRoot, 'apps/workbench/src/assets/ibm-plex');

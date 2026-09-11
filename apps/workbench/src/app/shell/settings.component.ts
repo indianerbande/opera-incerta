@@ -26,7 +26,7 @@ import { DialogComponent } from './dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * The settings dialog. SPEC.md §13.
+ * The settings dialog. specification.md §13.
  *
  * A category list and one focused content region. The region renders the
  * registry of the core — a switch per boolean preference, the density steps
@@ -34,7 +34,7 @@ import { Localization } from '../localization/localization.js';
  * categories, which open their own manager, and the repository's commit
  * identity, edited here in place because the panel's row and the question
  * after creating a repository both point here as the place to supply it
- * later (SPEC.md §12).
+ * later (specification.md §12).
  *
  * Changes apply immediately and are stored by the layout state, like every
  * other preference. Reset restores the complete default record. Escape and
@@ -317,7 +317,7 @@ import { Localization } from '../localization/localization.js';
     .choice label {
       margin-inline-end: 12px;
     }
-    /* The palette swatches of SPEC.md §8.8: the choice is the colour, and the
+    /* The palette swatches of specification.md §8.8: the choice is the colour, and the
      * name is what a screen reader hears and the pointer reveals. */
     .swatches {
       display: flex;

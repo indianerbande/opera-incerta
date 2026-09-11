@@ -1,5 +1,5 @@
 /**
- * Page category colors. SPEC.md §6.6.
+ * Page category colors. specification.md §6.6.
  *
  * The text color is never stored: it is computed from the background so that a
  * category set stays valid when its colors are edited.
@@ -20,7 +20,7 @@ const HEX_COLOR = /^#?([0-9a-fA-F]{6})$/;
 /**
  * Parses `#RRGGBB` (with or without the leading `#`).
  * Returns `null` for anything else — an unreadable category color is reported,
- * never guessed (SPEC.md §16).
+ * never guessed (specification.md §16).
  */
 export function parseHexColor(value: string): RgbColor | null {
   const match = HEX_COLOR.exec(value.trim());
@@ -38,12 +38,12 @@ export function parseHexColor(value: string): RgbColor | null {
   };
 }
 
-/** Relative luminance in 0…1, using the weights fixed in SPEC.md §6.6. */
+/** Relative luminance in 0…1, using the weights fixed in specification.md §6.6. */
 export function relativeLuminance(color: RgbColor): number {
   return (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
 }
 
-/** Black on a light background, white on a dark one. SPEC.md §6.6. */
+/** Black on a light background, white on a dark one. specification.md §6.6. */
 export function textColorFor(color: RgbColor): BadgeTextColor {
   return relativeLuminance(color) > 0.5 ? 'black' : 'white';
 }
@@ -57,7 +57,7 @@ export function categoryTextColor(hexColor: string): BadgeTextColor | null {
   return color === null ? null : textColorFor(color);
 }
 
-/** A page category as `categories.json` carries it. SPEC.md §6.6. */
+/** A page category as `categories.json` carries it. specification.md §6.6. */
 export interface PageCategory {
   readonly id: string;
   readonly name: string;
@@ -66,7 +66,7 @@ export interface PageCategory {
 }
 
 /**
- * How many categories a project may hold. SPEC.md §6.6 asks for at least eight
+ * How many categories a project may hold. specification.md §6.6 asks for at least eight
  * and at most sixty-four; the lower figure is a capacity, the upper a limit.
  */
 export const MAX_CATEGORIES = 64;
@@ -75,7 +75,7 @@ export const MAX_CATEGORIES = 64;
  * Reads a parsed `categories.json`, discarding whatever does not match.
  *
  * A missing or malformed file means no categories and is not an error, and one
- * unusable entry costs that entry rather than the set (SPEC.md §6.6, §16).
+ * unusable entry costs that entry rather than the set (specification.md §6.6, §16).
  */
 export function readCategories(value: unknown): readonly PageCategory[] {
   if (!Array.isArray(value)) {
@@ -113,7 +113,7 @@ export function readCategories(value: unknown): readonly PageCategory[] {
  *
  * An id that names nothing counts as uncategorized and is not an error: a
  * category may have been deleted, and deleting one deliberately does not
- * rewrite the sheets that referenced it (SPEC.md §6.6).
+ * rewrite the sheets that referenced it (specification.md §6.6).
  */
 export function findCategory(
   categories: readonly PageCategory[],

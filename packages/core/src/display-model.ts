@@ -1,5 +1,5 @@
 /**
- * The document as the editor should present it. SPEC.md §10.
+ * The document as the editor should present it. specification.md §10.
  *
  * This is the contract between the portable rules and whichever component
  * renders them: the core says *what* is a heading and *which* characters are
@@ -28,7 +28,7 @@ export interface HiddenRange {
    * A `heading` range is the `#` prefix, hidden unconditionally: heading level
    * is a static paragraph attribute, so there is no syntax for the author to
    * edit in place. An `inline` range is a delimiter, hidden only while the
-   * cursor is elsewhere (SPEC.md §10.2 against §10.3).
+   * cursor is elsewhere (specification.md §10.2 against §10.3).
    */
   readonly kind: 'heading' | 'inline';
 }
@@ -73,7 +73,7 @@ export function displayModel(markdown: string, focusedLine: number | null): Disp
       headings.push({ line: number, level: line.level, from: offset });
 
       // The prefix and any closing hashes leave the visible line entirely: the
-      // level shows as size and as a gutter label instead (SPEC.md §10.2).
+      // level shows as size and as a gutter label instead (specification.md §10.2).
       if (line.prefix.length > 0) {
         hidden.push({ from: offset, to: offset + line.prefix.length, kind: 'heading' });
       }

@@ -22,7 +22,7 @@ import { Localization } from '../localization/localization.js';
 type Mode = 'choosing' | 'duplicating' | 'editing';
 
 /**
- * Choosing the stylesheet a PDF is set with. SPEC.md §15.2.
+ * Choosing the stylesheet a PDF is set with. specification.md §15.2.
  *
  * All three things are here — the list, the duplication, the editing — rather
  * than in the settings, because the choice belongs to the moment of use: an
@@ -229,7 +229,7 @@ export class ExportDialogComponent {
    *
    * A remembered name the project no longer has is not offered, so the
    * selection falls back to the default — the same rule the export itself
-   * follows (SPEC.md §15.2).
+   * follows (specification.md §15.2).
    */
   protected readonly chosen = linkedSignal(() => {
     const initial = this.initial();

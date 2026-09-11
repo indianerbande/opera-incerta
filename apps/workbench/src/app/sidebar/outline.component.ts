@@ -3,7 +3,7 @@ import type { OutlineEntry } from '@opera-incerta/core';
 import { Localization } from '../localization/localization.js';
 
 /**
- * The heading outline of the current text. SPEC.md §11.
+ * The heading outline of the current text. specification.md §11.
  *
  * Its own view rather than a section of the inspector: the inspector shows
  * metadata, which is the narrow meaning the name carries.

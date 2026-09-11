@@ -1,7 +1,7 @@
 /**
  * The library: creating, renaming, reordering by a real drag, deleting into
  * the trash, moving between groups, and a change made behind the
- * application's back. SPEC.md §6, §10.6.
+ * application's back. specification.md §6, §10.6.
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
@@ -41,7 +41,7 @@ import {
 import type { Smoke } from '../context.js';
 
 /**
- * Creating and renaming from the context menus. SPEC.md §6.4, §6.5.
+ * Creating and renaming from the context menus. specification.md §6.4, §6.5.
  *
  * The rule under test is the one that makes the library survive: renaming
  * changes a title, never a file name.
@@ -106,7 +106,7 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
 
   const files = readdirSync(smoke.projectPath).filter((name) => name.endsWith('.md')).sort();
   // The rule that makes the library survive: the title changed, the file name
-  // did not (SPEC.md §6.4).
+  // did not (specification.md §6.4).
   if (!files.includes('opening.md') || !files.includes('a-brand-new-scene.md')) {
     throw new Error(`renaming moved a file: ${JSON.stringify(files)}`);
   }
@@ -142,7 +142,7 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
   }
 
   // A group: the directory takes the slug, the display name goes to
-  // structure.json, and the new group is what the columns show (SPEC.md §6.4).
+  // structure.json, and the new group is what the columns show (specification.md §6.4).
   await rightClickNodeContaining(window, 'Smoke Project');
   await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
@@ -206,7 +206,7 @@ export async function checkLibraryEdits(smoke: Smoke, window: BrowserWindow): Pr
 
 /**
  * Checks that a sheet and a group can be dragged into a new order, and that
- * the order lands in `structure.json`. SPEC.md §6.4.
+ * the order lands in `structure.json`. specification.md §6.4.
  */
 export async function checkReordering(smoke: Smoke, window: BrowserWindow, projectPath: string): Promise<void> {
   // Back to the root group, whose sheet list holds two sheets.
@@ -293,7 +293,7 @@ export async function checkReordering(smoke: Smoke, window: BrowserWindow, proje
 
 /**
  * Checks that an entry goes to the trash, that it is really *moved* there, and
- * that neither Escape nor Return takes anything away. SPEC.md §6.7.
+ * that neither Escape nor Return takes anything away. specification.md §6.7.
  */
 export async function checkDeletion(smoke: Smoke, window: BrowserWindow, projectPath: string): Promise<void> {
   // Return must not delete — and the dialog must actually be gone afterwards.
@@ -388,7 +388,7 @@ export async function checkDeletion(smoke: Smoke, window: BrowserWindow, project
 
 /**
  * Checks that an entry can be dragged into another group — the sheet list into
- * the tree, and the tree into itself. SPEC.md §6.8.
+ * the tree, and the tree into itself. specification.md §6.8.
  */
 export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWindow, projectPath: string): Promise<void> {
   // A second group to move things into.
@@ -467,7 +467,7 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
   }
 
   // A group placed *between* the children of another group: the travelling and
-  // the position said in one drop (SPEC.md §6.8).
+  // the position said in one drop (specification.md §6.8).
   await rightClickNodeContaining(window, 'Smoke Project');
   await waitForSelector(window, 'wi-context-menu [role="menuitem"]');
   await clickText(window, 'wi-context-menu [role="menuitem"]', 'New Group');
@@ -501,7 +501,7 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
 }
 
 /**
- * Checks the comparison rule of `SPEC.md` §10.6 where it can already be
+ * Checks the comparison rule of `specification.md` §10.6 where it can already be
  * reached: the explicit re-read.
  */
 export async function checkExternalChange(
@@ -575,7 +575,7 @@ export async function checkExternalChange(
 
 /**
  * The same rule again, with nobody pressing anything: the watcher of
- * `SPEC.md` §10.6 is what notices. MVP criteria §17.13 and §17.14.
+ * `specification.md` §10.6 is what notices. MVP criteria §17.13 and §17.14.
  */
 export async function checkWatchedChange(
   window: BrowserWindow,
@@ -718,7 +718,7 @@ export async function rowPoint(
  * `evidence` names a screenshot taken while the pointer is still down, because
  * the insertion line and the destination highlight only exist during the drag,
  * and a check that never looks at them cannot say the author sees anything
- * (`TESTING.md` §1.9).
+ * (`testing.md` §1.9).
  */
 export async function dragTo(
   smoke: Smoke,
@@ -763,7 +763,7 @@ export function displayNameOf(projectPath: string, relativePath: string): string
 
 /** Right-clicks the explorer node whose name is the given text. */
 
-/** What the search view is showing. SPEC.md §9.3. */
+/** What the search view is showing. specification.md §9.3. */
 interface SearchView {
   readonly rows: readonly { sheet: string; line: string; marked: string }[];
   readonly summary: string | null;
@@ -800,7 +800,7 @@ async function runSearch(window: BrowserWindow, query: string): Promise<void> {
 }
 
 /**
- * Searching the library. SPEC.md §9.3.
+ * Searching the library. specification.md §9.3.
  *
  * The navigator's third view: what it finds, where it finds it, what it
  * deliberately does not search, and that opening a row lands on the line.
@@ -888,7 +888,7 @@ export async function checkLibrarySearch(smoke: Smoke, window: BrowserWindow): P
 }
 
 /**
- * Where you have been. SPEC.md §9.4.
+ * Where you have been. specification.md §9.4.
  *
  * Back and forward from the native menu, because the menu owns the
  * accelerators and a command only a click can reach is a defect (§8.10); then
@@ -922,7 +922,7 @@ export async function checkNavigationAndRecent(smoke: Smoke, window: BrowserWind
   await waitUntil('the step forward to return', async () => (await openTitle()).startsWith('Opening'));
 
   // A step past the end is not an error and not a move: the menu item stays
-  // enabled, and the renderer ignores what it cannot do (SPEC.md §9.4).
+  // enabled, and the renderer ignores what it cannot do (specification.md §9.4).
   clickMenuItem('go/forward');
   await rendered(window);
   if (!(await openTitle()).startsWith('Opening')) {
@@ -977,7 +977,7 @@ export async function checkNavigationAndRecent(smoke: Smoke, window: BrowserWind
 }
 
 /**
- * Writing the manuscript out. SPEC.md §15.2.
+ * Writing the manuscript out. specification.md §15.2.
  *
  * Driven through the native menu items and the sheet's own context menu, and
  * then **read off the disk**: what is checked is the file the author gets,
@@ -1005,7 +1005,7 @@ export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<
   }
   const markdown = readFileSync(markdownPath, 'utf8');
 
-  // Front matter is what an export must never carry (SPEC.md §15.1), and the
+  // Front matter is what an export must never carry (specification.md §15.1), and the
   // fixture's sheets both have it.
   if (markdown.includes('opera-incerta:') || markdown.includes('layout: post')) {
     throw new Error('the export carried front matter');
@@ -1025,7 +1025,7 @@ export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<
   await dismissNote();
 
   // The same document as a PDF. It is set with a stylesheet, so its menu
-  // item opens the dialog first (SPEC.md §15.2).
+  // item opens the dialog first (specification.md §15.2).
   clickMenuItem('export/pdf');
   await waitForSelector(window, 'wi-export-dialog');
 

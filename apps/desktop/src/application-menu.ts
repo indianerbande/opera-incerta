@@ -1,5 +1,5 @@
 /**
- * The native menu. SPEC.md §8.5.
+ * The native menu. specification.md §8.5.
  *
  * Two things it must get right beyond listing commands:
  *
@@ -24,7 +24,7 @@ export interface MenuActions {
   readonly run: (command: MenuCommand) => void;
   /** The project window, when one is open. */
   readonly projectWindow: () => BrowserWindow | null;
-  /** The interface language; the menu is rebuilt when it changes (SPEC.md §14). */
+  /** The interface language; the menu is rebuilt when it changes (specification.md §14). */
   readonly language: Language;
 }
 
@@ -70,7 +70,7 @@ export function installApplicationMenu(actions: MenuActions): void {
       },
       { type: 'separator' },
       {
-        // Writing the manuscript out. SPEC.md §15.2. A submenu because the
+        // Writing the manuscript out. specification.md §15.2. A submenu because the
         // list grows — DOCX and EPUB follow — and a flat File menu with five
         // exports in it would bury saving.
         label: words('menu.export'),
@@ -133,7 +133,7 @@ export function installApplicationMenu(actions: MenuActions): void {
       { role: 'selectAll' },
       { type: 'separator' },
       // The menu owns the accelerator, so finding is a menu command like
-      // saving: a key handler in the page would never see Cmd+F (SPEC.md
+      // saving: a key handler in the page would never see Cmd+F (specification.md
       // §8.5, §10.11).
       {
         id: 'menu:editor/find',
@@ -146,7 +146,7 @@ export function installApplicationMenu(actions: MenuActions): void {
   };
 
   /**
-   * Where you have been. SPEC.md §9.4: the menu owns the accelerators, and a
+   * Where you have been. specification.md §9.4: the menu owns the accelerators, and a
    * command only a click can reach is a defect (§8.10).
    */
   const goMenu: MenuItemConstructorOptions = {

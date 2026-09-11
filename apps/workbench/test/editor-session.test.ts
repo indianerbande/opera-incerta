@@ -2,7 +2,7 @@ import { signal } from '@angular/core';
 import { describe, expect, it } from 'vitest';
 import { EditorSession } from '../src/app/editor/editor-session.js';
 
-describe('the editor session (SPEC.md §10.5)', () => {
+describe('the editor session (specification.md §10.5)', () => {
   it('starts every sheet on the settings default and flips one sheet at a time', () => {
     const session = new EditorSession();
     const defaultWrap = signal(true);

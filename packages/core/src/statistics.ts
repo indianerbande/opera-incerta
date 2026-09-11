@@ -1,6 +1,6 @@
 /**
  * Progress figures for the inspector: characters, words, reading time.
- * SPEC.md §11, TESTING.md §2.1.
+ * specification.md §11, testing.md §2.1.
  *
  * These count the body only, and the body as the author reads it: front
  * matter is metadata, not text, and `#` and `**` are markup, not words. A

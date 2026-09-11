@@ -1,5 +1,5 @@
 /**
- * Access to the desktop bridge from the renderer. SPEC.md §5.3.
+ * Access to the desktop bridge from the renderer. specification.md §5.3.
  *
  * The renderer validates what comes back. Not because the main process is
  * suspect, but because "the other side promised" is not a check, and a bridge

@@ -6,19 +6,19 @@ this checkout
 
 Date: 2026-09-11
 
-This document defines how Opera Incerta behavior is verified. `SPEC.md` defines
+This document defines how Opera Incerta behavior is verified. `specification.md` defines
 the behavior; this document defines the **evidence** required to claim that the
 behavior works. `AGENTS.md` defines the process around both.
 
 Commands that have actually succeeded in this checkout are listed in
 `AGENTS.md`; the rest of the command list below is still **planned**. A command
-reaches the approved list only by succeeding here (`CONVENTIONS.md` C-T19).
+reaches the approved list only by succeeding here (`conventions.md` C-T19).
 
 Layer coverage as of 2026-09-11: §2.1, §2.2, §2.3, §2.4, §2.5, §2.6, §2.7,
 §2.8, §2.10 and §2.11 are implemented and green — the last of them, §2.11, as
-the record of a spike whose decision has been taken (`SPEC.md` §19). **§2.9
+the record of a spike whose decision has been taken (`specification.md` §19). **§2.9
 is open in part**: the registry arrived with the first module on 2026-09-11
-(`packages/export`, `SPEC.md` §15.2), and its first two clauses are covered;
+(`packages/export`, `specification.md` §15.2), and its first two clauses are covered;
 the rest waits for the modules it describes.
 
 ## Tooling
@@ -29,7 +29,7 @@ the rest waits for the modules it describes.
 | Angular workbench components | Vitest with the Angular testing utilities | Component behavior, not pixel snapshots |
 | Electron shell | A launched packaged-application smoke test | Bridge, security boundary, real file round trip |
 | Type safety | `tsc` over source and test projects | Test code is type-checked too |
-| Packaging | Electron Forge per host platform | Host-native; see `SPEC.md` §5.1 |
+| Packaging | Electron Forge per host platform | Host-native; see `specification.md` §5.1 |
 
 The root scripts, one per gate. All of them have run in this checkout except
 the two named at the end, which belong to the packaging round:
@@ -100,10 +100,10 @@ and without touching the filesystem. Tests MUST cover:
 - word, character, and reading-time counting, including multi-byte characters
   and the treatment of front matter, which MUST NOT be counted; and
 - the computed category text color at and around the luminance threshold; and
-- the editor typography rule (`SPEC.md` §13): a base size clamped into its
+- the editor typography rule (`specification.md` §13): a base size clamped into its
   bounds and to whole pixels, the heading ratios holding at every base, and
   the curated families each ending in a generic family;
-- the block model and the presentation of `SPEC.md` §10.7: a quote marker
+- the block model and the presentation of `specification.md` §10.7: a quote marker
   hidden off the focus line and shown on it, the line styled by depth
   either way; a bullet in place of an unordered marker and an ordered one
   kept; a task box turned into a checkbox glyph; a nested item indented by
@@ -120,7 +120,7 @@ and without touching the filesystem. Tests MUST cover:
 
 ### 2.2 Markdown and front matter codec — data safety
 
-This layer protects the product's central promise (`SPEC.md` §6.3) and its
+This layer protects the product's central promise (`specification.md` §6.3) and its
 tests are mandatory before any code writes a user file.
 
 Tests MUST prove:
@@ -129,7 +129,7 @@ Tests MUST prove:
   several conventions loads and saves byte-identically apart from the
   `opera-incerta:` block;
 - **idempotence**: saving twice produces the same bytes as saving once;
-- **namespace ownership** (`SPEC.md` §6.2): only the top-level
+- **namespace ownership** (`specification.md` §6.2): only the top-level
   `opera-incerta:` key is owned. A top-level foreign `title`, `status`,
   `topic`, `keywords`, `category`, or `notes` is preserved as foreign and never
   read as the sheet's own field, never overwritten, and never removed;
@@ -148,7 +148,7 @@ Tests MUST prove:
 - correct reading and writing of the multi-line owned `notes` field as a block
   literal, with line breaks preserved — including content a hand indented by
   more than the writer does, and blank lines inside the block;
-- **refusal of every owned-field shape the reader does not read** (`SPEC.md`
+- **refusal of every owned-field shape the reader does not read** (`specification.md`
   §6.2): a folded block, a keep indicator, an explicit indentation indicator,
   a mapping under a scalar field, a bare block indicator on a single-line
   field, and an owned field that appears twice — each with its stable code on
@@ -214,7 +214,7 @@ Tests MUST prove:
   writing back Markdown the reference reads as the heading the author set.
   The oracle's types never reach the core: the test translates them to
   line numbers and plain values first; and
-- that a read failure prevents any write to the same file (`SPEC.md` §16).
+- that a read failure prevents any write to the same file (`specification.md` §16).
 
 Negative tests MUST assert stable diagnostic codes, not message text.
 
@@ -239,8 +239,8 @@ Tests MUST cover:
   deleted category; and
 - path handling: a path that resolves outside the project is rejected, and
   comparisons use canonically resolved paths, because symlinked temporary
-  directories otherwise compare unequal on macOS (`CONVENTIONS.md` C-F1);
-- **the port's contract, against both implementations** (`SPEC.md` §7):
+  directories otherwise compare unequal on macOS (`conventions.md` C-F1);
+- **the port's contract, against both implementations** (`specification.md` §7):
   creating and reading a project, subprojects one level down, the record
   fallbacks, round trips of the author's own export stylesheets — written,
   listed and read back, with a file the naming rule cannot read left out and
@@ -248,7 +248,7 @@ Tests MUST cover:
   categories, sheets and the "recently
   edited" list — that last one read back as empty when the file holds
   nonsense, because a convenience may never keep a project from opening
-  (`SPEC.md` §9.4) — entries listed with their kind, directories created with
+  (`specification.md` §9.4) — entries listed with their kind, directories created with
   their parents, and a file and a directory moved with everything in it — the
   same suite over the disk and in memory;
 - a record file that is there and cannot be read failing with
@@ -268,7 +268,7 @@ Tests MUST prove:
 - a content change while the buffer is modified raises the conflict prompt;
 - **the application's own save raises neither** — the handler compares actual
   disk content against the loaded baseline and does nothing when they match
-  (`SPEC.md` §10.6);
+  (`specification.md` §10.6);
 - rapid successive changes are debounced and coalesced into the documented
   number of refreshes;
 - a refresh requested during a running refresh schedules exactly one more, not
@@ -295,11 +295,11 @@ Tests MUST cover:
   push error is reported;
 - absence of a remote or of credentials surfacing the Git error rather than
   crashing;
-- **one command at a time per repository** (`SPEC.md` §12): two commands
+- **one command at a time per repository** (`specification.md` §12): two commands
   issued at once against one directory run one after the other, a failed one
   does not block the next, and commands against different directories are
   not held up by each other;
-- **git's failures named from its words** (`SPEC.md` §16): the classifier
+- **git's failures named from its words** (`specification.md` §16): the classifier
   as a pure function over recorded stderr for every code it knows, the
   fallback for words it does not, and the adapter's errors carrying the
   classified code — a push without a remote as `git/no-upstream`, a diverged
@@ -313,10 +313,10 @@ Tests MUST cover:
   `status --porcelain=v2 --branch`, as a pure parser over recorded output —
   ahead and behind the right way round, and null without an upstream;
 - the `.git` path filter: events confined to `.git` trigger no refresh
-  (`SPEC.md` §12);
+  (`specification.md` §12);
 - creating a repository: `git init` with `main` as the initial branch, in the
   directory it was asked for, leaving nothing staged and no commit;
-- the identity commits are by (`SPEC.md` §12): read per scope and null when
+- the identity commits are by (`specification.md` §12): read per scope and null when
   either half is missing; written with `--local` only, and in a real
   repository the global file named by `GIT_CONFIG_GLOBAL` stays empty; and
 - a project without a repository leaving the watcher off.
@@ -330,7 +330,7 @@ Component and state tests MUST cover:
 
 - column widths: dragging, clamping, persistence, restoration, and — the
   regression that matters — **no width change when the view inside a region
-  switches** (`CONVENTIONS.md` C-U1);
+  switches** (`conventions.md` C-U1);
 - expansion state of the tree surviving a Navigator view switch;
 - activity bar behavior: switching views, and collapsing the secondary sidebar
   when its already active view is clicked again;
@@ -343,19 +343,19 @@ Component and state tests MUST cover:
 - editor display: heading sizes per level, the gutter label per line, the
   gutter menu changing and removing levels, and Return after a heading starting
   a normal paragraph;
-- the status bar (`SPEC.md` §10.5): the adapter contract's cursor after a
+- the status bar (`specification.md` §10.5): the adapter contract's cursor after a
   reveal — line and first visible column — and a cursor listener hearing the
   move; the session flipping one sheet's wrapping at a time, keeping a
   flipped sheet where it was when the default changes, forgetting a sheet
   that is gone, and holding the last cursor;
 - sheet list: all three density steps, formatted previews, blank-line
   suppression, category badges, and correct row heights on first render after a
-  rescan (`CONVENTIONS.md` C-U3);
+  rescan (`conventions.md` C-U3);
 - outline: listing, jumping, and the deeper-levels toggle;
 - inspector: reading and writing owned metadata fields and computing progress
   figures — and the store taking no field it does not own, so an object that
   is not metadata (a DOM Event, once) cannot dirty the sheet;
-- the settings registry (`SPEC.md` §13): every preference of the record that
+- the settings registry (`specification.md` §13): every preference of the record that
   is not layout registered exactly once, ids stable and unique, defaults
   taken from the record, the density steps exactly those of the preview,
   and the two entries that hold no preference marked by their scope; and
@@ -367,7 +367,7 @@ Component and state tests MUST cover:
   after a newer one MUST NOT overwrite the newer result — and re-reads after
   an external change coalescing, so a change reported during a re-read is
   read after it and never overtaken by it; and
-- **the flows** (`SPEC.md` §8.7), driven without a component: each context
+- **the flows** (`specification.md` §8.7), driven without a component: each context
   menu offers the entries its target gets and no others; choosing an entry
   puts up the prompt or confirmation with the words the author reads, and
   answering it reaches the bridge with the right request; deleting warns of
@@ -383,7 +383,7 @@ Component and state tests MUST cover:
   bridge, a cancelled chooser changing nothing, a failed creation keeping the
   dialog open with its code, and the menu driving the same actions as the
   buttons;
-- **each answer opening a folder can give** (`SPEC.md` §8.6): a project opens
+- **each answer opening a folder can give** (`specification.md` §8.6): a project opens
   with no question asked; a folder without one raises the adoption question
   and answering it adopts *that* folder, the display name left to the main
   process; one subproject is offered and opens by its own path; several are
@@ -397,18 +397,18 @@ Component and state tests MUST cover:
 - the layout state persisting the front matter switches, and typing the
   views it accepts so an unknown one is a compile error rather than a
   silently ignored call;
-- the library search's state without its view (`SPEC.md` §9.3): it asks the
+- the library search's state without its view (`specification.md` §9.3): it asks the
   bridge only when it is run and never while the query is typed, a blank query
   clears rather than asks, a capped answer is reported as capped, a refusal
   keeps no stale hits, a malformed result is refused at the boundary, and
   clearing forgets everything — a search is transient;
-- the find rule (`SPEC.md` §10.11) as a pure function: every occurrence in
+- the find rule (`specification.md` §10.11) as a pure function: every occurrence in
   order and case-ignored, a hidden marker found because it is in the file, an
   empty or blank query matching nothing rather than everything, matches that
   do not overlap themselves, the match at or after the cursor in either
   direction, and both ends wrapping — plus three cases in the adapter contract
   (`§2.6`), so the editor and the double answer alike;
-- the four supplied stylesheets (`SPEC.md` §15.2): each one carries a
+- the four supplied stylesheets (`specification.md` §15.2): each one carries a
   measure, a family and the shared block rules; each differs where it says it
   differs — the typescript double-spaced and monospaced, the reading one
   breaking no pages; **none of them imports, fetches or names a URL**, which
@@ -423,7 +423,7 @@ Component and state tests MUST cover:
   over-long name are refused; a control character is refused, which is what
   the character range was there for; and the digits survive, which a careless
   range would have eaten;
-- the export module's assembly and its page (`SPEC.md` §15.2), as pure
+- the export module's assembly and its page (`specification.md` §15.2), as pure
   functions in `packages/export`: the library walked in its recorded order
   with the root not a heading of its own, a group becoming a heading at its
   depth and the sheets inside it moving down under it, headings capped at
@@ -438,7 +438,7 @@ Component and state tests MUST cover:
   it), each sheet in its own section so the page break has something to break
   on, a GFM table rendered as a table while linkify and typographer stay off
   — the export hands the manuscript on, it does not improve it;
-- the two rules of where you have been (`SPEC.md` §9.4) as pure functions: a
+- the two rules of where you have been (`specification.md` §9.4) as pure functions: a
   history that records what was opened, refuses to record opening what is
   already open, **truncates the forward branch** when the author goes
   somewhere else, steps only where there is somewhere to go, and closes over
@@ -446,18 +446,18 @@ Component and state tests MUST cover:
   and a capped "recently edited" list that moves an earlier entry up rather
   than duplicating it, and reads a malformed stored value as an empty list
   rather than as a failure;
-- the visual system's rule (`SPEC.md` §8.8): a chosen scheme resolving to
+- the visual system's rule (`specification.md` §8.8): a chosen scheme resolving to
   itself and `system` to what the machine reports, the three schemes and eight
   palettes accepted and anything else refused, and both stored by the layout
   state;
-- the four editor settings (`SPEC.md` §13, §10.8) handed to the editor as one
+- the four editor settings (`specification.md` §13, §10.8) handed to the editor as one
   value — family, base size, wrapping, line numbers — each reaching the
   preference record, with the gutter off in the defaults; and the zoom of
   §10.9 beside them: stored, clamped to its bounds, and snapped to 100 % by
   the core's rule wherever it arrives from.
 
 **The editor adapter has one contract suite for every implementation**
-(`CONVENTIONS.md` C-T11). It is written without a test framework so that the
+(`conventions.md` C-T11). It is written without a test framework so that the
 same cases run in both places: under Vitest against an in-memory double, and
 inside a real renderer against the CodeMirror implementation, as criterion 7 of
 `pnpm run spike:editor`. The suite MUST cover opening and reading a document,
@@ -507,7 +507,7 @@ Tests MUST cover:
   project and expects the contract's refusal on each — not a git error, because
   the request must never reach git;
 - opaque document handles and the configured source-size limit;
-- the heading gestures of `SPEC.md` §10.2, driven by real input events rather
+- the heading gestures of `specification.md` §10.2, driven by real input events rather
   than by calling the adapter: typing `.h3 ` converts the line and removes the
   command text; clicking a gutter marker opens a menu whose active level is
   marked, whose choice applies, and which closes afterwards;
@@ -518,7 +518,7 @@ Tests MUST cover:
   typed name, Create is offered only with both a name and a location, and the
   project that appears on disk carries the display name unchanged while its
   directory carries the slug — and then, in that project, which has no
-  repository, source control offers to create one (`SPEC.md` §12): after the
+  repository, source control offers to create one (`specification.md` §12): after the
   click, `.git` is in the project root, `HEAD` names `main`, nothing is
   staged, there is no commit, and the panel lists the project as untracked
   (git reports an untracked directory as one entry) — and, the run having
@@ -526,7 +526,7 @@ Tests MUST cover:
   follows, its answer is read back with `git config --local`, and the global
   file is still empty;
 - opening a folder that is not a project, all three answers through the real
-  launcher (`SPEC.md` §8.6): a folder holding two Markdown files and no
+  launcher (`specification.md` §8.6): a folder holding two Markdown files and no
   project raises the adoption question, and until it is answered nothing is
   written and no project window appears; answering it makes that folder a
   project named after itself, whose library is the two files it already had,
@@ -537,23 +537,23 @@ Tests MUST cover:
   every check closes what it opens, so a prompt standing at a boundary is
   one the application raised on its own; and the dirty marker clearing when
   an inspector edit is saved through the menu;
-- the status bar (`SPEC.md` §10.5): the last line named after a click, the
+- the status bar (`specification.md` §10.5): the last line named after a click, the
   column following one keystroke, the bar at its constant height, and the
   wrap switch turning this sheet's wrapping off and on, read off the
   editor's own class list;
-- the GFM display (`SPEC.md` §10.7), typed in and measured with computed
+- the GFM display (`specification.md` §10.7), typed in and measured with computed
   styles: a quote marker hidden and the line ruled at the left, a bullet in
   place of a dash, a ticked box in place of `[x]`, an ordered marker kept,
   a rule in place of `---`, strikethrough as line-through, inline code in a
   monospace face, bold as a heavier weight; the marker back as written on
   the focus line; and the typed markup undone afterwards;
-- the line-number gutter (`SPEC.md` §10.8), measured in the real editor:
+- the line-number gutter (`specification.md` §10.8), measured in the real editor:
   absent until the switch in Settings → Editor is turned on; then a number for
   every logical line, running from 1 to the last, the whole column left of the
   heading markers; and, for a line typed long enough to wrap, one number
   whose element is exactly as tall as the wrapped line — the measured height,
   not a computed row. Turned off again, and the typed line undone;
-- the visual system (`SPEC.md` §8.8), read as the browser computed it: each of
+- the visual system (`specification.md` §8.8), read as the browser computed it: each of
   the eight packaged files fetched over the renderer's own protocol and
   answering with the WOFF2 signature rather than with an error; the face
   proven to be **in use** by measuring a line of text against the same line in
@@ -563,21 +563,21 @@ Tests MUST cover:
   a resolved scheme and a palette; Dark changing the token set, the editor's
   surface with it, and reaching the preference file; a palette changing the
   accent; and both going back to where they started;
-- searching the library (`SPEC.md` §9.3) as the navigator's third view:
+- searching the library (`specification.md` §9.3) as the navigator's third view:
   switching to it leaves the column width where it was; a word that stands in
   more than one sheet is found in more than one sheet, every row marking the
   word it matched and the summary counting the rows; a value that stands only
   in **front matter** is not found, however plainly it reads in the file —
   which is what proves that only the text is searched; and a row opens its
   sheet and lands on its line, read off the status bar;
-- finding in the open sheet (`SPEC.md` §10.11), opened **through the native
+- finding in the open sheet (`specification.md` §10.11), opened **through the native
   menu item** because the menu owns `Cmd/Ctrl+F`: the field seeded with what
   was selected, every match marked and counted — the marks in the text and the
   count on the bar agreeing — the find **starting at the cursor** rather than
   at the top, since the check leaves the cursor in the second line and the
   match after it is the one that becomes current, Return and `Shift+Return`
   wrapping at either end, and Escape closing the bar with no mark left behind;
-- writing the manuscript out (`SPEC.md` §15.2) in the main process: the
+- writing the manuscript out (`specification.md` §15.2) in the main process: the
   assembled Markdown written to the file the author named and the short path
   reported back; a PDF set from the module's own document and its bytes
   written; a cancelled export writing **nothing at all**; an empty document
@@ -596,14 +596,14 @@ Tests MUST cover:
   the parts in the library's order, the group's heading between them, and no
   front matter in what comes out — read through the codec, which is what
   makes §15.1's rule structural rather than a later removal;
-- where you have been (`SPEC.md` §9.4), driven **through the native menu
+- where you have been (`specification.md` §9.4), driven **through the native menu
   items** because the menu owns `Cmd/Ctrl+[` and `]`: two sheets opened by
   clicking, back reaching the earlier one and forward returning, a further
   step past the end doing nothing at all rather than failing, and the
   navigator's own menu offering the sheet an earlier check saved — chosen
   from the menu, it opens, and the menu closes behind the choice. The check
   leaves the window on the sheet it found open;
-- the export end to end (`SPEC.md` §15.2), driven through the **native menu
+- the export end to end (`specification.md` §15.2), driven through the **native menu
   items** and the sheet's own context menu and then **read off the disk**:
   the Markdown carries no front matter though both fixture sheets have it,
   the group stands as a heading above the sheet it holds and that sheet's own
@@ -620,26 +620,26 @@ Tests MUST cover:
   choice actually reaches the page is read **out of the PDF**, which names
   the fonts it uses: the typescript is monospaced, so `Courier` is in the
   file and `Georgia` is not;
-- the regions as panels (`SPEC.md` §8.2), measured in the running workbench:
+- the regions as panels (`specification.md` §8.2), measured in the running workbench:
   the leading rail flush against the window, the first panel eight pixels past
   it, all four panels eight from the top, the same corner, border and lift on
   each, three dividers eight pixels wide, eight pixels of air between the
   panels on either side of each — the gap **is** the divider, so the two are
   measured as one thing — and a canvas that is not the panels' own colour;
-- the shape of things (`SPEC.md` §8.9), measured on a dialog that is actually
+- the shape of things (`specification.md` §8.9), measured on a dialog that is actually
   open: a 16px corner on a panel that is lifted off the workbench, a header
   and an actions row that are each a band of their own — a different surface,
   closed and opened by a line — an active category wearing the inset accent
   edge, and a button 26px tall with a 7px corner; and, at the folder question,
   the one affirmative button carrying the accent itself, compared against the
   root's own `--wi-accent`;
-- the editor zoom (`SPEC.md` §10.9), measured with computed styles: the
+- the editor zoom (`specification.md` §10.9), measured with computed styles: the
   slider starting at 100 %; dragged to 150 % it scales the text, the heading
   by its ratio and the gutter by exactly half again, while the sheet list and
   the status bar beside them do not move; the factor reaching the preference
   file; a drag to 102 % landing on the detent at 100 %; and the percentage
   itself taking it back to 100 %, where the sizes are what they were;
-- the settings dialog (`SPEC.md` §13): opened through the native menu item
+- the settings dialog (`specification.md` §13): opened through the native menu item
   and through the tool entry of the activity bar; a switch changed in it
   reaching the preference file; Escape closing it with focus back on the
   entry that opened it; the repository's identity shown, changed, and read
@@ -651,12 +651,12 @@ Tests MUST cover:
   menu item read in German, then back; and Reset restoring the defaults in
   the preference file, with English put back explicitly because the machine
   may be German;
-- the native menu of `SPEC.md` §8.5: every declared command has an item with
+- the native menu of `specification.md` §8.5: every declared command has an item with
   its specified accelerator, the items are enabled only when their command is
   possible, saving and closing are exercised **through the menu item** rather
   than through a synthetic keystroke — which bypasses accelerators — and the
   Edit menu still carries every platform editing role;
-- the window choreography of `SPEC.md` §8.5: the application starts on the
+- the window choreography of `specification.md` §8.5: the application starts on the
   launcher, opening a project presents the workbench and dismisses the
   launcher, and closing the project brings the launcher back with that project
   listed as recent and available;
@@ -669,7 +669,7 @@ Tests MUST cover:
 - that front matter never appears inside the writing surface;
 - that switching group and sheet loads the other document and leaves nothing of
   the previous one behind;
-- creating and renaming, through the real context menus (`SPEC.md` §6.4, §6.5):
+- creating and renaming, through the real context menus (`specification.md` §6.4, §6.5):
   a sheet created from a group's menu appears on disk under the slug of its
   title, opens in the editor, and the sheet list beside it shows the group that
   holds it; renaming a **closed** sheet rewrites the file's `title` and leaves
@@ -679,7 +679,7 @@ Tests MUST cover:
   `structure.json`; renaming it changes that entry and nothing else. The file
   and directory names on disk are read from the filesystem, so what is checked
   is that nothing moved;
-- showing what changed (`SPEC.md` §12): a sheet opens **word by word**, with
+- showing what changed (`specification.md` §12): a sheet opens **word by word**, with
   only the words that changed marked and the rest of the file readable around
   them, and Git's line view one click away; the line view carries the saved
   line as added and its four header lines as header — the case where `--- a/…`
@@ -691,59 +691,59 @@ Tests MUST cover:
   second. Nothing invented, nothing lost. The bound is checked too: two texts
   with nothing in common are reported as one replacement rather than searched
   forever;
-- discarding a change (`SPEC.md` §12), in both kinds and with the confirmation
+- discarding a change (`specification.md` §12), in both kinds and with the confirmation
   refused first: cancelling keeps the file, an untracked file arrives in the
   trash rather than being removed, a tracked one is byte-identical to
   `git show HEAD:<path>` afterwards, and the editor's unsaved version of it is
   gone — with no conflict prompt about the change that was just discarded;
 - a **real conflict**, made by changing the same passage on both sides
-  (`SPEC.md` §12): the merge is confirmed, the panel reports it as in progress,
+  (`specification.md` §12): the merge is confirmed, the panel reports it as in progress,
   the sheet full of markers is marked read-only in the editor, the resolver
   shows both versions with the differing words marked and counts what is left
   to decide, and applying a decision writes the file with the chosen text and
   **no marker** in it. Committing afterwards produces a commit with two
   parents, checked with `git rev-list --parents`;
-- branches (`SPEC.md` §12): listed with the checked-out one marked, created and
+- branches (`specification.md` §12): listed with the checked-out one marked, created and
   switched to, and an unmerged one refused deletion **in git's own words**. The
   rule the application adds is checked where git cannot help: with unsaved work
   in the editor a switch stops to ask, and declining leaves the branch as it
   was. That a *committed* change stays on its branch is checked by reading the
   file after switching — a change that is only saved belongs to no branch and
   follows, which is git's behaviour and not a defect;
-- amending the last commit (`SPEC.md` §12): the panel commits, then amends, and
+- amending the last commit (`specification.md` §12): the panel commits, then amends, and
   the result is read from git — `git log -1` carries the new message and
   `git rev-list --count` is unchanged, so the commit was replaced rather than
   followed by another. The message the commit already had is offered in the
   field, and the question **quotes it**, because the field is behind the dialog.
   After a push the control is gone, which is the rule that a published commit is
   not rewritten;
-- keeping files out of the repository (`SPEC.md` §12): an untracked file is
+- keeping files out of the repository (`specification.md` §12): an untracked file is
   ignored from its row, and `.gitignore` is read from disk to see the path
   arrive; the list opens as text, takes another pattern, and is read back again.
   The ignored file is still on disk afterwards — ignoring is not deleting — and
   its row is gone from the change list. The row's file name must be readable
   **at rest**: the invisible row controls take no width until the row is
   pointed at, checked by comparing the name's scroll width against its box;
-- publishing a branch through the interface (`SPEC.md` §12), which is also how
+- publishing a branch through the interface (`specification.md` §12), which is also how
   the remote in the checks below comes to exist: the panel offers it while the
   branch tracks nothing, an address of the command-running kind is **refused
   before git sees it** and recorded nowhere — checked by asking git what
   remotes it has — and the real address publishes, after which the upstream is
   reported and the manuscript is in the remote, read with `git ls-tree`;
-- fetching and pulling against a **real remote** (`SPEC.md` §12), with a second
+- fetching and pulling against a **real remote** (`specification.md` §12), with a second
   working copy standing in for the other machine: after a fetch the panel says
   one commit behind and **no file has appeared** in the working tree; after a
   pull the commit is in and the panel says up to date. The remote is created
   inside that check rather than in the fixture, because an earlier check needs
   a push to fail for want of one. That a pull can never merge is checked where
   it is decided: with diverged histories, git refuses and nothing is written;
-- the live status of `SPEC.md` §12: with the panel on screen, a file written
+- the live status of `specification.md` §12: with the panel on screen, a file written
   behind the application's back appears in the change list without anyone
   asking — and then the watch **stays quiet for three seconds**, counted in the
   main process. That second half is the check for C-F4: `git status` writes
   inside `.git` on every read, and a watcher without the filter refreshes
   itself for as long as the panel stays open;
-- the commit model of `SPEC.md` §12 against a **real repository**: the smoke
+- the commit model of `specification.md` §12 against a **real repository**: the smoke
   project is `git init`-ed without a commit, which is the state a freshly
   created project is in. Everything is staged in one batch through the
   tri-state header, one file is unstaged where there is no `HEAD` to resolve
@@ -752,27 +752,27 @@ Tests MUST cover:
   to report **Git's own words** rather than a code. Identity and signing are
   configured locally in the fixture, so the check neither depends on nor trips
   over how the machine is set up;
-- page categories end to end (`SPEC.md` §6.6): defined in the manager and
+- page categories end to end (`specification.md` §6.6): defined in the manager and
   found in `categories.json`, assigned in the Inspector, shown at once as a
   badge in the sheet list, and written into the sheet on save. The badge's text
   colour is read from the **computed style**, so the rule is checked where it
   lands rather than where it is written: a dark background must carry white
   text;
-- the front matter area (`SPEC.md` §10.4): hidden until asked for, then a
+- the front matter area (`specification.md` §10.4): hidden until asked for, then a
   foreign and an own block carrying what the file carries; read-only presented
   as a **selectable** control rather than a disabled one, and only the foreign
   block turning writable. The height is checked as the property it is — what is
   visible against what there is to see — rather than as a number: a block whose
   last line sits under a horizontal scrollbar passes a check about pixels and
   fails this one;
-- the same rule again with **nobody pressing anything** (`SPEC.md` §10.6, MVP
+- the same rule again with **nobody pressing anything** (`specification.md` §10.6, MVP
   §17.13 and §17.14): a file written behind the application's back reaches the
   editor by itself, raises the prompt by itself when work is unsaved, and a
   sheet appearing in the group on screen shows up in the list — all without a
   manual refresh. The watcher adapter is checked separately against the real
   filesystem, including the two cases that decided its shape: a file survives
   being replaced by a rename, and what Git writes about itself is ignored;
-- the comparison rule of `SPEC.md` §10.6 at the explicit re-read: with unsaved
+- the comparison rule of `specification.md` §10.6 at the explicit re-read: with unsaved
   work in the editor and the file changed underneath — written from the main
   process, behind the application's back — the reload asks instead of
   discarding, the author's text is still in the editor **while** it asks,
@@ -781,7 +781,7 @@ Tests MUST cover:
   positive: a prompt that appeared after the work was gone would pass a check
   that only asks whether a prompt appeared;
 - placing, by a real pointer drag from one library column into the other
-  (`SPEC.md` §6.8): a sheet dragged from the sheet list onto a group in the
+  (`specification.md` §6.8): a sheet dragged from the sheet list onto a group in the
   tree, that group then dragged into a third, and a fourth dropped **between**
   the children of another group — after each, the file is read from its new
   place on disk, `structure.json` is checked for the re-keyed entry, for the
@@ -789,7 +789,7 @@ Tests MUST cover:
   checked to be holding the same document it held before. A screenshot taken
   while the pointer is still down shows the destination highlighted and the
   dragged row dimmed;
-- deleting into the trash (`SPEC.md` §6.7): a sheet and a group leave the
+- deleting into the trash (`specification.md` §6.7): a sheet and a group leave the
   project and **arrive** in the trash — the group with its sheet inside —
   `structure.json` forgets them, and the selection lands on what is left.
   Both negative cases are checked by proving the dialog **closed**: a
@@ -798,7 +798,7 @@ Tests MUST cover:
   its own, so a check does not leave rubbish in the author's own trash on every
   run; that the destination is the desktop trash in the application is one line
   of wiring, and a unit test proves the session itself never removes a file;
-- reordering by a **real pointer drag** (`SPEC.md` §6.4): a sheet dragged past
+- reordering by a **real pointer drag** (`specification.md` §6.4): a sheet dragged past
   the row below it and a group dragged past its sibling both change the order
   shown *and* the order recorded in `structure.json`, and neither drag opens or
   selects what it moved. A screenshot is taken while the pointer is still down,
@@ -813,7 +813,7 @@ Tests MUST cover:
 - native open, save, save-as, cancellation, failure reporting, dirty titles,
   and unsaved-close protection;
 - empty startup, context-sensitive close behavior returning to an empty
-  workspace, and full clearing of derived state (`SPEC.md` §8.5);
+  workspace, and full clearing of derived state (`specification.md` §8.5);
 - the quit guard: quitting the application does not re-open the welcome window,
   and closing the welcome window does not double-quit;
 - platform window lifecycle: closing all windows quits on Windows and Linux,
@@ -830,20 +830,20 @@ Tests MUST cover:
 Automated tests MAY substitute adapters for native dialogs, but at least one
 **manual** file round trip and close-protection check is required on each
 supported platform before a release. Artifact evidence from one operating
-system is evidence only for that operating system (`CONVENTIONS.md` C-P3).
+system is evidence only for that operating system (`conventions.md` C-P3).
 
 ### 2.8 Editor component spike gate
 
-The editing component (`SPEC.md` §5.4) is a draft decision. Before it is
+The editing component (`specification.md` §5.4) is a draft decision. Before it is
 accepted, a spike MUST demonstrate, in a real rendering engine rather than a
 DOM stub, that the component can do the following. The thresholds are fixed
 here **before** the spike runs, because a threshold chosen after a measurement
-proves nothing (`CONVENTIONS.md` C-T14).
+proves nothing (`conventions.md` C-T14).
 
 | # | Criterion | Threshold |
 | --- | --- | --- |
 | 1 | Different font sizes for heading lines in one document | An H1 line block is measurably taller than a body line; total content height equals the sum of the line blocks, so scrolling stays correct |
-| 2 | A gutter column aligned to line heights, including wrapped lines, with heights **measured, not computed** (`CONVENTIONS.md` C-U5) | Every gutter marker's top edge is within 1 px of its line's top edge; a wrapped line carries exactly one marker, at its first visual row |
+| 2 | A gutter column aligned to line heights, including wrapped lines, with heights **measured, not computed** (`conventions.md` C-U5) | Every gutter marker's top edge is within 1 px of its line's top edge; a wrapped line carries exactly one marker, at its first visual row |
 | 3 | Decoration-based hiding of inline markers, with the cursor's line exempt | The rendered text of an unfocused line contains no `**` delimiters; the focused line shows them; moving the cursor switches both within one update |
 | 4 | An undo history per document that survives switching documents | After editing A, switching to B, and returning, one undo reverts only A's edit, and B is untouched |
 | 5 | Paste from an external application without corrupting the display model | Pasted text containing CRLF, tabs, and Markdown syntax arrives in the document byte-for-byte, and the display transform round-trips it unchanged |
@@ -853,7 +853,7 @@ A failing criterion means the component is not accepted. It does not mean the
 criterion is relaxed.
 
 **Outcome, 2026-09-01: CodeMirror 6 passed all six criteria** and is accepted
-(`SPEC.md` §5.4). A seventh criterion was added when the adapter was built: the
+(`specification.md` §5.4). A seventh criterion was added when the adapter was built: the
 real implementation runs the editor contract suite of §2.6 and passes all
 eleven cases, the same ones the in-memory double passes. Measured: H1 45 px against body 22.5 px with the line blocks
 plus padding accounting for the full content height; marker tops matching their
@@ -894,22 +894,22 @@ Tests MUST prove:
 
 ### 2.11 Markdown parser spike gate
 
-**The decision this gate was written for has been taken** (2026-09-04, `SPEC.md`
-§19, `DEPENDENCIES.md`); the gate stays as the record of how it was taken, and
+**The decision this gate was written for has been taken** (2026-09-04, `specification.md`
+§19, `dependencies.md`); the gate stays as the record of how it was taken, and
 as the shape the next such decision follows. It was wanted for
 two things: the standard-conformance cross-check that §2.2 requires and the
 codec's own tests cannot supply, and the GFM rendering of the roadmap
-(`SPEC.md` §18). Before a candidate is accepted, a spike MUST demonstrate the
+(`specification.md` §18). Before a candidate is accepted, a spike MUST demonstrate the
 following, in Node, against the published CommonMark specification examples
 (version 0.31.2, 652 examples, fetched by hash into `build/` and never
 committed — the specification is CC-BY-SA, the repository is not). The
-thresholds are fixed here **before** the spike runs (`CONVENTIONS.md` C-T14).
+thresholds are fixed here **before** the spike runs (`conventions.md` C-T14).
 
 | # | Criterion | Threshold |
 | --- | --- | --- |
 | 1 | CommonMark conformance | Every specification example renders to the specified HTML, compared after whitespace and self-closing-tag normalisation; a candidate below 100 % is listed with its failures and not accepted |
 | 2 | Source positions | Every heading and code block the parser reports carries the one-based line it starts on, without the translation layer having to re-scan the text |
-| 3 | Agreement with the core on headings and code | Over the examples of the sections *ATX headings*, *Fenced code blocks*, *Indented code blocks*, and *Setext headings*, the top-level ATX heading lines the parser reports are exactly the lines `markdownToDisplay` marks as headings, at the same level; and every line the core marks verbatim lies inside a top-level code block the parser reports. Top-level, because the display transform models no containers: a heading inside a block quote or a list item is outside its rule by design (`SPEC.md` §10.1). Zero disagreements — a disagreement is a defect in one of the two and is recorded either way |
+| 3 | Agreement with the core on headings and code | Over the examples of the sections *ATX headings*, *Fenced code blocks*, *Indented code blocks*, and *Setext headings*, the top-level ATX heading lines the parser reports are exactly the lines `markdownToDisplay` marks as headings, at the same level; and every line the core marks verbatim lies inside a top-level code block the parser reports. Top-level, because the display transform models no containers: a heading inside a block quote or a list item is outside its rule by design (`specification.md` §10.1). Zero disagreements — a disagreement is a defect in one of the two and is recorded either way |
 | 4 | GFM | Tables, strikethrough, and task list items parse with the candidate's own or its author's extension, from the same package family |
 | 5 | Footprint | At most 10 packages installed in total for the candidate, including transitives; no dependency from Git or a URL; every license MIT, BSD, ISC, or Apache-2.0 |
 | 6 | Parse time | A document of at least 100,000 characters parses in under 50 ms median over 20 runs |
@@ -930,14 +930,14 @@ PSF-2.0 dependency; commonmark.js has no GFM; micromark pulls 43 packages
 and needs 164 ms for 112,854 characters. Criterion 3 turned out to measure
 the core: the conformant parsers agree with each other and disagree with
 `markdownToDisplay` in the same eight places, all recorded as findings in
-`TODO.md` (two fence defects, one design limit, one cosmetic deviation).
+`roadmap.md` (two fence defects, one design limit, one cosmetic deviation).
 Criterion 7 found four defects in the codec's writer and reader, also in
-`TODO.md`; 165 of 181 generated sheets and all three fixtures read back
+`roadmap.md`; 165 of 181 generated sheets and all three fixtures read back
 identically. The measurements and the reading of them are in
 `spikes/parser-markdown/README.md`. The decision was taken the same day
-(`TODO.md` §2.1): the gate read as two — commonmark.js and `yaml` as the
+(`roadmap.md` §2.1): the gate read as two — commonmark.js and `yaml` as the
 test oracle, markdown-it for the GFM display with its two deviations
-recorded in `DEPENDENCIES.md`. Re-run with `pnpm run spike:parser`.
+recorded in `dependencies.md`. Re-run with `pnpm run spike:parser`.
 
 ### 2.10 Localization
 
@@ -964,6 +964,50 @@ how user data would get in. The service follows the layout state's choice
 without a restart. The smoke (§2.7) switches to German and back and reads
 the dialog, the activity bar, the document's `lang`, and the native menu
 item.
+
+### 2.12 The repository as a published artifact
+
+**Added 2026-09-11**, when the project was prepared for publication. Two
+gates, both in `pnpm run check`, because a check that runs only on release day
+protects only release day.
+
+**The documentation gate** (`scripts/check-documentation.mjs`) proves:
+
+- **every relative link in every Markdown file resolves.** With the
+  engineering documents in `docs/engineering/` and hundreds of references from
+  source comments, a moved document is the reader's dead end rather than a
+  small mistake. Links inside fenced code are skipped: the specification
+  documents Markdown and shows `[text](url)` as an example, and following an
+  example would be a fabricated failure;
+- **every translated document has its pair**, and neither side is a stub — a
+  German page that quietly stopped being maintained is worse than none;
+- **each side links to the other**, in the reader's line of sight; and
+- **the engineering index lists every engineering document**, so a new one
+  cannot be added where nobody finds it.
+
+The engineering documents themselves are deliberately **not** a translated
+pair. They are the authoritative sources and are English only, so a product
+contract cannot diverge between two languages.
+
+**The public-source gate** (`scripts/check-public-source.mjs`) proves that
+nothing is committed that cannot be taken back:
+
+- no file whose **name** says it holds a credential — `.env`, a key, a
+  keystore, a private SSH key;
+- no **content** shaped like one: a private-key block, or a token of the
+  shapes GitHub, AWS, Google, Anthropic, OpenAI, and Slack issue. It looks for
+  shapes rather than for a list of our own secrets, because such a list would
+  have to contain them;
+- no **real home directory**. Documentation may show `~/` and a placeholder
+  name; what must not ship is the account name of the machine this was built
+  on. The placeholders are one list, which is what lets the rest stay strict;
+  and
+- the **licence and the public files are present**, and the licence is the one
+  the project claims to have.
+
+Both gates were falsified when they were written: a link was pointed at a
+document that does not exist, a translated page was emptied, and a token shape
+was planted in a scratch file. Each was red, and red for its own reason.
 
 ## 3. Fixture catalog
 
@@ -1083,7 +1127,7 @@ discipline).
 
 An implementation change is complete only when:
 
-- behavior matches `SPEC.md`;
+- behavior matches `specification.md`;
 - relevant unit and integration tests exist and pass;
 - negative behavior has diagnostics tests;
 - deterministic output has been checked;
@@ -1097,7 +1141,7 @@ An implementation change is complete only when:
 
 Before the MVP may be called complete:
 
-- every acceptance criterion in `SPEC.md` §17 has a named test or a reviewed
+- every acceptance criterion in `specification.md` §17 has a named test or a reviewed
   manual verification;
 - the front matter round trip passes for every fixture in the catalog,
   including the deliberately hostile ones;
@@ -1111,7 +1155,7 @@ Before the MVP may be called complete:
 - the editor component spike gate (§2.8) has passed and the component is
   recorded as accepted;
 - no network access is required at any point — and when the AI assistant
-  exists (`SPEC.md` §15), the release check includes **using the application
+  exists (`specification.md` §15), the release check includes **using the application
   with the network unplugged**: everything works, the assistant alone says it
   is unavailable, and nothing waits, retries or spins;
 - dependency and asset licenses are documented; and

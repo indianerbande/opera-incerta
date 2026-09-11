@@ -3,7 +3,7 @@ import { findGroup, sheetsInGroup, subgroupsOf, type GroupEntry } from '@opera-i
 
 /**
  * Dragging an entry in the library: to a new place among its siblings
- * (SPEC.md §6.4) or into another group (§6.8).
+ * (specification.md §6.4) or into another group (§6.8).
  *
  * **One owner for the whole gesture.** A drag that starts in the sheet list
  * and ends in the tree belongs to neither of them, so the shell owns it: the
@@ -14,7 +14,7 @@ import { findGroup, sheetsInGroup, subgroupsOf, type GroupEntry } from '@opera-i
  *
  * **Pointer events, not the drag-and-drop API**: the native one cannot be
  * driven by a synthetic pointer, and a gesture no check can drive is a gesture
- * nothing proves (`TESTING.md` §1.4).
+ * nothing proves (`testing.md` §1.4).
  *
  * The geometry here is free of the DOM. The caller measures; this decides.
  */

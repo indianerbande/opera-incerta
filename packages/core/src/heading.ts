@@ -1,5 +1,5 @@
 /**
- * Heading display model. SPEC.md §10.1 and §10.2.
+ * Heading display model. specification.md §10.1 and §10.2.
  *
  * On disk a heading is `# Text`. In the editor it is a property of the whole
  * paragraph plus a label in the gutter, and the `#` prefix is not part of the
@@ -45,7 +45,7 @@ const CLOSING_HASHES = /^([\s\S]*?)([ \t]+#+)$/;
  * A fenced code block opener or closer: the run, and what follows it. An
  * opening backtick fence's info string must not contain a backtick (`` ``` ``` ``
  * is a code span), and a closing fence may be followed by spaces only. The
- * standard oracle found both (`TESTING.md` §2.11, examples 138, 145, 147).
+ * standard oracle found both (`testing.md` §2.11, examples 138, 145, 147).
  */
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 
@@ -69,7 +69,7 @@ const SETEXT_EQUALS = /^ {0,3}=+[ \t]*$/;
  * a blank line, a heading, a thematic break, a setext underline, or a fence
  * — and never as the indented continuation of a paragraph. The standard
  * oracle found the earlier rule, "after a blank line only", short of
- * CommonMark (`TESTING.md` §2.2).
+ * CommonMark (`testing.md` §2.2).
  */
 export function markdownToDisplay(markdown: string): readonly DisplayLine[] {
   const lines = markdown.split('\n');
@@ -166,7 +166,7 @@ function readLine(line: string): DisplayLine {
  *
  * Existing spacing is kept when only the level changes, so re-levelling a line
  * does not silently reformat it. A heading applies to exactly one line: the
- * caller starts the next paragraph plain (SPEC.md §10.2).
+ * caller starts the next paragraph plain (specification.md §10.2).
  */
 export function withHeadingLevel(line: DisplayLine, level: HeadingLevel | null): DisplayLine {
   if (level === null) {
@@ -186,7 +186,7 @@ export function withHeadingLevel(line: DisplayLine, level: HeadingLevel | null):
   };
 }
 
-/** One heading in the outline. SPEC.md §11. */
+/** One heading in the outline. specification.md §11. */
 export interface OutlineEntry {
   readonly level: HeadingLevel;
   readonly text: string;
@@ -207,7 +207,7 @@ export function outlineOf(lines: readonly DisplayLine[]): readonly OutlineEntry[
 
 /**
  * Which outline entries are visible. H1 and H2 always; H3 to H6 only with the
- * deeper-levels toggle enabled. SPEC.md §11 — a rule, not view logic.
+ * deeper-levels toggle enabled. specification.md §11 — a rule, not view logic.
  */
 export function visibleOutline(
   entries: readonly OutlineEntry[],

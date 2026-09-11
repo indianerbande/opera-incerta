@@ -1,6 +1,6 @@
 /**
  * The English catalogue: the base language, and the source of every key.
- * SPEC.md §14.1.
+ * specification.md §14.1.
  *
  * Grouped by where the words appear. `{name}` is a placeholder; a key ending
  * in `.one` or `.other` is one form of a plural family and is read through
@@ -354,7 +354,7 @@ export const EN = {
   'menu.closeProject': 'Close Project',
   'menu.settings': 'Settings…',
 
-  // Writing the manuscript out. SPEC.md §15.2.
+  // Writing the manuscript out. specification.md §15.2.
   'export.markdown': 'Markdown…',
   'export.pdf': 'PDF…',
   'export.markdownFromHere': 'Export Markdown from here…',

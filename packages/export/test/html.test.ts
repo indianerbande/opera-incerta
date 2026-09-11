@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_STYLESHEET, documentHtml, escapeHtml } from '../src/index.js';
 
-describe('the printable document (SPEC.md §15.2)', () => {
+describe('the printable document (specification.md §15.2)', () => {
   it('is self-contained: its own style, nothing fetched', () => {
     const html = documentHtml({ title: 'A Novel', parts: [] });
 

@@ -1,11 +1,11 @@
 /**
- * Source control adapter boundary. SPEC.md §12.
+ * Source control adapter boundary. specification.md §12.
  *
  * Git is the synchronization mechanism, and the adapter drives the locally
  * installed `git` executable: no Git library dependency, no bundled binary
- * (CONVENTIONS.md C-P10). Only the ports and the pure status vocabulary are
+ * (conventions.md C-P10). Only the ports and the pure status vocabulary are
  * declared so far; the status parser itself is a pure function and will live
- * beside these types with its own tests (TESTING.md §2.5).
+ * beside these types with its own tests (testing.md §2.5).
  */
 
 /** Which group a changed file belongs to. Conflicts count as unstaged. */
@@ -31,7 +31,7 @@ import type { GitFileStatus } from '@opera-incerta/core';
  *
  * Read and write operations get separate in-flight guards in the consumer: one
  * shared busy flag lets a background refresh swallow a user action
- * (CONVENTIONS.md C-F3).
+ * (conventions.md C-F3).
  */
 /**
  * The git vocabulary — tracking, branches, remotes — lives in the portable
@@ -52,7 +52,7 @@ export interface GitService {
   /**
    * Creates a repository in a directory, with `main` as its initial branch.
    * Nothing is staged and nothing is committed: what goes into the first
-   * commit stays the author's decision (SPEC.md §12).
+   * commit stays the author's decision (specification.md §12).
    */
   init(absolutePath: string): Promise<void>;
   status(repositoryRoot: string): Promise<readonly GitFileStatus[]>;
@@ -64,7 +64,7 @@ export interface GitService {
    * Whether the repository has a commit at all.
    *
    * A freshly created project has none, and `HEAD` is what half of Git's
-   * restoring vocabulary resolves against (SPEC.md §12).
+   * restoring vocabulary resolves against (specification.md §12).
    */
   hasCommit(repositoryRoot: string): Promise<boolean>;
   /**
@@ -88,7 +88,7 @@ export interface GitService {
   /** The message of the last commit, or null when there is none. */
   lastCommitMessage(repositoryRoot: string): Promise<string | null>;
   /**
-   * Replaces the last commit. SPEC.md §12.
+   * Replaces the last commit. specification.md §12.
    *
    * Offered only for a commit that has not been pushed: amending rewrites
    * history, and a pushed commit could only be published again by force, which
@@ -97,7 +97,7 @@ export interface GitService {
   amend(repositoryRoot: string, message: string | null): Promise<void>;
   push(repositoryRoot: string): Promise<void>;
   /**
-   * Where the branch tracks, and how far apart the two are. SPEC.md §12.
+   * Where the branch tracks, and how far apart the two are. specification.md §12.
    *
    * `null` when the branch tracks nothing: this application does not create an
    * upstream, so there is simply nothing to compare against.
@@ -105,7 +105,7 @@ export interface GitService {
   tracking(repositoryRoot: string): Promise<GitTracking | null>;
   /** The checked-out branch, or null on a detached head. */
   currentBranch(repositoryRoot: string): Promise<string | null>;
-  /** Every local branch, and which one is checked out. SPEC.md §12. */
+  /** Every local branch, and which one is checked out. specification.md §12. */
   branches(repositoryRoot: string): Promise<readonly GitBranch[]>;
   /** Creates a branch at the current commit and switches to it. */
   createBranch(repositoryRoot: string, name: string): Promise<void>;
@@ -123,7 +123,7 @@ export interface GitService {
   defaultRemote(repositoryRoot: string): Promise<GitRemote | null>;
   /**
    * The identity recorded at one scope, or null when either half is missing.
-   * SPEC.md §12.
+   * specification.md §12.
    *
    * `global` is the author's own configuration, read to decide whether to
    * ask at all; `local` is this repository's. The directory is where git is
@@ -131,11 +131,11 @@ export interface GitService {
    */
   identity(absolutePath: string, scope: 'global' | 'local'): Promise<GitIdentity | null>;
   /**
-   * Records an identity in this repository only. SPEC.md §12: the author's
+   * Records an identity in this repository only. specification.md §12: the author's
    * global configuration is never written.
    */
   setIdentity(repositoryRoot: string, identity: GitIdentity): Promise<void>;
-  /** Records a remote under a name. SPEC.md §12. */
+  /** Records a remote under a name. specification.md §12. */
   addRemote(repositoryRoot: string, name: string, url: string): Promise<void>;
   /** Pushes a branch and sets it to track what it was pushed to. */
   publish(repositoryRoot: string, remote: string, branch: string): Promise<void>;
@@ -151,7 +151,7 @@ export interface GitService {
    */
   pull(repositoryRoot: string): Promise<void>;
   /**
-   * Merges the upstream in, which may leave conflicts. SPEC.md §12.
+   * Merges the upstream in, which may leave conflicts. specification.md §12.
    *
    * Separate from `pull` and never automatic: this is the operation that can
    * write markers into a manuscript, so the author asks for it explicitly.

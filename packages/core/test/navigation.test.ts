@@ -16,7 +16,7 @@ function after(...paths: readonly string[]) {
   return paths.reduce(visited, EMPTY_HISTORY);
 }
 
-describe('the navigation history (SPEC.md §9.4)', () => {
+describe('the navigation history (specification.md §9.4)', () => {
   it('records what was opened, in order', () => {
     const history = after('a.md', 'b.md', 'c.md');
     expect(history.entries).toEqual(['a.md', 'b.md', 'c.md']);
@@ -64,7 +64,7 @@ describe('the navigation history (SPEC.md §9.4)', () => {
   });
 });
 
-describe('the recently edited list (SPEC.md §9.4)', () => {
+describe('the recently edited list (specification.md §9.4)', () => {
   it('puts the newest first, without duplicating', () => {
     let recent = withRecentSheet([], 'a.md');
     recent = withRecentSheet(recent, 'b.md');

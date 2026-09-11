@@ -45,7 +45,7 @@ describe('readPreferences', () => {
   it('keeps a remembered stylesheet name without checking it here', () => {
     // The record is read before a project is open, so a name cannot be
     // checked against a list yet. It falls back at the moment of use
-    // (SPEC.md §15.2) rather than being silently rewritten here.
+    // (specification.md §15.2) rather than being silently rewritten here.
     expect(readPreferences({ exportStylesheet: 'Not In This Project' }).exportStylesheet).toBe(
       'Not In This Project',
     );
@@ -94,7 +94,7 @@ describe('readPreferences', () => {
     );
   });
 
-  it('falls back for a scheme or a palette it does not offer (SPEC.md §8.8)', () => {
+  it('falls back for a scheme or a palette it does not offer (specification.md §8.8)', () => {
     expect(readPreferences({ colorScheme: 'sepia' }).colorScheme).toBe(
       DEFAULT_PREFERENCES.colorScheme,
     );
@@ -107,7 +107,7 @@ describe('readPreferences', () => {
     });
   });
 
-  it('clamps a stored zoom, and snaps one near the middle to 100 (SPEC.md §10.9)', () => {
+  it('clamps a stored zoom, and snaps one near the middle to 100 (specification.md §10.9)', () => {
     expect(readPreferences({ editorZoom: 1000 }).editorZoom).toBe(200);
     expect(readPreferences({ editorZoom: 102 }).editorZoom).toBe(100);
     expect(readPreferences({ editorZoom: 'large' }).editorZoom).toBe(DEFAULT_PREFERENCES.editorZoom);

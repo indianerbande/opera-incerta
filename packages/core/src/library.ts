@@ -1,5 +1,5 @@
 /**
- * The library as the application shows it. SPEC.md §6.1, §9.
+ * The library as the application shows it. specification.md §6.1, §9.
  *
  * Plain data: the Node adapter produces it by reading the filesystem, the
  * renderer displays it, and neither needs the other's dependencies. The
@@ -10,7 +10,7 @@ import type { HeadingLevel } from './heading.js';
 
 /**
  * One line of a sheet-list preview, with the level it is shown at.
- * SPEC.md §9.2: the preview carries the actual formatting from the file.
+ * specification.md §9.2: the preview carries the actual formatting from the file.
  */
 export interface PreviewLine {
   readonly text: string;
@@ -28,13 +28,13 @@ export interface SheetEntry {
   /**
    * The page category's id, as the file carries it. Resolving it is the
    * reader's job: an id naming nothing is uncategorized, not an error
-   * (SPEC.md §6.6).
+   * (specification.md §6.6).
    */
   readonly category?: string;
   /**
    * The first lines of the body, for the sheet list. Blank lines are kept:
    * whether to show them is the reader's choice, not the scanner's
-   * (SPEC.md §9.2).
+   * (specification.md §9.2).
    */
   readonly preview: readonly PreviewLine[];
 }
@@ -85,7 +85,7 @@ export function findSheet(root: GroupEntry, relativePath: string): SheetEntry | 
  *
  * Sheets of nested groups belong to those groups. Flattening them here would
  * make the middle column a search result rather than a place in the library
- * (SPEC.md §9.2).
+ * (specification.md §9.2).
  */
 export function sheetsInGroup(group: GroupEntry): readonly SheetEntry[] {
   return group.children.filter((child): child is SheetEntry => child.kind === 'sheet');

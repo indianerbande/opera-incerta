@@ -18,7 +18,7 @@ function sourceFiles(directory: string): string[] {
 /**
  * Every key the interface uses, read from the source: `i18n.t('…')`,
  * `i18n.n('…')`, `this.#i18n.t('…')`, and the registry-style `labelKey:
- * '…'` of the activity bars. TESTING.md §2.10.
+ * '…'` of the activity bars. testing.md §2.10.
  */
 function usedKeys(): Map<string, string[]> {
   const uses = new Map<string, string[]>();
@@ -34,7 +34,7 @@ function usedKeys(): Map<string, string[]> {
   return uses;
 }
 
-describe('every key the interface uses exists in every catalogue (TESTING.md §2.10)', () => {
+describe('every key the interface uses exists in every catalogue (testing.md §2.10)', () => {
   const uses = usedKeys();
 
   it('finds keys in the source at all', () => {
@@ -53,7 +53,7 @@ describe('every key the interface uses exists in every catalogue (TESTING.md §2
 
   it('never hands the service a value that is not a literal key', () => {
     // User data — a category name, a title, a path — goes through a verbatim
-    // path (SPEC.md §14.2). A dynamic first argument is the one way to get it
+    // path (specification.md §14.2). A dynamic first argument is the one way to get it
     // into the service, and the settings dialog's `key()` bridge to the
     // registry is the one place allowed to.
     const offenders: string[] = [];

@@ -464,7 +464,7 @@ describe('keywords as a block sequence', () => {
   });
 
   it('writes them back in the inline form, and is then stable', () => {
-    // Formatting inside the owned block belongs to the application (SPEC.md
+    // Formatting inside the owned block belongs to the application (specification.md
     // §6.2); what must survive is the value.
     const once = roundTrip(text);
     expect(once).toContain('  keywords: [draft, "with, comma", it\'s, Größe]');
@@ -659,7 +659,7 @@ describe('a file that starts with a thematic break', () => {
 });
 
 describe('generated front matter never throws, and what it writes it reads back', () => {
-  // TESTING.md §5. Seeded, so a failure is a case and not a rumour.
+  // testing.md §5. Seeded, so a failure is a case and not a rumour.
   function random(seed: number): () => number {
     let state = seed >>> 0;
     return () => {
@@ -767,7 +767,7 @@ describe('generated front matter never throws, and what it writes it reads back'
   });
 });
 
-describe('what the standard oracle found (TESTING.md §2.11)', () => {
+describe('what the standard oracle found (testing.md §2.11)', () => {
   const base = parseSheet('body').sheet;
 
   it('reads back a quoted keyword that contains a space and a hash', () => {

@@ -1,5 +1,5 @@
 /**
- * The manuscript as one document. SPEC.md §15.2.
+ * The manuscript as one document. specification.md §15.2.
  *
  * Pure rules: a library and the bodies of its sheets go in, one Markdown text
  * comes out. Nothing here reads a file or knows a format — assembling is the
@@ -31,7 +31,7 @@ export interface DocumentPiece {
 }
 
 /**
- * Every piece of the document, in the library's recorded order. SPEC.md §15.2.
+ * Every piece of the document, in the library's recorded order. specification.md §15.2.
  *
  * The root group is the document and never becomes a heading of its own.
  * With `from` naming a sheet, the document begins there — and the groups
@@ -94,7 +94,7 @@ export type DocumentPart =
   | { readonly kind: 'sheet'; readonly relativePath: string; readonly markdown: string };
 
 /**
- * The pieces with their bodies in place. SPEC.md §15.2.
+ * The pieces with their bodies in place. specification.md §15.2.
  *
  * `bodies` holds each sheet's body **without its front matter** — the codec
  * of §6.3 hands those out separately, which is what makes §15.1's rule
@@ -134,7 +134,7 @@ export function documentParts(
 }
 
 /**
- * The parts as one Markdown text — the substrate of SPEC.md §15.2.
+ * The parts as one Markdown text — the substrate of specification.md §15.2.
  *
  * Each part is trimmed here rather than trusted to arrive trimmed: exactly
  * one blank line stands between two parts, whatever the sheets ended with,

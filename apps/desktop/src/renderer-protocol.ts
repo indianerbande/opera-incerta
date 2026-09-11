@@ -1,5 +1,5 @@
 /**
- * The owned local protocol that serves the renderer. SPEC.md §5.3.
+ * The owned local protocol that serves the renderer. specification.md §5.3.
  *
  * `loadFile` would give the renderer a `file://` origin, where relative
  * requests can walk the whole disk. A custom scheme with an explicit root and
@@ -7,7 +7,7 @@
  * by review.
  *
  * The resolution rule is a pure function so that traversal attempts can be
- * tested without launching Electron (TESTING.md §2.7).
+ * tested without launching Electron (testing.md §2.7).
  */
 import { posix } from 'node:path';
 import { resolve, sep } from 'node:path';

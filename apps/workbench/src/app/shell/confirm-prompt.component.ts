@@ -13,7 +13,7 @@ import { DialogComponent } from './dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Asking before something is taken away. SPEC.md §6.7.
+ * Asking before something is taken away. specification.md §6.7.
  *
  * Deliberately unlike the naming prompt in one respect: **Return does not
  * confirm** — it cancels, like the default button of a system alert. The

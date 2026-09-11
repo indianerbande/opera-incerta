@@ -1,14 +1,14 @@
 # Opera Incerta — open work
 
 **Purpose of this file: what is still open — nothing else.** Completed work
-moves here out and into [`DONE.md`](DONE.md) **completely**, with its reasoning,
+moves here out and into [`completed-work.md`](completed-work.md) **completely**, with its reasoning,
 its verification result, and its lesson, in the same round (`AGENTS.md`,
 "Working documents"). No ticked checkbox stays behind.
 
-This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
-(product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
+This file is not a source of truth. Those are `AGENTS.md` (process), `specification.md`
+(product), `testing.md` (evidence), and `conventions.md` (inherited measures).
 
-**State 2026-09-11 (second round of the day):** the library is complete —
+**State 2026-09-11 (third round of the day):** the library is complete —
 create, rename, place, delete — as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, source control (§12) up to and
 including amend and `.gitignore`, the GFM display (§10.7), all four answers
@@ -24,7 +24,7 @@ projects, **1106 tests**, plus the desktop and asset checks.
 `pnpm run desktop:smoke` green across forty-five checks,
 `pnpm run spike:editor` 7/7.
 
-All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
+All sixteen MVP criteria of `specification.md` §17 are built and checked. What remains
 open are the parts of §15 that this stage deliberately excludes — import, the
 assistant, DOCX and EPUB — and the items below.
 
@@ -40,7 +40,7 @@ has to be consulted to build, verify or change the product.
    of `checkDocumentFlow` reported "the saved file does not contain the edit"
    in a run whose only change was in an unrelated core rule. Four runs
    immediately afterwards — two clean, two falsified — were green. Since the
-   sleeps went (DONE.md, the same day) that check waits for the edit to reach
+   sleeps went (completed-work.md, the same day) that check waits for the edit to reach
    the disk rather than for half a second, so the likeliest cause is gone;
    the entry stays until a few days of green runs have passed. A second
    kind, seen once on 2026-09-04: the heading-cursor check found the
@@ -65,9 +65,24 @@ has to be consulted to build, verify or change the product.
    has an occasion and pays for itself the moment it happens.
 
 
-## 2. Decided, waiting for their round
+## 2. Small, and left open on purpose
 
-These need no further decision from him — `SPEC.md` says what they are:
+- **The artifact upload in CI is not wired.** Uploading the desktop check's
+  screenshots needs `actions/upload-artifact` pinned to a SHA, and no verified
+  SHA was available offline. An unverified pin looks like diligence and is a
+  guess, so the step is a comment in `.github/workflows/check.yml` until
+  somebody verifies one.
+- **The website is not linked** from the documentation. The address was not
+  settled when the public documentation was written; adding it is one line per
+  place.
+- **A preview of what a stylesheet does**, before the PDF is set — and whether
+  a project may name an export stylesheet as its own default, rather than only
+  the installation remembering one (§15.2).
+
+
+## 3. Decided, waiting for their round
+
+These need no further decision from him — `specification.md` says what they are:
 
 - **The editor's own context menu** (§10.10).
 - **Export**: DOCX and EPUB, in that order, over the assembly §15.2 already
@@ -84,21 +99,21 @@ These need no further decision from him — `SPEC.md` says what they are:
 
 ---
 
-## 3. Larger, still to weigh
+## 4. Larger, still to weigh
 
 Everything here waits on a decision from him, on a user interface, or on both.
-The decisions themselves are listed in `SPEC.md` §19; this is the work that
+The decisions themselves are listed in `specification.md` §19; this is the work that
 follows them.
 
 - **The AI assistant and snapshots panes** — both are activity bar entries
   that say "not built yet". The AI panel is a docking point for the provider
-  interface (`SPEC.md` §15); snapshots need their storage and diff decisions
-  first (`SPEC.md` §11).
+  interface (`specification.md` §15); snapshots need their storage and diff decisions
+  first (`specification.md` §11).
 - **Reordering without a pointer** — the drag has no keyboard equivalent. A
   command that moves the selected entry up or down within its group would also
-  give the operation a menu item and a shortcut (`SPEC.md` §8.5).
+  give the operation a menu item and a shortcut (`specification.md` §8.5).
 - **Restoring from the trash inside the application** — deleting moves an entry
-  to the desktop trash (`SPEC.md` §6.7), which is where restoring happens
+  to the desktop trash (`specification.md` §6.7), which is where restoring happens
   today: in the file manager, by putting it back. An in-application list of
   what was deleted would need its own storage decision, and the desktop trash
   plus Git already cover the case.
@@ -111,7 +126,7 @@ follows them.
   region**; deciding *within* a region — keeping half of each version — would
   need a merge editor, and is a separate question.
 - **`PLATFORMS.md` and the native build matrix** — written with the first
-  packaging round (`CONVENTIONS.md` C-P5, C-P6). What that round has to
+  packaging round (`conventions.md` C-P5, C-P6). What that round has to
   establish, so that it does not have to be rediscovered:
   - **Host-native, one clean checkout per host.** No cross-compilation is
     claimed. Install with the lockfile under the pinned Node 24 *before* the

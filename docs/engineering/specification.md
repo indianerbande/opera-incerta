@@ -66,7 +66,7 @@ NOT be treated as one. From this point on:
 - existing projects, settings records, application data, and scripts MUST NOT
   require migration because the product was renamed; and
 - a future divergence between the two names is normal, not an inconsistency to
-  be tidied away (`CONVENTIONS.md` C-N1).
+  be tidied away (`conventions.md` C-N1).
 
 **Superseded note (2026-09-01).** An earlier version of this section kept
 `writers-ide` as the technical name while the product became Opera Incerta,
@@ -78,7 +78,7 @@ That window is now closed: the next product rename does not get to repeat it.
 **License.** Opera Incerta is licensed under the Apache License 2.0.
 Third-party dependencies keep their own
 licenses and notices; the repository's license does not relicense them
-(`CONVENTIONS.md` C-L5).
+(`conventions.md` C-L5).
 
 Still open: trademark clearance for the name before public distribution, and
 the application icon. The icon, when it exists, is installation chrome only; it
@@ -175,7 +175,7 @@ project. Real manuscript content MUST NOT be used as test data.
 
 Node.js and pnpm versions are pinned in the root manifest once the workspace
 exists, and the packaging path MUST fail early and clearly on an unsupported
-runtime rather than silently downloading one (`CONVENTIONS.md` C-P1).
+runtime rather than silently downloading one (`conventions.md` C-P1).
 
 ### 5.2 Repository layout
 
@@ -187,12 +187,12 @@ inside the repository are.
 ```text
 opera-incerta/
 ├── AGENTS.md            working process and invariants
-├── SPEC.md              this document
-├── TESTING.md           required validation evidence
-├── CONVENTIONS.md       inherited design and handling measures
-├── DEPENDENCIES.md      dependency purpose, license, boundary (from first dependency)
+├── specification.md              this document
+├── testing.md           required validation evidence
+├── conventions.md       inherited design and handling measures
+├── dependencies.md      dependency purpose, license, boundary (from first dependency)
 ├── PLATFORMS.md         native build and verification matrix (from first packaging)
-├── TODO.md / DONE.md    open and completed work (from first implementation round)
+├── roadmap.md / completed-work.md    open and completed work (from first implementation round)
 ├── package.json         workspace root, pinned engines, check scripts
 ├── pnpm-workspace.yaml
 ├── apps/
@@ -261,7 +261,7 @@ runtime Markdown parser are accepted; the remaining entries are draft and
 each requires the report in `AGENTS.md` before acceptance.**
 
 **CodeMirror 6 is the accepted editing surface (2026-09-01).** It passed all six
-criteria of the spike gate in `TESTING.md` §2.8, measured in a real rendering
+criteria of the spike gate in `testing.md` §2.8, measured in a real rendering
 engine: heading lines at different sizes in one document, a gutter aligned to
 measured line heights across a heading wrapping over eight visual rows, inline
 markers hidden except on the cursor's line, per-document undo across document
@@ -278,11 +278,11 @@ switches, an intact paste, and a 6.6 ms p95 keystroke latency in a
 | Front matter | Own line-preserving reader/writer (§6.3) | Not a general YAML parser; see the reasoning in §6.3 |
 
 **The Markdown parser, measured 2026-09-04.** Four candidates ran against the
-gate of `TESTING.md` §2.11 and none passed every criterion. What the
+gate of `testing.md` §2.11 and none passed every criterion. What the
 measurements say: markdown-it and commonmark.js are conformant (652 of 652
 examples), marked is not (587), micromark nearly (648) but slow (164 ms) and
 large (43 packages). The parser has two jobs that no single candidate fits:
-the **test-time oracle** of `TESTING.md` §2.2 needs conformance, positions,
+the **test-time oracle** of `testing.md` §2.2 needs conformance, positions,
 and a small footprint, and no GFM — commonmark.js, the reference
 implementation, with `yaml` beside it for the front matter; the **GFM
 display** of §18 needs tables, strikethrough, and task lists at runtime —
@@ -290,13 +290,13 @@ markdown-it, short of task list items and carrying one PSF-2.0 dependency.
 Both need the gate read as two gates, which is a decision, not a
 measurement — **taken on 2026-09-04**: the test oracle is accepted as two
 development dependencies of the core, with the cross-check a fixed test of
-the gate (`TESTING.md` §2.2); and markdown-it is accepted for the GFM
+the gate (`testing.md` §2.2); and markdown-it is accepted for the GFM
 display (§10.7) the same day, its two deviations settled as recorded in
-`DEPENDENCIES.md` — task list items are the translation layer's rule, and
+`dependencies.md` — task list items are the translation layer's rule, and
 the PSF-2.0 command-line dependency is kept out of the bundle by the
 production check. The cross-check paid before the decision: it found two fence
 defects in the display transform and four in the codec, all fixed the same
-day (`DONE.md`).
+day (`completed-work.md`).
 
 Note on the editing surface: Monaco is the obvious alternative and is built for
 source code. Opera Incerta displays headings at **different sizes in the same
@@ -322,7 +322,7 @@ from the section that owns it.
 | Running `git` | The renderer stays sandboxed; `git` runs in the main process only (§5.3) |
 | Recent projects | Plain paths in the installation-local record (§7.2) |
 | Modules | pnpm workspace packages, one per module (§5.2, §15) |
-| Tests | Vitest plus a packaged Electron smoke test (`TESTING.md`) |
+| Tests | Vitest plus a packaged Electron smoke test (`testing.md`) |
 
 ## 6. Domain model
 
@@ -473,7 +473,7 @@ round-trips exactly.
 
 **Line endings are preserved.** The reader records whether the file used LF or
 CRLF and the writer reproduces it. A line-ending difference MUST NOT change the
-parsed model (`TESTING.md` §4).
+parsed model (`testing.md` §4).
 
 **An `opera-incerta:` key with no children is an empty mapping**, not a
 malformed one: that is the state a freshly created block has. So is the
@@ -533,7 +533,7 @@ This rule exists because the obvious implementation loses every foreign key on
 the first save: a reader that ignores unknown keys, paired with a writer that
 rebuilds the block from the known fields, deletes them **silently** — nothing
 is mangled, so nothing looks wrong. It is covered by mandatory tests
-(`TESTING.md` §2.2).
+(`testing.md` §2.2).
 
 ### 6.4 Display names and explicit order
 
@@ -574,7 +574,7 @@ gracefully against external changes:
 - items on disk that appear in no `order` are appended at the end, sorted
   among themselves with a **pinned collation**: locale `en`, case-insensitive,
   numeric, so that `chapter-2` precedes `chapter-10` and the result does not
-  depend on the machine (`TESTING.md` §1.8);
+  depend on the machine (`testing.md` §1.8);
 - a missing file or a missing directory entry means: display name is the
   directory name, order is alphabetical. The entry is created only when the
   user first renames or reorders inside the application — additive, never
@@ -788,7 +788,7 @@ something. A highlight that leads nowhere is a promise not kept.
 
 **The gesture** is built on **pointer** events, not the drag-and-drop API: a
 synthetic pointer can drive it, and a gesture no check can drive is a gesture
-nothing proves (`TESTING.md` §1.4). A press becomes a drag only after the
+nothing proves (`testing.md` §1.4). A press becomes a drag only after the
 pointer has travelled a few pixels, so an ordinary click stays a click.
 
 It is owned by the shell rather than by either library column: a drag that
@@ -997,7 +997,7 @@ aligned), implemented as one reusable component driven by a list of items
 Icons are **Material Symbols Outlined**, packaged locally as unmodified SVG
 files under the Apache License 2.0, with their licence and a source notice
 shipped beside them. Their bytes are pinned and verified, so a replaced file
-fails a check rather than passing unnoticed (`CONVENTIONS.md` C-L4).
+fails a check rather than passing unnoticed (`conventions.md` C-L4).
 
 They are drawn as CSS masks and take the button's colour, which is what makes
 one file work in both light and dark themes without a second asset. They are
@@ -1087,7 +1087,7 @@ main process which of the two they are. The role MUST NOT come from a query
 string or any other value the page itself could change. Only one component is
 bootstrapped, into the single root element the document provides.
 
-Platform difference (`CONVENTIONS.md` C-P4): closing all windows quits on
+Platform difference (`conventions.md` C-P4): closing all windows quits on
 Windows and Linux; on macOS the application stays active and recreates a window
 on activation.
 
@@ -1297,7 +1297,7 @@ weights (400, 500, 600, 700, and italic) — never a system font: an interface
 that looks different on every machine cannot be designed. IBM Plex Mono is
 packaged for the places that are code rather than prose. The files are
 unmodified upstream releases under the SIL Open Font License 1.1, documented
-and byte-pinned like the icons (`CONVENTIONS.md` C-L4, `DEPENDENCIES.md`).
+and byte-pinned like the icons (`conventions.md` C-L4, `dependencies.md`).
 
 **The manuscript keeps its own face.** The editor's reading typography stays
 what the author configured (§13) — serif by default — and the zoom of §10.9
@@ -1417,7 +1417,7 @@ in the sheet list.
 
 Groups nest recursively. Expansion state is part of the layout state, not local
 component state: the Navigator switches between Explorer and Source control,
-and expansion MUST survive that switch (`CONVENTIONS.md` C-U2).
+and expansion MUST survive that switch (`conventions.md` C-U2).
 
 Context menu on a group: "New sheet…", "Rename…", and later "New group…".
 Renaming a group writes `displayName` in `structure.json`; it does not rename
@@ -1461,7 +1461,7 @@ color with the computed text color (§6.6).
 **Preview cache**: after a rescan, previews for newly appeared sheets MUST be
 populated before the list measures its rows. Filling the cache asynchronously
 after the first render leaves rows measured at placeholder height
-(`CONVENTIONS.md` C-U3).
+(`conventions.md` C-U3).
 
 ### 9.3 Searching the library
 
@@ -1580,7 +1580,7 @@ recognized there and no delimiter is hidden: backticks mean "literally this",
 and hiding a character inside them would display something the file does not
 contain. The fence rules are CommonMark's: a backtick fence whose info string
 contains a backtick is not a fence, and a closing fence may be followed by
-spaces only (measured against the specification's examples, `TESTING.md`
+spaces only (measured against the specification's examples, `testing.md`
 §2.11).
 
 **Known limits of the line-based transform.** It models no containers, and
@@ -1598,7 +1598,7 @@ fixed: the first needs container awareness, which is the GFM display's round
 computes the display model — which lines are headings, which character ranges
 are hidden — and the adapter translates it into the component's own
 decorations. The interface carries no DOM type, so one contract suite can run
-against both the real implementation and a double (`TESTING.md` §2.6). The
+against both the real implementation and a double (`testing.md` §2.6). The
 application speaks to the editor about text, lines, and heading levels; never
 about elements or key events.
 
@@ -1634,7 +1634,7 @@ not a heading at all.
 
 A heading applies to exactly one line: pressing Return at the end of a heading
 line MUST start the next line as a normal paragraph. Carrying the heading
-attribute into the following paragraph is a defect (`CONVENTIONS.md` C-U4).
+attribute into the following paragraph is a defect (`conventions.md` C-U4).
 
 **Rules of the dot command:**
 
@@ -1771,7 +1771,7 @@ disabling one.** Two obvious alternatives are rejected from experience:
 suppressing pointer events blocks the mouse but **not the keyboard** — anyone
 already focused in the field keeps typing; disabling the control removes focus
 but greys the text out and prevents selecting it for copying. Read-only here
-means: readable and selectable, only not changeable (`CONVENTIONS.md` C-U6).
+means: readable and selectable, only not changeable (`conventions.md` C-U6).
 
 Three switches in the editor header, persisted: "Show variables" (main switch,
 default **off**), and below it "Writable" (default **off** — looking is the
@@ -1886,7 +1886,7 @@ therefore never sufficient evidence: the handler MUST first read the actual
 content from disk and compare it (body plus metadata equality) against the
 loaded baseline. Only on a real difference does it either show the conflict
 prompt (when the buffer is modified) or silently reload (when it is not). If
-the disk state is identical, nothing happens (`CONVENTIONS.md` C-F2).
+the disk state is identical, nothing happens (`conventions.md` C-F2).
 
 **The rule applies to every re-read, not only to a watcher.** The explicit
 "reload from disk" is the same situation with a different trigger, and it
@@ -1903,7 +1903,7 @@ author's version (§6.7).
 **Separate guards for reading and writing.** The status refresh (reading) and
 user-triggered writes MUST have their own in-flight guards, not one shared
 "busy" flag. A shared flag makes a background refresh swallow a user action,
-which presents as "the click did nothing" (`CONVENTIONS.md` C-F3).
+which presents as "the click did nothing" (`conventions.md` C-F3).
 
 **Coalescing, not queueing.** If a refresh is requested while one is running,
 exactly **one** further refresh is scheduled afterwards. This makes a change
@@ -1939,12 +1939,12 @@ ever rewritten on disk by any of this; the file stays plain Markdown (§10.1).
 
 **Two models, one presentation.** The line-based display model of §10.1
 keeps deciding headings, fences, and inline delimiters, and the standard
-oracle of `TESTING.md` §2.2 keeps it honest. A parser — markdown-it, accepted
-for this display after the gate of `TESTING.md` §2.11 — reads the block
+oracle of `testing.md` §2.2 keeps it honest. A parser — markdown-it, accepted
+for this display after the gate of `testing.md` §2.11 — reads the block
 structure the line-based rules cannot see: quotes, lists and their nesting,
 code blocks, thematic breaks. Its tokens are translated in
 `packages/markdown` into the core's own `BlockModel` and go no further
-(`CONVENTIONS.md` C-A6). One pure function in the core, `presentation`,
+(`conventions.md` C-A6). One pure function in the core, `presentation`,
 turns text, display model, and block model into instructions — a style on a
 line, a range hidden, a range replaced by a glyph, a mark over a range — and
 the editor adapter draws them one-to-one. The rules are therefore tested
@@ -1967,7 +1967,7 @@ without a rendering engine; the smoke measures the drawing.
 
 **Task list items are the translation's own rule**, not the parser's: an
 item whose text begins with `[ ]` or `[x]` is a task. The parser was
-measured without them and accepted with that noted (`DEPENDENCIES.md`).
+measured without them and accepted with that noted (`dependencies.md`).
 Ticking a box by clicking it is a control, and a later round.
 
 **What is deliberately not here.** Links and images — the address, what a
@@ -1992,7 +1992,7 @@ visual line; the visual lines that follow carry none, and the next number is
 the next logical line's. A number per visual line would count something the
 file does not have.
 
-**Heights are measured, not computed** (`CONVENTIONS.md` C-U5). A heading is
+**Heights are measured, not computed** (`conventions.md` C-U5). A heading is
 larger than body text and a wrapped line is taller than one row: the gutter
 takes each line's real height from the editor rather than multiplying a line
 height, which is exactly where a gutter drifts out of step with its text.
@@ -2167,11 +2167,11 @@ message the author cannot act on. The service therefore queues its commands
 per directory: a new one waits for the last to finish, succeed or fail. Reads
 wait too, deliberately: a status that runs *beside* a push is a lock error,
 a status that runs *after* it is merely late, and the renderer's separate
-guards (`CONVENTIONS.md` C-F3) already keep a slow read from swallowing a
+guards (`conventions.md` C-F3) already keep a slow read from swallowing a
 click.
 
 **Without git.** A machine without a `git` executable is a normal machine for
-an author (`CONVENTIONS.md` C-P10). It is reported as its own condition,
+an author (`conventions.md` C-P10). It is reported as its own condition,
 `git/not-installed`, distinct from "this project is not inside a repository":
 the first is about the machine and says what to install, the second is about
 the project and says what to create. Everything outside the source control
@@ -2187,7 +2187,7 @@ repository.
 **`.git` filter against self-triggering.** The watcher MUST evaluate the changed
 paths and refresh only when at least one event concerns the working tree (a
 path with no `.git` component). `git status` opportunistically writes inside
-`.git`; without this filter every refresh would re-trigger itself (`CONVENTIONS.md` C-F4).
+`.git`; without this filter every refresh would re-trigger itself (`conventions.md` C-F4).
 
 The harm is not merely wasted reads. With the filter removed, the first thing
 that breaks is a *failed push reporting nothing*: the refresh storm overwrites
@@ -2491,7 +2491,7 @@ smuggled into the installation-local record. Secrets never enter it (§5.3).
 **Stored keys are user data.** A key is not renamed when the concept it names is
 renamed: renaming it would silently reset every user's setting. Where a key
 name no longer matches current terminology, the divergence is documented in
-code rather than "fixed" (`CONVENTIONS.md` C-N3).
+code rather than "fixed" (`conventions.md` C-N3).
 
 **Component pattern.** One preferences service owns validation, persistence,
 system-theme observation, and reactive values. One localization service owns
@@ -2850,9 +2850,9 @@ original fixtures:
 19. The application runs with no network access at any point.
 20. Open, save, save-as, dirty-state protection, secure bridge behavior,
     packaged launch, and the native installer pass on every supported platform
-    (`TESTING.md` §2.7).
+    (`testing.md` §2.7).
 21. Every acceptance criterion above has a named test or a reviewed manual
-    verification in `TESTING.md`.
+    verification in `testing.md`.
 
 ## 18. Roadmap after the MVP
 
@@ -2967,7 +2967,7 @@ made twice:
 
 - **the Markdown parser** (§5.4) — decided 2026-09-04: commonmark.js and
   `yaml` are the test-time oracle, markdown-it the runtime parser behind the
-  GFM display (§10.7), its two deviations recorded in `DEPENDENCIES.md`;
+  GFM display (§10.7), its two deviations recorded in `dependencies.md`;
 - **the mechanism for non-line-wise markup** (§10.3) — decided and built the
   same day: `presentation()` in the core turns both models into instructions
   the adapter draws, which is what made §10.7 a translation rather than a
@@ -2992,7 +2992,7 @@ Requirements and lessons in this document derive from the author's own earlier
 work on a native macOS writing application — re-derived as platform-neutral
 requirements, never transliterated (§4) — and from public documentation of the
 platform technologies named in §5. The engineering measures adopted from that
-earlier work are recorded in `CONVENTIONS.md`.
+earlier work are recorded in `conventions.md`.
 
 **This document is self-contained.** Every requirement, decision and recorded
 defect stands here; no other repository has to be consulted to build, verify or

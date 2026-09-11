@@ -1,7 +1,7 @@
 /**
  * The editor: dot commands, the gutter menu, the cursor rules around hidden
  * heading syntax, saving through the menu, and switching sheets.
- * SPEC.md §10.
+ * specification.md §10.
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
@@ -27,7 +27,7 @@ import type { Smoke } from '../context.js';
 
 /**
  * Exercises the two gestures that change a heading level: the dot command and
- * the gutter menu. SPEC.md §10.2.
+ * the gutter menu. specification.md §10.2.
  *
  * Driven through real input events rather than through the adapter's own API,
  * because what is in doubt is precisely the path from a keystroke or a click to
@@ -172,14 +172,14 @@ export async function checkHeadingGestures(window: BrowserWindow): Promise<void>
 }
 
 /**
- * The cursor rules around hidden heading syntax. SPEC.md §10.2.
+ * The cursor rules around hidden heading syntax. specification.md §10.2.
  *
  * Everything here is driven through real keys and the real clipboard, because
  * what is in question is the behavior a hand at the keyboard produces.
  */
 /**
  * The status bar: where the cursor is, and this sheet's wrap switch.
- * SPEC.md §10.5. The column is read after a real keystroke, and the switch
+ * specification.md §10.5. The column is read after a real keystroke, and the switch
  * is read off the editor's own class list, not off the button.
  */
 export async function checkStatusBar(window: BrowserWindow): Promise<void> {
@@ -230,7 +230,7 @@ export async function checkStatusBar(window: BrowserWindow): Promise<void> {
 }
 
 /**
- * The GFM display. SPEC.md §10.7: markers hidden and the effect shown off
+ * The GFM display. specification.md §10.7: markers hidden and the effect shown off
  * the focus line, everything as written on it. Typed in, measured with
  * computed styles, and undone.
  */
@@ -422,13 +422,13 @@ export async function checkHeadingCursorRules(window: BrowserWindow): Promise<vo
   );
 
   // Continues here rather than from the run: the keys are decided above, and
-  // the cut is the last of the cursor rules (SPEC.md §10.2).
+  // the cut is the last of the cursor rules (specification.md §10.2).
   await checkCutTakesPrefix(window, lineStartKey, lineStartModifiers, lineEndKey);
 }
 
 /**
  * Cutting a heading must take its prefix with it, or the text arrives
- * elsewhere as a heading while an empty `## ` stays behind. SPEC.md §10.2.
+ * elsewhere as a heading while an empty `## ` stays behind. specification.md §10.2.
  */
 export async function checkCutTakesPrefix(
   window: BrowserWindow,
@@ -479,7 +479,7 @@ export async function checkCutTakesPrefix(
 
 /**
  * The document round trip: edit, save, and find the change on disk.
- * SPEC.md §6, §10.6.
+ * specification.md §6, §10.6.
  *
  * The file is read here in the main process rather than through the bridge,
  * so what is checked is the manuscript itself and not the application's belief
@@ -553,7 +553,7 @@ export async function checkDocumentFlow(smoke: Smoke, window: BrowserWindow): Pr
   console.log('smoke ok: edited, saved through the File menu, and the change is on disk');
 }
 
-/** Switching groups and sheets. SPEC.md §9. */
+/** Switching groups and sheets. specification.md §9. */
 
 export async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
   const switched = (await window.webContents.executeJavaScript(
@@ -611,7 +611,7 @@ export async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
     throw new Error(`the editor did not load the other sheet: ${JSON.stringify(editor.lines)}`);
   }
   // Front matter belongs to its own area, not to the writing surface
-  // (SPEC.md §10.4) — and keeping it out is what protects it from being
+  // (specification.md §10.4) — and keeping it out is what protects it from being
   // edited into something the codec can no longer read.
   if (editor.lines.some((line) => line.includes('opera-incerta:'))) {
     throw new Error('front matter is showing inside the editor');
@@ -623,7 +623,7 @@ export async function checkSheetSwitch(window: BrowserWindow): Promise<void> {
   console.log('smoke ok: switching group and sheet loaded the other document');
 }
 
-/** The remaining panes and the activity bars. SPEC.md §8.4, §11, §12. */
+/** The remaining panes and the activity bars. specification.md §8.4, §11, §12. */
 
 export async function lineState(
   window: BrowserWindow,
@@ -645,7 +645,7 @@ export async function lineState(
   )) as { text: string; heading: boolean; count: number } | null;
 }
 
-/** What the line-number gutter and its neighbours measure. SPEC.md §10.8. */
+/** What the line-number gutter and its neighbours measure. specification.md §10.8. */
 interface GutterMeasurement {
   readonly numbers: readonly string[];
   readonly logicalLines: number;
@@ -685,7 +685,7 @@ async function measureGutter(window: BrowserWindow): Promise<GutterMeasurement> 
   )) as GutterMeasurement;
 }
 
-/** Turns one settings switch on or off, through the dialog. SPEC.md §13. */
+/** Turns one settings switch on or off, through the dialog. specification.md §13. */
 async function setEditorSwitch(window: BrowserWindow, label: string): Promise<void> {
   await clickText(window, 'wi-activity-bar button[aria-label="Settings"]', '');
   await waitForSelector(window, 'wi-settings');
@@ -707,7 +707,7 @@ async function setEditorSwitch(window: BrowserWindow, label: string): Promise<vo
 }
 
 /**
- * The line-number gutter. SPEC.md §10.8.
+ * The line-number gutter. specification.md §10.8.
  *
  * Off until it is asked for; then a column left of the heading markers, one
  * number per **logical** line even where a line wraps over several visual
@@ -781,7 +781,7 @@ export async function checkLineNumbers(smoke: Smoke, window: BrowserWindow): Pro
   );
 }
 
-/** What the zoom moves, and what it must not. SPEC.md §10.9. */
+/** What the zoom moves, and what it must not. specification.md §10.9. */
 interface ZoomMeasurement {
   readonly shown: string | null;
   readonly slider: number;
@@ -832,7 +832,7 @@ async function dragZoom(window: BrowserWindow, percent: number): Promise<void> {
 }
 
 /**
- * The editor zoom. SPEC.md §10.9.
+ * The editor zoom. specification.md §10.9.
  *
  * What it scales — the text, its headings by their ratio, and the gutters —
  * and what it leaves alone: everything that is chrome. Plus the detent at
@@ -901,7 +901,7 @@ export async function checkZoom(smoke: Smoke, window: BrowserWindow): Promise<vo
   );
 }
 
-/** What the find bar and the marked text report. SPEC.md §10.11. */
+/** What the find bar and the marked text report. specification.md §10.11. */
 interface FindState {
   readonly open: boolean;
   readonly query: string;
@@ -928,7 +928,7 @@ async function findState(window: BrowserWindow): Promise<FindState> {
 }
 
 /**
- * Finding in the open sheet. SPEC.md §10.11.
+ * Finding in the open sheet. specification.md §10.11.
  *
  * Opened from the native menu item, because the menu owns `Cmd+F` and a key
  * handler in the page would never see it; then every match marked, the count
@@ -985,7 +985,7 @@ export async function checkFindInSheet(smoke: Smoke, window: BrowserWindow): Pro
   }
   // The cursor is in the second line, where the word was double-clicked, so
   // the match the find lands on is the one at or after it — not the first in
-  // the document (SPEC.md §10.11).
+  // the document (specification.md §10.11).
   if (!found.count?.startsWith(`${total} `)) {
     throw new Error(`the find did not start at the cursor: ${JSON.stringify(found.count)}`);
   }

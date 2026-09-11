@@ -1,6 +1,6 @@
 /**
  * The launcher's state: the recent list, the project being created, and what
- * failed. SPEC.md §8.6.
+ * failed. specification.md §8.6.
  *
  * The welcome component used to drive the bridge itself, with a private copy
  * of the run-and-report pattern the workbench stores have. This is that
@@ -45,7 +45,7 @@ export class LauncherStore {
   /**
    * The File menu's Open and New reach the launcher, which is where opening
    * lives — the menu drives the same actions as its buttons rather than a
-   * second implementation (SPEC.md §8.5).
+   * second implementation (specification.md §8.5).
    */
   listenForMenuCommands(): () => void {
     return (
@@ -66,7 +66,7 @@ export class LauncherStore {
   }
 
   /**
-   * Opens a folder the author chooses. SPEC.md §8.6.
+   * Opens a folder the author chooses. specification.md §8.6.
    *
    * A folder that is not a project is not a failure. The main process says
    * what it found, and each answer other than "opened" is a question put to
@@ -160,7 +160,7 @@ export class LauncherStore {
 
   /**
    * Opening an entry whose directory is gone reports it and offers removal
-   * rather than failing hard (SPEC.md §8.6).
+   * rather than failing hard (specification.md §8.6).
    */
   async openRecent(project: RecentProjectEntry): Promise<void> {
     if (!project.available) {

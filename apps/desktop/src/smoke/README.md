@@ -8,7 +8,7 @@ This directory is the end-to-end check of the desktop application. It starts
 the **real shell**, opens the **real renderer**, and drives it with **real
 input events** — clicks, keys, pointer drags — the way an author would. It
 then reads the result **from disk and from git**, never from the application's
-own belief about what it did. `TESTING.md` §2.7 lists what it must prove.
+own belief about what it did. `testing.md` §2.7 lists what it must prove.
 
 This file explains how to read it, run it, debug it, and add to it. It is
 written so that someone — or something — that has never seen the code can do
@@ -78,7 +78,7 @@ Every check is an exported `async function` with this shape:
 
 ```ts
 /**
- * One sentence: what this proves, and the SPEC.md section it proves.
+ * One sentence: what this proves, and the specification.md section it proves.
  */
 export async function checkSomething(smoke: Smoke, window: BrowserWindow): Promise<void> {
   // 1. Act, through the harness — a click, a key, a drag.
@@ -194,10 +194,10 @@ first run without sleeps found this four times.
 1. Decide which file it belongs to by the table above, or add a file under
    `checks/` if none fits.
 2. Write it in the shape shown above. Give it a doc comment naming the
-   `SPEC.md` section it proves.
+   `specification.md` section it proves.
 3. Add one line to `run()` in `main.ts`, at the point in the sequence where
    the state it needs exists. Read the neighbours.
-4. Add what it proves to the list in `TESTING.md` §2.7.
+4. Add what it proves to the list in `testing.md` §2.7.
 5. Run it. Then **falsify it**: break the thing it watches, see it fail for
    that reason, put it back (`AGENTS.md`, "Definition of done"). A check that
    has not been seen red proves nothing.
@@ -216,4 +216,4 @@ first run without sleeps found this four times.
 - **`smoke.shell.projectWindow()` is null for a destroyed window**, so a
   destroyed check is never needed on it.
 - **Menu commands go through the real menu item** (`clickMenuItem`), because
-  a synthetic keystroke bypasses accelerators (`TESTING.md` §2.7).
+  a synthetic keystroke bypasses accelerators (`testing.md` §2.7).

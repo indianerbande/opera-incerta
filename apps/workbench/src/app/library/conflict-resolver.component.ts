@@ -11,7 +11,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * Deciding a merge, one conflict at a time. SPEC.md §12.
+ * Deciding a merge, one conflict at a time. specification.md §12.
  *
  * **Per region, never per file.** Git has already merged everything the two
  * sides did not both touch; choosing one version of the whole file would throw

@@ -1,5 +1,5 @@
 /**
- * Finding a passage in one sheet. SPEC.md §10.11.
+ * Finding a passage in one sheet. specification.md §10.11.
  *
  * The rule, not the interface: where the matches are, and which of them the
  * author is on. It runs over the sheet's Markdown — the text the editor holds
@@ -90,7 +90,7 @@ export function stepMatch(
   return (current + step + count) % count;
 }
 
-/** A match with the line it stands in. SPEC.md §9.3. */
+/** A match with the line it stands in. specification.md §9.3. */
 export interface LineMatch {
   /** One-based, as the editor and the status bar count. */
   readonly line: number;
@@ -102,7 +102,7 @@ export interface LineMatch {
 }
 
 /**
- * Every match in a text, line by line. SPEC.md §9.3.
+ * Every match in a text, line by line. specification.md §9.3.
  *
  * The same rule as {@link findMatches} — one search, one notion of a match —
  * with the line number a result list needs to point at.

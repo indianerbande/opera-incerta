@@ -63,7 +63,7 @@ const bodies = new Map([
   ['part-1/notes/note.md', '# A Note\n\nCheck the tide table.\n'],
 ]);
 
-describe('assembling the document (SPEC.md §15.2)', () => {
+describe('assembling the document (specification.md §15.2)', () => {
   it('walks the library in its recorded order, the root not a heading of its own', () => {
     const pieces = documentPieces(library, null);
 
@@ -142,7 +142,7 @@ describe('assembling the document (SPEC.md §15.2)', () => {
   });
 });
 
-describe('moving headings down (SPEC.md §15.2)', () => {
+describe('moving headings down (specification.md §15.2)', () => {
   it('shifts every level and caps at six', () => {
     expect(shiftHeadings('# One\n\n##### Five\n\n###### Six\n', 2)).toBe(
       '### One\n\n###### Five\n\n###### Six\n',

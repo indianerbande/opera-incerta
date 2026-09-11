@@ -1,7 +1,7 @@
 /**
  * Source control against a real repository, and a real remote made inside
  * the check: committing, the live status, discarding, fetch and pull, a real
- * conflict, branches, amending, and `.gitignore`. SPEC.md §12.
+ * conflict, branches, amending, and `.gitignore`. specification.md §12.
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
@@ -83,7 +83,7 @@ function stagedPaths(smoke: Smoke): readonly string[] {
 }
 
 /**
- * Checks the commit model of `SPEC.md` §12 against a real repository: stage
+ * Checks the commit model of `specification.md` §12 against a real repository: stage
  * everything in one batch, unstage one file where there is no `HEAD` to
  * resolve against, commit, and surface a failing push without losing the
  * commit.
@@ -169,7 +169,7 @@ export async function checkCommitting(smoke: Smoke, window: BrowserWindow): Prom
     throw new Error('a failed push reported nothing');
   }
   // Git's own words, not our code for them: "no configured push destination"
-  // tells the author what to do (SPEC.md §12).
+  // tells the author what to do (specification.md §12).
   if (!reported.toLowerCase().includes('git') && !reported.toLowerCase().includes('remote')) {
     throw new Error(`a failed push reported a code rather than a reason: ${reported}`);
   }
@@ -182,7 +182,7 @@ export async function checkCommitting(smoke: Smoke, window: BrowserWindow): Prom
 }
 
 /**
- * The live update of `SPEC.md` §12: while the panel is on screen, a change in
+ * The live update of `specification.md` §12: while the panel is on screen, a change in
  * the working tree appears without anyone asking — and the panel does not then
  * keep refreshing itself.
  */
@@ -205,7 +205,7 @@ export async function checkLiveStatus(smoke: Smoke, window: BrowserWindow): Prom
     throw new Error(`the status did not notice a new file by itself: ${JSON.stringify(listed)}`);
   }
 
-  // And now the part `CONVENTIONS.md` C-F4 exists for: `git status` writes
+  // And now the part `conventions.md` C-F4 exists for: `git status` writes
   // inside `.git` on every read, so without the filter each refresh would
   // trigger the next one, for as long as the panel stays open.
   //
@@ -230,7 +230,7 @@ export async function checkLiveStatus(smoke: Smoke, window: BrowserWindow): Prom
 }
 
 /**
- * Throwing a change away, confirmed first. SPEC.md §12.
+ * Throwing a change away, confirmed first. specification.md §12.
  *
  * Both kinds, because they end differently: a tracked file goes back to its
  * last committed state, and an untracked one has no state to go back to and
@@ -419,7 +419,7 @@ export async function checkDiscarding(smoke: Smoke, window: BrowserWindow): Prom
 
 /**
  * Fetching and pulling against a real remote, with a second working copy
- * standing in for the other machine. SPEC.md §12.
+ * standing in for the other machine. specification.md §12.
  */
 export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Promise<string> {
   // The remote is set up here rather than in the fixture, because an earlier
@@ -428,7 +428,7 @@ export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Pr
   smoke.git(smoke.projectPath, ['init', '--bare', '--initial-branch=main', remote]);
 
   // Published through the interface, which is also how the upstream comes to
-  // exist at all (SPEC.md §12).
+  // exist at all (specification.md §12).
   await refreshSourceControl(window);
   const unpublished = await trackingLine(window);
   if (unpublished === null || !unpublished.includes('not published')) {
@@ -541,7 +541,7 @@ export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Pr
 }
 
 /**
- * A real conflict, decided in the interface. SPEC.md §12.
+ * A real conflict, decided in the interface. specification.md §12.
  *
  * Both sides change the same passage of the same sheet, which is the case a
  * fast-forward pull refuses and the only one where an author has to decide
@@ -691,7 +691,7 @@ export async function checkMergeAndResolve(smoke: Smoke, window: BrowserWindow, 
 
 /**
  * Branches: listing, creating, switching, deleting — and the one rule git
- * cannot enforce, that a switch waits for unsaved work. SPEC.md §12.
+ * cannot enforce, that a switch waits for unsaved work. specification.md §12.
  */
 export async function checkBranches(smoke: Smoke, window: BrowserWindow): Promise<void> {
   const branchOf = (): string => smoke.git(smoke.projectPath, ['branch', '--show-current']).trim();
@@ -792,7 +792,7 @@ export async function checkBranches(smoke: Smoke, window: BrowserWindow): Promis
 
 /**
  * Amending the last commit, and keeping files out of the repository.
- * SPEC.md §12.
+ * specification.md §12.
  */
 export async function checkAmendAndIgnore(smoke: Smoke, window: BrowserWindow): Promise<void> {
   const project = smoke.projectPath;

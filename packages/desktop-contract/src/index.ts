@@ -1,11 +1,11 @@
 /**
  * The single versioned bridge between the Electron main process and the
- * sandboxed renderer. SPEC.md §5.3.
+ * sandboxed renderer. specification.md §5.3.
  *
  * The renderer never receives filesystem paths as authority: it addresses
  * documents through opaque handles that the main process issues, resolves, and
  * validates. Every field of every request is validated at runtime in the main
- * process — a compile-time type is not validation (CONVENTIONS.md C-S2).
+ * process — a compile-time type is not validation (conventions.md C-S2).
  *
  * This package is portable on purpose: main process, preload, and renderer all
  * depend on it, and its guards are unit-tested without Electron. It depends on
@@ -23,7 +23,7 @@ import type {
   PageCategory,
 } from '@opera-incerta/core';
 // The export module's own vocabulary, transported as it stands: the contract
-// names the types it carries with the packages' own (SPEC.md §16), so that
+// names the types it carries with the packages' own (specification.md §16), so that
 // neither side casts and a format added there is a compile error here.
 import { isExportFormatId, type ExportFormatId } from '@opera-incerta/export';
 import { isUsableStylesheetName as usableStylesheetName } from '@opera-incerta/core';
@@ -65,7 +65,7 @@ function literal<T extends string>(expected: T): Guard<T> {
 }
 
 /**
- * A usable stylesheet name (SPEC.md §15.2), as a guard.
+ * A usable stylesheet name (specification.md §15.2), as a guard.
  *
  * The rule lives in the core; this wraps it so the shape combinators can use
  * it like every other field guard, and so a name that a path would read as
@@ -230,7 +230,7 @@ export const isProjectSnapshot: Guard<ProjectSnapshot> = shape<ProjectSnapshot>(
  *
  * The library carries relative paths for display; the handles map each sheet's
  * relative path to the opaque handle that addresses it. The renderer never
- * turns a path into authority — it looks the handle up (SPEC.md §5.3).
+ * turns a path into authority — it looks the handle up (specification.md §5.3).
  */
 export interface ProjectSnapshot {
   /** The project's stable id, from `project.json`. */
@@ -241,7 +241,7 @@ export interface ProjectSnapshot {
   /** Relative sheet path to handle id. */
   readonly handles: Readonly<Record<string, string>>;
   /**
-   * The project's page categories. SPEC.md §6.6.
+   * The project's page categories. specification.md §6.6.
    *
    * Part of the snapshot rather than a channel of their own: they are read
    * with the project and change with it, and a second source would be a second
@@ -250,13 +250,13 @@ export interface ProjectSnapshot {
   readonly categories: readonly PageCategory[];
   /**
    * The sheets that were saved most recently, newest first, as
-   * project-relative paths. SPEC.md §9.4.
+   * project-relative paths. specification.md §9.4.
    */
   readonly recentSheets: readonly string[];
 }
 
 /**
- * What choosing a folder to open led to. SPEC.md §8.6.
+ * What choosing a folder to open led to. specification.md §8.6.
  *
  * Opening is not "it worked or it failed": a folder the author points at may
  * be a project, may be about to become one, or may be the folder *above* the
@@ -326,7 +326,7 @@ export const isProjectOpenOutcome: Guard<ProjectOpenOutcome> = (
 };
 
 /**
- * A command the native menu issued. SPEC.md §8.5.
+ * A command the native menu issued. specification.md §8.5.
  *
  * The menu owns its accelerators: once a menu item claims `Cmd+S`, the key
  * never reaches the page, so the renderer must hear about it through this
@@ -352,7 +352,7 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
 }
 
 /**
- * Which window the renderer is running in. SPEC.md §8.5.
+ * Which window the renderer is running in. specification.md §8.5.
  *
  * The welcome window is the launcher; the project window is the workbench.
  * They share one bundle and ask which they are rather than being told by a
@@ -360,7 +360,7 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
  */
 export type WindowRole = 'welcome' | 'project';
 
-/** One entry of the recent-projects list. SPEC.md §8.6. */
+/** One entry of the recent-projects list. specification.md §8.6. */
 export interface RecentProjectEntry {
   readonly path: string;
   /** Abbreviated for display; the full path stays with the main process. */
@@ -372,7 +372,7 @@ export interface RecentProjectEntry {
 
 /**
  * Creating a project: a display name and the directory to put it in.
- * SPEC.md §6.1, §8.6.
+ * specification.md §6.1, §8.6.
  *
  * The display name is what the author writes; the directory name is a slug
  * derived from it, and never changes afterwards.
@@ -388,7 +388,7 @@ export const isCreateProjectRequest: Guard<CreateProjectRequest> = shape<CreateP
 });
 
 /**
- * The one rule for every path a request carries. SPEC.md §5.3.
+ * The one rule for every path a request carries. specification.md §5.3.
  *
  * A path from the renderer is relative to the project or repository root and
  * names something inside it. Anything that looks like a way out — an absolute
@@ -421,7 +421,7 @@ export function isRelativeEntryPath(value: unknown): value is string {
 }
 
 /**
- * Creating or renaming a library entry. SPEC.md §6.4, §6.5.
+ * Creating or renaming a library entry. specification.md §6.4, §6.5.
  *
  * `path` is relative to the project root: for a creation it is the group that
  * receives the new entry, for a rename it is the entry itself.
@@ -438,7 +438,7 @@ export const isLibraryEditRequest: Guard<LibraryEditRequest> = shape<LibraryEdit
 
 /**
  * What the main process should watch on the interface's behalf.
- * SPEC.md §10.6.
+ * specification.md §10.6.
  *
  * The interface names the targets because only it knows what the author is
  * looking at. `null` means "nothing of that kind is open".
@@ -457,7 +457,7 @@ export const isWatchTargetsRequest: Guard<WatchTargetsRequest> = shape<WatchTarg
 });
 
 /**
- * One entry, named for an operation that needs nothing else. SPEC.md §6.7.
+ * One entry, named for an operation that needs nothing else. specification.md §6.7.
  */
 export interface LibraryPathRequest {
   readonly path: string;
@@ -472,14 +472,14 @@ export const isLibraryPathRequest: Guard<LibraryPathRequest> = shape<LibraryPath
   path: isEntryBelowRoot,
 });
 
-/** The two versions of a file that a comparison needs. SPEC.md §12. */
+/** The two versions of a file that a comparison needs. specification.md §12. */
 export interface GitVersions {
   readonly committed: string | null;
   readonly current: string | null;
 }
 
 /**
- * Putting one entry in a place. SPEC.md §6.4, §6.8.
+ * Putting one entry in a place. specification.md §6.4, §6.8.
  *
  * One request for what used to be two operations, because they are one:
  * reordering is placing inside the group an entry is already in, and moving is
@@ -524,14 +524,14 @@ export const isLibraryEditResult: Guard<LibraryEditResult> = shape<LibraryEditRe
 });
 
 /**
- * The most matches a library search sends back. SPEC.md §9.3.
+ * The most matches a library search sends back. specification.md §9.3.
  *
  * A search that answers with four thousand rows is not an answer; the view
  * says that there were more, and the author narrows the query.
  */
 export const SEARCH_RESULT_LIMIT = 200;
 
-/** A search over the project's text. SPEC.md §9.3. */
+/** A search over the project's text. specification.md §9.3. */
 export interface LibrarySearchRequest {
   readonly query: string;
 }
@@ -575,7 +575,7 @@ export const isLibrarySearchResult: Guard<LibrarySearchResult> = shape<LibrarySe
 });
 
 /**
- * An export of the manuscript. SPEC.md §15.2.
+ * An export of the manuscript. specification.md §15.2.
  *
  * `from` names a sheet to begin at — the "from here" of the sheet's own
  * context menu — or is null for the whole document. The renderer names a
@@ -587,7 +587,7 @@ export interface ExportRequest {
   readonly format: ExportFormatId;
   readonly from: string | null;
   /**
-   * Which stylesheet sets the PDF (SPEC.md §15.2): a supplied id, or the name
+   * Which stylesheet sets the PDF (specification.md §15.2): a supplied id, or the name
    * of one in the project. A name that resolves to nothing falls back to the
    * default rather than failing — it is never a reason not to export.
    *
@@ -609,7 +609,7 @@ export const isExportRequest: Guard<ExportRequest> = (value): value is ExportReq
   );
 };
 
-/** Naming one of the author's own stylesheets. SPEC.md §15.2. */
+/** Naming one of the author's own stylesheets. specification.md §15.2. */
 export interface StylesheetRequest {
   readonly name: string;
 }
@@ -668,7 +668,7 @@ export interface ChosenLocation {
  *
  * The path is always one the main process handed out — a recent entry, or a
  * folder the author just chose — and the handler checks what is actually there
- * before it acts, because a name is not a permission (SPEC.md §5.3).
+ * before it acts, because a name is not a permission (specification.md §5.3).
  */
 export interface ProjectPathRequest {
   readonly path: string;
@@ -706,7 +706,7 @@ export const isWriteSheetRequest: Guard<WriteSheetRequest> = shape<WriteSheetReq
  * The size limit is part of the contract, so it must be checkable on both
  * sides of the bridge. Reaching for a host global here would give this package
  * a DOM or Node.js dependency and break the portability invariant
- * (SPEC.md §5.2), which is why the arithmetic is spelled out.
+ * (specification.md §5.2), which is why the arithmetic is spelled out.
  */
 export function utf8ByteLength(value: string): number {
   let bytes = 0;
@@ -731,7 +731,7 @@ export function utf8ByteLength(value: string): number {
 /** A failed privileged request, reported rather than thrown across the bridge. */
 export interface BridgeFailure {
   readonly ok: false;
-  /** Stable diagnostic code. SPEC.md §16. */
+  /** Stable diagnostic code. specification.md §16. */
   readonly code: string;
   readonly message: string;
 }
@@ -746,17 +746,17 @@ export type BridgeResult<TValue> = BridgeSuccess<TValue> | BridgeFailure;
 
 /**
  * What source control reports. `root` is null when the project is not inside a
- * repository, which is a normal state rather than a failure (SPEC.md §12).
+ * repository, which is a normal state rather than a failure (specification.md §12).
  */
 export interface GitReport {
   readonly root: string | null;
   readonly entries: readonly GitFileStatus[];
   /**
    * What the branch tracks and how far apart the two are, or `null` when it
-   * tracks nothing. SPEC.md §12.
+   * tracks nothing. specification.md §12.
    */
   readonly tracking: GitTracking | null;
-  /** Whether a merge is under way and unfinished. SPEC.md §12. */
+  /** Whether a merge is under way and unfinished. specification.md §12. */
   readonly merging: boolean;
   /** Whether the branch has a commit at all. */
   readonly hasCommit: boolean;
@@ -766,7 +766,7 @@ export interface GitReport {
   readonly remote: GitRemote | null;
 }
 
-/** Text to write, for the one file the interface edits directly. SPEC.md §12. */
+/** Text to write, for the one file the interface edits directly. specification.md §12. */
 export interface GitTextRequest {
   readonly text: string;
 }
@@ -804,7 +804,7 @@ export const isGitIdentity: Guard<GitIdentity> = shape<GitIdentity>({
 });
 
 /**
- * The identity at both scopes. SPEC.md §12.
+ * The identity at both scopes. specification.md §12.
  *
  * `global` decides whether the question is asked when a repository is
  * created; `local` is what this repository has, and null for both means the
@@ -832,7 +832,7 @@ export const isGitReport: Guard<GitReport> = shape<GitReport>({
 });
 
 /**
- * Publishing a branch for the first time. SPEC.md §12.
+ * Publishing a branch for the first time. specification.md §12.
  *
  * `url` records a remote before pushing, and is left out when one is already
  * recorded. The address is checked against the accepted shapes in the core
@@ -847,7 +847,7 @@ export const isGitPublishRequest: Guard<GitPublishRequest> = shape<GitPublishReq
 });
 
 /**
- * A file resolved by hand, and the text to put in its place. SPEC.md §12.
+ * A file resolved by hand, and the text to put in its place. specification.md §12.
  *
  * The choice is made in the interface and the text is assembled there, from
  * the same pure rule that read the markers; this only writes it and stages it.
@@ -906,7 +906,7 @@ export interface OperaIncertaBridge {
   /** Creates the project and opens it. */
   createProject(request: CreateProjectRequest): Promise<BridgeResult<ProjectSnapshot>>;
   /**
-   * Makes an existing folder a project and opens it. SPEC.md §8.6.
+   * Makes an existing folder a project and opens it. specification.md §8.6.
    *
    * Answers the `no-project` outcome of {@link openProject}: the folder keeps
    * its files, and gets the record directory it lacked. The display name is
@@ -916,11 +916,11 @@ export interface OperaIncertaBridge {
   adoptProject(request: ProjectPathRequest): Promise<BridgeResult<ProjectSnapshot>>;
   /**
    * Opens the native directory chooser and reports what the chosen folder
-   * turned out to be. SPEC.md §8.6.
+   * turned out to be. specification.md §8.6.
    */
   openProject(): Promise<BridgeResult<ProjectOpenOutcome>>;
   /**
-   * Searches the text of every sheet in the open project. SPEC.md §9.3.
+   * Searches the text of every sheet in the open project. specification.md §9.3.
    *
    * The reading happens here, in the main process, like every other
    * filesystem access: the renderer receives matches, never a path it could
@@ -928,7 +928,7 @@ export interface OperaIncertaBridge {
    */
   searchLibrary(request: LibrarySearchRequest): Promise<BridgeResult<LibrarySearchResult>>;
   /**
-   * Writes the manuscript out in one format. SPEC.md §15.2.
+   * Writes the manuscript out in one format. specification.md §15.2.
    *
    * Assembling, setting and writing all happen in the main process: the
    * renderer asks for a format and, at most, a sheet to begin at, and learns
@@ -936,7 +936,7 @@ export interface OperaIncertaBridge {
    */
   exportDocument(request: ExportRequest): Promise<BridgeResult<ExportOutcome>>;
   /**
-   * The author's own export stylesheets, by name (SPEC.md §15.2).
+   * The author's own export stylesheets, by name (specification.md §15.2).
    *
    * The supplied four are not here: the renderer has them from the module
    * itself, and sending them over the bridge would be sending the
@@ -955,7 +955,7 @@ export interface OperaIncertaBridge {
   gitUnstage(request: GitPathsRequest): Promise<BridgeResult<null>>;
   /**
    * Throws changes away. Destructive, and therefore confirmed before it is
-   * called (SPEC.md §12).
+   * called (specification.md §12).
    *
    * Returns the affected paths **relative to the project**, so the interface
    * can forget what it was still holding for them. Git reports paths relative
@@ -964,49 +964,49 @@ export interface OperaIncertaBridge {
   gitDiscard(request: GitPathsRequest): Promise<BridgeResult<readonly string[]>>;
   /**
    * Git's own diff for one path, as text. Shown unchanged: it is tool output
-   * (SPEC.md §12, §14.2).
+   * (specification.md §12, §14.2).
    */
   gitDiff(request: LibraryPathRequest): Promise<BridgeResult<string>>;
   /**
    * The two versions of one path — as committed and as it is now — for the
-   * word-level comparison of prose (SPEC.md §12). Either may be `null`: a new
+   * word-level comparison of prose (specification.md §12). Either may be `null`: a new
    * file has no committed version, a deleted one has no current content.
    */
   gitVersions(request: LibraryPathRequest): Promise<BridgeResult<GitVersions>>;
   gitCommit(request: GitCommitRequest): Promise<BridgeResult<null>>;
   gitPush(): Promise<BridgeResult<null>>;
-  /** Brings the remote's refs up to date. Touches no file. SPEC.md §12. */
+  /** Brings the remote's refs up to date. Touches no file. specification.md §12. */
   gitFetch(): Promise<BridgeResult<null>>;
   /** Fast-forward only: a merge that could conflict is not offered. */
   gitPull(): Promise<BridgeResult<null>>;
   /**
    * Merges the upstream in. May leave conflicts, which is why it is asked for
-   * explicitly and never happens on its own. SPEC.md §12.
+   * explicitly and never happens on its own. specification.md §12.
    */
   gitMerge(): Promise<BridgeResult<null>>;
   /** Puts everything back as it was before the merge began. */
   gitAbortMerge(): Promise<BridgeResult<null>>;
   /**
    * Creates a repository in the open project, with `main` as its initial
-   * branch. Refused where the project is already inside one. SPEC.md §12.
+   * branch. Refused where the project is already inside one. specification.md §12.
    */
   gitInit(): Promise<BridgeResult<null>>;
-  /** Who commits would be by, at both scopes. SPEC.md §12. */
+  /** Who commits would be by, at both scopes. specification.md §12. */
   gitIdentity(): Promise<BridgeResult<GitIdentityReport>>;
-  /** Records the identity in this repository only. SPEC.md §12. */
+  /** Records the identity in this repository only. specification.md §12. */
   gitSetIdentity(identity: GitIdentity): Promise<BridgeResult<null>>;
   /** Writes a resolved file and stages it. */
   gitResolve(request: GitResolveRequest): Promise<BridgeResult<null>>;
   /**
    * Pushes the branch for the first time and sets it to track where it went.
-   * SPEC.md §12.
+   * specification.md §12.
    */
   gitPublish(request: GitPublishRequest): Promise<BridgeResult<null>>;
-  /** Every local branch, and which one is checked out. SPEC.md §12. */
+  /** Every local branch, and which one is checked out. specification.md §12. */
   gitBranches(): Promise<BridgeResult<readonly GitBranch[]>>;
   /**
    * Replaces the last commit, keeping its message when none is given.
-   * Offered only for a commit that has not been pushed. SPEC.md §12.
+   * Offered only for a commit that has not been pushed. specification.md §12.
    */
   gitAmend(request: GitTextRequest): Promise<BridgeResult<null>>;
   /** The last commit's message, for filling the field before amending. */
@@ -1043,7 +1043,7 @@ export interface OperaIncertaBridge {
   deleteEntry(request: LibraryPathRequest): Promise<BridgeResult<LibraryEditResult>>;
   /**
    * Says what to watch. Replaces whatever was being watched before.
-   * SPEC.md §10.6.
+   * specification.md §10.6.
    */
   watchTargets(request: WatchTargetsRequest): Promise<BridgeResult<null>>;
   /**
@@ -1053,13 +1053,13 @@ export interface OperaIncertaBridge {
   onExternalChange(listener: () => void): () => void;
   /**
    * Watches the repository while source control is on screen, and stops when
-   * it is not. SPEC.md §12.
+   * it is not. specification.md §12.
    */
   watchRepository(visible: boolean): Promise<BridgeResult<null>>;
   /** Something changed in the working tree. A separate concern, so a separate
    * channel: this one ends in a status refresh, not in re-reading the project. */
   onRepositoryChange(listener: () => void): () => void;
-  /** The installation-local preference record. SPEC.md §13. */
+  /** The installation-local preference record. specification.md §13. */
   readPreferences(): Promise<BridgeResult<unknown>>;
   /** Stores it. A preference never touches a document. */
   writePreferences(record: unknown): Promise<BridgeResult<null>>;

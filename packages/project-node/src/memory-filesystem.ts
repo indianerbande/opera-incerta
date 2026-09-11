@@ -176,7 +176,7 @@ export class MemoryProjectFilesystem implements ProjectFilesystem {
     );
   }
 
-  /** The author's own export stylesheets. SPEC.md §15.2. */
+  /** The author's own export stylesheets. specification.md §15.2. */
   async listStylesheets(projectPath: string): Promise<readonly string[]> {
     const directory = this.#stylesPath(normalize(projectPath));
     const names: string[] = [];

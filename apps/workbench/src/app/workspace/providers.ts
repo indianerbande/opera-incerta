@@ -1,6 +1,6 @@
 /**
  * How the workbench's state reaches its components: provided once, at the
- * shell, and injected where it is read. SPEC.md §8.7.
+ * shell, and injected where it is read. specification.md §8.7.
  *
  * One way rather than two. The drag state used to travel as an input through
  * every level of the tree, while the source control panel took fourteen

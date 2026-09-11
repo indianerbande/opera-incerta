@@ -1,6 +1,6 @@
 /**
  * What the author can do to the library from its context menus, and the
- * questions asked on the way. SPEC.md §6.4, §6.5, §6.7, §6.6.
+ * questions asked on the way. specification.md §6.4, §6.5, §6.7, §6.6.
  *
  * A flow, not a component: it decides which menu entries an entry gets, what a
  * prompt says, and what happens when it is confirmed. The shell only renders
@@ -57,7 +57,7 @@ export class LibraryActions {
       entries: [
         { label: this.#i18n.t('library.menu.rename'), run: () => this.askToRenameSheet(path, name) },
         { label: this.#i18n.t('library.menu.deleteSheet'), run: () => this.askToDeleteSheet(path, name) },
-        // Exporting from this sheet on. SPEC.md §15.2: the whole document is
+        // Exporting from this sheet on. specification.md §15.2: the whole document is
         // in the File menu, and the part that begins here belongs to the
         // sheet that begins it.
         {
@@ -65,7 +65,7 @@ export class LibraryActions {
           run: () => void this.#store.exportDocument('markdown', path),
         },
         {
-          // A PDF is set with a stylesheet, so it asks which (SPEC.md §15.2);
+          // A PDF is set with a stylesheet, so it asks which (specification.md §15.2);
           // the shell owns that dialog, and this says what it is for.
           label: this.#i18n.t('export.pdfFromHere'),
           run: () => this.#overlay.set({ kind: 'export', from: path }),
@@ -83,7 +83,7 @@ export class LibraryActions {
       initial: '',
       placeholder: this.#i18n.t('library.newSheet.placeholder'),
       // The rule, where it applies: the file name is derived once and then
-      // stays, while this title can change any time (SPEC.md §6.4).
+      // stays, while this title can change any time (specification.md §6.4).
       hint: this.#i18n.t('library.newSheet.hint'),
       confirmLabel: this.#i18n.t('common.create'),
       action: (value) => void this.#store.createSheet(groupPath, value),
@@ -126,7 +126,7 @@ export class LibraryActions {
     });
   }
 
-  /** Deleting a sheet. SPEC.md §6.7. */
+  /** Deleting a sheet. specification.md §6.7. */
   askToDeleteSheet(path: string, name: string): void {
     const open = this.#store.openSheet();
     this.#overlay.set({
@@ -142,7 +142,7 @@ export class LibraryActions {
     });
   }
 
-  /** Deleting a group, with what goes along with it spelled out. SPEC.md §6.7. */
+  /** Deleting a group, with what goes along with it spelled out. specification.md §6.7. */
   askToDeleteGroup(path: string, name: string): void {
     this.#overlay.set({
       kind: 'confirmation',
@@ -152,7 +152,7 @@ export class LibraryActions {
     });
   }
 
-  /** The category manager. SPEC.md §6.6. */
+  /** The category manager. specification.md §6.6. */
   manageCategories(): void {
     this.#overlay.set({ kind: 'categories' });
   }
@@ -178,7 +178,7 @@ export class LibraryActions {
     }
 
     // By the platform's plural rules, never by a count-equals-one test
-    // (SPEC.md §14.1) — which is what stood here before.
+    // (specification.md §14.1) — which is what stood here before.
     const parts = [
       this.#i18n.n('library.sheets', sheets),
       ...(groups === 0 ? [] : [this.#i18n.n('library.subgroups', groups)]),

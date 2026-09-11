@@ -1,5 +1,5 @@
 /**
- * The one shape a failure has, everywhere. SPEC.md §16, CONVENTIONS.md C-A10.
+ * The one shape a failure has, everywhere. specification.md §16, conventions.md C-A10.
  *
  * A stable code that the interface can word, and a message that is either
  * the words of the tool that failed — git's, which the author is shown as

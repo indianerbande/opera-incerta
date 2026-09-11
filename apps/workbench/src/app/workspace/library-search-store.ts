@@ -1,5 +1,5 @@
 /**
- * What the library search is doing. SPEC.md §9.3.
+ * What the library search is doing. specification.md §9.3.
  *
  * Transient by decision: the query and its matches live with the window, like
  * the wrap switch of §10.5. Nothing here reaches the preference record or the

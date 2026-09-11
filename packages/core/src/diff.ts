@@ -1,5 +1,5 @@
 /**
- * Reading Git's own diff output. SPEC.md §12.
+ * Reading Git's own diff output. specification.md §12.
  *
  * The text is shown exactly as Git wrote it — it is tool output and is never
  * localized (§14.2) — so the only rule here is which kind each line is, which

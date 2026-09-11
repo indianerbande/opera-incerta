@@ -3,11 +3,11 @@ import type { PageCategory, SheetMetadata, TextStatistics } from '@opera-incerta
 import { Localization } from '../localization/localization.js';
 
 /**
- * Metadata of the active sheet. SPEC.md §11.
+ * Metadata of the active sheet. specification.md §11.
  *
  * This is the only place the owned front matter fields are edited. The block
  * shown beside the text is read-only precisely so that the schema cannot be
- * bypassed through free text (SPEC.md §10.4).
+ * bypassed through free text (specification.md §10.4).
  *
  * `topic` and `keywords` are deliberately different things: one short label
  * saying what the sheet is about, and an open list for filtering.

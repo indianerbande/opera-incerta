@@ -12,7 +12,7 @@ import {
   type PluralKey,
 } from '../src/index.js';
 
-describe('the catalogues (SPEC.md §14.1)', () => {
+describe('the catalogues (specification.md §14.1)', () => {
   it('carry the same keys, none of them empty', () => {
     expect(Object.keys(DE).sort()).toEqual(Object.keys(EN).sort());
     for (const language of LANGUAGES) {
@@ -61,7 +61,7 @@ describe('translate', () => {
   });
 });
 
-describe('plural resolution (SPEC.md §14.1)', () => {
+describe('plural resolution (specification.md §14.1)', () => {
   const cases: ReadonlyArray<readonly [PluralKey, number, string, string]> = [
     ['library.sheets', 0, '0 sheets', '0 Blätter'],
     ['library.sheets', 1, '1 sheet', '1 Blatt'],

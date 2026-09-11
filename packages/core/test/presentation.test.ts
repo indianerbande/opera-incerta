@@ -38,7 +38,7 @@ function present(text: string, blocks: readonly Block[], focused: number | null 
   return presentation(text, displayModel(text, focused), model(blocks), focused);
 }
 
-describe('the presentation of GFM constructs (SPEC.md §10.7)', () => {
+describe('the presentation of GFM constructs (specification.md §10.7)', () => {
   it('hides a quote marker off the focus line and styles the line by depth', () => {
     const text = '> quoted\n> > deeper\nplain';
     const quotes: Block[] = [

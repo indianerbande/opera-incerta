@@ -1,11 +1,11 @@
 /**
- * The recent-projects list of the welcome window. SPEC.md §8.6.
+ * The recent-projects list of the welcome window. specification.md §8.6.
  *
  * Pure list logic, kept out of the view so that deduplication, ordering, and
  * the cap are testable without a window.
  */
 
-/** How many entries the welcome window shows. SPEC.md §8.6. */
+/** How many entries the welcome window shows. specification.md §8.6. */
 export const RECENT_PROJECTS_LIMIT = 10;
 
 export interface RecentProject {

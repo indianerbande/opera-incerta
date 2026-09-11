@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest a capability or a change to how something works
+title: "Request: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before writing: the [project status](https://github.com/indianerbande/opera-incerta/blob/main/docs/en/project-status.md) lists what is deliberately not built yet, and the [roadmap](https://github.com/indianerbande/opera-incerta/blob/main/docs/engineering/roadmap.md) lists what is planned. If your idea is already there, an issue that says *why it matters to you* is still useful.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The writing problem, not the solution. What does the application make hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help?
+      description: If you have a shape in mind, describe it — but the problem above matters more.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you work around it now?
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Does your idea stay inside the project's promises?
+      description: These are load-bearing. An idea that breaks one can still be discussed, but it has to be discussed as that.
+      options:
+        - label: It keeps the manuscript as plain Markdown files that other tools can read
+        - label: It does not require a network connection for normal work
+        - label: It does not rename or move the author's files behind their back

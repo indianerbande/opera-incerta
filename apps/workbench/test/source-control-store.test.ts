@@ -229,7 +229,7 @@ describe('committing', () => {
   });
 
   it('keeps the commit and clears the message when only the push fails', async () => {
-    // SPEC.md §12: the commit stands, and only the push failure is reported.
+    // specification.md §12: the commit stands, and only the push failure is reported.
     const bridge = fakeBridge({
       push: () => ({ ok: false, code: 'git/command-failed', message: 'no upstream' }),
     });

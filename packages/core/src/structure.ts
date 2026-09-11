@@ -1,5 +1,5 @@
 /**
- * Display names and explicit child order. SPEC.md §6.4.
+ * Display names and explicit child order. specification.md §6.4.
  *
  * `structure.json` only adds order and display names on top of the filesystem.
  * The filesystem stays the source of truth for existence, so every rule here
@@ -7,7 +7,7 @@
  * a missing entry means alphabetical order and the real directory name.
  */
 
-/** Metadata stored in `.opera-incerta/project.json`. SPEC.md §6.1. */
+/** Metadata stored in `.opera-incerta/project.json`. specification.md §6.1. */
 export interface ProjectRecord {
   /** Assigned once, never changed. Keys installation-local project state. */
   readonly id: string;
@@ -30,7 +30,7 @@ export type StructureRecord = Readonly<Record<string, StructureEntry>>;
  * Sorting for everything not explicitly ordered.
  *
  * The locale is pinned so that results do not depend on the machine
- * (TESTING.md §1.8), and numeric collation keeps `chapter-2` before
+ * (testing.md §1.8), and numeric collation keeps `chapter-2` before
  * `chapter-10`.
  */
 const COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
@@ -174,7 +174,7 @@ export function withoutChild(
 
 /**
  * Moves an entry from one group to another, rewriting the record in one step so
- * that no two parts of it can disagree. SPEC.md §6.8.
+ * that no two parts of it can disagree. specification.md §6.8.
  *
  * Three things happen at once, and each of them is a way the record could
  * otherwise go wrong:
@@ -231,7 +231,7 @@ export function moveChild(
 /**
  * Reads a parsed JSON value into a structure record, discarding anything that
  * does not match the shape. A malformed file falls back to default behavior
- * rather than blocking the project (SPEC.md §16).
+ * rather than blocking the project (specification.md §16).
  */
 export function readStructureRecord(value: unknown): StructureRecord {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {

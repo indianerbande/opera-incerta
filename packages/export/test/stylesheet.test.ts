@@ -9,7 +9,7 @@ import {
   isBuiltInStylesheetId,
 } from '../src/index.js';
 
-describe('the supplied stylesheets (SPEC.md §15.2)', () => {
+describe('the supplied stylesheets (specification.md §15.2)', () => {
   it('offers four, with the manuscript as the one every fallback lands on', () => {
     expect(BUILT_IN_STYLESHEETS).toEqual(['manuscript', 'typescript', 'reading', 'plain']);
     expect(DEFAULT_STYLESHEET_ID).toBe('manuscript');

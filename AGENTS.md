@@ -1,13 +1,14 @@
 # Opera Incerta Agent Instructions
 
-Status: Draft 0.4 — the MVP of `SPEC.md` §17 is built and verified, and so
-is everything Phase 2 named
+Status: Draft 0.5 — the MVP of `docs/engineering/specification.md` §17 is
+built and verified, everything Phase 2 named is built, and the repository is
+prepared for publication
 
 Date: 2026-09-11
 
-This file defines **how** work happens in this repository. `SPEC.md` defines
-**what** is built. `TESTING.md` defines the **evidence** required to claim that
-it works. `CONVENTIONS.md` records the design and handling measures this
+This file defines **how** work happens in this repository. `docs/engineering/specification.md` defines
+**what** is built. `docs/engineering/testing.md` defines the **evidence** required to claim that
+it works. `docs/engineering/conventions.md` records the design and handling measures this
 project works by.
 
 ## Project status
@@ -21,14 +22,22 @@ regions, the library, the editor with its display model and its GFM display,
 source control up to merging and amending, and the first export module are
 built, tested and committed.
 
-`DONE.md` is the record of what exists and why; `TODO.md` is what is open.
-Neither is a summary — read the one that answers the question at hand.
+`docs/engineering/completed-work.md` is the record of what exists and why;
+`docs/engineering/roadmap.md` is what is open. Neither is a summary — read the
+one that answers the question at hand.
+
+**Where the documents live (since 2026-09-11).** The engineering sources are
+in `docs/engineering/` and are **English only**, because a product contract
+must not be able to diverge between translations. The public documentation is
+in `docs/en/` and `docs/de/` and **is** a translated pair, checked as such by
+`check:documentation`. This file and `README.md` stay at the root, where a
+reader and a tool both look first.
 
 Part of what this project knows comes from the author's earlier work — a native
 macOS writing application, and a TypeScript monorepo of the same shape as this
 one. **Both have been read out into this repository**: the product requirements
-into `SPEC.md`, the engineering measures into `CONVENTIONS.md`, the evidence
-rules into `TESTING.md`. Neither is a codebase to copy, neither is available to
+into `docs/engineering/specification.md`, the engineering measures into `docs/engineering/conventions.md`, the evidence
+rules into `docs/engineering/testing.md`. Neither is a codebase to copy, neither is available to
 consult, and nothing here may be written as though it were. If a requirement is
 not in these documents, it does not exist yet — decide it, record it, and then
 build it.
@@ -37,14 +46,14 @@ Accepted so far: the product intent (below), the runtime stack (Electron shell,
 Node.js main process, Angular renderer, portable TypeScript core in a pnpm
 workspace), and the documentation set. Everything else — product name, grammar
 of the display model, editor component, dependency list, release channel — is
-**draft** until recorded as accepted in `SPEC.md`.
+**draft** until recorded as accepted in `docs/engineering/specification.md`.
 
 The visible product name is **Opera Incerta**, accepted on 2026-09-01. The
 technical name is `opera-incerta` (`@opera-incerta/*` packages, `.opera-incerta/`
 project marker, `operaIncerta` bridge global). The two are separate concepts
 that currently share a word: a later change to the product name MUST NOT touch
 those identifiers, and a divergence between the two names is expected rather
-than a defect (`SPEC.md` §1.1, `CONVENTIONS.md` C-N1).
+than a defect (`docs/engineering/specification.md` §1.1, `docs/engineering/conventions.md` C-N1).
 
 ## What the product is
 
@@ -80,7 +89,7 @@ The guiding ideas are normative:
   without touching the core.
 
 The functional scope, its current-state slice, and its later phases are
-specified in `SPEC.md` §6 to §18.
+specified in `docs/engineering/specification.md` §6 to §18.
 
 ## Read first
 
@@ -88,16 +97,16 @@ Before making project changes:
 
 1. confirm that the working directory is the intended Opera Incerta checkout;
 2. read this file completely;
-3. read `SPEC.md` completely;
-4. read `TESTING.md` completely;
-5. read `CONVENTIONS.md` for the inherited handling rules;
+3. read `docs/engineering/specification.md` completely;
+4. read `docs/engineering/testing.md` completely;
+5. read `docs/engineering/conventions.md` for the inherited handling rules;
 6. inspect the current repository state; and
 7. distinguish draft decisions from accepted decisions.
 
 An explicit current user instruction can change project scope. Record material
 design changes in the relevant document **in the same change**, never "later".
 
-When a requirement contradicts or extends `SPEC.md`, update `SPEC.md` in the
+When a requirement contradicts or extends `docs/engineering/specification.md`, update `docs/engineering/specification.md` in the
 same change rather than implementing against an outdated specification.
 
 ## Core product invariants
@@ -129,7 +138,7 @@ change:
   any Node.js-side tooling;
 - identical effective input produces deterministic output;
 - normal operation requires no network access and no local or remote service.
-  The **one** exception is the AI assistant (`SPEC.md` §15), which needs a
+  The **one** exception is the AI assistant (`docs/engineering/specification.md` §15), which needs a
   connection by its nature: without one it is unavailable and says so, while
   everything else in the application works unchanged. No other feature may
   acquire a network dependency without changing this line first;
@@ -144,8 +153,8 @@ Opera Incerta must be an original program, not a clone of an existing writing
 application.
 
 The author's own earlier work is a legitimate source for requirements,
-decisions, and hard-won lessons, and it has been read into `SPEC.md`,
-`TESTING.md` and `CONVENTIONS.md` in full. Everything else — Ulysses,
+decisions, and hard-won lessons, and it has been read into `docs/engineering/specification.md`,
+`docs/engineering/testing.md` and `docs/engineering/conventions.md` in full. Everything else — Ulysses,
 Scrivener, Obsidian, Typora, iA Writer, VS Code, JetBrains IDEs — is prior art
 studied only through public documentation and observable behavior.
 
@@ -162,7 +171,7 @@ When researching prior art:
 1. use public primary documentation and observable behavior;
 2. record the user problem or general capability, not a foreign implementation;
 3. convert the observation into a tool-independent requirement;
-4. design Opera Incerta behavior from `SPEC.md`; and
+4. design Opera Incerta behavior from `docs/engineering/specification.md`; and
 5. cite the source used for the capability analysis.
 
 All sample projects, fixture manuscripts, and screenshots must be created
@@ -181,7 +190,7 @@ Before adding a dependency, report:
 - the adapter boundary that permits replacement; and
 - the test that will protect that boundary.
 
-Record accepted dependencies and evaluated candidates in `DEPENDENCIES.md`. Preserve
+Record accepted dependencies and evaluated candidates in `docs/engineering/dependencies.md`. Preserve
 each package's own license and notice obligations.
 
 Do not add a package to avoid a small, well-bounded implementation. Conversely,
@@ -206,7 +215,7 @@ For an approved change:
 2. present scope and representative impact before a broad systematic rewrite;
 3. make the smallest coherent change that is independently runnable — no
    intermediate state that leaves the application unusable;
-4. add or update the evidence required by `TESTING.md` in the same step, not
+4. add or update the evidence required by `docs/engineering/testing.md` in the same step, not
    "later";
 5. run proportionate non-destructive validation;
 6. inspect the rendered result when the user interface is affected; and
@@ -223,21 +232,21 @@ platform support). Those are settled before structural work begins.
 
 ## Working documents
 
-The separation between `TODO.md` and `DONE.md` is binding:
+The separation between `docs/engineering/roadmap.md` and `docs/engineering/completed-work.md` is binding:
 
 | File | Content |
 | --- | --- |
-| `TODO.md` | **open work only** — what still has to be done |
-| `DONE.md` | **completed work only** — with all associated information |
+| `docs/engineering/roadmap.md` | **open work only** — what still has to be done |
+| `docs/engineering/completed-work.md` | **completed work only** — with all associated information |
 
 When an item is finished it moves **completely, in the same round**, from
-`TODO.md` to `DONE.md`: not only the heading, but the reasoning, the
+`docs/engineering/roadmap.md` to `docs/engineering/completed-work.md`: not only the heading, but the reasoning, the
 verification result (test counts, visual inspection), and the lesson learned.
-Nothing completed stays in `TODO.md` — no ticked checkbox, no "done on …".
+Nothing completed stays in `docs/engineering/roadmap.md` — no ticked checkbox, no "done on …".
 For multi-stage work plans this applies per stage.
 
-New `DONE.md` entries go on **top** (newest first). The reason for this rule:
-a `TODO.md` that was both lists at once once grew past 1,200 lines, at which
+New `docs/engineering/completed-work.md` entries go on **top** (newest first). The reason for this rule:
+a `docs/engineering/roadmap.md` that was both lists at once once grew past 1,200 lines, at which
 point the actual task list was unreadable. A task list is only worth as much as
 its likelihood of being read.
 
@@ -266,7 +275,7 @@ When implementation is authorized:
 - keep views thin — presentation only, with logic in services and state
   containers;
 - put any rule that several call sites must apply consistently into one shared
-  unit, not into each call site (see `CONVENTIONS.md`, "shared detail" rule);
+  unit, not into each call site (see `docs/engineering/conventions.md`, "shared detail" rule);
   and
 - do not force-unwrap, non-null-assert, or silently coerce data that came from
   a user file, an AI response, or a Git process.
@@ -277,7 +286,7 @@ specification change.
 
 ## Testing and generated artifacts
 
-Follow `TESTING.md`. In particular:
+Follow `docs/engineering/testing.md`. In particular:
 
 - tests are written with the functionality, in the same step;
 - assert behavioral and structural invariants before relying on snapshots;
@@ -328,9 +337,9 @@ succeeded in this checkout. The following have:
 - `pnpm run desktop:smoke` launches the shell through its smoke entry
   (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
   renderer through forty-five checks, and writes `build/desktop/smoke*.png`;
-- `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
+- `pnpm run spike:editor` runs the editor spike gate of `docs/engineering/testing.md` §2.8 in a
   real rendering engine and exits non-zero on any failed criterion;
-- `pnpm run spike:parser` runs the parser spike gate of `TESTING.md` §2.11
+- `pnpm run spike:parser` runs the parser spike gate of `docs/engineering/testing.md` §2.11
   against the fetched, hash-verified CommonMark examples and exits non-zero
   when no candidate passes every criterion — which, as of 2026-09-04, is the
   case.
@@ -339,10 +348,10 @@ succeeded in this checkout. The following have:
   through Electron Forge — the workbench as an author meets it, on the
   author's own user-data directory rather than the smoke's. First run here on
   2026-09-10: the launcher appeared, and closing it ended the session with
-  exit code 0, which is the window model of `SPEC.md` §8.5 doing its work.
+  exit code 0, which is the window model of `docs/engineering/specification.md` §8.5 doing its work.
 
 Not yet run here, and therefore not approved: `pnpm run desktop:package` and
-`desktop:make`. Both belong to the packaging round (`TODO.md` §3).
+`desktop:make`. Both belong to the packaging round (`docs/engineering/roadmap.md` §3).
 
 ## Documentation discipline
 
@@ -392,7 +401,7 @@ Three parts of that are easy to skip and are therefore named:
   Every defect found by looking this far — front matter in the wrong place, a
   blank editor after a re-read, a name truncated to `.git...` — was invisible
   to a green suite.
-- **`SPEC.md`, `TESTING.md`, `TODO.md` and `DONE.md` are updated in the same
+- **`docs/engineering/specification.md`, `docs/engineering/testing.md`, `docs/engineering/roadmap.md` and `docs/engineering/completed-work.md` are updated in the same
   round as the code**, then the round is committed with a message that says
   what was decided and why, and pushed.
 
@@ -403,4 +412,4 @@ A checkout takes uncommitted work with it. This cost a round's work once.
 
 This file grows with the project. Changes to it are expressly welcome, and
 every hard-won lesson — especially one that cost a debugging session — belongs
-here or in `CONVENTIONS.md` rather than in a commit message nobody reads again.
+here or in `docs/engineering/conventions.md` rather than in a commit message nobody reads again.

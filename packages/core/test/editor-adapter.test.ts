@@ -36,7 +36,7 @@ class FakeEditorAdapter implements EditorAdapter {
   #cursorListeners = new Set<EditorCursorListener>();
   #markerListeners = new Set<HeadingMarkerListener>();
   #destroyed = false;
-  /** What the find of SPEC.md §10.11 is on: the query and the current match. */
+  /** What the find of specification.md §10.11 is on: the query and the current match. */
   #search: { query: string; matches: readonly SearchMatch[]; current: number } = {
     query: '',
     matches: [],

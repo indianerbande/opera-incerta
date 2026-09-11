@@ -1,11 +1,11 @@
 /**
- * Where you have been. SPEC.md §9.4.
+ * Where you have been. specification.md §9.4.
  *
  * Two rules, both pure, both here rather than in a component: the history of
  * the sheets that were opened, and the list of the ones that were saved.
  */
 
-/** How many sheets the "recently edited" list keeps. SPEC.md §9.4. */
+/** How many sheets the "recently edited" list keeps. specification.md §9.4. */
 export const RECENT_SHEETS_LIMIT = 10;
 
 /**
@@ -85,7 +85,7 @@ export function withoutSheet(history: NavigationHistory, path: string): Navigati
 }
 
 /**
- * Puts a sheet at the front of the "recently edited" list. SPEC.md §9.4.
+ * Puts a sheet at the front of the "recently edited" list. specification.md §9.4.
  *
  * Same shape as the recent projects of §8.6: an earlier entry for the same
  * sheet moves up rather than being duplicated, and the list is capped.
@@ -104,7 +104,7 @@ export function withRecentSheet(
 /**
  * Reads a stored list, discarding what it cannot read.
  *
- * The list is a convenience and never a source of truth (SPEC.md §9.4): a
+ * The list is a convenience and never a source of truth (specification.md §9.4): a
  * malformed file — or one a merge left with conflict markers — is an empty
  * list, never a failure to open the project.
  */

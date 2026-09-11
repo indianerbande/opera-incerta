@@ -1,5 +1,5 @@
 /**
- * Inline markup detection. SPEC.md §10.3, step 1 of the planned decomposition.
+ * Inline markup detection. specification.md §10.3, step 1 of the planned decomposition.
  *
  * Pure and line-local: it knows nothing about an editor, a cursor, or a DOM,
  * which is what makes the focus-line behavior testable without a rendering
@@ -7,7 +7,7 @@
  *
  * Scope of this stage is deliberately narrow. Only the asterisk forms are
  * detected; whether `_` is treated identically is an open decision
- * (`SPEC.md` §10.3), and detecting it now would settle that question by
+ * (`specification.md` §10.3), and detecting it now would settle that question by
  * accident.
  */
 
@@ -173,7 +173,7 @@ function findClosing(lineText: string, delimiter: string, contentFrom: number): 
 
 /**
  * The ranges of delimiter characters in a line — what the editor hides when
- * the line does not hold the cursor (SPEC.md §10.3).
+ * the line does not hold the cursor (specification.md §10.3).
  */
 export function delimiterRanges(
   lineText: string,

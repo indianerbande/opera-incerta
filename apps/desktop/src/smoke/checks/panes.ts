@@ -1,6 +1,6 @@
 /**
  * The panes around the editor: inspector, outline, front matter area, page
- * categories, and the column dividers. SPEC.md §8, §10.4, §6.6.
+ * categories, and the column dividers. specification.md §8, §10.4, §6.6.
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
@@ -81,7 +81,7 @@ export async function checkPanes(smoke: Smoke, window: BrowserWindow): Promise<v
     throw new Error(`the outline is missing its heading: ${JSON.stringify(outline)}`);
   }
 
-  // Activating the visible view again collapses the sidebar (SPEC.md §8.4).
+  // Activating the visible view again collapses the sidebar (specification.md §8.4).
   await activateSidebar(window, 'Outline');
   const collapsed = (await window.webContents.executeJavaScript(
     "document.querySelector('.secondary-sidebar') === null",
@@ -130,7 +130,7 @@ export async function checkPanes(smoke: Smoke, window: BrowserWindow): Promise<v
 
 /**
  * Checks the front matter area: two blocks, three switches, and read-only that
- * is a different control rather than a disabled one. SPEC.md §10.4.
+ * is a different control rather than a disabled one. specification.md §10.4.
  */
 export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow): Promise<void> {
   const blocksNow = (await window.webContents.executeJavaScript(
@@ -164,7 +164,7 @@ export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow):
     }>;
 
   // The block measures itself and grows to what it measured, and a packaged
-  // face arrives after the first paint (SPEC.md §8.8, §10.4): what is read
+  // face arrives after the first paint (specification.md §8.8, §10.4): what is read
   // here is the height it settles at, not the one it started from. Read once,
   // this check failed twice on a block that was right a frame later.
   await waitUntil('the front matter blocks to settle at their measured height', async () => {
@@ -183,7 +183,7 @@ export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow):
   if (!owned.text.includes('opera-incerta:') || !owned.text.includes('title: A Scene in Part One')) {
     throw new Error(`the own block does not show what the file carries: ${owned.text}`);
   }
-  // "Show everything, up to ten lines" (SPEC.md §10.4). Both blocks are well
+  // "Show everything, up to ten lines" (specification.md §10.4). Both blocks are well
   // under the cap, so all of them must be visible — the defect the visual
   // check found was a block one line short, its last line under a scrollbar.
   for (const block of shown) {
@@ -191,7 +191,7 @@ export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow):
       throw new Error(`a block shows ${block.visible}px of ${block.needed}px: ${block.text}`);
     }
   }
-  // Read-only is a different control, never a disabled one (SPEC.md §10.4).
+  // Read-only is a different control, never a disabled one (specification.md §10.4).
   if (foreign.control !== 'pre' || owned.control !== 'pre') {
     throw new Error(`read-only is not a pre: ${JSON.stringify(shown.map((b) => b.control))}`);
   }
@@ -239,7 +239,7 @@ export async function checkFrontMatterArea(smoke: Smoke, window: BrowserWindow):
 
 /**
  * Checks page categories end to end: defined in the manager, assigned in the
- * inspector, shown as a badge with the computed text colour. SPEC.md §6.6.
+ * inspector, shown as a badge with the computed text colour. specification.md §6.6.
  */
 export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): Promise<void> {
   await clickText(window, 'wi-inspector button', 'Manage');
@@ -339,13 +339,13 @@ export async function checkPageCategories(smoke: Smoke, window: BrowserWindow): 
 }
 
 /**
- * Dragging a column divider. SPEC.md §8.2.
+ * Dragging a column divider. specification.md §8.2.
  *
  * Through real pointer events, and then read back from the preference file —
  * so what is checked is that the width was stored, not that a signal changed.
  */
 /**
- * The regions as panels on a canvas. SPEC.md §8.2.
+ * The regions as panels on a canvas. specification.md §8.2.
  *
  * Measured rather than described: the rails flush against the window, eight
  * pixels of air around and between the panels, and every panel with the same
@@ -499,7 +499,7 @@ export async function checkColumnDragging(smoke: Smoke, window: BrowserWindow): 
     throw new Error(`dragging right did not widen the column: ${before.width} to ${after}`);
   }
 
-  // Switching a view must not move it (CONVENTIONS.md C-U1).
+  // Switching a view must not move it (conventions.md C-U1).
   await activateSidebar(window, 'Outline');
   await activateSidebar(window, 'Inspector');
   const afterSwitch = (await window.webContents.executeJavaScript(

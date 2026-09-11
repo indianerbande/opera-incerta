@@ -1,5 +1,5 @@
 /**
- * The workbench regions. SPEC.md §8.1.
+ * The workbench regions. specification.md §8.1.
  *
  * A region is a fixed place in the window and is never renamed when new content
  * arrives; a view is interchangeable content inside a region. Keeping the
@@ -7,16 +7,16 @@
  * the naming rule in one place instead of scattered across templates.
  */
 
-/** Width of each activity bar, in CSS pixels. SPEC.md §8.2. */
+/** Width of each activity bar, in CSS pixels. specification.md §8.2. */
 export const ACTIVITY_BAR_WIDTH = 44;
 
-/** Height of every panel header, in CSS pixels. SPEC.md §8.3. */
+/** Height of every panel header, in CSS pixels. specification.md §8.3. */
 export const PANEL_HEADER_HEIGHT = 36;
 
-/** Height of the editor's status bar, in CSS pixels. SPEC.md §10.5. */
+/** Height of the editor's status bar, in CSS pixels. specification.md §10.5. */
 export const STATUS_BAR_HEIGHT = 24;
 
-/** Project window geometry. SPEC.md §8.2. */
+/** Project window geometry. specification.md §8.2. */
 export const WINDOW_GEOMETRY = {
   defaultWidth: 1600,
   defaultHeight: 1000,
@@ -37,7 +37,7 @@ export interface WorkbenchRegion {
   readonly id: RegionId;
   /** Views that can occupy this region. Empty when the region is fixed. */
   readonly views: readonly string[];
-  /** Whether the user can drag this region's width. SPEC.md §8.2. */
+  /** Whether the user can drag this region's width. specification.md §8.2. */
   readonly resizable: boolean;
 }
 

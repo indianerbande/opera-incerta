@@ -1,5 +1,5 @@
 /**
- * What lies over the workbench: at most one thing at a time. SPEC.md §8.7.
+ * What lies over the workbench: at most one thing at a time. specification.md §8.7.
  *
  * The shell used to hold one signal per dialog — a menu, a prompt, a
  * confirmation, the branch list, the resolver, the diff, the ignore editor,
@@ -20,7 +20,7 @@ export interface MenuEntry {
   readonly run: () => void;
   /**
    * An entry that says something rather than offering it — the empty
-   * "recently edited" list of SPEC.md §9.4. A menu that showed nothing at all
+   * "recently edited" list of specification.md §9.4. A menu that showed nothing at all
    * would look broken; a line that cannot be clicked says why it is empty.
    */
   readonly disabled?: boolean;
@@ -55,31 +55,31 @@ export type Overlay =
     }
   | ({ readonly kind: 'prompt' } & Prompt)
   | ({ readonly kind: 'confirmation' } & Confirmation)
-  /** The `.gitignore` being edited. SPEC.md §12. */
+  /** The `.gitignore` being edited. specification.md §12. */
   | { readonly kind: 'ignore'; readonly text: string }
   /**
-   * Choosing the stylesheet a PDF is set with. SPEC.md §15.2.
+   * Choosing the stylesheet a PDF is set with. specification.md §15.2.
    *
    * It carries what the export will need afterwards — the extent — so that
    * confirming the dialog is the whole of the decision.
    */
   | { readonly kind: 'export'; readonly from: string | null }
-  /** The branch list. SPEC.md §12. */
+  /** The branch list. specification.md §12. */
   | { readonly kind: 'branches'; readonly branches: readonly GitBranch[] }
-  /** A conflicted file being decided. SPEC.md §12. */
+  /** A conflicted file being decided. specification.md §12. */
   | { readonly kind: 'resolver'; readonly path: string; readonly text: string }
-  /** A diff on screen. SPEC.md §12. */
+  /** A diff on screen. specification.md §12. */
   | {
       readonly kind: 'diff';
       readonly path: string;
       readonly text: string;
       readonly versions: GitVersions | null;
     }
-  /** The category manager. SPEC.md §6.6. */
+  /** The category manager. specification.md §6.6. */
   | { readonly kind: 'categories' }
-  /** The settings dialog, and what opened it — focus goes back there. SPEC.md §13. */
+  /** The settings dialog, and what opened it — focus goes back there. specification.md §13. */
   | { readonly kind: 'settings'; readonly opener: 'activityBar' | 'menu' }
-  /** The name and e-mail address commits are by. SPEC.md §12. */
+  /** The name and e-mail address commits are by. specification.md §12. */
   | {
       readonly kind: 'identity';
       readonly initial: GitIdentity | null;

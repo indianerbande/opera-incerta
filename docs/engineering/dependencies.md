@@ -7,7 +7,7 @@ Date: 2026-09-01
 
 This file records why each direct dependency exists, its license, its runtime
 impact, the boundary that makes it replaceable, and the evidence required to
-keep it (`AGENTS.md`, "Dependencies and licensing"; `CONVENTIONS.md` C-L1).
+keep it (`AGENTS.md`, "Dependencies and licensing"; `conventions.md` C-L1).
 
 Accepted dependencies and still-open candidates are listed separately. Passing
 a spike alone is not permanent acceptance.
@@ -18,7 +18,7 @@ change is a dependency decision, not a routine update.
 The repository is licensed under the Apache License 2.0. That does not
 relicense anything below: every package keeps its own license and notice
 obligations, and those notices ship with the application
-(`CONVENTIONS.md` C-L5).
+(`conventions.md` C-L5).
 
 ## Accepted — build and test toolchain
 
@@ -68,7 +68,7 @@ obligations, and those notices ship with the application
 - **Impact:** build-time only.
 - **Boundary:** deliberately **not** available to `packages/core` and
   `packages/desktop-contract`, whose `tsconfig.json` sets `"types": []`. That is
-  how the portability invariant of `SPEC.md` §5.2 is enforced by the compiler
+  how the portability invariant of `specification.md` §5.2 is enforced by the compiler
   rather than by discipline.
 - **Evidence:** the portable packages compile with no ambient Node types; an
   attempt to use `TextEncoder` in `desktop-contract` failed the build and was
@@ -99,7 +99,7 @@ obligations, and those notices ship with the application
 - **Impact:** build-time only.
 - **Boundary:** configured in `apps/workbench/angular.json`; output goes to
   `build/workbench/browser`, outside every source directory
-  (`CONVENTIONS.md` C-T18).
+  (`conventions.md` C-T18).
 - **Evidence:** the production build runs clean with `outputHashing: none` and a
   1 MB initial-bundle warning budget.
 
@@ -133,7 +133,7 @@ obligations, and those notices ship with the application
   The component renders and reports edits; it never owns Markdown semantics,
   and it never persists anything. Replacing it means reimplementing that
   interface, not rewriting the display model.
-- **Evidence:** the spike gate of `TESTING.md` §2.8, all six criteria passed in
+- **Evidence:** the spike gate of `testing.md` §2.8, all six criteria passed in
   a real rendering engine on 2026-09-01. Run it with `pnpm run spike:editor`;
   the measurements are recorded in `spikes/editor-codemirror/README.md`.
 
@@ -148,7 +148,7 @@ display model rather than a decoration on top of it.
 
 - **Capability:** the block structure of a document — quotes, lists and
   their nesting, code blocks, thematic breaks — for the GFM display of
-  `SPEC.md` §10.7. Run in its CommonMark preset with HTML, linkify, and the
+  `specification.md` §10.7. Run in its CommonMark preset with HTML, linkify, and the
   typographer off.
   **Since 2026-09-11 it renders as well**, in `packages/export`: the export
   of §15.2 sets its PDF from HTML. That one runs the **full** preset, so a
@@ -165,19 +165,19 @@ display model rather than a decoration on top of it.
   which serves only markdown-it's command-line tool, is not imported by its
   module entry, and never reaches a bundle: `check:desktop-production`
   fails the build if the built renderer carries it. PSF-2.0 is OSI-approved
-  and permissive; the gate of `TESTING.md` §2.11 did not list it, and this
+  and permissive; the gate of `testing.md` §2.11 did not list it, and this
   entry is where the deviation is recorded.
 - **Impact:** 7 packages, 3 MB unpacked in development; the renderer bundle
   takes the module entry and its five imports. 15 ms for 112,854 characters
   in the spike; parsed once per change of the text, never per cursor move.
 - **Offline behavior:** fully local.
 - **Boundary:** `packages/markdown` translates the tokens into the core's
-  own `BlockModel` and lets no token out (`CONVENTIONS.md` C-A6). Task
+  own `BlockModel` and lets no token out (`conventions.md` C-A6). Task
   list items, which markdown-it does not know, are that translation's own
   rule — the second deviation the spike measured, settled here rather than
   by a third-party plugin.
 - **Evidence:** `packages/markdown/test`, the presentation tests of the
-  core, the GFM check of the smoke (`TESTING.md` §2.7), and
+  core, the GFM check of the smoke (`testing.md` §2.7), and
   `packages/export/test` for the rendered document.
 
 ## Accepted — the standard oracle (tests only)
@@ -185,7 +185,7 @@ display model rather than a decoration on top of it.
 ### commonmark.js 0.31.2 (with `@types/commonmark` 0.27.10)
 
 - **Capability:** the reference implementation of CommonMark, used as the
-  oracle the display transform is checked against (`TESTING.md` §2.2).
+  oracle the display transform is checked against (`testing.md` §2.2).
 - **Why external:** a conformance check needs an implementation the core
   did not write; the core's own tests can only show that its writer and
   reader agree with each other.
@@ -198,7 +198,7 @@ display model rather than a decoration on top of it.
   the fetched specification.
 - **Boundary:** `test/standard-oracle.test.ts` translates its nodes into
   line numbers before comparing; no type of it appears outside that file.
-- **Evidence:** the oracle test itself, and the spike gate of `TESTING.md`
+- **Evidence:** the oracle test itself, and the spike gate of `testing.md`
   §2.11 read as two gates by decision of 2026-09-04: for a test oracle,
   criterion 4 (GFM) does not apply.
 
@@ -207,7 +207,7 @@ display model rather than a decoration on top of it.
 - **Capability:** an independent YAML 1.2 reader for the front matter the
   codec writes.
 - **Why external:** same reason; and the codec deliberately owns no YAML
-  parser of its own (`SPEC.md` §6.3), so this is the only way to check its
+  parser of its own (`specification.md` §6.3), so this is the only way to check its
   output against the standard.
 - **License:** ISC. No dependencies.
 - **Impact:** a devDependency of `packages/core` only.
@@ -215,7 +215,7 @@ display model rather than a decoration on top of it.
 - **Boundary:** the test compares parsed plain values; nothing of the
   library's document model is kept.
 - **Evidence:** the oracle test; on its first run in the spike it found four
-  defects in the codec (`DONE.md`, 2026-09-04).
+  defects in the codec (`completed-work.md`, 2026-09-04).
 
 ## Accepted — desktop shell
 
@@ -236,7 +236,7 @@ display model rather than a decoration on top of it.
   script; the root `postinstall` runs its `install-electron` command
   (`README.md`), which is why `allowBuilds` alone did not fetch it.
 - **Boundary:** `apps/desktop` owns native behavior only; it MUST NOT own
-  document semantics (`SPEC.md` §5.2). The renderer reaches it exclusively
+  document semantics (`specification.md` §5.2). The renderer reaches it exclusively
   through the versioned bridge in `packages/desktop-contract`.
 - **Evidence:** `pnpm run desktop:smoke` launches the shell, verifies that the
   renderer rendered and that the bridge answers, and writes a screenshot to
@@ -255,10 +255,10 @@ display model rather than a decoration on top of it.
 - **Boundary:** a replaceable packaging adapter configured in
   `apps/desktop/forge.config.cjs`. The ZIP maker is the starting point because
   it adds no platform-specific build tooling; native installers are accepted
-  separately with `PLATFORMS.md` (`CONVENTIONS.md` C-P9).
+  separately with `PLATFORMS.md` (`conventions.md` C-P9).
 - **Evidence:** none yet — `pnpm run desktop:package` and `desktop:make` have
   not been run in this checkout, and no command may be reported as approved
-  before it has succeeded here (`CONVENTIONS.md` C-T19).
+  before it has succeeded here (`conventions.md` C-T19).
 
 ## Workspace resolution decisions
 
@@ -278,20 +278,20 @@ recurring installation prompt.
 
 ## Open candidates — not accepted
 
-These are named in `SPEC.md` §5.4 and require the full report above, plus a
+These are named in `specification.md` §5.4 and require the full report above, plus a
 spike, before they may be added.
 
 ### Markdown parser for the GFM display (the other candidates, measured 2026-09-04)
 
 markdown-it is accepted above; the measurements of every candidate stay
 here as the record of the decision. Its AST MUST NOT become the public model
-(`CONVENTIONS.md` C-A6). Front matter handling is deliberately **not**
+(`conventions.md` C-A6). Front matter handling is deliberately **not**
 delegated to it: foreign keys are preserved as raw lines, which needs no YAML
-parser at all (`SPEC.md` §6.3).
+parser at all (`specification.md` §6.3).
 
-Measured against the gate of `TESTING.md` §2.11 in `spikes/parser-markdown`;
+Measured against the gate of `testing.md` §2.11 in `spikes/parser-markdown`;
 the thresholds were fixed before the run. None passed every criterion, and
-the decision the outcome asks for is in `TODO.md` §2.1.
+the decision the outcome asks for is in `roadmap.md` §2.1.
 
 - **markdown-it 15.0.1** — MIT. 652 of 652 examples; source positions; 15 ms
   for 112,854 characters; 7 packages, 3 MB unpacked. Tables and
@@ -309,7 +309,7 @@ the decision the outcome asks for is in `TODO.md` §2.1.
   full GFM through the author's extensions. **43 packages** and **164 ms**,
   twelve times the others.
 - **yaml 2.9.0** — ISC, zero dependencies. Read the codec's front matter
-  for criterion 7 and found four defects in it (`TODO.md` §1); 165 of 181
+  for criterion 7 and found four defects in it (`roadmap.md` §1); 165 of 181
   generated sheets and all three fixtures read back identically. The
   fitting oracle for the front matter half of the cross-check.
 
@@ -328,7 +328,7 @@ Node's own `fs.watch`, behind the `LibraryWatcher` port in
 settling, normalising platform quirks — this application already owns and
 tests, so taking one would mean two answers to the same questions. The platform
 behaviour that decided the adapter's shape was measured first and is recorded
-in `SPEC.md` §10.6.
+in `specification.md` §10.6.
 
 `chokidar` remains the replacement if that adapter ever needs to grow its own
 rescanning or event normalisation: it goes behind the same port, and no rule
@@ -348,13 +348,13 @@ implementation.
 
 Source control uses the locally installed `git` executable through
 `child_process`. No Git library is planned, and no Git binary is bundled
-(`SPEC.md` §12, `CONVENTIONS.md` C-P10).
+(`specification.md` §12, `conventions.md` C-P10).
 
 ## Asset status
 
 ### Material Symbols Outlined — six icons
 
-- **Capability:** the activity bar symbols of `SPEC.md` §8.4.
+- **Capability:** the activity bar symbols of `specification.md` §8.4.
 - **Why external:** drawing six icons by hand would produce worse ones and buy
   nothing; these are a maintained, widely recognised set.
 - **License:** Apache-2.0. `apps/workbench/src/assets/material-symbols/LICENSE`
@@ -377,7 +377,7 @@ Source control uses the locally installed `git` executable through
 
 ### IBM Plex — the interface face
 
-- **Capability:** the typography of the visual system (`SPEC.md` §8.8): IBM
+- **Capability:** the typography of the visual system (`specification.md` §8.8): IBM
   Plex Sans in five weights for the workbench, IBM Plex Mono in three for what
   is code rather than prose.
 - **Why external:** a face is not something to draw, and a face taken from the

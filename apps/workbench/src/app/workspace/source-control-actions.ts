@@ -1,6 +1,6 @@
 /**
  * What the author can do from the source control panel that needs a question
- * first, or a second window. SPEC.md §12.
+ * first, or a second window. specification.md §12.
  *
  * A flow, not a component: it decides what is asked and what happens on the
  * answer, and it knows the one rule the panel adds to git — that switching
@@ -34,7 +34,7 @@ export class SourceControlActions {
   }
 
   /**
-   * Creating a repository, and the question that may follow. SPEC.md §12.
+   * Creating a repository, and the question that may follow. specification.md §12.
    *
    * Asked only when the author has no global identity: with one, git already
    * knows who they are and there is nothing to ask. Declining leaves the
@@ -50,7 +50,7 @@ export class SourceControlActions {
     }
   }
 
-  /** The name and e-mail address commits are by. SPEC.md §12. */
+  /** The name and e-mail address commits are by. specification.md §12. */
   askForIdentity(): void {
     this.#overlay.set({
       kind: 'identity',
@@ -60,7 +60,7 @@ export class SourceControlActions {
   }
 
   /**
-   * Confirms throwing a change away. SPEC.md §12.
+   * Confirms throwing a change away. specification.md §12.
    *
    * The warning says what actually happens, and the two cases differ: a
    * tracked file goes back to its last committed state, while an untracked one
@@ -85,7 +85,7 @@ export class SourceControlActions {
     this.#store.forgetEdits(affected);
   }
 
-  /** Shows what changed in one file, both readings fetched at once. SPEC.md §12. */
+  /** Shows what changed in one file, both readings fetched at once. specification.md §12. */
   async showDiff(entry: GitFileStatus): Promise<void> {
     const [text, versions] = await Promise.all([
       this.#sourceControl.diff(entry.path),
@@ -111,7 +111,7 @@ export class SourceControlActions {
     });
   }
 
-  /** Opens the resolver on a conflicted file. SPEC.md §12. */
+  /** Opens the resolver on a conflicted file. specification.md §12. */
   async openResolver(entry: GitFileStatus): Promise<void> {
     const versions = await this.#sourceControl.versions(entry.path);
     if (versions?.current != null) {
@@ -125,7 +125,7 @@ export class SourceControlActions {
   }
 
   /**
-   * Publishing a branch for the first time. SPEC.md §12.
+   * Publishing a branch for the first time. specification.md §12.
    *
    * With a remote already recorded the address is known and only needs
    * confirming — this is the moment the manuscript first leaves the machine.
@@ -159,7 +159,7 @@ export class SourceControlActions {
     });
   }
 
-  /** The branch list. SPEC.md §12. */
+  /** The branch list. specification.md §12. */
   async openBranches(): Promise<void> {
     this.#overlay.set({ kind: 'branches', branches: await this.#sourceControl.branches() });
   }
@@ -218,7 +218,7 @@ export class SourceControlActions {
   }
 
   /**
-   * Replacing the last commit. SPEC.md §12.
+   * Replacing the last commit. specification.md §12.
    *
    * The message field is filled with the wording the commit already has, so
    * that amending to add a forgotten file does not cost the author their
@@ -245,7 +245,7 @@ export class SourceControlActions {
     });
   }
 
-  /** The `.gitignore`, as text. SPEC.md §12. */
+  /** The `.gitignore`, as text. specification.md §12. */
   async openIgnore(): Promise<void> {
     const text = await this.#sourceControl.readIgnore();
     if (text !== null) {

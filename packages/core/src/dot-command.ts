@@ -1,5 +1,5 @@
 /**
- * Dot commands for heading levels. SPEC.md §10.2.
+ * Dot commands for heading levels. specification.md §10.2.
  *
  * The author types `.h1` … `.h6` at the start of a line; once recognized the
  * command text disappears entirely and the line becomes a heading of that
@@ -57,7 +57,7 @@ export function dotCommandAt(visibleText: string): DotCommand | null {
  *
  * **This is never applied while loading a file.** A document that happens to
  * contain a line starting with `.h1` must open unchanged; converting it would
- * mean opening a file rewrites it (SPEC.md §6.3's rule, one level up). Callers
+ * mean opening a file rewrites it (specification.md §6.3's rule, one level up). Callers
  * apply this to typing only.
  */
 export function applyDotCommand(line: DisplayLine): DisplayLine | null {

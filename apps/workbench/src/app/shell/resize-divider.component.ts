@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 
 /**
- * The draggable boundary between two columns. SPEC.md §8.2.
+ * The draggable boundary between two columns. specification.md §8.2.
  *
  * Between two panels **the divider is the air**: the 8 px gap of §8.2 is both
  * the separation one sees and the thing one grabs, so it draws no line of its
@@ -12,7 +12,7 @@ import { ChangeDetectionStrategy, Component, input, output, signal } from '@angu
  *
  * The column's width lives in the layout state, and this only reports how far
  * the pointer moved — which is what keeps a view switch from ever moving a
- * column (`CONVENTIONS.md` C-U1).
+ * column (`conventions.md` C-U1).
  *
  * `side` says which column the divider belongs to. The secondary sidebar's
  * divider sits to its **left**, so dragging right must make it *narrower*;

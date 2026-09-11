@@ -1,5 +1,5 @@
 /**
- * The front matter area of the editor. SPEC.md §10.4.
+ * The front matter area of the editor. specification.md §10.4.
  *
  * Two rules live here, both of them pure: what the owned block *says*, and how
  * tall either block is allowed to be. Both have been got wrong before, inside
@@ -7,7 +7,7 @@
  */
 import { serializeSheet, type Sheet } from './front-matter.js';
 
-/** The most lines either block shows before it scrolls. SPEC.md §10.4. */
+/** The most lines either block shows before it scrolls. specification.md §10.4. */
 export const FRONT_MATTER_MAX_LINES = 10;
 
 /**
@@ -38,7 +38,7 @@ export function ownedFrontMatterLines(sheet: Sheet): readonly string[] {
  * The cap is applied *proportionally* to the measured height rather than by
  * multiplying a font metric: the layout engine applies its own line spacing,
  * and two attempts have failed on exactly that — first a guessed constant,
- * then a measured font metric (`CONVENTIONS.md` C-F1).
+ * then a measured font metric (`conventions.md` C-F1).
  *
  * Dragging can only **enlarge**. Shrinking below the content would hide
  * exactly what the area exists to show, so the effective height is the larger

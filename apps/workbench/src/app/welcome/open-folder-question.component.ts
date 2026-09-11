@@ -14,7 +14,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * What to do with a folder that is not a project. SPEC.md §8.6.
+ * What to do with a folder that is not a project. specification.md §8.6.
  *
  * The three answers the inspection can give are three questions, and one
  * dialog asks all of them: the folder can become a project, the project the

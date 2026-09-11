@@ -5,7 +5,7 @@ import { LibraryActions } from '../workspace/library-actions.js';
 import { WorkspaceStore } from '../workspace/workspace-store.js';
 
 /**
- * The project tree. SPEC.md §9.1.
+ * The project tree. specification.md §9.1.
  *
  * The chosen root directory is itself the top, always visible node — it
  * appears as the first element rather than as an invisible container of its
@@ -13,7 +13,7 @@ import { WorkspaceStore } from '../workspace/workspace-store.js';
  *
  * Expansion state lives in the store, not here: the navigator switches between
  * this view and source control, and component-local state would be destroyed
- * on every switch (CONVENTIONS.md C-U2).
+ * on every switch (conventions.md C-U2).
  *
  * Dragging is not handled here either. Each row only *names* itself in the
  * DOM — its kind and its path — and the shell, which contains both library
@@ -22,7 +22,7 @@ import { WorkspaceStore } from '../workspace/workspace-store.js';
  *
  * The store, the drag, and the actions are injected rather than passed:
  * threading them through every level of a recursive tree was the reason the
- * shell's template repeated them (SPEC.md §8.7).
+ * shell's template repeated them (specification.md §8.7).
  */
 @Component({
   selector: 'wi-explorer-node',

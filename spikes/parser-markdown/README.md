@@ -1,18 +1,18 @@
 # Parser spike — CommonMark/GFM candidates
 
-Status: Run 2026-09-04. No candidate passed every criterion of `TESTING.md`
-§2.11. Decided the same day (`TODO.md` §2.1): the gate is read as two;
+Status: Run 2026-09-04. No candidate passed every criterion of `testing.md`
+§2.11. Decided the same day (`roadmap.md` §2.1): the gate is read as two;
 commonmark.js and `yaml` are the accepted test-time oracle
 (`packages/core/test/standard-oracle.test.ts`), the runtime parser waits for
 the GFM display round.
 
 This spike answers one question: which Markdown parser can serve as the
-standard-conformance oracle that `TESTING.md` §2.2 requires, and later as the
-parser behind the GFM display of `SPEC.md` §18 — within the footprint the
+standard-conformance oracle that `testing.md` §2.2 requires, and later as the
+parser behind the GFM display of `specification.md` §18 — within the footprint the
 dependency rules allow?
 
 It is **not** production architecture. No candidate's types leave `src/main.ts`
-(`CONVENTIONS.md` C-A6). The package exists as the evidence behind the
+(`conventions.md` C-A6). The package exists as the evidence behind the
 decision and may be deleted once a chosen parser carries its own tests.
 
 ## Running it
@@ -48,7 +48,7 @@ schemes (examples 500, 598, 599, 601), where it emits an empty `href`.
 
 **Criterion 3 measures the core, not the parser.** The three parsers that
 pass criterion 1 disagree with `markdownToDisplay` in the same places, so
-the disagreements are findings about the core, recorded in `TODO.md`:
+the disagreements are findings about the core, recorded in `roadmap.md`:
 
 - examples 138 and 145: a backtick fence whose info string contains a
   backtick is not a fence (`` ``` ``` ``, `` ``` aa ``` `` are code spans); the
@@ -57,7 +57,7 @@ the disagreements are findings about the core, recorded in `TODO.md`:
   close one (example 147). Both are defects;
 - examples 108 and 109: an indented line after a blank line inside a list
   item is a paragraph of that item, not code. The core models no
-  containers (`SPEC.md` §10.1) and shows the line verbatim. A design limit,
+  containers (`specification.md` §10.1) and shows the line verbatim. A design limit,
   to be recorded, not a defect of the rule as specified;
 - example 117: a whitespace-only line at the edge of an indented code block
   is not part of it. The core shows it verbatim, which nobody can see.
@@ -84,11 +84,11 @@ Everything else held: 165 of 181 generated sheets and all three fixtures of
 
 ## What follows
 
-For the test-time oracle of `TESTING.md` §2.2, commonmark.js — the reference
+For the test-time oracle of `testing.md` §2.2, commonmark.js — the reference
 implementation, four packages, no GFM needed in a test — and `yaml` (ISC, one
 package) are the fitting pair; criterion 4 does not apply to a test
 dependency, but the gate as written does not say so, and that is the
-decision in `TODO.md` §2.1. For the GFM display of `SPEC.md` §18,
+decision in `roadmap.md` §2.1. For the GFM display of `specification.md` §18,
 markdown-it is the only candidate that is both conformant and small, and it
 misses the gate on two points that are decisions rather than measurements:
 task list items (a ten-line rule in the translation layer, or a third-party

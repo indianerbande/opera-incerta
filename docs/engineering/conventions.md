@@ -36,13 +36,13 @@ visible rather than accidental.
 agent instructions completely, read the specification completely, read the
 testing strategy completely, inspect the current repository state, and
 distinguish draft from accepted decisions. **Adopted** (`AGENTS.md`, "Read
-first"), extended by `CONVENTIONS.md` itself.
+first"), extended by `conventions.md` itself.
 
 **C-W2 — Three documents, three roles.** The specification defines product
 behavior and architecture, the testing strategy defines the evidence required to
 claim it works, and the agent instructions define the working process. A current
 user instruction can change scope, but material design changes are recorded in
-the owning document. **Adopted**, with `CONVENTIONS.md` as a fourth,
+the owning document. **Adopted**, with `conventions.md` as a fourth,
 non-normative reference.
 
 **C-W3 — Analysis is not implementation.** For analysis, review, or diagnosis:
@@ -68,7 +68,7 @@ into one "done". **Adopted.**
 **C-W7 — Definition of done.** A task is complete only when the requested
 artifact exists, the relevant checks pass, visual output has been inspected
 where applicable, and all remaining open decisions or limitations are reported
-clearly. **Adopted** (`AGENTS.md`, `TESTING.md` §9).
+clearly. **Adopted** (`AGENTS.md`, `testing.md` §9).
 
 ## A.2 Documentation discipline
 
@@ -86,10 +86,10 @@ repository.
 normative document and preserve useful historical reasoning as an explicitly
 superseded note. **Adopted.** In practice the reason a rejected alternative was
 rejected is part of the specification: it stops the alternative from returning
-(`SPEC.md` §10.2, §10.4).
+(`specification.md` §10.2, §10.4).
 
 **C-D4 — Requirement-strength vocabulary.** MUST, MUST NOT, SHOULD, SHOULD NOT,
-MAY carry defined strength in the specification. **Adopted** (`SPEC.md`
+MAY carry defined strength in the specification. **Adopted** (`specification.md`
 preamble).
 
 **C-D5 — Non-normative examples stay marked.** Concrete syntax and interface
@@ -98,11 +98,11 @@ accepted. **Adopted** for display-model and front matter examples.
 
 **C-D6 — Open decisions are a section, not a silence.** The specification
 carries an explicit list of deliberately open decisions, and accepted items are
-moved out of it. **Adopted** (`SPEC.md` §19).
+moved out of it. **Adopted** (`specification.md` §19).
 
 **C-D7 — Acceptance criteria are enumerated and testable.** The MVP is defined
 by a numbered list of demonstrable criteria, each of which the testing document
-must be able to point a test at. **Adopted** (`SPEC.md` §17, `TESTING.md` §10).
+must be able to point a test at. **Adopted** (`specification.md` §17, `testing.md` §10).
 
 **C-D8 — A documentation index.** The README lists each document with one line
 saying what it is authoritative for. **Adopted** — see `README.md`,
@@ -110,7 +110,7 @@ saying what it is authoritative for. **Adopted** — see `README.md`,
 
 **C-D9 — Planning placeholders are labelled as such.** Category names or feature
 lists that are only planning placeholders say so explicitly, so they are not
-mistaken for accepted scope. **Adopted** (`SPEC.md` §13, §18).
+mistaken for accepted scope. **Adopted** (`specification.md` §13, §18).
 
 ## A.3 Product and naming
 
@@ -119,7 +119,7 @@ product name governs application chrome, window titles, native menus,
 executables, and installers. The technical name governs file extensions, package
 namespaces, contract identifiers, diagnostic families, and storage keys.
 Renaming the product MUST NOT force migration of documents, settings records, or
-integrations. **Adopted** (`SPEC.md` §1.1). Both names are now `Opera Incerta` /
+integrations. **Adopted** (`specification.md` §1.1). Both names are now `Opera Incerta` /
 `opera-incerta`: the identifiers were aligned once, by explicit decision, while
 the project still had no released artifact, no user file, and no stored
 preference. The rule itself is unchanged and binding from here on — the next
@@ -128,13 +128,13 @@ product rename leaves every identifier alone.
 **C-N2 — Application chrome is not content.** The product icon and workbench
 imagery are installation chrome and MUST NOT leak into document content or
 exported output. **Adopted with change**: icons and themes never alter Markdown
-content or exported documents (`SPEC.md` §13).
+content or exported documents (`specification.md` §13).
 
 ## A.4 Originality and prior art
 
 **C-O1 — Original system, not a clone.** The product must be an original system,
 not a clone or source-compatible dialect of an existing tool. **Adopted**
-(`AGENTS.md`, `SPEC.md` §4).
+(`AGENTS.md`, `specification.md` §4).
 
 **C-O2 — The copy prohibition, itemized.** Do not copy, translate, adapt, or
 closely paraphrase third-party source code, grammar or characteristic keyword
@@ -155,12 +155,12 @@ ask the user to authorize that expanded scope. **Adopted.**
 **C-O5 — Original fixtures only.** All sample content and golden material is
 created for this project; common demonstration content from another tool is not
 reused. **Adopted and strengthened**: real manuscript content is additionally
-forbidden as test data (`TESTING.md` §1, §3).
+forbidden as test data (`testing.md` §1, §3).
 
 **C-O6 — Explicit provenance and respect for related projects.** State plainly
 which concepts come from an established field and which are this project's own
 synthesis; do not present the survey as criticism of the surveyed projects.
-**Adopted** (`SPEC.md` §4).
+**Adopted** (`specification.md` §4).
 
 ## A.5 Dependencies, assets, and licensing
 
@@ -173,7 +173,7 @@ verbatim (`AGENTS.md`).
 **C-L2 — A dependency record with fixed fields.** Accepted dependencies and open
 candidates are recorded separately, with capability, rationale, license, impact,
 offline behavior, boundary, and evidence. Passing a spike is not permanent
-acceptance. **Adopted**: `DEPENDENCIES.md` records the accepted toolchain, shell
+acceptance. **Adopted**: `dependencies.md` records the accepted toolchain, shell
 stack, and still-open candidates.
 
 **C-L3 — Neither reflex.** Do not add a package merely to avoid a small,
@@ -183,7 +183,7 @@ when a properly licensed, isolated dependency is the safer choice. **Adopted.**
 **C-L4 — Assets are dependencies.** Fonts, icons, fixtures, and themes have
 documented origin and redistribution terms before inclusion. **Adopted and
 strengthened**: packaged binary assets are hash-pinned and verified
-byte-identical in the packaged application (`TESTING.md` §2.7, §7).
+byte-identical in the packaged application (`testing.md` §2.7, §7).
 
 **C-L5 — Repository license does not relicense dependencies.** Each package
 keeps its own license and notice obligations, and those notices ship with the
@@ -191,7 +191,7 @@ application. **Adopted.**
 
 **C-L6 — Third-party notices are verified, not assumed.** A check verifies that
 required upstream licenses and notices are present in the built artifact.
-**Adopted** as a planned `check:assets` gate (`TESTING.md`, "Planned tooling").
+**Adopted** as a planned `check:assets` gate (`testing.md`, "Planned tooling").
 
 ## A.6 Architecture and design
 
@@ -202,24 +202,24 @@ specification change. **Adopted** (`AGENTS.md`, "Core product invariants").
 
 **C-A2 — A portable core free of host APIs.** The core carries no DOM, no
 filesystem, no process, and no network dependency, and runs unchanged in every
-frontend. **Adopted** (`SPEC.md` §5.2).
+frontend. **Adopted** (`specification.md` §5.2).
 
 **C-A3 — Frontend adapters own host behavior.** Node.js, renderer, filesystem,
 and UI behavior live behind adapters; the CLI/main boundary isolates filesystem,
-process, and environment access. **Adopted** (`SPEC.md` §5.2, §5.3).
+process, and environment access. **Adopted** (`specification.md` §5.2, §5.3).
 
 **C-A4 — Heavy work leaves the UI thread.** Language and compilation work runs
 in a worker; the interface stays responsive. **Adopted with change**: library
-scans, search, and large-document parsing run off the UI thread (`SPEC.md`
+scans, search, and large-document parsing run off the UI thread (`specification.md`
 §5.3).
 
 **C-A5 — Reject stale results, retain the last valid state.** Superseded
 asynchronous results are discarded, and the last valid view is retained while
-the current input is invalid. **Adopted** (`SPEC.md` §5.3, `TESTING.md` §2.6).
+the current input is invalid. **Adopted** (`specification.md` §5.3, `testing.md` §2.6).
 
 **C-A6 — Parser output is translated, never adopted.** The domain model stays
 independent of parser-generated AST types; parser output is translated into
-explicit, validated domain types. **Adopted** (`SPEC.md` §5.4, `AGENTS.md`).
+explicit, validated domain types. **Adopted** (`specification.md` §5.4, `AGENTS.md`).
 
 **C-A7 — Adapter data does not leak into the public model.** Adapter-specific
 identifiers, units, and coordinates are normalized at the boundary. **Adopted
@@ -235,24 +235,24 @@ architecture guidance").
 **C-A9 — Randomness is explicit and seeded, or absent.** **Adopted.**
 
 **C-A10 — Stable diagnostic codes.** User-visible failures carry stable codes,
-and negative tests assert the code, not the message text. **Adopted** (`SPEC.md`
-§16, `TESTING.md` §2.2).
+and negative tests assert the code, not the message text. **Adopted** (`specification.md`
+§16, `testing.md` §2.2).
 
 **C-A11 — Prefer pure transformations where tests must be deterministic.**
 **Adopted and strengthened**: every rule that can be a pure function is one and
-is tested in the core rather than through the interface (`TESTING.md` §1.6).
+is tested in the core rather than through the interface (`testing.md` §1.6).
 
 **C-A12 — Determinism is a product property.** Identical effective input
-produces identical output. **Adopted** (`SPEC.md` §2.9, `TESTING.md` §4).
+produces identical output. **Adopted** (`specification.md` §2.9, `testing.md` §4).
 
 **C-A13 — Offline by construction.** Normal operation requires no network
-access, no browser, and no local or remote service. **Adopted** (`SPEC.md` §2.6,
+access, no browser, and no local or remote service. **Adopted** (`specification.md` §2.6,
 §17.19).
 
 **C-A14 — Final state is inspectable before serialization.** Do not make the
 serialized output the only representation of a computed result; the intermediate
 state must be inspectable and testable. **Adopted with change**: the display
-model and the serialized Markdown are separately inspectable stages (`SPEC.md`
+model and the serialized Markdown are separately inspectable stages (`specification.md`
 §10.1).
 
 **C-A15 — No second implementation.** Do not introduce a duplicate
@@ -262,29 +262,29 @@ adapter behind a tested interface. **Adopted** (`AGENTS.md`).
 
 **C-A16 — Extension points are declared interfaces.** New capability arrives
 behind an interface with a registry, not as a core special case. **Adopted**
-(`SPEC.md` §15).
+(`specification.md` §15).
 
 **C-A17 — Preferences never touch content.** A workbench preference MUST NOT
 modify a document, make it dirty, or change deterministic output. **Adopted**
-verbatim (`SPEC.md` §13).
+verbatim (`specification.md` §13).
 
 ## A.7 Security and process boundaries
 
 **C-S1 — Sandboxed renderer, context isolation, no Node integration.** The
 renderer is sandboxed with context isolation, Node.js integration disabled, and
-a preload surface limited to one versioned bridge. **Adopted** (`SPEC.md` §5.3).
+a preload surface limited to one versioned bridge. **Adopted** (`specification.md` §5.3).
 
 **C-S2 — Validate every privileged request at runtime.** Compile-time typing of
 the bridge is not validation; the main process validates each request when it
-arrives. **Adopted** (`SPEC.md` §5.3, `TESTING.md` §2.7).
+arrives. **Adopted** (`specification.md` §5.3, `testing.md` §2.7).
 
 **C-S3 — Opaque handles instead of paths.** The renderer addresses documents by
 opaque handles; the main process resolves them and enforces containment,
-path-traversal rejection, and size limits. **Adopted** (`SPEC.md` §5.3).
+path-traversal rejection, and size limits. **Adopted** (`specification.md` §5.3).
 
 **C-S4 — Deny navigation, new windows, permissions, and webviews.** IPC from
 untrusted pages is rejected and a local content-security policy applies.
-**Adopted** (`SPEC.md` §5.3).
+**Adopted** (`specification.md` §5.3).
 
 **C-S5 — A secondary window receives a projection, not authority.** A detached
 window gets a versioned, source-neutral projection with no compiler, document,
@@ -294,67 +294,67 @@ writing view), this rule governs it.
 
 **C-S6 — Session state stores presentation only.** Persisted session state
 carries only safe presentation values, never source, document handles, or
-filesystem paths. **Adopted** (`SPEC.md` §7.2, `TESTING.md` §2.7).
+filesystem paths. **Adopted** (`specification.md` §7.2, `testing.md` §2.7).
 
 **C-S7 — Secrets never enter the plain preference record.** **Adopted and made
-concrete**: API credentials go to the platform secure store (`SPEC.md` §5.3,
+concrete**: API credentials go to the platform secure store (`specification.md` §5.3,
 §15).
 
 ## A.8 Settings contract
 
 **C-S8 — Category registry, not toolbar accretion.** Settings use a category
 list and one focused content region; new settings extend the registry rather
-than adding unrelated controls elsewhere. **Adopted** (`SPEC.md` §13).
+than adding unrelated controls elsewhere. **Adopted** (`specification.md` §13).
 
 **C-S9 — Five properties per setting.** Every setting has a stable identifier,
 one owner, a bounded value type, a default, and an explicit scope. **Adopted**
-(`SPEC.md` §13).
+(`specification.md` §13).
 
 **C-S10 — Orthogonal dimensions stay orthogonal.** Independent preference
 dimensions (for example brightness and accent, or interface font and document
 font) are separate settings and do not overwrite each other. **Adopted**
-(`SPEC.md` §13).
+(`specification.md` §13).
 
 **C-S11 — Scope stated per setting, and never smuggled.** Settings needing
 workspace, project, document, or view scope require their own design and MUST
-NOT be added to the installation-local record. **Adopted** (`SPEC.md` §13).
+NOT be added to the installation-local record. **Adopted** (`specification.md` §13).
 
 **C-S12 — Versioned record, validated at the boundary, migrated explicitly.**
 Storage is one versioned JSON record under a stable key; unknown fields are
 discarded; components never parse storage directly; an incompatible schema needs
-an explicit migration or a new key. **Adopted** (`SPEC.md` §13).
+an explicit migration or a new key. **Adopted** (`specification.md` §13).
 
 **C-S13 — Fail safe, never block.** Unsupported versions, malformed values, and
 unavailable storage fall back safely without blocking the editor. **Adopted**
-(`SPEC.md` §13, §16).
+(`specification.md` §13, §16).
 
 **C-S14 — One service owns validation and persistence; consumers get values.**
 The preferences service owns validation, persistence, system-theme observation,
 and reactive values; consumers receive only what they need; the core depends on
-none of it. **Adopted** (`SPEC.md` §13).
+none of it. **Adopted** (`specification.md` §13).
 
 **C-S15 — Modal focus behavior is specified, not left to the framework.** Escape
 and an explicit close dismiss the dialog; focus stays inside while open and
-returns to the invoking control afterwards. **Adopted** (`SPEC.md` §13).
+returns to the invoking control afterwards. **Adopted** (`specification.md` §13).
 
 **C-S16 — Interface language never translates user content.** Language selection
 changes the interface, accessibility labels, command names, and native menus and
 dialogs — never authored content, source, tool output, or exported artifacts.
-**Adopted** (`SPEC.md` §14.2).
+**Adopted** (`specification.md` §14.2).
 
 ## A.9 Project and resource model
 
 **C-J1 — Name the units.** State explicitly what the compilation unit, the
 editing unit, and the output unit are. **Adopted with change**: the project is
 the library unit, a sheet is the editing unit, a manuscript export is the output
-unit (`SPEC.md` §6.1).
+unit (`specification.md` §6.1).
 
 **C-J2 — The simple case needs no manifest.** A single file or a directory with
 an unambiguous single entry point works without a manifest; explicit
 configuration is required only for the ambiguous case. **Adopted with change**:
 a project without `structure.json` or `categories.json` works fully with
 documented defaults; the files appear only when the user first needs them
-(`SPEC.md` §6.4, §6.6).
+(`specification.md` §6.4, §6.6).
 
 **C-J3 — Merged semantically, not concatenated; order does not carry meaning.**
 Files are combined by meaning; their order does not control semantics; a stable
@@ -362,144 +362,144 @@ identifier stays valid when a declaration moves to another file; a duplicate is
 an error rather than a silent override. **Adopted with change**: sheet identity
 is the file, order is explicit data in `structure.json`, and stale or duplicate
 order entries degrade by documented rule rather than silently reordering
-(`SPEC.md` §6.4).
+(`specification.md` §6.4).
 
 **C-J4 — Typed resources with independent contracts.** Each additional project
 resource (theme, glossary, publication profile) is a separately typed resource
 with its own version-one contract, and one resource may not change another's
 semantics. **Adopted**: `project.json`, `structure.json`, and `categories.json`
 are separate typed resources split by purpose so that diffs stay topically local
-(`SPEC.md` §7.1).
+(`specification.md` §7.1).
 
 **C-J5 — Read-only resources stay read-only.** A resource the editor does not
 own is loaded and reported but never rewritten by a save. **Adopted with
 change**: foreign front matter is preserved verbatim and never rewritten
-(`SPEC.md` §6.3).
+(`specification.md` §6.3).
 
 **C-J6 — Passive content only, with verified integrity.** Referenced assets are
 passive formats with recorded purpose, media type, checksum, license, and
 attribution; active and binary formats are excluded; loaders verify containment
 and integrity before content enters the transport. **Adopted with change**:
 imported and embedded content is validated at the boundary, and no project
-resource may execute (`SPEC.md` §5.3, §16).
+resource may execute (`specification.md` §5.3, §16).
 
 **C-J7 — Workbench preferences stay out of the project.** Installation-local
-preferences never enter the project directory. **Adopted** (`SPEC.md` §7).
+preferences never enter the project directory. **Adopted** (`specification.md` §7).
 
 **C-J8 — Normalized relative references in shared files; native paths stay in
 the adapter.** **Adopted**: `structure.json` keys are normalized forward-slash
-relative paths (`SPEC.md` §6.4).
+relative paths (`specification.md` §6.4).
 
 **C-J9 — Per-document editing state.** Each open document keeps its own buffer,
 undo history, cursor, and scroll position while the project stays open; a
 save-all processes documents in a defined order, and a failure part-way leaves
-the remaining documents visibly dirty. **Adopted** (`SPEC.md` §10, `TESTING.md`
+the remaining documents visibly dirty. **Adopted** (`specification.md` §10, `testing.md`
 §2.8).
 
 ## A.10 Testing measures
 
 **C-T1 — The specification defines behavior; the testing document defines the
-evidence.** **Adopted** (`TESTING.md` opening).
+evidence.** **Adopted** (`testing.md` opening).
 
 **C-T2 — Test at the lowest useful layer, then at critical boundaries.**
-**Adopted** (`TESTING.md` §1.2).
+**Adopted** (`testing.md` §1.2).
 
 **C-T3 — Separate concerns, separate evidence.** Semantic correctness, geometric
 correctness, and visual appearance are distinct and are not proven by one
 another. **Adopted with change**: data safety, behavioral correctness, and
-visual appearance (`TESTING.md` §1.3).
+visual appearance (`testing.md` §1.3).
 
 **C-T4 — Structural assertions over opaque snapshots.** **Adopted**
-(`TESTING.md` §1.4).
+(`testing.md` §1.4).
 
-**C-T5 — Goldens prove appearance, never invariants.** **Adopted** (`TESTING.md`
+**C-T5 — Goldens prove appearance, never invariants.** **Adopted** (`testing.md`
 §1.5).
 
-**C-T6 — Original fixtures only.** **Adopted** (`TESTING.md` §1.7, §3).
+**C-T6 — Original fixtures only.** **Adopted** (`testing.md` §1.7, §3).
 
 **C-T7 — Control the environment.** Test output is independent of system fonts,
 locale, timezone, and network access. **Adopted and extended** with filesystem
-case sensitivity and directory ordering (`TESTING.md` §1.8, §4).
+case sensitivity and directory ordering (`testing.md` §1.8, §4).
 
-**C-T8 — A golden changes only after review.** **Adopted** (`TESTING.md` §1.9,
+**C-T8 — A golden changes only after review.** **Adopted** (`testing.md` §1.9,
 §8).
 
 **C-T9 — The six-step golden-update procedure.** State the specification or
 defect requiring the change; inspect the structural difference; render and
 inspect every affected image; confirm unrelated fixtures did not move; include
 before/after evidence when practical; update only after understanding. Bulk
-acceptance is prohibited. **Adopted** (`TESTING.md` §8).
+acceptance is prohibited. **Adopted** (`testing.md` §8).
 
 **C-T10 — Negative tests assert codes and locations, not message text.**
-**Adopted** (`TESTING.md` §2.2).
+**Adopted** (`testing.md` §2.2).
 
 **C-T11 — Every adapter of a kind passes the same contract suite.** The suite
 verifies that adapter-specific identifiers and units do not leak and that
 unsupported capabilities fail explicitly rather than being ignored. **Adopted
 with change**: the editor adapter and any future alternative pass one shared
-contract suite (`TESTING.md` §2.8).
+contract suite (`testing.md` §2.8).
 
 **C-T12 — Repeat in fresh processes and compare normalized stages.** **Adopted**
-(`TESTING.md` §4).
+(`testing.md` §4).
 
 **C-T13 — Metamorphic tests for changes that must not matter.** Whitespace,
 comments, line endings, and semantically unordered movement must not change
 output. **Adopted with change**: line endings, trailing whitespace, foreign-key
-order, and unrelated body edits (`TESTING.md` §4).
+order, and unrelated body edits (`testing.md` §4).
 
 **C-T14 — Thresholds are fixed in advance, never retroactively.** An acceptance
 threshold must not be chosen after the fact to make a failing implementation
 pass. **Adopted** — stated here as the governing rule for every performance and
-stability threshold (`TESTING.md` §6).
+stability threshold (`testing.md` §6).
 
 **C-T15 — Property-based and fuzz testing with resource limits.** Generated
 tests assert structural invariants; invalid-input fuzzing targets the parser and
-recovery paths and enforces time and memory limits. **Adopted** (`TESTING.md`
+recovery paths and enforces time and memory limits. **Adopted** (`testing.md`
 §5).
 
 **C-T16 — Benchmarks separate the stages.** Performance is measured per stage,
 with a small realistic fixture and a deliberately dense upper-bound fixture, and
 performance work never trades away determinism or diagnostics without an
-approved specification change. **Adopted** (`TESTING.md` §6).
+approved specification change. **Adopted** (`testing.md` §6).
 
 **C-T17 — Continuous dependency and license validation.** Lockfile integrity,
 license inventory, prohibited-license detection, vulnerability reporting, proof
 that tests make no network request, and documented redistribution rights for
-bundled assets. **Adopted** (`TESTING.md` §7).
+bundled assets. **Adopted** (`testing.md` §7).
 
 **C-T18 — Generated output stays out of source directories.** **Adopted**
 (`AGENTS.md`).
 
 **C-T19 — A command is listed only after it has succeeded here.** No command is
 recorded as approved until it has actually run successfully in this checkout.
-**Adopted** — this is why `TESTING.md` labels its command list as planned.
+**Adopted** — this is why `testing.md` labels its command list as planned.
 
 **C-T20 — A named test or reviewed manual verification per acceptance
-criterion.** **Adopted** (`TESTING.md` §10).
+criterion.** **Adopted** (`testing.md` §10).
 
 **C-T21 — Manual verification is named where automation cannot reach.** At least
 one manual round trip per platform, and a human review of the complete result at
 its intended size, are part of the gate rather than an afterthought. **Adopted**
-(`TESTING.md` §2.7, §10).
+(`testing.md` §2.7, §10).
 
 ## A.11 Platform, packaging, and release
 
 **C-P1 — Pin the build runtime and fail early outside it.** The package manager
 warns rather than downloading a different runtime, and the packaging path fails
 early with a useful message outside the accepted runtime line. **Adopted**
-(`SPEC.md` §5.1).
+(`specification.md` §5.1).
 
 **C-P2 — Build on the target operating system.** Packaging is host-native; no
-cross-compilation is claimed. **Adopted** (`SPEC.md` §5.1).
+cross-compilation is claimed. **Adopted** (`specification.md` §5.1).
 
 **C-P3 — Artifact evidence is per-operating-system.** Creating an artifact on
 one operating system is evidence only for that operating system; no host
 satisfies another host's launch or filesystem evidence. **Adopted**
-(`TESTING.md` §2.7, §10).
+(`testing.md` §2.7, §10).
 
 **C-P4 — Name the platform differences the product owns.** Window lifecycle on
 close, platform modifier keys, startup handling, and path normalization are
-listed explicitly rather than discovered per bug report. **Adopted** (`SPEC.md`
+listed explicitly rather than discovered per bug report. **Adopted** (`specification.md`
 §8.5).
 
 **C-P5 — A fixed native verification sequence plus recorded evidence.** Each
@@ -509,34 +509,34 @@ release step writes a host-local hash and size manifest. **Adopted as a task**:
 
 **C-P6 — A manual post-install checklist.** Install, launch, open/edit/save/
 close/reopen, export, exercise external tooling, confirm offline operation, and
-uninstall without leaving project data behind. **Adopted** (`TESTING.md` §2.7,
+uninstall without leaving project data behind. **Adopted** (`testing.md` §2.7,
 §10).
 
 **C-P7 — Development launch is not a release path.** The unpackaged development
 launch is deliberately exempt from the packaging runtime guard, and package,
-smoke, and make retain it. **Adopted** (`TESTING.md`, "Planned tooling").
+smoke, and make retain it. **Adopted** (`testing.md`, "Planned tooling").
 
 **C-P8 — Development signing is not release signing.** Ad-hoc signed builds are
 local development evidence only; release identities and notarization are
-verified separately. **Adopted** (`TESTING.md` §2.7).
+verified separately. **Adopted** (`testing.md` §2.7).
 
 **C-P9 — Distribution format choices are justified and revisable.** Choosing a
 dependency-free archive over distro-native installers is recorded with its
 reason, and a richer format can be accepted later without changing the
-application. **Adopted as guidance** for the first release decision (`SPEC.md`
+application. **Adopted as guidance** for the first release decision (`specification.md`
 §19).
 
 **C-P10 — External tooling is a documented runtime requirement.** Where a
 feature needs a locally installed external executable, that requirement is
 stated in the platform document and the feature degrades cleanly without it.
-**Adopted** (`SPEC.md` §12).
+**Adopted** (`specification.md` §12).
 
 **C-P11 — The installed application needs no development toolchain.** The
 shipped application requires no runtime installation of the build toolchain and
-no network service. **Adopted** (`SPEC.md` §2.6, `TESTING.md` §2.7).
+no network service. **Adopted** (`specification.md` §2.6, `testing.md` §2.7).
 
 **C-P12 — Packaging excludes development sources and module trees.** **Adopted**
-(`TESTING.md` §2.7).
+(`testing.md` §2.7).
 
 ## A.12 Repository hygiene
 
@@ -595,38 +595,38 @@ into it.
 explicit layout state, not to a layout container. A container that owns divider
 positions will reset them whenever the set of panes changes or a pane changes
 type, and no amount of content-side counter-measure fixes it, because the cause
-is elsewhere. **Adopted** (`SPEC.md` §8.2, `TESTING.md` §2.6).
+is elsewhere. **Adopted** (`specification.md` §8.2, `testing.md` §2.6).
 
 **C-U2 — State that must survive a view switch does not live in the view.** Tree
 expansion, selection, and similar state belong to the shared layout state: a
 region that switches between two views destroys component-local state on every
-switch. **Adopted** (`SPEC.md` §9.1).
+switch. **Adopted** (`specification.md` §9.1).
 
 **C-U3 — Fill a list's measurement cache before first render.** A virtualized or
 measuring list that renders rows before their content is available measures
 placeholder heights and does not correct them when the content arrives
-asynchronously. **Adopted** (`SPEC.md` §9.2, `TESTING.md` §2.6).
+asynchronously. **Adopted** (`specification.md` §9.2, `testing.md` §2.6).
 
 **C-U4 — Formatting must not carry over across a paragraph break.** Pressing
 Return at the end of a heading starts a normal paragraph; the typing attributes
-of the previous line are reset explicitly. **Adopted** (`SPEC.md` §10.2).
+of the previous line are reset explicitly. **Adopted** (`specification.md` §10.2).
 
 **C-U5 — Measure rendered heights; do not compute them from font metrics.** Two
 attempts failed in the template — a guessed constant and a metric-derived value
-— because the layout engine applies its own line spacing. **Adopted** (`SPEC.md`
-§10.4, §18; `TESTING.md` §2.8).
+— because the layout engine applies its own line spacing. **Adopted** (`specification.md`
+§10.4, §18; `testing.md` §2.8).
 
 **C-U6 — Read-only means a different control, not a disabled one.** Suppressing
 pointer events blocks the mouse but not the keyboard, and disabling greys out
 the text and prevents copying. Present a different control instead. **Adopted**
-(`SPEC.md` §10.4, `TESTING.md` §2.6).
+(`specification.md` §10.4, `testing.md` §2.6).
 
 **C-U7 — The shared-detail rule: what several places must get right belongs in
 one component.** Panel separators sat at different heights for as long as each
 panel built its own header. Once the shared header delivered the separator
 itself, a panel could no longer misplace it. Generalized: a rule that several
 call sites must apply consistently is moved into one unit rather than repeated.
-**Adopted** (`SPEC.md` §8.3, `AGENTS.md`).
+**Adopted** (`specification.md` §8.3, `AGENTS.md`).
 
 **C-U8 — Flows live in plain classes; the shell only renders.** What a click
 means — the menu it opens, the question it asks, what the answer does — is
@@ -635,7 +635,7 @@ host, and runs in a unit test against the fake bridge. The shell renders
 whatever overlay is up, one at a time. The workbench shell had reached a
 thousand lines with three hundred lines of untested flow logic before this
 was done; the flows were untested only because they could not be reached
-without rendering. **Adopted** (`SPEC.md` §8.7, `TESTING.md` §2.6).
+without rendering. **Adopted** (`specification.md` §8.7, `testing.md` §2.6).
 
 ## B.2 Filesystem and data
 
@@ -643,33 +643,33 @@ without rendering. **Adopted** (`SPEC.md` §8.7, `TESTING.md` §2.6).
 symlinked system paths resolve differently depending on how the path was
 obtained, and a naive comparison silently fails. Resolve canonically, or thread
 relative paths through the recursion instead of recomputing them from absolute
-URLs. **Adopted** (`TESTING.md` §2.3).
+URLs. **Adopted** (`testing.md` §2.3).
 
 **C-F2 — A change notification is not evidence of a change.** The watcher also
 reports the application's own write, asynchronously. Read the actual content and
 compare it against the loaded baseline before treating it as an external change.
-**Adopted** (`SPEC.md` §10.6, `TESTING.md` §2.4).
+**Adopted** (`specification.md` §10.6, `testing.md` §2.4).
 
 **C-F3 — Separate guards for reading and writing, and coalesce rather than
 queue.** One shared busy flag lets a background refresh swallow a user action,
 which presents as "the click did nothing". A refresh requested during a running
-refresh schedules exactly one more. **Adopted** (`SPEC.md` §10.6, §12).
+refresh schedules exactly one more. **Adopted** (`specification.md` §10.6, §12).
 
 **C-F4 — Filter the watcher against its own side effects.** Status commands
 write inside the repository metadata directory; without a filter every refresh
-re-triggers itself. **Adopted** (`SPEC.md` §12).
+re-triggers itself. **Adopted** (`specification.md` §12).
 
 ## B.3 User data
 
 **C-N3 — A stored key is user data and is not renamed with the concept.**
 Renaming a persisted preference key silently resets that preference for every
 user. Where the key no longer matches current terminology, document the
-divergence in code instead of "fixing" it. **Adopted** (`SPEC.md` §13).
+divergence in code instead of "fixing" it. **Adopted** (`specification.md` §13).
 
 **C-N4 — Not every visible string is interface.** Category names, file names,
 titles, keywords, notes, and tool output are user data and are never localized;
 the code path for them must be structurally incapable of becoming a translation
-key. **Adopted** (`SPEC.md` §8.3, §14.2, `TESTING.md` §2.10).
+key. **Adopted** (`specification.md` §8.3, §14.2, `testing.md` §2.10).
 
 **C-N5 — A task list is worth only what gets read.** Open and completed work
 live in separate documents, and a finished item moves over completely — with its

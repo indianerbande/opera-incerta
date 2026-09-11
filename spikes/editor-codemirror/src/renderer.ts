@@ -1,9 +1,9 @@
 /**
- * Editor spike, renderer half. TESTING.md §2.8.
+ * Editor spike, renderer half. testing.md §2.8.
  *
  * Disposable: this exists to answer one question — can CodeMirror 6 carry the
- * display model of SPEC.md §10? — and is deleted or promoted once answered.
- * It is deliberately not production architecture (CONVENTIONS.md C-W5).
+ * display model of specification.md §10? — and is deleted or promoted once answered.
+ * It is deliberately not production architecture (conventions.md C-W5).
  *
  * Every criterion is measured in a real rendering engine. A DOM stub reports
  * zero for every height, which would turn criteria 1, 2, and 6 into tests that
@@ -203,7 +203,7 @@ function nextFrame(): Promise<void> {
  * Until the first measurement lands, CodeMirror reports an estimated height
  * for every line — the same number for all of them. Reading heights before
  * that is the "computed, not measured" mistake the gate exists to catch
- * (CONVENTIONS.md C-U5).
+ * (conventions.md C-U5).
  */
 async function settledView(doc: string, parent: HTMLElement): Promise<EditorView> {
   const view = makeView(doc, parent);
@@ -474,7 +474,7 @@ async function criterion6(parent: HTMLElement): Promise<CriterionResult> {
  * The same cases run under Vitest against an in-memory double
  * (`packages/core/test/editor-adapter.test.ts`). An adapter that passes both is
  * a boundary rather than a description of one component
- * (`CONVENTIONS.md` C-T11).
+ * (`conventions.md` C-T11).
  */
 function criterion7(parent: HTMLElement): CriterionResult {
   const host = document.createElement('div');

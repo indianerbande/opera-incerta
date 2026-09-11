@@ -8,7 +8,7 @@ import { NewProjectDialogComponent } from './new-project-dialog.component.js';
 import { OpenFolderQuestionComponent } from './open-folder-question.component.js';
 
 /**
- * The launcher. SPEC.md §8.6.
+ * The launcher. specification.md §8.6.
  *
  * Shown whenever no project is open. A project that has moved or been deleted
  * stays in the list, marked unavailable, so the author removes it deliberately
@@ -16,7 +16,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
  */
 @Component({
   // The same root element as the workbench: index.html holds one, and exactly
-  // one of the two components is ever bootstrapped into it (SPEC.md §8.5).
+  // one of the two components is ever bootstrapped into it (specification.md §8.5).
   selector: 'wi-root',
   imports: [NewProjectDialogComponent, OpenFolderQuestionComponent],
   providers: [{ provide: Localization, useFactory: () => inject(WelcomeComponent).i18n }],
@@ -228,7 +228,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
 export class WelcomeComponent {
   readonly #bridge = resolveBridge();
   protected readonly launcher = new LauncherStore(this.#bridge);
-  /** The launcher reads the same preference the workbench stores (SPEC.md §14). */
+  /** The launcher reads the same preference the workbench stores (specification.md §14). */
   readonly #layout = new LayoutState(this.#bridge);
   readonly i18n = new Localization(this.#layout.interfaceLanguage, systemLanguageTag());
 

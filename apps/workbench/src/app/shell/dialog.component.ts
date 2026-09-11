@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 /**
- * The one dialog shell. SPEC.md §8.7.
+ * The one dialog shell. specification.md §8.7.
  *
  * A backdrop that dismisses on click, a centred panel, Escape, and the ARIA
  * role and name — and nothing about what is inside. Every dialog of the

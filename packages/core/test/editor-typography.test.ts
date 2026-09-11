@@ -16,7 +16,7 @@ import {
   isEditorFontFamily,
 } from '../src/index.js';
 
-describe('the editor typography rule (SPEC.md §13, §10.1)', () => {
+describe('the editor typography rule (specification.md §13, §10.1)', () => {
   it('clamps a base size into its bounds and to whole pixels', () => {
     expect(clampEditorFontSize(9)).toBe(EDITOR_FONT_SIZE_BOUNDS.min);
     expect(clampEditorFontSize(99)).toBe(EDITOR_FONT_SIZE_BOUNDS.max);
@@ -47,7 +47,7 @@ describe('the editor typography rule (SPEC.md §13, §10.1)', () => {
   });
 
   it('starts with the line-number gutter off', () => {
-    // A manuscript is not source code (SPEC.md §10.8).
+    // A manuscript is not source code (specification.md §10.8).
     expect(DEFAULT_EDITOR_TYPOGRAPHY.lineNumbers).toBe(false);
   });
 
@@ -61,7 +61,7 @@ describe('the editor typography rule (SPEC.md §13, §10.1)', () => {
   });
 });
 
-describe('the editor zoom rule (SPEC.md §10.9)', () => {
+describe('the editor zoom rule (specification.md §10.9)', () => {
   it('holds a value to whole percent within its bounds', () => {
     expect(clampEditorZoom(20)).toBe(EDITOR_ZOOM_BOUNDS.min);
     expect(clampEditorZoom(500)).toBe(EDITOR_ZOOM_BOUNDS.max);

@@ -25,7 +25,7 @@ function setUp(overrides: Partial<OperaIncertaBridge> = {}) {
   return { asked, store: new LibrarySearchStore(bridge) };
 }
 
-describe('the library search (SPEC.md §9.3)', () => {
+describe('the library search (specification.md §9.3)', () => {
   it('asks only when it is run, never while the query is typed', async () => {
     const { store, asked } = setUp();
     store.noteQuery('bell');

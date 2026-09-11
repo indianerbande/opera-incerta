@@ -1,5 +1,5 @@
 /**
- * The CodeMirror 6 implementation of the editor boundary. SPEC.md §5.4, §10.
+ * The CodeMirror 6 implementation of the editor boundary. specification.md §5.4, §10.
  *
  * Everything this file decides is presentation. What counts as a heading,
  * which characters are delimiters, and what a level change does to a line are
@@ -7,7 +7,7 @@
  * CodeMirror decorations and transactions.
  *
  * The component was accepted after the spike in `spikes/editor-codemirror`,
- * whose measurements are recorded in `TESTING.md` §2.8.
+ * whose measurements are recorded in `testing.md` §2.8.
  */
 import {
   defaultKeymap,
@@ -71,16 +71,16 @@ import {
   type HeadingMarkerListener,
 } from '@opera-incerta/core';
 
-/** The gutters' own size, before the zoom of SPEC.md §10.9 scales it. */
+/** The gutters' own size, before the zoom of specification.md §10.9 scales it. */
 const GUTTER_FONT_SIZE = 11;
 
 /**
  * The fixed part of the theme. Heading sizes are the core's ratios in `em`,
  * so the base size set by the author scales the whole hierarchy
- * (SPEC.md §13); the base itself is the typography compartment's.
+ * (specification.md §13); the base itself is the typography compartment's.
  */
 const editorTheme = EditorView.baseTheme({
-  // The manuscript sits on a panel, in the system's ink (SPEC.md §8.8); the
+  // The manuscript sits on a panel, in the system's ink (specification.md §8.8); the
   // caret, the selection and the gutters follow it, or a dark scheme would
   // leave CodeMirror's own light defaults behind.
   '&': { height: '100%', background: 'var(--wi-panel)', color: 'var(--wi-ink)' },
@@ -101,7 +101,7 @@ const editorTheme = EditorView.baseTheme({
   '.cm-heading-4': { fontSize: `${HEADING_SCALE[4]}em`, fontWeight: '600' },
   '.cm-heading-5': { fontSize: `${HEADING_SCALE[5]}em`, fontWeight: '600' },
   '.cm-heading-6': { fontSize: `${HEADING_SCALE[6]}em`, fontWeight: '600', fontStyle: 'italic' },
-  // GFM display (SPEC.md §10.7): the effect, where the markers were.
+  // GFM display (specification.md §10.7): the effect, where the markers were.
   '.cm-inline-bold': { fontWeight: '700' },
   '.cm-inline-italic': { fontStyle: 'italic' },
   '.cm-inline-boldItalic': { fontWeight: '700', fontStyle: 'italic' },
@@ -147,9 +147,9 @@ const editorTheme = EditorView.baseTheme({
     fontSize: `${GUTTER_FONT_SIZE}px`,
     color: 'var(--wi-muted)',
   },
-  // The line numbers of SPEC.md §10.8. Right-aligned, so the digits line up
+  // The line numbers of specification.md §10.8. Right-aligned, so the digits line up
   // and a document passing 99 lines does not shift its text.
-  // The find of SPEC.md §10.11: every match marked, the one the author is on
+  // The find of specification.md §10.11: every match marked, the one the author is on
   // marked as the accent itself.
   '.cm-search-match': {
     background: 'color-mix(in srgb, var(--wi-accent) 24%, transparent)',
@@ -168,7 +168,7 @@ const editorTheme = EditorView.baseTheme({
   },
 });
 
-/** The label shown beside a heading line. SPEC.md §10.2. */
+/** The label shown beside a heading line. specification.md §10.2. */
 class HeadingGutterMarker extends GutterMarker {
   readonly #level: HeadingLevel;
   readonly #line: number;
@@ -234,7 +234,7 @@ const blockModelField = StateField.define<BlockModel>({
 });
 
 /**
- * The presentation of SPEC.md §10.7, from both models and the cursor's line.
+ * The presentation of specification.md §10.7, from both models and the cursor's line.
  * Recomputed with the display model's rhythm: on a change, and on a move
  * that crosses a line.
  */
@@ -370,7 +370,7 @@ const displayPlugin = ViewPlugin.fromClass(
 );
 
 /**
- * The gutter with the heading labels, and the menu they open. SPEC.md §10.2.
+ * The gutter with the heading labels, and the menu they open. specification.md §10.2.
  *
  * Built per adapter, like the change listener: the click handler needs the
  * adapter that owns the view, and a closure is how a per-state extension
@@ -386,7 +386,7 @@ function markerGutter(onActivate: (activation: HeadingMarkerActivation) => void)
         const heading = view.state
           .field(displayModelField)
           .headings.find((candidate) => candidate.line === line.number);
-        // A line without a level has no marker, and no menu (SPEC.md §10.2).
+        // A line without a level has no marker, and no menu (specification.md §10.2).
         if (heading === undefined) {
           return false;
         }
@@ -416,7 +416,7 @@ function markerGutter(onActivate: (activation: HeadingMarkerActivation) => void)
 }
 
 /**
- * Turns a typed dot command into a heading level. SPEC.md §10.2.
+ * Turns a typed dot command into a heading level. specification.md §10.2.
  *
  * A transaction filter rather than a listener, so the conversion is part of
  * the same transaction as the keystroke: one undo takes back the whole thing,
@@ -463,7 +463,7 @@ const dotCommandFilter = EditorState.transactionFilter.of((transaction) => {
 });
 
 /**
- * Heading syntax is one unit for the cursor. SPEC.md §10.2.
+ * Heading syntax is one unit for the cursor. specification.md §10.2.
  *
  * Without this the caret can sit between `##` and its space — invisible, and
  * whatever is typed next lands where the author cannot see it. It is not only
@@ -567,7 +567,7 @@ const clipboardKeepsMarkdown = EditorView.clipboardOutputFilter.of((text, state)
 });
 
 /**
- * Cutting a heading takes its prefix with it. SPEC.md §10.2.
+ * Cutting a heading takes its prefix with it. specification.md §10.2.
  *
  * The clipboard already receives Markdown, so without this the two halves of
  * one gesture disagree: the text arrives elsewhere as a heading while an empty
@@ -701,7 +701,7 @@ export interface TypographyAware {
 
 /**
  * What is being searched for, and which match the author is on.
- * SPEC.md §10.11.
+ * specification.md §10.11.
  *
  * A state field rather than a plugin: the marks belong to the document's
  * state, so switching sheets and coming back does not resurrect a search that
@@ -757,7 +757,7 @@ const otherMatchMark = Decoration.mark({ class: 'cm-search-match' });
 const currentMatchMark = Decoration.mark({ class: 'cm-search-match cm-search-current' });
 
 /**
- * The line-number gutter, or nothing. SPEC.md §10.8.
+ * The line-number gutter, or nothing. specification.md §10.8.
  *
  * CodeMirror's own: it draws one number per **logical** line at that line's
  * first visual line, and takes each line's height from the layout rather than
@@ -770,7 +770,7 @@ function lineNumberGutter(typography: EditorTypography): Extension {
 
 /**
  * The theme for a typography and a zoom: what the author set, times how far
- * the view is zoomed (SPEC.md §13, §10.9).
+ * the view is zoomed (specification.md §13, §10.9).
  *
  * The gutters are in here too, because §10.9 scales the editor's text **and
  * its gutters**: a marker or a line number left at eleven pixels beside
@@ -818,7 +818,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
   #extensions(): readonly Extension[] {
     return [
       // First, because gutters appear in the order their extensions do, and
-      // the numbers belong left of the marker gutter (SPEC.md §10.8).
+      // the numbers belong left of the marker gutter (specification.md §10.8).
       this.#lineNumbers.of(lineNumberGutter(this.#currentTypography)),
       ...extensions(
         () => this.#notify(),
@@ -835,7 +835,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
     this.#reapply();
   }
 
-  /** The zoom of SPEC.md §10.9. The configured size is untouched by it. */
+  /** The zoom of specification.md §10.9. The configured size is untouched by it. */
   setZoom(zoom: number): void {
     this.#currentZoom = zoom;
     this.#reapply();
@@ -914,7 +914,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
 
   /**
    * The column counts from the visible start of the line: a heading's hidden
-   * prefix is not where the author is (SPEC.md §10.5).
+   * prefix is not where the author is (specification.md §10.5).
    */
   cursor(): EditorCursor {
     const state = this.#view.state;
@@ -961,7 +961,7 @@ class CodeMirrorEditorAdapter implements EditorAdapter, TypographyAware {
 
   /**
    * Marks every match and goes to the one at or after the cursor.
-   * SPEC.md §10.11.
+   * specification.md §10.11.
    *
    * The match is **selected**, not merely marked: the author's next gesture —
    * Escape and then typing — should land where they were looking.

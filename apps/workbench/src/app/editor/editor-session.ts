@@ -3,7 +3,7 @@ import type { EditorCursor, EditorSearchState } from '@opera-incerta/core';
 
 /**
  * What the status bar shows and switches, for the window's lifetime.
- * SPEC.md §10.5.
+ * specification.md §10.5.
  *
  * The cursor, as the adapter last reported it; and the wrap toggle, which
  * overrides the settings' default for one sheet and is forgotten with the
@@ -13,7 +13,7 @@ import type { EditorCursor, EditorSearchState } from '@opera-incerta/core';
 export class EditorSession {
   readonly #cursor = signal<EditorCursor>({ line: 1, column: 1 });
   readonly #wrapOverrides = signal<ReadonlyMap<string, boolean>>(new Map());
-  /** The find of SPEC.md §10.11: whether the bar is up, and what it found. */
+  /** The find of specification.md §10.11: whether the bar is up, and what it found. */
   readonly #finding = signal(false);
   readonly #query = signal('');
   readonly #searchState = signal<EditorSearchState>({ matches: 0, current: 0 });

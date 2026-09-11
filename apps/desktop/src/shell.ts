@@ -1,6 +1,6 @@
 /**
  * The Electron shell: windows, menus, the bridge handlers, the watchers.
- * SPEC.md §5.3, §8.5.
+ * specification.md §5.3, §8.5.
  *
  * This process owns every privileged capability: filesystem, watching, Git,
  * native dialogs, and menus. It never owns document semantics — those live in
@@ -109,11 +109,11 @@ export interface ShellOptions {
    * Returns the parent directory, or null for "cancelled".
    */
   readonly chooseProjectParent?: () => Promise<string | null>;
-  /** Instead of the desktop trash. SPEC.md §6.7. */
+  /** Instead of the desktop trash. specification.md §6.7. */
   readonly trashItem?: TrashItem;
   /**
    * Instead of the native save dialog when the manuscript is exported
-   * (SPEC.md §15.2). Returns the file to write, or null for "cancelled".
+   * (specification.md §15.2). Returns the file to write, or null for "cancelled".
    */
   readonly chooseExportDestination?: (defaultName: string, extension: string) => Promise<string | null>;
   /**
@@ -134,7 +134,7 @@ export interface Shell {
   /**
    * How many times the repository watch has reported since start. A test
    * reads it to prove that watching a repository does not make it report
-   * forever (`CONVENTIONS.md` C-F4).
+   * forever (`conventions.md` C-F4).
    */
   repositoryReports(): number;
   /**
@@ -144,10 +144,10 @@ export interface Shell {
   exit(code: number): void;
 }
 
-/** The preference record, inside the user-data directory. SPEC.md §13. */
+/** The preference record, inside the user-data directory. specification.md §13. */
 export const PREFERENCES_FILE = 'preferences.json';
 
-/** Project window geometry. SPEC.md §8.2. */
+/** Project window geometry. specification.md §8.2. */
 const WINDOW = {
   width: 1600,
   height: 1000,
@@ -155,7 +155,7 @@ const WINDOW = {
   minHeight: 820,
 } as const;
 
-/** The launcher is compact and not resizable into a workspace. SPEC.md §8.5. */
+/** The launcher is compact and not resizable into a workspace. specification.md §8.5. */
 const WELCOME_WINDOW = { width: 720, height: 460 } as const;
 
 /**
@@ -169,7 +169,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   }
 
   /**
-   * The two windows of SPEC.md §8.5, and the flag that keeps them from fighting
+   * The two windows of specification.md §8.5, and the flag that keeps them from fighting
    * during shutdown.
    *
    * Quitting closes the project window, and without this flag that close would
@@ -203,7 +203,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     });
   }
 
-  /** The launcher: recent projects, open, and new. SPEC.md §8.6. */
+  /** The launcher: recent projects, open, and new. specification.md §8.6. */
   function createWelcomeWindow(): BrowserWindow {
     if (welcomeWindow !== null && !welcomeWindow.isDestroyed()) {
       welcomeWindow.focus();
@@ -271,7 +271,7 @@ export function startShell(options: ShellOptions = {}): Shell {
       }
       // Every way of closing a project — the red button, the shortcut, a menu
       // command — arrives here, so the reset and the launcher happen once and in
-      // one place (SPEC.md §8.5).
+      // one place (specification.md §8.5).
       session.close();
       createWelcomeWindow();
       refreshMenu();
@@ -291,7 +291,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   /**
    * The interface language, as the renderer's preference record has it and
    * as the system resolves it; the menu is rebuilt when it changes
-   * (SPEC.md §14). Read from the file at start, and again on every write.
+   * (specification.md §14). Read from the file at start, and again on every write.
    */
   let interfaceLanguage: Language = 'en';
 
@@ -314,7 +314,7 @@ export function startShell(options: ShellOptions = {}): Shell {
             return;
           case 'project/close':
             // Through the window's own close, so it is the same path as the red
-            // button and the shortcut (SPEC.md §8.5).
+            // button and the shortcut (specification.md §8.5).
             projectWindow?.close();
             return;
           default:
@@ -372,7 +372,7 @@ export function startShell(options: ShellOptions = {}): Shell {
    * the sender is checked against the windows this process created, so IPC from
    * anywhere else is refused; and a failure becomes a reported result rather
    * than an exception crossing the boundary, because an unhandled rejection in
-   * the renderer tells the author nothing (SPEC.md §16).
+   * the renderer tells the author nothing (specification.md §16).
    */
   function privileged<TRequest, TValue>(
     channel: string,
@@ -428,7 +428,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   /**
    * What the chosen folder is, and — when it is a project — the project.
-   * SPEC.md §8.6.
+   * specification.md §8.6.
    *
    * The four answers of the inspection are four answers here: only the first
    * is an open project, and the other three are questions the launcher puts to
@@ -472,7 +472,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   );
 
   /**
-   * Adopts a folder the author chose. SPEC.md §8.6.
+   * Adopts a folder the author chose. specification.md §8.6.
    *
    * The display name is the folder's own name, and nothing else in the folder
    * is touched: adoption adds the record directory a project needs and leaves
@@ -502,7 +502,7 @@ export function startShell(options: ShellOptions = {}): Shell {
       return chosen.canceled ? null : (chosen.filePaths[0] ?? null);
     });
 
-  /** The parent directory for a new project. SPEC.md §8.6. */
+  /** The parent directory for a new project. specification.md §8.6. */
   privileged(CHANNELS.chooseProjectLocation, acceptsNothing, async () => {
     const path = await chooseProjectParent();
     return path === null ? null : { path, shortPath: abbreviatePath(path) };
@@ -510,7 +510,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   /**
    * Creates a project: a display name the author chose, in a slugged directory
-   * of its own. SPEC.md §6.1, §8.6.
+   * of its own. specification.md §6.1, §8.6.
    *
    * The collision suffix is applied here, against what is actually in the parent
    * directory — the renderer can preview the slug but cannot know what is there.
@@ -535,7 +535,7 @@ export function startShell(options: ShellOptions = {}): Shell {
    *
    * A project that has been moved or deleted stays in the list and is marked
    * unavailable, so the author can remove it deliberately rather than finding it
-   * silently gone (SPEC.md §8.6).
+   * silently gone (specification.md §8.6).
    */
   privileged(CHANNELS.recentProjects, acceptsNothing, async () => {
     const entries = [];
@@ -557,7 +557,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   });
 
   /**
-   * The preference record. SPEC.md §13.
+   * The preference record. specification.md §13.
    *
    * The main process only stores and returns the document; validating it is the
    * core's job, and both sides do it — the renderer because it must not trust a
@@ -587,7 +587,7 @@ export function startShell(options: ShellOptions = {}): Shell {
       const record = readPreferences(request);
       mkdirSync(dirname(preferencesPath), { recursive: true });
       writeFileSync(preferencesPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
-      // The native menu follows the interface language at once (SPEC.md §14).
+      // The native menu follows the interface language at once (specification.md §14).
       const language = languageOf(record);
       if (language !== interfaceLanguage) {
         interfaceLanguage = language;
@@ -639,13 +639,13 @@ export function startShell(options: ShellOptions = {}): Shell {
     return { snapshot, revealPath };
   }
 
-  /** Searching the project's text. SPEC.md §9.3. */
+  /** Searching the project's text. specification.md §9.3. */
   privileged(CHANNELS.searchLibrary, isLibrarySearchRequest, async (request) =>
     session.searchLibrary(request.query),
   );
 
   /**
-   * Writing the manuscript out. SPEC.md §15.2.
+   * Writing the manuscript out. specification.md §15.2.
    *
    * The renderer asks for a format and, at most, a sheet to begin at. Where
    * the file goes is the author's answer to the system's own dialog, and what
@@ -669,7 +669,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     ),
   );
 
-  /** The author's own export stylesheets. SPEC.md §15.2. */
+  /** The author's own export stylesheets. specification.md §15.2. */
   privileged(CHANNELS.listStylesheets, acceptsNothing, async () => session.listStylesheets());
 
   privileged(CHANNELS.readStylesheet, isStylesheetRequest, async (request) =>
@@ -704,7 +704,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   privileged(CHANNELS.placeEntry, isLibraryPlaceRequest, async (request) =>
     // Where it ended up is what the interface reveals: a collision may have
-    // given the arrival a different name (SPEC.md §6.8).
+    // given the arrival a different name (specification.md §6.8).
     libraryEdit(async () => session.placeEntry(request.path, request.into, request.before)),
   );
 
@@ -725,7 +725,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   );
 
   /**
-   * What the renderer asked to have watched. SPEC.md §10.6.
+   * What the renderer asked to have watched. specification.md §10.6.
    *
    * The notification carries nothing: it says "look again", and looking is where
    * the comparison against the loaded baseline happens. A payload would invite
@@ -735,7 +735,7 @@ export function startShell(options: ShellOptions = {}): Shell {
    * How many times the repository watch has reported. Exposed on the shell
    * handle for a test that checks that watching a repository does not make it
    * report forever: `git status` writes inside `.git`, and without the filter
-   * of §12 each refresh would trigger the next (`CONVENTIONS.md` C-F4).
+   * of §12 each refresh would trigger the next (`conventions.md` C-F4).
    */
   let repositoryReports = 0;
 
@@ -791,7 +791,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   });
 
   /**
-   * A repository for a project that has none. SPEC.md §12.
+   * A repository for a project that has none. specification.md §12.
    *
    * In the project root, never a parent: the manuscript is what gets a
    * history. Refused where one already exists, because `git init` in an
@@ -812,7 +812,7 @@ export function startShell(options: ShellOptions = {}): Shell {
   });
 
   /**
-   * The identity at both scopes. SPEC.md §12. Read for the project directory
+   * The identity at both scopes. specification.md §12. Read for the project directory
    * so that the global half is known before there is a repository at all.
    */
   privileged(CHANNELS.gitIdentity, acceptsNothing, async () => {
@@ -844,7 +844,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     const root = await repositoryRoot();
     // Refused for a commit that is already on the upstream: amending rewrites
     // history, and republishing it would need force, which this application
-    // does not offer (SPEC.md §12).
+    // does not offer (specification.md §12).
     const tracking = await git.tracking(root);
     if (tracking !== null && tracking.ahead === 0) {
       throw new ProjectSessionError('git/already-pushed');
@@ -869,7 +869,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   privileged(CHANNELS.gitCreateBranch, isGitBranchRequest, async (request) => {
     // Checked before git sees it: a name beginning with `-` would be read as an
-    // option, and `git switch --create` accepts no separator (SPEC.md §12).
+    // option, and `git switch --create` accepts no separator (specification.md §12).
     if (!isValidBranchName(request.name)) {
       throw new ProjectSessionError('git/invalid-branch-name');
     }
@@ -896,7 +896,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
     if (request.url !== undefined) {
       // Checked here, where it can still be refused, rather than handed to git:
-      // some of git's transports run commands (SPEC.md §12).
+      // some of git's transports run commands (specification.md §12).
       if (!isSafeRemoteUrl(request.url)) {
         throw new ProjectSessionError('git/unsafe-remote');
       }
@@ -913,7 +913,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   /**
    * A file the renderer named, resolved against the repository root and checked
-   * to be inside it. SPEC.md §5.3.
+   * to be inside it. specification.md §5.3.
    *
    * Every handler that turns a repository-relative path into a filesystem path
    * goes through here, so none can skip the check. The one that did was the
@@ -982,7 +982,7 @@ export function startShell(options: ShellOptions = {}): Shell {
         await git.restore(root, tracked);
       } else {
         // Nothing to go back to: in a repository without a commit the file's
-        // whole existence is the change (SPEC.md §12).
+        // whole existence is the change (specification.md §12).
         await git.unstage(root, tracked);
         toTrash.push(...tracked);
       }
@@ -1001,7 +1001,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   privileged(CHANNELS.watchRepository, isBooleanRequest, async (visible) => {
     // Only while the panel is on screen, and only where there is a repository
-    // at all (SPEC.md §12). The root is resolved fresh each time, so a project
+    // at all (specification.md §12). The root is resolved fresh each time, so a project
     // change re-establishes the watch on the right one.
     const projectPath = session.openPath;
     const root = visible && projectPath !== null ? await git.repositoryRoot(projectPath) : null;
@@ -1015,7 +1015,7 @@ export function startShell(options: ShellOptions = {}): Shell {
    *
    * Porcelain paths are relative to this root, not to the project directory, and
    * can point outside the project — so every Git command runs against it
-   * (SPEC.md §12).
+   * (specification.md §12).
    */
   async function repositoryRoot(): Promise<string> {
     const projectPath = session.openPath;
@@ -1094,7 +1094,7 @@ export function startShell(options: ShellOptions = {}): Shell {
 
   /**
    * Set before any window begins closing, so the close handlers know a quit is
-   * under way and stay passive. SPEC.md §8.5.
+   * under way and stay passive. specification.md §8.5.
    */
   app.on('before-quit', () => {
     isTerminating = true;
@@ -1110,7 +1110,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     });
 
     // The launcher is the start window; the workbench appears when a project
-    // does (SPEC.md §8.5).
+    // does (specification.md §8.5).
     refreshMenu();
     createWelcomeWindow();
 

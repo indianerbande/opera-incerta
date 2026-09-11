@@ -95,7 +95,7 @@ for (const [name, make] of subjects) {
       await filesystem.writeRecentSheets(root, ['part-1/scene.md', 'preface.md']);
       expect(await filesystem.readRecentSheets(root)).toEqual(['part-1/scene.md', 'preface.md']);
 
-      // A convenience is never a reason to fail to open a project (SPEC.md
+      // A convenience is never a reason to fail to open a project (specification.md
       // §9.4) — a file a merge left with markers in it reads as an empty list.
       await filesystem.writeSheet(join(root, PROJECT_DIRECTORY, 'recent.json'), '<<<<<<< HEAD\n');
       expect(await filesystem.readRecentSheets(root)).toEqual([]);
@@ -116,7 +116,7 @@ for (const [name, make] of subjects) {
     it('keeps the author\'s own stylesheets, and offers only what it can read', async () => {
       const { filesystem, root } = subject;
       // A project has none until the author duplicates one — the ordinary
-      // case, not a failure (SPEC.md §15.2).
+      // case, not a failure (specification.md §15.2).
       expect(await filesystem.listStylesheets(root)).toEqual([]);
       expect(await filesystem.readStylesheet(root, 'Mine')).toBeNull();
 

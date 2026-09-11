@@ -1,10 +1,10 @@
 /**
- * The installation-local preference record. SPEC.md §13, §7.2.
+ * The installation-local preference record. specification.md §13, §7.2.
  *
  * One versioned document under one stable key, validated at the boundary.
  * Unknown fields are discarded, malformed values fall back to their default,
  * and a stored width is clamped again on read — so changed constants cannot
- * drag an old value into absurdity (SPEC.md §8.2).
+ * drag an old value into absurdity (specification.md §8.2).
  *
  * **A preference never modifies a document.** Everything here is about how the
  * workbench looks and which pane is showing; nothing about a manuscript.
@@ -41,7 +41,7 @@ export type NavigatorView = 'explorer' | 'sourceControl' | 'search';
 /**
  * The interface language, or "whatever the system says". The catalogues and
  * the resolution live in `@opera-incerta/localization`; the record stores the
- * choice only, because the core is text-free (SPEC.md §14.3).
+ * choice only, because the core is text-free (specification.md §14.3).
  */
 export type InterfaceLanguage = 'system' | 'en' | 'de';
 export type SecondarySidebarView = 'inspector' | 'outline' | 'ai' | 'snapshots';
@@ -54,9 +54,9 @@ export interface ColumnWidths {
 
 export interface WorkbenchPreferences {
   readonly version: number;
-  /** SPEC.md §13, §14: the first setting of the Appearance category. */
+  /** specification.md §13, §14: the first setting of the Appearance category. */
   readonly interfaceLanguage: InterfaceLanguage;
-  /** How the workbench looks. SPEC.md §8.8. */
+  /** How the workbench looks. specification.md §8.8. */
   readonly colorScheme: ColorScheme;
   readonly accentPalette: AccentPalette;
   readonly columnWidths: ColumnWidths;
@@ -64,19 +64,19 @@ export interface WorkbenchPreferences {
   readonly secondaryView: SecondarySidebarView;
   readonly secondaryVisible: boolean;
   readonly sheetListDensity: PreviewDensity;
-  /** The editor's typography. SPEC.md §13 (Editor); the rule is `editor-typography.ts`. */
+  /** The editor's typography. specification.md §13 (Editor); the rule is `editor-typography.ts`. */
   readonly editorFontFamily: EditorFontFamily;
   readonly editorFontSize: number;
   readonly editorWordWrap: boolean;
-  /** The line-number gutter of SPEC.md §10.8. */
+  /** The line-number gutter of specification.md §10.8. */
   readonly editorLineNumbers: boolean;
   /**
-   * The zoom of SPEC.md §10.9, in whole percent. Not a setting the dialog
+   * The zoom of specification.md §10.9, in whole percent. Not a setting the dialog
    * lists: it is set where it is used, and remembered like a column width.
    */
   readonly editorZoom: number;
   /**
-   * Which stylesheet last set a PDF. SPEC.md §15.2.
+   * Which stylesheet last set a PDF. specification.md §15.2.
    *
    * Installation-local on purpose: it is a habit, not a property of the
    * manuscript — unlike the stylesheets themselves, which live in the
@@ -87,7 +87,7 @@ export interface WorkbenchPreferences {
   readonly showBlankLines: boolean;
   readonly showDeeperOutline: boolean;
   /**
-   * The three switches of the front matter area. SPEC.md §10.4: looking is the
+   * The three switches of the front matter area. specification.md §10.4: looking is the
    * harmless starting state, so the area is off and, once on, read-only.
    */
   readonly showFrontMatter: boolean;
@@ -115,7 +115,7 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   editorLineNumbers: DEFAULT_EDITOR_LINE_NUMBERS,
   editorZoom: DEFAULT_EDITOR_ZOOM,
   // The literal, not the module's constant: the core knows no modules
-  // (SPEC.md §15.1). `packages/export` holds the two together with a test.
+  // (specification.md §15.1). `packages/export` holds the two together with a test.
   exportStylesheet: 'manuscript',
   showBlankLines: false,
   showFrontMatter: false,
@@ -133,7 +133,7 @@ const SECONDARY_VIEWS: readonly string[] = ['inspector', 'outline', 'ai', 'snaps
  *
  * A single bad value costs that one setting, never the whole record: an
  * unreadable preference must not send the author back to defaults everywhere
- * (SPEC.md §13).
+ * (specification.md §13).
  */
 export function readPreferences(value: unknown): WorkbenchPreferences {
   if (typeof value !== 'object' || value === null) {
@@ -168,7 +168,7 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
       EDITOR_FONT_FAMILIES,
       DEFAULT_PREFERENCES.editorFontFamily,
     ),
-    // Clamped on read as well as on write, like a width (SPEC.md §8.2).
+    // Clamped on read as well as on write, like a width (specification.md §8.2).
     editorFontSize: clampEditorFontSize(
       typeof stored['editorFontSize'] === 'number'
         ? stored['editorFontSize']
@@ -180,13 +180,13 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
       DEFAULT_PREFERENCES.editorLineNumbers,
     ),
     // Clamped on read as well as on write, like a width and like the base
-    // size (SPEC.md §8.2, §10.9).
+    // size (specification.md §8.2, §10.9).
     editorZoom: clampEditorZoom(
       typeof stored['editorZoom'] === 'number' ? stored['editorZoom'] : DEFAULT_PREFERENCES.editorZoom,
     ),
     // Not checked against the project's list: the record is read before a
     // project is open, and an unknown name falls back at the moment of use
-    // rather than being silently rewritten here (SPEC.md §15.2).
+    // rather than being silently rewritten here (specification.md §15.2).
     exportStylesheet:
       typeof stored['exportStylesheet'] === 'string' && stored['exportStylesheet'] !== ''
         ? stored['exportStylesheet']
@@ -205,7 +205,7 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
   };
 }
 
-/** Widths are clamped on read as well as on write. SPEC.md §8.2. */
+/** Widths are clamped on read as well as on write. specification.md §8.2. */
 function readColumnWidths(value: unknown): ColumnWidths {
   const stored = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
 

@@ -1,5 +1,5 @@
 /**
- * The interface catalogues and the rules that read them. SPEC.md §14.
+ * The interface catalogues and the rules that read them. specification.md §14.
  *
  * A separate package, portable like the core, because two processes need the
  * same words: the renderer for the workbench and the launcher, the main
@@ -70,7 +70,7 @@ export function translate(language: Language, key: MessageKey, params?: MessageP
 
 /**
  * The message for a count, chosen by the platform's plural rules — never by a
- * hand-written `count === 1` (SPEC.md §14.1). English and German have `one`
+ * hand-written `count === 1` (specification.md §14.1). English and German have `one`
  * and `other`; a catalogue for a language with more forms adds the keys, and
  * a missing form falls back to `other`.
  */

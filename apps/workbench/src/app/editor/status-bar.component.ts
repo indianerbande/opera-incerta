@@ -4,7 +4,7 @@ import { Localization } from '../localization/localization.js';
 import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
 
 /**
- * The editor's status bar. SPEC.md §10.5.
+ * The editor's status bar. specification.md §10.5.
  *
  * Information on the left — where the cursor is — and controls on the right:
  * the wrap toggle for this sheet (§10.5) and the zoom slider (§10.9).
@@ -94,7 +94,7 @@ import { STATUS_BAR_HEIGHT } from '../workbench-layout.js';
       background: var(--wi-accent-soft);
       color: var(--wi-accent);
     }
-    /* The zoom of SPEC.md §10.9: a slider, and the factor beside it. */
+    /* The zoom of specification.md §10.9: a slider, and the factor beside it. */
     input.zoom {
       width: 90px;
       height: 12px;
@@ -123,7 +123,7 @@ export class StatusBarComponent {
 
   readonly cursor = input.required<EditorCursor>();
   readonly wrapping = input.required<boolean>();
-  /** The editor's zoom, in whole percent. SPEC.md §10.9. */
+  /** The editor's zoom, in whole percent. specification.md §10.9. */
   readonly zoom = input.required<number>();
 
   readonly toggleWrap = output<void>();

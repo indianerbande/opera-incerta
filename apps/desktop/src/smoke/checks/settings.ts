@@ -72,7 +72,7 @@ async function focusedSelector(window: BrowserWindow): Promise<string> {
 }
 
 /**
- * The settings dialog. SPEC.md §13.
+ * The settings dialog. specification.md §13.
  *
  * Opened from the native menu and from the activity bar; a switch changed in
  * it reaches the preference file and the workbench at once; Escape closes it
@@ -156,7 +156,7 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
   // fixture should leave the run as it found it.
   smoke.git(smoke.projectPath, ['config', 'user.name', 'Opera Incerta Smoke']);
 
-  // The editor settings, measured on the editor itself (SPEC.md §13).
+  // The editor settings, measured on the editor itself (specification.md §13).
   await clickText(window, 'wi-settings .category', 'Editor');
   const measure = async (): Promise<{ size: number; family: string; wrapping: boolean; h2: number }> =>
     (await window.webContents.executeJavaScript(
@@ -207,7 +207,7 @@ export async function checkSettings(smoke: Smoke, window: BrowserWindow): Promis
   writeFileSync(editorEvidence, (await window.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${editorEvidence}`);
 
-  // The interface language, and the native menu with it (SPEC.md §14).
+  // The interface language, and the native menu with it (specification.md §14).
   await clickText(window, 'wi-settings .category', 'Appearance');
   await chooseLanguage(window, 'Deutsch');
   await waitUntil(
@@ -333,7 +333,7 @@ async function appearance(window: BrowserWindow): Promise<Appearance> {
 }
 
 /**
- * The visual system. SPEC.md §8.8.
+ * The visual system. specification.md §8.8.
  *
  * That the packaged face actually arrived over the renderer's own protocol,
  * that the scheme reaches the root element and the tokens with it, and that a
@@ -409,7 +409,7 @@ export async function checkAppearance(smoke: Smoke, window: BrowserWindow): Prom
   writeFileSync(paletteEvidence, (await window.webContents.capturePage()).toPNG());
   console.log(`smoke evidence: ${paletteEvidence}`);
 
-  // The shape of things, measured while a real dialog is open (SPEC.md §8.9).
+  // The shape of things, measured while a real dialog is open (specification.md §8.9).
   const shape = (await window.webContents.executeJavaScript(
     `(() => {
        const panel = document.querySelector('wi-settings .panel') ?? document.querySelector('wi-dialog .panel');

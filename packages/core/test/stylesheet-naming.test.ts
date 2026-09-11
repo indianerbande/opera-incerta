@@ -6,7 +6,7 @@ import {
   stylesheetNameOf,
 } from '../src/index.js';
 
-describe('naming a stylesheet of one’s own (SPEC.md §15.2)', () => {
+describe('naming a stylesheet of one’s own (specification.md §15.2)', () => {
   it('takes a plain name and makes it a file', () => {
     expect(isUsableStylesheetName('My Novel')).toBe(true);
     expect(stylesheetFileName('My Novel')).toBe('My Novel.css');

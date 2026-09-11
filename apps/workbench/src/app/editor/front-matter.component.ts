@@ -15,12 +15,12 @@ import { frontMatterHeight } from '@opera-incerta/core';
 import { ResizeDividerComponent } from '../shell/resize-divider.component.js';
 
 /**
- * One block of the front matter area. SPEC.md §10.4.
+ * One block of the front matter area. specification.md §10.4.
  *
  * **Read-only is a different control, never a disabled one.** A disabled field
  * greys the text out and refuses selection, so it cannot be copied; suppressing
  * pointer events blocks the mouse but not the keyboard, and anyone already
- * focused keeps typing (`CONVENTIONS.md` C-U6). Read-only here means readable
+ * focused keeps typing (`conventions.md` C-U6). Read-only here means readable
  * and selectable, only not changeable — which is what a `<pre>` is.
  *
  * The height is **measured**, never derived from a font metric: the layout
@@ -176,7 +176,7 @@ export class FrontMatterBlockComponent {
     }
   }
 
-  /** Dragging only ever makes the block taller (SPEC.md §10.4). */
+  /** Dragging only ever makes the block taller (specification.md §10.4). */
   protected enlarge(pixels: number): void {
     this.dragged.set(Math.max(0, this.height() + pixels));
   }

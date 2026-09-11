@@ -1,5 +1,5 @@
 /**
- * The scheme and the palette of the visual system. SPEC.md §8.8.
+ * The scheme and the palette of the visual system. specification.md §8.8.
  *
  * The values themselves are CSS — the stylesheet owns them. What lives here
  * is what the record may hold, what it falls back to, and the one rule that

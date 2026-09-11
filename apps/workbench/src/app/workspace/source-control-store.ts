@@ -1,10 +1,10 @@
 /**
- * Source control state. SPEC.md §12.
+ * Source control state. specification.md §12.
  *
  * The parsing and the grouping live in the portable core; this holds what the
  * panel shows and drives the bridge. Reading and writing have **separate
  * guards**: one shared busy flag would let a background refresh swallow a
- * user's click, which presents as "nothing happened" (`CONVENTIONS.md` C-F3).
+ * user's click, which presents as "nothing happened" (`conventions.md` C-F3).
  */
 import { computed, signal } from '@angular/core';
 import {
@@ -59,11 +59,11 @@ export class SourceControlStore {
 
   /** Null when the project is not inside a repository — a normal state. */
   readonly repositoryRoot = this.#root.asReadonly();
-  /** What the branch tracks, or null when it tracks nothing. SPEC.md §12. */
+  /** What the branch tracks, or null when it tracks nothing. specification.md §12. */
   readonly tracking = this.#tracking.asReadonly();
   /** Pulling is offered only when there is something to pull. */
   readonly canPull = computed(() => (this.#tracking()?.behind ?? 0) > 0);
-  /** A merge is under way and unfinished. SPEC.md §12. */
+  /** A merge is under way and unfinished. specification.md §12. */
   readonly merging = this.#merging.asReadonly();
   /** The checked-out branch, and where a first publish would go. */
   readonly branch = this.#branch.asReadonly();
@@ -71,7 +71,7 @@ export class SourceControlStore {
   /** Who commits would be by, read with the status; null outside a repository. */
   readonly identity = this.#identity.asReadonly();
   /**
-   * Inside a repository whose commits would have nobody to be by. SPEC.md §12:
+   * Inside a repository whose commits would have nobody to be by. specification.md §12:
    * the first commit would fail with a message written for programmers, so
    * the panel offers the question before that happens.
    */
@@ -81,7 +81,7 @@ export class SourceControlStore {
   });
   /**
    * A branch that has never been published. The offer appears only inside a
-   * repository, and only while there is no upstream. SPEC.md §12.
+   * repository, and only while there is no upstream. specification.md §12.
    */
   readonly canPublish = computed(
     () => this.#root() !== null && this.#tracking() === null && this.#branch() !== null,
@@ -95,7 +95,7 @@ export class SourceControlStore {
     return tracking !== null && tracking.behind > 0 && tracking.ahead > 0;
   });
   /**
-   * Whether the last commit may be replaced. SPEC.md §12.
+   * Whether the last commit may be replaced. specification.md §12.
    *
    * Only what has not left the machine: amending rewrites history, and a
    * pushed commit could only be published again by force. A merge in progress
@@ -123,7 +123,7 @@ export class SourceControlStore {
   /** Reads the status, coalescing overlapping requests. */
   /**
    * Reacts to a change in the working tree by reading the status again.
-   * SPEC.md §12.
+   * specification.md §12.
    *
    * The coordinator behind `refresh` coalesces, so a burst that the debounce
    * did not already merge still costs one read.
@@ -151,7 +151,7 @@ export class SourceControlStore {
 
   /**
    * Stages or unstages everything in **one** invocation, so the guard applies
-   * once to the whole action rather than per file (SPEC.md §12).
+   * once to the whole action rather than per file (specification.md §12).
    */
   async toggleAll(): Promise<void> {
     const state = this.selectAll();
@@ -173,7 +173,7 @@ export class SourceControlStore {
   }
 
   /**
-   * Git's own diff for one file, as text. SPEC.md §12.
+   * Git's own diff for one file, as text. specification.md §12.
    *
    * A read, so it goes through neither guard: it changes nothing, and making
    * it wait behind a write would present as "the click did nothing" (C-F3).
@@ -184,14 +184,14 @@ export class SourceControlStore {
 
   /**
    * The two versions of one file, for comparing prose word by word.
-   * SPEC.md §12. A read, like `diff`, and guarded like one.
+   * specification.md §12. A read, like `diff`, and guarded like one.
    */
   async versions(path: string): Promise<GitVersions | null> {
     return this.#runRead(null, async (bridge) => unwrap(await bridge.gitVersions({ path })));
   }
 
   /**
-   * Throws away the changes to one file. SPEC.md §12.
+   * Throws away the changes to one file. specification.md §12.
    *
    * Destructive, so the caller confirms first — this only carries it out. What
    * comes back are the affected paths **relative to the project**, so that
@@ -209,7 +209,7 @@ export class SourceControlStore {
     return affected;
   }
 
-  /** Brings the remote's refs up to date. Touches no file. SPEC.md §12. */
+  /** Brings the remote's refs up to date. Touches no file. specification.md §12. */
   async fetch(): Promise<void> {
     await this.#runWrite(async (bridge) => {
       unwrap(await bridge.gitFetch());
@@ -241,7 +241,7 @@ export class SourceControlStore {
     return this.#runRead(null, async (bridge) => unwrap(await bridge.gitLastMessage()));
   }
 
-  /** The repository's `.gitignore`. SPEC.md §12. */
+  /** The repository's `.gitignore`. specification.md §12. */
   async readIgnore(): Promise<string | null> {
     return this.#runRead(null, async (bridge) => unwrap(await bridge.gitReadIgnore()));
   }
@@ -264,7 +264,7 @@ export class SourceControlStore {
     }
   }
 
-  /** Every local branch, read when they are about to be shown. SPEC.md §12. */
+  /** Every local branch, read when they are about to be shown. specification.md §12. */
   async branches(): Promise<readonly GitBranch[]> {
     return this.#runRead([], async (bridge) => unwrap(await bridge.gitBranches()));
   }
@@ -289,7 +289,7 @@ export class SourceControlStore {
 
   /**
    * Pushes the branch for the first time and sets it to track where it went.
-   * SPEC.md §12.
+   * specification.md §12.
    *
    * `url` is given only when no remote is recorded yet; the address is checked
    * in the main process before git sees it.
@@ -301,7 +301,7 @@ export class SourceControlStore {
   }
 
   /**
-   * Merges the upstream in. SPEC.md §12.
+   * Merges the upstream in. specification.md §12.
    *
    * It may leave conflicts, which is the whole reason it is a separate action
    * that the author asks for. Git reporting a conflict is not a failure of the
@@ -315,12 +315,12 @@ export class SourceControlStore {
   }
 
   /**
-   * Creates a repository for a project that has none. SPEC.md §12.
+   * Creates a repository for a project that has none. specification.md §12.
    *
    * A write like any other: guarded, and followed by the status read that
    * turns "not inside a repository" into a list of untracked files.
    */
-  /** Records who commits are by, in this repository only. SPEC.md §12. */
+  /** Records who commits are by, in this repository only. specification.md §12. */
   async setIdentity(identity: GitIdentity): Promise<void> {
     await this.#runWrite(async (bridge) => {
       unwrap(await bridge.gitSetIdentity(identity));
@@ -363,7 +363,7 @@ export class SourceControlStore {
    *
    * If the commit succeeds and the push fails, the commit stands and the
    * message field is cleared — it was committed — and only the push failure is
-   * reported (SPEC.md §12).
+   * reported (specification.md §12).
    */
   async commitAndPush(): Promise<void> {
     if (!this.canCommit()) {
@@ -469,7 +469,7 @@ export class SourceControlStore {
 /**
  * What to show the author when a Git action failed.
  *
- * **Git's own message, where there is one** (SPEC.md §12): "does not appear to
+ * **Git's own message, where there is one** (specification.md §12): "does not appear to
  * be a git repository" tells the author what to do, and `git/command-failed`
  * tells them nothing. The code is the fallback, and it is what the codes
  * outside Git — a missing bridge, a busy guard — already are.

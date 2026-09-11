@@ -145,7 +145,7 @@ describe('displayModel', () => {
 
   it('hides the heading prefix whatever the cursor does', () => {
     // Heading level is a static paragraph attribute, so there is no syntax to
-    // edit in place — unlike an inline delimiter (SPEC.md §10.2 against §10.3).
+    // edit in place — unlike an inline delimiter (specification.md §10.2 against §10.3).
     expect(hiddenText(document_, null, 'heading')).toEqual(['# ']);
     expect(hiddenText(document_, 1, 'heading')).toEqual(['# ']);
   });

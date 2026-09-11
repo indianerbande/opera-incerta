@@ -26,7 +26,7 @@ export interface Smoke {
   readonly createParent: string;
   /**
    * A directory holding `manuscript/` — two Markdown files and no project —
-   * for the folder that has to become one (SPEC.md §8.6).
+   * for the folder that has to become one (specification.md §8.6).
    */
   readonly plainParent: string;
   /**
@@ -39,7 +39,7 @@ export interface Smoke {
   readonly preferencesPath: string;
   /**
    * Where an export lands, instead of asking with a native save dialog
-   * (SPEC.md §15.2). The file the shell writes appears here under the name
+   * (specification.md §15.2). The file the shell writes appears here under the name
    * the export offered.
    */
   readonly exportDirectory: string;

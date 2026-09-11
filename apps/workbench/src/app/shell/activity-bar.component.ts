@@ -3,7 +3,7 @@ import type { MessageKey } from '@opera-incerta/localization';
 import { Localization } from '../localization/localization.js';
 
 /**
- * One entry of an activity bar. SPEC.md §8.4.
+ * One entry of an activity bar. specification.md §8.4.
  *
  * The icon is drawn as a CSS mask so it takes the button's colour in both
  * light and dark themes, and the SVG file stays byte-identical to the one that
@@ -16,7 +16,7 @@ export interface ActivityItem<TId extends string = string> {
   readonly id: TId;
   /** Class selecting the mask, defined in this component's styles. */
   readonly icon: string;
-  /** The key of the accessible name; the bar translates it (SPEC.md §14). */
+  /** The key of the accessible name; the bar translates it (specification.md §14). */
   readonly labelKey: MessageKey;
 }
 
@@ -25,7 +25,7 @@ export interface ActivityItem<TId extends string = string> {
  *
  * The bar selects views; it does not collapse itself. That is why no entry
  * here means "toggle the sidebar" — a symbol for a position among symbols for
- * contents would be misleading (SPEC.md §8.4). Clicking the already active
+ * contents would be misleading (specification.md §8.4). Clicking the already active
  * entry of the trailing bar does collapse its region, which is the established
  * behavior, but it is the region's rule rather than an entry of its own.
  */
@@ -140,7 +140,7 @@ export class ActivityBarComponent<TId extends string = string> {
 
   /**
    * Entries at the foot that open something rather than select a view — the
-   * settings dialog. They carry no active state. SPEC.md §13.
+   * settings dialog. They carry no active state. specification.md §13.
    */
   readonly tools = input<readonly ActivityItem[]>([]);
   readonly tool = output<string>();

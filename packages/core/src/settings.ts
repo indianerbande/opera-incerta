@@ -1,5 +1,5 @@
 /**
- * The settings registry. SPEC.md §13.
+ * The settings registry. specification.md §13.
  *
  * Every setting has a stable identifier, one owner, a bounded value type, a
  * default, and an explicit scope. This file is the registry: a category list
@@ -39,7 +39,7 @@ export type SettingScope = 'installation' | 'project' | 'repository';
 
 /**
  * A category names the keys of its words, never the words: the core is
- * text-free (SPEC.md §14.3), and the dialog translates.
+ * text-free (specification.md §14.3), and the dialog translates.
  */
 export interface SettingsCategory {
   readonly id: SettingsCategoryId;
@@ -105,7 +105,7 @@ export type BooleanPreferenceKey = {
 }[keyof WorkbenchPreferences];
 
 interface SettingBase {
-  /** Stable; a renamed label keeps its id (`CONVENTIONS.md` C-N3). */
+  /** Stable; a renamed label keeps its id (`conventions.md` C-N3). */
   readonly id: string;
   readonly category: SettingsCategoryId;
   readonly labelKey: string;
@@ -132,7 +132,7 @@ export interface LanguageSetting extends SettingBase {
   readonly defaultValue: InterfaceLanguage;
 }
 
-/** Light, dark, or what the system says. SPEC.md §8.8. */
+/** Light, dark, or what the system says. specification.md §8.8. */
 export interface ColorSchemeSetting extends SettingBase {
   readonly kind: 'colorScheme';
   readonly key: 'colorScheme';
@@ -339,10 +339,10 @@ export const LAYOUT_PREFERENCE_KEYS: readonly (keyof WorkbenchPreferences)[] = [
   'navigatorView',
   'secondaryView',
   'secondaryVisible',
-  // The zoom of SPEC.md §10.9 is set where it is used — a slider in the
+  // The zoom of specification.md §10.9 is set where it is used — a slider in the
   // status bar — and remembered like a width, not listed in the dialog.
   'editorZoom',
-  // Likewise the export stylesheet of SPEC.md §15.2: it is chosen in the
+  // Likewise the export stylesheet of specification.md §15.2: it is chosen in the
   // export dialog, at the moment of use, and remembered afterwards. Listing
   // it in the settings would put the choice in two places, and the settings
   // copy could name a stylesheet the open project does not have.

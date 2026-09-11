@@ -1,9 +1,9 @@
 /**
- * The block structure of a document, as the core owns it. SPEC.md §10.7,
+ * The block structure of a document, as the core owns it. specification.md §10.7,
  * §5.4.
  *
  * A parser produces this; nothing of the parser's own types comes along
- * (`CONVENTIONS.md` C-A6). Lines are one-based and ranges inclusive, the way
+ * (`conventions.md` C-A6). Lines are one-based and ranges inclusive, the way
  * every other line number in the core is. The translation from a parser's
  * tokens lives in `@opera-incerta/markdown`; the rules that turn this into a
  * presentation live here, beside the display model.
@@ -45,7 +45,7 @@ export interface ListItemSpan extends BlockBase {
   /**
    * A task list item, when the item's text begins with `[ ]` or `[x]`. The
    * parser knows no task lists; this is the translation's own rule
-   * (SPEC.md §10.7).
+   * (specification.md §10.7).
    */
   readonly task: TaskState | null;
 }

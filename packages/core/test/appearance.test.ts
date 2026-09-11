@@ -9,7 +9,7 @@ import {
   resolveColorScheme,
 } from '../src/index.js';
 
-describe('the visual system (SPEC.md §8.8)', () => {
+describe('the visual system (specification.md §8.8)', () => {
   it('resolves a chosen scheme to itself and the system one to the machine', () => {
     expect(resolveColorScheme('light', true)).toBe('light');
     expect(resolveColorScheme('dark', false)).toBe('dark');

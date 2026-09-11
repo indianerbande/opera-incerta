@@ -27,7 +27,7 @@ const sample = [
   'plain paragraph', // 22
 ].join('\n');
 
-describe('parseBlocks (SPEC.md §10.7)', () => {
+describe('parseBlocks (specification.md §10.7)', () => {
   const model = parseBlocks(sample);
 
   it('reports block quotes with their depth, inclusive and one-based', () => {
@@ -84,7 +84,7 @@ describe('parseBlocks (SPEC.md §10.7)', () => {
   it('reads a table and raw HTML as paragraphs, which the presentation leaves alone', () => {
     const model_ = parseBlocks('| a |\n|---|\n| 1 |\n\n<div>x</div>\n');
     // The CommonMark preset knows no tables, and HTML is off: both are
-    // plain text until their own rounds (SPEC.md §10.7).
+    // plain text until their own rounds (specification.md §10.7).
     expect(blockAt(model_, 1, 'paragraph')).toMatchObject({ startLine: 1, endLine: 3 });
     expect(blockAt(model_, 5, 'paragraph')).not.toBeNull();
     expect(blockAt(model_, 5, 'html')).toBeNull();

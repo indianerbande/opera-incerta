@@ -1,15 +1,15 @@
 /**
  * Slug generation for project directories and sheet file names.
  *
- * SPEC.md §6.1 (project directory names) and §6.5 (sheet file names).
+ * specification.md §6.1 (project directory names) and §6.5 (sheet file names).
  * The generated name is a stable technical identifier: it is created once and
  * never changed by a later rename, which only touches the display name.
  */
 
-/** Maximum length of a generated slug, in characters. SPEC.md §6.1. */
+/** Maximum length of a generated slug, in characters. specification.md §6.1. */
 export const SLUG_MAX_LENGTH = 40;
 
-/** Fallback base used when a title yields no usable slug. SPEC.md §6.5. */
+/** Fallback base used when a title yields no usable slug. specification.md §6.5. */
 export const SHEET_SLUG_FALLBACK = 'sheet';
 
 const TRANSLITERATIONS: ReadonlyArray<readonly [RegExp, string]> = [
@@ -73,7 +73,7 @@ export function withCollisionSuffix(base: string, taken: Iterable<string>): stri
 
 /**
  * The name an entry keeps when it arrives in a group that may already hold one
- * like it. SPEC.md §6.8.
+ * like it. specification.md §6.8.
  *
  * A move must never overwrite, and refusing it over a technicality would block
  * something the author plainly wants — so the arrival takes a suffix. This is
@@ -94,7 +94,7 @@ export function arrivalName(name: string, existing: Iterable<string>): string {
 /**
  * Builds the file name for a new sheet from its title, avoiding collisions
  * with the `.md` files already present in the target directory.
- * SPEC.md §6.5.
+ * specification.md §6.5.
  */
 export function sheetFileName(title: string, existingFileNames: Iterable<string>): string {
   const base = slugify(title) || SHEET_SLUG_FALLBACK;
@@ -108,7 +108,7 @@ export function sheetFileName(title: string, existingFileNames: Iterable<string>
 /**
  * Builds the directory name for a new project from its display name, avoiding
  * collisions with the entries already present in the parent directory.
- * SPEC.md §6.1.
+ * specification.md §6.1.
  */
 export function projectDirectoryName(
   displayName: string,

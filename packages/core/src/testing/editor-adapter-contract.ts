@@ -1,6 +1,6 @@
 /**
- * One contract suite for every editor adapter. TESTING.md §2.6, §2.8;
- * `CONVENTIONS.md` C-T11.
+ * One contract suite for every editor adapter. testing.md §2.6, §2.8;
+ * `conventions.md` C-T11.
  *
  * Written without a test framework on purpose: the same cases run under Vitest
  * against an in-memory double and inside a real renderer against the
@@ -334,7 +334,7 @@ function caseDestroyIsIdempotent(create: Create): ContractCase {
   return check('destroy can be called twice', !secondFailed, `secondFailed=${String(secondFailed)}`);
 }
 
-/** Finding marks every match and reports where the author is. SPEC.md §10.11. */
+/** Finding marks every match and reports where the author is. specification.md §10.11. */
 function caseSearchFindsAndCounts(create: Create): ContractCase {
   const adapter = create();
   adapter.open({ id: 's', text: 'one two one two one' });

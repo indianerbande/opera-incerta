@@ -357,7 +357,7 @@ describe('against a real repository', () => {
     const resolved = await git.repositoryRoot(join(root, 'book', 'chapters'));
 
     // Compared by suffix: macOS reaches the temporary directory through a
-    // firmlink, so the two spellings differ (CONVENTIONS.md C-F1).
+    // firmlink, so the two spellings differ (conventions.md C-F1).
     expect(resolved).not.toBeNull();
     expect(root.endsWith((resolved ?? '').split('/').at(-1) ?? '')).toBe(true);
   });

@@ -1,6 +1,6 @@
 /**
  * The workbench's state: which project is open, what is selected, what is
- * being edited. SPEC.md §6, §9, §10.
+ * being edited. specification.md §6, §9, §10.
  *
  * The rules it applies — which sheets a group shows, which groups must be
  * expanded to reveal a sheet — live in the portable core. This holds the
@@ -67,17 +67,17 @@ export interface OpenSheet {
    * The parsed file: owned metadata, foreign front matter, and the body.
    *
    * The editor is given the **body only**. Front matter belongs to its own
-   * area, deliberately outside the writing surface (SPEC.md §10.4), and
+   * area, deliberately outside the writing surface (specification.md §10.4), and
    * keeping it out of the editor is also what protects it: the codec puts the
    * file back together on save, so foreign keys survive whatever the author
-   * types (SPEC.md §6.3).
+   * types (specification.md §6.3).
    */
   readonly sheet: Sheet;
   /** The body as it was last read from or written to disk. */
   readonly savedBody: string;
   /**
    * Reported problems. A sheet with any is read-only: the application must not
-   * guess what a malformed front matter block meant (SPEC.md §6.2).
+   * guess what a malformed front matter block meant (specification.md §6.2).
    */
   readonly diagnostics: readonly SheetDiagnostic[];
   readonly writable: boolean;
@@ -98,14 +98,14 @@ export class WorkspaceStore {
   readonly #failure = signal<string | null>(null);
   /**
    * Something that went **right** and that the author would otherwise have no
-   * sign of: a file written somewhere they chose (SPEC.md §15.2).
+   * sign of: a file written somewhere they chose (specification.md §15.2).
    *
    * It holds the outcome, not a sentence. The words belong to whoever has the
    * catalogue (§14.2) — the store is built with a bridge and nothing else,
    * and a store that translated would need a language in every test.
    */
   readonly #note = signal<ExportOutcome | null>(null);
-  /** The author's own export stylesheets, by name. SPEC.md §15.2. */
+  /** The author's own export stylesheets, by name. specification.md §15.2. */
   readonly #stylesheets = signal<readonly string[]>([]);
   readonly #conflict = signal<string | null>(null);
   /**
@@ -123,7 +123,7 @@ export class WorkspaceStore {
   readonly #busy = signal(false);
   /**
    * Handles that a re-read no longer carries: the sheet was deleted or moved.
-   * The editor forgets what it remembered for them (SPEC.md §6). Accumulated
+   * The editor forgets what it remembered for them (specification.md §6). Accumulated
    * for the life of the project, so the editor can catch up whenever it looks.
    */
   readonly #retiredHandles = signal<readonly string[]>([]);
@@ -136,9 +136,9 @@ export class WorkspaceStore {
   readonly openSheet = this.#openSheet.asReadonly();
   readonly failure = this.#failure.asReadonly();
   readonly note = this.#note.asReadonly();
-  /** The sheet whose file changed under unsaved work. SPEC.md §10.6. */
+  /** The sheet whose file changed under unsaved work. specification.md §10.6. */
   readonly conflict = this.#conflict.asReadonly();
-  /** The project's page categories. SPEC.md §6.6. */
+  /** The project's page categories. specification.md §6.6. */
   readonly categories = this.#categories.asReadonly();
   readonly busy = this.#busy.asReadonly();
   readonly expanded = this.#expanded.asReadonly();
@@ -186,7 +186,7 @@ export class WorkspaceStore {
     return library === null ? null : findGroup(library, this.#selectedGroupPath());
   });
 
-  /** The sheets of that group — its direct ones only (SPEC.md §9.2). */
+  /** The sheets of that group — its direct ones only (specification.md §9.2). */
   readonly visibleSheets = computed<readonly SheetEntry[]>(() => {
     const group = this.selectedGroup();
     return group === null ? [] : sheetsInGroup(group);
@@ -223,7 +223,7 @@ export class WorkspaceStore {
   /** The metadata the inspector shows and edits. */
   readonly metadata = this.#currentMetadata.asReadonly();
 
-  /** Progress figures for the inspector, over the body only (SPEC.md §11). */
+  /** Progress figures for the inspector, over the body only (specification.md §11). */
   readonly statistics = computed<TextStatistics>(() => textStatistics(this.#currentText()));
 
   /** The outline of the open document. */
@@ -237,7 +237,7 @@ export class WorkspaceStore {
   );
 
   /** False when the open sheet must not be written back. */
-  /** Where the author has been, this window's lifetime. SPEC.md §9.4. */
+  /** Where the author has been, this window's lifetime. specification.md §9.4. */
   readonly #history = signal<NavigationHistory>(EMPTY_HISTORY);
   readonly canGoBack = computed(() => canGoBack(this.#history()));
   readonly canGoForward = computed(() => canGoForward(this.#history()));
@@ -256,7 +256,7 @@ export class WorkspaceStore {
    *
    * The project window is created *because* a project was opened, so it finds
    * one waiting rather than asking for it. This is the workbench's only way
-   * into a project: choosing one is the launcher's business (SPEC.md §8.6),
+   * into a project: choosing one is the launcher's business (specification.md §8.6),
    * and a second opening path here was one the application never took.
    */
   async adoptOpenProject(): Promise<void> {
@@ -273,7 +273,7 @@ export class WorkspaceStore {
    * Re-reads the project from disk, keeping the selection where possible.
    *
    * Re-reading replaces the open sheet with what is on disk, and what the
-   * author typed is not on disk. The comparison rule of `SPEC.md` §10.6
+   * author typed is not on disk. The comparison rule of `specification.md` §10.6
    * decides what happens: nothing when the file is unchanged, a silent reload
    * when it changed and nothing was typed, and the conflict prompt when both
    * are true. The author's version is kept meanwhile — the prompt asks, it does
@@ -328,7 +328,7 @@ export class WorkspaceStore {
 
   /**
    * Tells the main process what to watch: the group on screen and the open
-   * document. SPEC.md §10.6.
+   * document. specification.md §10.6.
    *
    * Sent from here rather than worked out there, because only the interface
    * knows what the author is looking at. Fire and forget: a watch that could
@@ -371,7 +371,7 @@ export class WorkspaceStore {
 
   /**
    * Opens a sheet, recording the journey unless the journey is what asked.
-   * SPEC.md §9.4: going back is a move through the history, not a new entry
+   * specification.md §9.4: going back is a move through the history, not a new entry
    * in it.
    */
   async #openSheetAt(relativePath: string, record: boolean): Promise<void> {
@@ -390,7 +390,7 @@ export class WorkspaceStore {
       // A file a merge has not finished with carries both versions and the
       // markers between them. It is shown, and it is **not** writable: an
       // author typing around markers would save a file that is neither
-      // version (SPEC.md §12).
+      // version (specification.md §12).
       const conflicted = hasConflictMarkers(text);
 
       this.#openSheet.set({
@@ -417,7 +417,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * One step through the history, and the sheet it arrives at. SPEC.md §9.4.
+   * One step through the history, and the sheet it arrives at. specification.md §9.4.
    *
    * Nothing is checked here: the history holds only sheets the project has,
    * because every re-read drops the ones it no longer does (`#adopt`). A
@@ -439,7 +439,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * Drops whatever the editor still holds for these sheets. SPEC.md §12.
+   * Drops whatever the editor still holds for these sheets. specification.md §12.
    *
    * Used after discarding a change: the author said to throw it away, and a
    * buffer that survived would put it back on the next save — and would raise
@@ -485,7 +485,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * The foreign front matter as the area shows it, and edits it. SPEC.md §6.3,
+   * The foreign front matter as the area shows it, and edits it. specification.md §6.3,
    * §10.4.
    *
    * Lines rather than parsed values: what is foreign is kept verbatim, and the
@@ -494,7 +494,7 @@ export class WorkspaceStore {
    */
   readonly foreignLines = this.#currentForeign.asReadonly();
 
-  /** The owned block, produced by the serializer that saves. SPEC.md §10.4. */
+  /** The owned block, produced by the serializer that saves. specification.md §10.4. */
   readonly ownedLines = computed<readonly string[]>(() => {
     const open = this.#openSheet();
     return open === null
@@ -504,7 +504,7 @@ export class WorkspaceStore {
 
   /**
    * The category of the open sheet, or null. An id naming nothing counts as
-   * uncategorized, because a category may have been deleted (SPEC.md §6.6).
+   * uncategorized, because a category may have been deleted (specification.md §6.6).
    */
   readonly category = computed(() =>
     findCategory(this.#categories(), this.#currentMetadata().category),
@@ -534,7 +534,7 @@ export class WorkspaceStore {
 
   /**
    * Writes the open sheet. No autosave: saving happens when the author asks
-   * (SPEC.md §10.6).
+   * (specification.md §10.6).
    */
   async save(): Promise<void> {
     const open = this.#openSheet();
@@ -543,7 +543,7 @@ export class WorkspaceStore {
     }
     if (!open.writable) {
       // A sheet whose front matter could not be understood is never written
-      // back: guessing would destroy what it actually says (SPEC.md §6.2).
+      // back: guessing would destroy what it actually says (specification.md §6.2).
       this.#failure.set(open.diagnostics[0]?.code ?? 'sheet/read-only');
       return;
     }
@@ -567,14 +567,14 @@ export class WorkspaceStore {
         sheet: { ...open.sheet, metadata, foreignLines, body },
         savedBody: body,
       });
-      // The main process writes the same list to the project (SPEC.md §9.4).
+      // The main process writes the same list to the project (specification.md §9.4).
       // It is kept here as well so the menu answers the save that just
       // happened rather than the state the project was opened in.
       this.#recentSheets.set(withRecentSheet(this.#recentSheets(), open.relativePath));
     });
   }
 
-  /** Creates a sheet in a group and opens it. SPEC.md §6.5. */
+  /** Creates a sheet in a group and opens it. specification.md §6.5. */
   async createSheet(groupPath: string, title: string): Promise<void> {
     await this.#libraryEdit(
       async (bridge) => bridge.createSheet({ path: groupPath, name: title }),
@@ -589,7 +589,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * Renames a sheet. SPEC.md §6.4 — the title changes, the file name never
+   * Renames a sheet. specification.md §6.4 — the title changes, the file name never
    * does.
    *
    * The open sheet is renamed through its editing state rather than on disk:
@@ -615,7 +615,7 @@ export class WorkspaceStore {
 
   /**
    * Puts an entry in a place: a group, and a position within it.
-   * SPEC.md §6.4, §6.8.
+   * specification.md §6.4, §6.8.
    *
    * The interface names the sibling to land in front of, never a position: by
    * the time the main process has re-read the group, an index could point at
@@ -633,7 +633,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * Moves an entry to the trash. SPEC.md §6.7.
+   * Moves an entry to the trash. specification.md §6.7.
    *
    * The neighbour to fall back on is worked out **before** the entry goes,
    * while it still has neighbours: the sheet after it, else the one before it.
@@ -676,7 +676,7 @@ export class WorkspaceStore {
 
   /**
    * Puts the editing state back over a freshly read sheet, applying the
-   * comparison rule of `SPEC.md` §10.6.
+   * comparison rule of `specification.md` §10.6.
    *
    * `mayConflict` says whether a difference on disk is worth asking about. A
    * library edit does not touch the open sheet's file, so a difference there
@@ -761,7 +761,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * The author's own export stylesheets, by name. SPEC.md §15.2.
+   * The author's own export stylesheets, by name. specification.md §15.2.
    *
    * The supplied four are not here: the dialog has them from the module, and
    * carrying them over the bridge would be sending the application its own
@@ -794,7 +794,7 @@ export class WorkspaceStore {
   }
 
   /**
-   * Writes the manuscript out. SPEC.md §15.2.
+   * Writes the manuscript out. specification.md §15.2.
    *
    * `from` is a sheet to begin at — the "from here" of its context menu — or
    * null for the whole document. Everything happens in the main process; what
@@ -824,7 +824,7 @@ export class WorkspaceStore {
    * refreshed truth instead of patching its own copy — a patched copy is how a
    * tree starts disagreeing with the disk.
    *
-   * What was created decides where the selection lands (SPEC.md §6.5): a new
+   * What was created decides where the selection lands (specification.md §6.5): a new
    * sheet reveals the group holding it, a new group reveals itself, and a
    * rename leaves the selection alone. Keeping the old group after a creation
    * would put a sheet in the editor that the list beside it does not show.
@@ -867,7 +867,7 @@ export class WorkspaceStore {
 
       // A created sheet is selected and opened; otherwise the previously open
       // one stays open — creating a *group* must not close the editor
-      // (SPEC.md §6.5).
+      // (specification.md §6.5).
       // A move can take the open sheet with it — as itself, or inside a group
       // that moved around it.
       const followed = followMove(previousSheet, options.movedFrom ?? null, created);
@@ -961,7 +961,7 @@ export class WorkspaceStore {
     this.#categories.set(readCategories(snapshot.categories));
     this.#recentSheets.set(snapshot.recentSheets);
     // A sheet the project no longer has leaves the history with it, so going
-    // back never arrives at nothing (SPEC.md §9.4).
+    // back never arrives at nothing (specification.md §9.4).
     for (const path of this.#history().entries) {
       if (findSheet(snapshot.library, path) === null) {
         this.#history.set(withoutSheet(this.#history(), path));

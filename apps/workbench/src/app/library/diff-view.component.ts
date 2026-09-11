@@ -13,7 +13,7 @@ import { DialogComponent } from '../shell/dialog.component.js';
 import { Localization } from '../localization/localization.js';
 
 /**
- * What changed in one file. SPEC.md §12.
+ * What changed in one file. specification.md §12.
  *
  * Git's own output, shown **unchanged**: it is tool output and is never
  * localized (§14.2). The only thing added is colour, which is presentation —

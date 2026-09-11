@@ -1,5 +1,5 @@
 /**
- * The filesystem watcher over Node's own `fs.watch`. SPEC.md §10.6, §12.
+ * The filesystem watcher over Node's own `fs.watch`. specification.md §10.6, §12.
  *
  * Deliberately thin. Everything that decides *what a change means* lives
  * elsewhere and is already tested there: coalescing in `RefreshCoordinator`,

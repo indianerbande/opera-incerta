@@ -1,6 +1,6 @@
 /**
  * The smoke entry point: `electron dist/smoke.cjs`, run by `pnpm run
- * desktop:smoke`. TESTING.md §2.7.
+ * desktop:smoke`. testing.md §2.7.
  *
  * The smoke launches the real shell with three substitutions — a copy of the
  * fixture instead of the directory chooser, a directory instead of the
@@ -95,7 +95,7 @@ function git(cwd: string, argv: readonly string[]): string {
  *
  * A real repository, left without a commit on purpose: that is the state a
  * freshly created project is in, and the one where unstaging cannot resolve
- * against HEAD (SPEC.md §12). Identity and signing are set locally, so the
+ * against HEAD (specification.md §12). Identity and signing are set locally, so the
  * run never depends on — or trips over — how the machine is configured.
  */
 function prepareProject(): string {
@@ -111,7 +111,7 @@ function prepareProject(): string {
 
 /**
  * A folder with texts in it and no project: what an author points at when
- * they have been writing before they had this application (SPEC.md §8.6).
+ * they have been writing before they had this application (specification.md §8.6).
  */
 function preparePlainFolder(): string {
   const parent = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-plain-'));
@@ -134,7 +134,7 @@ mkdirSync(evidenceDirectory, { recursive: true });
 // test run must not write into the author's.
 const userDataPath = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-userdata-'));
 // The checks read English words off the screen. The interface follows the
-// system language unless told otherwise (SPEC.md §14), and the machine this
+// system language unless told otherwise (specification.md §14), and the machine this
 // runs on may well be German — so the preference is seeded, not assumed. The
 // settings check switches languages and puts this back.
 writeFileSync(
@@ -148,7 +148,7 @@ const exportDirectory = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-export-'
 const shell = startShell({
   chooseProjectToOpen: () => Promise.resolve(folderToOpen),
   chooseProjectParent: () => Promise.resolve(createParent),
-  // Where an export goes, instead of the native save dialog (SPEC.md §15.2).
+  // Where an export goes, instead of the native save dialog (specification.md §15.2).
   // The default name the export offered is kept, so the check can read it.
   chooseExportDestination: (defaultName) =>
     Promise.resolve(join(exportDirectory, defaultName)),

@@ -1,5 +1,5 @@
 /**
- * The main process's view of the open project. SPEC.md §5.3, §6.
+ * The main process's view of the open project. specification.md §5.3, §6.
  *
  * It owns the two things the renderer must never hold: absolute paths, and the
  * authority to reach them. The renderer receives opaque handles; resolving one
@@ -50,7 +50,7 @@ import {
   type DocumentPart,
 } from '@opera-incerta/export';
 
-/** The manuscript as one document, ready for either format. SPEC.md §15.2. */
+/** The manuscript as one document, ready for either format. specification.md §15.2. */
 export interface AssembledDocument {
   /** The project's display name, which titles the page. */
   readonly title: string;
@@ -67,12 +67,12 @@ export class ProjectSessionError extends CodedError {
 
 /**
  * Resolves a relative path against a root, and refuses one that ends up
- * outside it. SPEC.md §5.3.
+ * outside it. specification.md §5.3.
  *
  * The second line of defense: the contract has already refused a path that
  * *looks* like traversal, and this catches one that *is* — a symlink inside
  * the project pointing out of it, a root that resolves differently from how
- * it was named. One function for every caller (CONVENTIONS.md C-U7): the
+ * it was named. One function for every caller (conventions.md C-U7): the
  * handler that skipped this check was the one that could read any file.
  */
 export async function containedPath(
@@ -107,7 +107,7 @@ interface OpenProject {
 export type TrashItem = (absolutePath: string) => Promise<void>;
 
 /**
- * One open project at a time, matching the window model of SPEC.md §8.5.
+ * One open project at a time, matching the window model of specification.md §8.5.
  */
 export class ProjectSession {
   readonly #filesystem: ProjectFilesystem;
@@ -171,7 +171,7 @@ export class ProjectSession {
   }
 
   /**
-   * Searches the text of every sheet in the open project. SPEC.md §9.3.
+   * Searches the text of every sheet in the open project. specification.md §9.3.
    *
    * The **body** only: front matter is metadata, and the line numbers a result
    * points at are the ones the editor shows, which start after it (§10.4).
@@ -223,7 +223,7 @@ export class ProjectSession {
   }
 
   /**
-   * The manuscript assembled into one document. SPEC.md §15.2.
+   * The manuscript assembled into one document. specification.md §15.2.
    *
    * The bodies are read here — the export module is pure and never touches a
    * disk — and each one comes from the codec, which is what keeps front
@@ -254,7 +254,7 @@ export class ProjectSession {
     return { title: record.displayName, parts: documentParts(pieces, bodies) };
   }
 
-  /** The author's own export stylesheets, by name. SPEC.md §15.2. */
+  /** The author's own export stylesheets, by name. specification.md §15.2. */
   async listStylesheets(): Promise<readonly string[]> {
     return this.#filesystem.listStylesheets(this.#requireOpen().path);
   }
@@ -271,7 +271,7 @@ export class ProjectSession {
   }
 
   /**
-   * The CSS a chosen stylesheet resolves to. SPEC.md §15.2.
+   * The CSS a chosen stylesheet resolves to. specification.md §15.2.
    *
    * A supplied id first, then the project's own, then the default. A name
    * that resolves to nothing — the project changed, the file was deleted —
@@ -329,7 +329,7 @@ export class ProjectSession {
   }
 
   /**
-   * Creates a sheet in a group. SPEC.md §6.5.
+   * Creates a sheet in a group. specification.md §6.5.
    *
    * The file name is a slug of the title with a collision suffix, and it is
    * permanent from here on: a later rename changes the front matter title and
@@ -384,7 +384,7 @@ export class ProjectSession {
   }
 
   /**
-   * Renames a sheet by changing its front matter title. SPEC.md §6.4.
+   * Renames a sheet by changing its front matter title. specification.md §6.4.
    *
    * The file name never changes: it is the stable technical identifier that
    * `structure.json` orders by, so renaming would break an order the author
@@ -410,7 +410,7 @@ export class ProjectSession {
   }
 
   /**
-   * Renames a group by recording a display name. SPEC.md §6.4.
+   * Renames a group by recording a display name. specification.md §6.4.
    *
    * The directory keeps its name for the same reason a sheet keeps its file
    * name: it is what the recorded order refers to.
@@ -425,7 +425,7 @@ export class ProjectSession {
   }
 
   /** Appends a child to a group's recorded order, when it has one. */
-  /** Replaces the project's page categories. SPEC.md §6.6. */
+  /** Replaces the project's page categories. specification.md §6.6. */
   async writeCategories(value: unknown): Promise<void> {
     const projectPath = this.#requireOpen().path;
     // Read through the core's tolerant reader before writing: whatever the
@@ -436,7 +436,7 @@ export class ProjectSession {
 
   /**
    * Puts one entry in a place: a group, and a position within it.
-   * SPEC.md §6.4, §6.8.
+   * specification.md §6.4, §6.8.
    *
    * One operation, because it is one thing. Reordering is placing an entry in
    * the group it is already in; moving is placing it in another. As two calls
@@ -517,7 +517,7 @@ export class ProjectSession {
 
   /**
    * Moves one entry to the trash and forgets it in `structure.json`.
-   * SPEC.md §6.7.
+   * specification.md §6.7.
    *
    * The trash first, the record second: if the move fails there is nothing to
    * forget, and the author's arrangement is left exactly as it was. The
@@ -553,7 +553,7 @@ export class ProjectSession {
     const order = structure[groupPath]?.order;
     if (order === undefined) {
       // No recorded order means alphabetical, and adding one here would
-      // freeze an order the author never asked for (SPEC.md §6.4).
+      // freeze an order the author never asked for (specification.md §6.4).
       return;
     }
     await this.#filesystem.writeStructure(
@@ -579,7 +579,7 @@ export class ProjectSession {
     const absolute = await this.resolve(handleId);
     await this.#filesystem.writeSheet(absolute, text);
 
-    // A save is the event the "recently edited" list records (SPEC.md §9.4) —
+    // A save is the event the "recently edited" list records (specification.md §9.4) —
     // a keystroke is not. The list is a convenience: a write that fails takes
     // the convenience with it and nothing else.
     if (relativePath !== undefined) {

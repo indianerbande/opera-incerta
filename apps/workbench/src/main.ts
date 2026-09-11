@@ -3,7 +3,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { BRIDGE_GLOBAL, type OperaIncertaBridge } from '@opera-incerta/desktop-contract';
 
 /**
- * One bundle, two windows. SPEC.md §8.5.
+ * One bundle, two windows. specification.md §8.5.
  *
  * Which window this is comes from the main process, not from a query string
  * the page could rewrite. Without a shell — the development harness — the

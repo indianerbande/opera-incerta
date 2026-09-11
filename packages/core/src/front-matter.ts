@@ -1,6 +1,6 @@
 /**
  * Sheet front matter: reading and writing the head of a `.md` file.
- * SPEC.md §6.2 and §6.3.
+ * specification.md §6.2 and §6.3.
  *
  * Two rules govern everything here, and both are data-safety rules:
  *
@@ -12,10 +12,10 @@
  *
  * This module is text-free by design: failures are typed codes without display
  * text, because the core must know nothing about interface or language
- * (SPEC.md §14.3).
+ * (specification.md §14.3).
  */
 
-/** The single top-level key this application owns. SPEC.md §6.2. */
+/** The single top-level key this application owns. specification.md §6.2. */
 export const FRONT_MATTER_NAMESPACE = 'opera-incerta';
 
 /** The delimiter line of a front matter block. */
@@ -43,7 +43,7 @@ export interface Sheet {
   /**
    * Lines inside the owned block whose keys this version does not know,
    * carried through verbatim so that an older build cannot delete a field a
-   * newer build wrote. SPEC.md §6.2.
+   * newer build wrote. specification.md §6.2.
    */
   readonly unknownOwnedLines: readonly string[];
   /** Foreign front matter, as unmodified raw lines in their original order. */
@@ -55,7 +55,7 @@ export interface Sheet {
 
 /**
  * Stable diagnostic codes. The renderer maps them to localized text; this
- * module never produces a message (SPEC.md §16, §14.3).
+ * module never produces a message (specification.md §16, §14.3).
  */
 export type SheetDiagnosticCode =
   /** A front matter block was opened but never closed. */
@@ -76,7 +76,7 @@ export type SheetDiagnosticCode =
   /**
    * A merge has left both versions in the file, with markers between them.
    * Not a parse problem, but the same consequence: the sheet is shown and
-   * never written back (SPEC.md §12).
+   * never written back (specification.md §12).
    */
   | 'merge/conflicted';
 
@@ -91,7 +91,7 @@ export interface ParsedSheet {
   readonly diagnostics: readonly SheetDiagnostic[];
   /**
    * False when the file must not be written back. The application reports the
-   * diagnostics and leaves the file alone rather than guessing (SPEC.md §6.2).
+   * diagnostics and leaves the file alone rather than guessing (specification.md §6.2).
    */
   readonly writable: boolean;
 }
@@ -116,7 +116,7 @@ export function parseSheet(text: string): ParsedSheet {
   // Front matter is a mapping. A block with no key in it — a poem between two
   // rules, a heading under a rule — is Markdown that happens to start with a
   // thematic break, and it belongs in the editor, not in a metadata area
-  // (SPEC.md §6.2). The empty block is the exception: `---` over `---` is a
+  // (specification.md §6.2). The empty block is the exception: `---` over `---` is a
   // front matter block with nothing in it yet.
   const hasContent = frontLines.some((line) => line.trim() !== '');
   const hasKey = blocks.some((block) => block.key !== null);
@@ -212,7 +212,7 @@ export function parseSheet(text: string): ParsedSheet {
  * Owned fields are regenerated in a fixed order, so identical metadata always
  * produces identical bytes. Foreign lines are copied verbatim. A sheet with
  * neither owned nor foreign front matter is written without a block at all,
- * so the format stays additive (SPEC.md §6.2).
+ * so the format stays additive (specification.md §6.2).
  */
 export function serializeSheet(sheet: Sheet): string {
   const ownedLines = formatOwnedBlock(sheet.metadata, sheet.unknownOwnedLines);
@@ -275,7 +275,7 @@ interface TopLevelBlock {
  *
  * Indentation decides ownership: only a non-indented line opens a new
  * top-level key, so a nested `title:` — or even a nested `opera-incerta:` —
- * belongs to whichever foreign key encloses it (SPEC.md §6.3).
+ * belongs to whichever foreign key encloses it (specification.md §6.3).
  */
 function splitTopLevelBlocks(frontLines: readonly string[]): readonly TopLevelBlock[] {
   const blocks: TopLevelBlock[] = [];
@@ -726,7 +726,7 @@ const NEEDS_QUOTES = /^$|^[\s]|[\s]$|^[-?:,[\]{}#&*!|>'"%@`]|:\s|:$|\s#|[\n\r]/;
  * Wider than YAML 1.2's core schema on purpose: a tool built on YAML 1.1 reads
  * `y`, `1:20`, `1_000` and a date as a boolean, a sexagesimal, an integer and
  * a timestamp, and a title is none of those. The standard oracle found `0x1F`
- * read as 31 (`TESTING.md` §2.11).
+ * read as 31 (`testing.md` §2.11).
  */
 const LOOKS_LIKE_OTHER_TYPE = new RegExp(
   '^(?:' +
@@ -792,7 +792,7 @@ function formatListItem(value: string): string {
  * non-empty line, so a text whose first line begins with whitespace would
  * need an indentation indicator — a shape the reader refuses — and a line
  * holding only spaces reads back empty. The standard oracle found both
- * (`TESTING.md` §2.11); the reader accepts a quoted scalar with escaped
+ * (`testing.md` §2.11); the reader accepts a quoted scalar with escaped
  * newlines, so that is the fallback.
  */
 function formatBlockText(field: string, value: string): readonly string[] {

@@ -1,5 +1,5 @@
 /**
- * Export as a module. SPEC.md §15.1, §15.2.
+ * Export as a module. specification.md §15.1, §15.2.
  *
  * Portable: the assembly and both renderings are pure functions. Writing the
  * file and setting the PDF belong to the main process, which is the only side
@@ -26,7 +26,7 @@ export {
 export type { BuiltInStylesheetId } from './stylesheet.js';
 
 // The naming rules live in the core, because the file store needs them too
-// (SPEC.md §15.2); they are re-exported so this module's surface is whole.
+// (specification.md §15.2); they are re-exported so this module's surface is whole.
 export {
   STYLESHEET_NAME_LIMIT,
   isUsableStylesheetName,

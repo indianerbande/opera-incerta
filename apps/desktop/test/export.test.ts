@@ -41,7 +41,7 @@ function dependencies(
   };
 }
 
-describe('writing the manuscript out (SPEC.md §15.2)', () => {
+describe('writing the manuscript out (specification.md §15.2)', () => {
   it('writes the assembled Markdown, and says where it went', async () => {
     const outcome = await runExport(document, 'markdown', MANUSCRIPT, null, 'Markdown', dependencies());
 
@@ -63,7 +63,7 @@ describe('writing the manuscript out (SPEC.md §15.2)', () => {
 
     expect(outcome).toEqual({ kind: 'written', shortPath: '~/A Novel.pdf' });
     // What is set is the module's own document: its style, no script — and
-    // the style is the one chosen, not the default (SPEC.md §15.2).
+    // the style is the one chosen, not the default (specification.md §15.2).
     expect(printed).toContain('<h1>Part One</h1>');
     expect(printed).toContain(`default-src 'none'`);
     expect(printed).toContain('line-height: 2');

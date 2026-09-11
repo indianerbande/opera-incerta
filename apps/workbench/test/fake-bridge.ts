@@ -5,7 +5,7 @@ import type { OperaIncertaBridge } from '@opera-incerta/desktop-contract';
  *
  * Tests override the few methods they care about. Every test previously
  * carried its own complete double, so each new channel broke them all — the
- * shared-detail rule applies to test doubles too (`CONVENTIONS.md` C-U7).
+ * shared-detail rule applies to test doubles too (`conventions.md` C-U7).
  *
  * It is deliberately exhaustive rather than a partial cast: a channel added to
  * the contract and forgotten here fails to compile, which is the reminder.

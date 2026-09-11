@@ -1,5 +1,5 @@
 /**
- * A word-level difference between two versions of prose. SPEC.md §12.
+ * A word-level difference between two versions of prose. specification.md §12.
  *
  * Git compares lines, which is right for source code and wrong for a
  * manuscript: rewording four words in a paragraph shows up as the whole

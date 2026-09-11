@@ -1,6 +1,6 @@
 /**
  * The single versioned bridge exposed to the sandboxed renderer.
- * SPEC.md §5.3.
+ * specification.md §5.3.
  *
  * Only channels declared in the contract may appear here, and the renderer
  * receives functions rather than the IPC object itself, so it cannot reach a

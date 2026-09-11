@@ -1,6 +1,6 @@
 /**
  * The launcher window: opening a project, returning to it, creating one, and
- * the native menu. SPEC.md §8.5, §8.6.
+ * the native menu. specification.md §8.5, §8.6.
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
@@ -25,7 +25,7 @@ import {
 import type { Smoke } from '../context.js';
 
 /**
- * The launcher, and the transition to the workbench. SPEC.md §8.5, §8.6.
+ * The launcher, and the transition to the workbench. specification.md §8.5, §8.6.
  *
  * Returns the project window, which every later check runs against.
  */
@@ -80,14 +80,14 @@ export async function checkLauncherAndOpen(smoke: Smoke, launcher: BrowserWindow
 
 /**
  * Closing the project returns to the launcher, with the project now in the
- * recent list. SPEC.md §8.5, §8.6.
+ * recent list. specification.md §8.5, §8.6.
  */
 export async function checkReturnToLauncher(
   smoke: Smoke,
   _projectView: BrowserWindow,
 ): Promise<BrowserWindow> {
   // Through the File menu, so the specified path — menu, window close, reset,
-  // launcher — is the one under test (SPEC.md §8.5).
+  // launcher — is the one under test (specification.md §8.5).
   clickMenuItem('project/close');
   const launcher = await waitForLauncher(smoke);
 
@@ -142,7 +142,7 @@ async function openFolder(smoke: Smoke, launcher: BrowserWindow, folder: string)
 }
 
 /**
- * Opening a folder that is not a project. SPEC.md §8.6.
+ * Opening a folder that is not a project. specification.md §8.6.
  *
  * The three answers other than "this is a project" are questions, and this
  * drives all three through the real launcher: a folder of texts becomes a
@@ -176,7 +176,7 @@ export async function checkOpeningAFolder(
   if (smoke.shell.projectWindow() !== null) {
     throw new Error('a project window appeared behind the question');
   }
-  // The one button that carries the action wears the accent (SPEC.md §8.9).
+  // The one button that carries the action wears the accent (specification.md §8.9).
   const primary = (await launcher.webContents.executeJavaScript(
     `(() => {
        const button = document.querySelector('wi-open-folder-question button.primary');
@@ -288,7 +288,7 @@ export async function checkOpeningAFolder(
 }
 
 /**
- * Creating a project from the launcher. SPEC.md §6.1, §8.6.
+ * Creating a project from the launcher. specification.md §6.1, §8.6.
  *
  * The display name is what the author writes; the directory is a slug of it.
  * The dialog shows that slug before the project exists, and this checks that
@@ -379,7 +379,7 @@ export async function checkCreateProject(smoke: Smoke, launcher: BrowserWindow):
 }
 
 /**
- * A project without a repository is offered one. SPEC.md §12.
+ * A project without a repository is offered one. specification.md §12.
  *
  * The new project is the one place in the run that has none, so the check
  * lives here. What it proves is read from disk and from git: the repository
@@ -409,7 +409,7 @@ async function checkCreateRepository(
   await clickText(window, 'wi-source-control .create-repository', 'Create repository');
   await waitUntil('the repository to exist', () => existsSync(join(projectPath, '.git')));
 
-  // The question follows, because there is no global identity (SPEC.md §12).
+  // The question follows, because there is no global identity (specification.md §12).
   await waitForSelector(window, 'wi-identity-prompt');
   const question = join(smoke.evidenceDirectory, 'smoke-identity-question.png');
   writeFileSync(question, (await window.webContents.capturePage()).toPNG());

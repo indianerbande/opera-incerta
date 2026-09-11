@@ -3,7 +3,7 @@
  *
  * The unit tests assert the security boundary in the **source**. This checks
  * the **built artifacts** that actually ship, because a boundary that survives
- * review but not the build protects nothing (TESTING.md §2.7).
+ * review but not the build protects nothing (testing.md §2.7).
  *
  * Run after `pnpm run desktop:build`.
  */
@@ -126,7 +126,7 @@ if (preload !== null) {
 // --- renderer artifact --------------------------------------------------
 const indexHtml = read('build/workbench/browser/index.html');
 
-// The parser's command-line dependency (PSF-2.0, DEPENDENCIES.md) must never
+// The parser's command-line dependency (PSF-2.0, dependencies.md) must never
 // reach the renderer: it is not imported, and this makes sure it stays so.
 const browserDirectory = join(repositoryRoot, 'build/workbench/browser');
 for (const name of readdirSync(browserDirectory).filter((file) => file.endsWith('.js'))) {

@@ -1,5 +1,5 @@
 /**
- * The Node.js implementation of the project ports. SPEC.md §6, §7, §8.6.
+ * The Node.js implementation of the project ports. specification.md §6, §7, §8.6.
  *
  * Every filesystem access of the application passes through here. The rules it
  * applies — ordering, display names, slugs — live in `@opera-incerta/core`;
@@ -42,7 +42,7 @@ import {
 
 /**
  * Sources of non-determinism, injected so that tests are deterministic and the
- * randomness stays explicit (CONVENTIONS.md C-A9).
+ * randomness stays explicit (conventions.md C-A9).
  */
 export interface ProjectEnvironment {
   readonly newId: () => string;
@@ -68,7 +68,7 @@ class NodeProjectFilesystem implements ProjectFilesystem {
   }
 
   /**
-   * Classifies a directory the user chose. SPEC.md §8.6.
+   * Classifies a directory the user chose. specification.md §8.6.
    *
    * Only the immediate children are examined: a project nested three levels
    * down is not something the user pointed at.
@@ -129,7 +129,7 @@ class NodeProjectFilesystem implements ProjectFilesystem {
 
   /**
    * Reads `categories.json`. A missing file means no categories, and a
-   * malformed one the documented fallback (SPEC.md §6.6, §16); anything else
+   * malformed one the documented fallback (specification.md §6.6, §16); anything else
    * is a failure, because the next edit would write the fallback over the
    * author's file.
    */
@@ -146,14 +146,14 @@ class NodeProjectFilesystem implements ProjectFilesystem {
   /**
    * Reads `structure.json`. A missing or malformed file yields an empty
    * record, so the library falls back to directory names and alphabetical
-   * order rather than failing to open (SPEC.md §6.4, §16). A file that exists
+   * order rather than failing to open (specification.md §6.4, §16). A file that exists
    * and cannot be read — a permission, a device error, a directory in its
    * place — is a failure, not an empty record: every edit re-reads and
    * rewrites this file, and an empty record written back would replace the
    * author's arrangement with nothing.
    */
   /**
-   * The recently edited sheets. SPEC.md §9.4.
+   * The recently edited sheets. specification.md §9.4.
    *
    * Anything unreadable — a truncated write, a merge that left conflict
    * markers — is an empty list. The file is a convenience, and a convenience
@@ -173,7 +173,7 @@ class NodeProjectFilesystem implements ProjectFilesystem {
     await writeJson(recentFilePath(projectPath), paths);
   }
 
-  /** The author's own export stylesheets. SPEC.md §15.2. */
+  /** The author's own export stylesheets. specification.md §15.2. */
   async listStylesheets(projectPath: string): Promise<readonly string[]> {
     let entries: readonly string[];
     try {
@@ -315,7 +315,7 @@ async function writeAtomically(absolutePath: string, text: string, token: string
 }
 
 /**
- * A failure with a stable code and no display text (SPEC.md §14.3, §16).
+ * A failure with a stable code and no display text (specification.md §14.3, §16).
  * The path is for the log, never for the message: it would cross the bridge.
  */
 export class ProjectError extends CodedError {
@@ -336,12 +336,12 @@ export function structureFilePath(projectPath: string): string {
   return join(projectPath, PROJECT_DIRECTORY, PROJECT_FILES.structure);
 }
 
-/** Where the recently edited sheets are kept. SPEC.md §9.4. */
+/** Where the recently edited sheets are kept. specification.md §9.4. */
 export function recentFilePath(projectPath: string): string {
   return join(projectPath, PROJECT_DIRECTORY, PROJECT_FILES.recent);
 }
 
-/** Where the author's own export stylesheets live. SPEC.md §15.2. */
+/** Where the author's own export stylesheets live. specification.md §15.2. */
 export function stylesDirectoryPath(projectPath: string): string {
   return join(projectPath, PROJECT_DIRECTORY, PROJECT_DIRECTORIES.styles);
 }
@@ -376,7 +376,7 @@ export async function isInside(root: string, candidate: string): Promise<boolean
  *
  * On macOS `/var` is a firmlink to `/private/var`, so a temporary directory
  * and a directory scan disagree about the same location unless both are
- * canonicalized (CONVENTIONS.md C-F1). A path that does not exist yet is
+ * canonicalized (conventions.md C-F1). A path that does not exist yet is
  * resolved as far as its nearest existing parent.
  */
 export async function canonicalPath(absolutePath: string): Promise<string> {

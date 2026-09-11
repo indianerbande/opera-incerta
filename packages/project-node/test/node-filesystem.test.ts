@@ -29,7 +29,7 @@ let root = '';
 beforeEach(async () => {
   // Canonicalized: on macOS the temporary directory is reached through a
   // firmlink, and an uncanonicalized path compares unequal to a scanned one
-  // (CONVENTIONS.md C-F1).
+  // (conventions.md C-F1).
   root = await canonicalPath(await mkdtemp(join(tmpdir(), 'opera-incerta-')));
 });
 

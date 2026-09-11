@@ -1,6 +1,6 @@
 /**
  * The bridge itself: it answers with the contract version, and it refuses a
- * path out of the project on every channel that carries one. SPEC.md §5.3.
+ * path out of the project on every channel that carries one. specification.md §5.3.
  *
  * Part of the smoke; see `smoke/README.md` for how a check is written.
  */
@@ -9,7 +9,7 @@ import { BRIDGE_GLOBAL, CONTRACT_VERSION } from '@opera-incerta/desktop-contract
 
 /**
  * The bridge refuses a path that leaves the project, on every channel that
- * carries one. SPEC.md §5.3.
+ * carries one. specification.md §5.3.
  *
  * Asked through the real bridge from the real renderer, because the guards
  * are unit-tested in the contract and the containment in the session — and
@@ -61,7 +61,7 @@ export async function checkBridgeRefusesTraversal(window: BrowserWindow): Promis
 
 /**
  * The workbench rendered its regions: two activity bars and four columns
- * (SPEC.md §8.2), a divider per resizable column, a header per panel.
+ * (specification.md §8.2), a divider per resizable column, a header per panel.
  */
 export async function checkWorkbenchRendered(window: BrowserWindow): Promise<void> {
   const shell = (await window.webContents.executeJavaScript(

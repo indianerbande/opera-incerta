@@ -2,7 +2,7 @@
 
 Original projects used by the test suites. Every one is written for this
 project; none is adapted from another tool, and none contains real manuscript
-content (`TESTING.md` §1.7, §3).
+content (`testing.md` §1.7, §3).
 
 | Project | What it exercises |
 | --- | --- |

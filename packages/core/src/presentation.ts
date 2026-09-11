@@ -1,5 +1,5 @@
 /**
- * What the editor shows for the GFM constructs. SPEC.md §10.7.
+ * What the editor shows for the GFM constructs. specification.md §10.7.
  *
  * One pure function from the text, the display model, and the block model
  * to a list of instructions an adapter translates one-to-one: a class on a
@@ -112,7 +112,7 @@ export function presentation(
     const marker = code === null ? LIST_MARKER.exec(text.slice(contentStart)) : null;
 
     // Everything below is markup shown as written on the focus line and
-    // inside code, which is exactly what it says (SPEC.md §10.1).
+    // inside code, which is exactly what it says (specification.md §10.1).
     if (!focused && code === null && !verbatim) {
       if (quotes !== null) {
         replacements.push({ from: offset, to: offset + quotes[0].length, glyph: null });
