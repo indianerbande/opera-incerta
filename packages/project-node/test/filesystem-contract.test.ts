@@ -87,6 +87,18 @@ for (const [name, make] of subjects) {
       const { filesystem, root } = subject;
       expect(await filesystem.readStructure(root)).toEqual({});
       expect(await filesystem.readCategories(root)).toEqual([]);
+      expect(await filesystem.readRecentSheets(root)).toEqual([]);
+    });
+
+    it('round-trips what was edited recently, and reads nonsense as nothing', async () => {
+      const { filesystem, root } = subject;
+      await filesystem.writeRecentSheets(root, ['part-1/scene.md', 'preface.md']);
+      expect(await filesystem.readRecentSheets(root)).toEqual(['part-1/scene.md', 'preface.md']);
+
+      // A convenience is never a reason to fail to open a project (SPEC.md
+      // §9.4) — a file a merge left with markers in it reads as an empty list.
+      await filesystem.writeSheet(join(root, PROJECT_DIRECTORY, 'recent.json'), '<<<<<<< HEAD\n');
+      expect(await filesystem.readRecentSheets(root)).toEqual([]);
     });
 
     it('round-trips the structure and the categories, creating the marker directory', async () => {

@@ -202,6 +202,7 @@ export const isProjectSnapshot: Guard<ProjectSnapshot> = shape<ProjectSnapshot>(
   library: isGroupEntry,
   handles: shape<Readonly<Record<string, string>>>({}),
   categories: arrayOf(isPageCategory),
+  recentSheets: arrayOf(isString),
 });
 
 /**
@@ -227,6 +228,11 @@ export interface ProjectSnapshot {
    * chance to disagree.
    */
   readonly categories: readonly PageCategory[];
+  /**
+   * The sheets that were saved most recently, newest first, as
+   * project-relative paths. SPEC.md §9.4.
+   */
+  readonly recentSheets: readonly string[];
 }
 
 /**
@@ -312,6 +318,8 @@ export const MENU_COMMANDS = [
   'project/close',
   'sheet/save',
   'editor/find',
+  'go/back',
+  'go/forward',
   'settings/open',
 ] as const;
 

@@ -201,13 +201,21 @@ describe('every request that carries a path applies the one rule', () => {
 
 describe('what comes back is checked too', () => {
   const library = { kind: 'group', name: '', relativePath: '.', displayName: 'B', children: [] };
-  const snapshot = { id: 'p', displayName: 'B', library, handles: {}, categories: [] };
+  const snapshot = {
+    id: 'p',
+    displayName: 'B',
+    library,
+    handles: {},
+    categories: [],
+    recentSheets: [],
+  };
 
   it('accepts a snapshot with a group at its root, and refuses one without', () => {
     expect(isProjectSnapshot(snapshot)).toBe(true);
     expect(isProjectSnapshot({ ...snapshot, library: { kind: 'sheet' } })).toBe(false);
     expect(isProjectSnapshot({ ...snapshot, library: null })).toBe(false);
     expect(isProjectSnapshot({ ...snapshot, categories: 'none' })).toBe(false);
+    expect(isProjectSnapshot({ ...snapshot, recentSheets: [1] })).toBe(false);
   });
 
   it('checks an open outcome by the kind it claims', () => {

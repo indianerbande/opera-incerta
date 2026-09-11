@@ -96,6 +96,21 @@ describe('resolving handles', () => {
     expect(await session.readSheet(handle)).toBe('Rewritten\n');
   });
 
+  it('remembers what was edited, most recent first, and hands it to the window', async () => {
+    const session = new ProjectSession();
+    const snapshot = await session.open(root);
+    expect(snapshot.recentSheets).toEqual([]);
+
+    await session.writeSheet(snapshot.handles['part-1/scene.md'] as string, 'Scene\n');
+    await session.writeSheet(snapshot.handles['chapter.md'] as string, 'Chapter\n');
+    expect(await session.recentSheets()).toEqual(['chapter.md', 'part-1/scene.md']);
+
+    // It survives the session, because it is written into the project and
+    // read back when the project is opened again (SPEC.md §9.4).
+    const reopened = await new ProjectSession().open(root);
+    expect(reopened.recentSheets).toEqual(['chapter.md', 'part-1/scene.md']);
+  });
+
   it('rejects a forged handle rather than reaching a file', async () => {
     const session = new ProjectSession();
     await session.open(root);

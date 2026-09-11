@@ -122,6 +122,30 @@ export function installApplicationMenu(actions: MenuActions): void {
     ],
   };
 
+  /**
+   * Where you have been. SPEC.md §9.4: the menu owns the accelerators, and a
+   * command only a click can reach is a defect (§8.10).
+   */
+  const goMenu: MenuItemConstructorOptions = {
+    label: words('menu.go'),
+    submenu: [
+      {
+        id: 'menu:go/back',
+        label: words('menu.back'),
+        accelerator: 'CmdOrCtrl+[',
+        enabled: hasProject,
+        click: rendererCommand('go/back'),
+      },
+      {
+        id: 'menu:go/forward',
+        label: words('menu.forward'),
+        accelerator: 'CmdOrCtrl+]',
+        enabled: hasProject,
+        click: rendererCommand('go/forward'),
+      },
+    ],
+  };
+
   const windowMenu: MenuItemConstructorOptions = {
     label: words('menu.window'),
     role: 'window',
@@ -162,6 +186,7 @@ export function installApplicationMenu(actions: MenuActions): void {
       : []),
     fileMenu,
     editMenu,
+    goMenu,
     windowMenu,
   ];
 
@@ -184,5 +209,7 @@ export const MENU_ACCELERATORS: Readonly<Record<MenuCommand, string>> = {
   'project/close': 'CmdOrCtrl+Shift+W',
   'sheet/save': 'CmdOrCtrl+S',
   'editor/find': 'CmdOrCtrl+F',
+  'go/back': 'CmdOrCtrl+[',
+  'go/forward': 'CmdOrCtrl+]',
   'settings/open': 'CmdOrCtrl+,',
 };

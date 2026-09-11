@@ -30,6 +30,7 @@ import {
   sheetsOf,
   withChildOrder,
   withDisplayName,
+  withRecentSheet,
   withoutChild,
 } from '@opera-incerta/core';
 import {
@@ -150,6 +151,7 @@ export class ProjectSession {
       library,
       handles: exposed,
       categories: await this.#filesystem.readCategories(projectPath),
+      recentSheets: await this.#filesystem.readRecentSheets(projectPath),
     };
   }
 
@@ -492,8 +494,30 @@ export class ProjectSession {
     if (byteLength(text) > MAX_DOCUMENT_BYTES) {
       throw new ProjectSessionError('document/too-large');
     }
+    const current = this.#requireOpen();
+    const relativePath = current.handles.get(handleId);
     const absolute = await this.resolve(handleId);
     await this.#filesystem.writeSheet(absolute, text);
+
+    // A save is the event the "recently edited" list records (SPEC.md §9.4) —
+    // a keystroke is not. The list is a convenience: a write that fails takes
+    // the convenience with it and nothing else.
+    if (relativePath !== undefined) {
+      try {
+        const recent = withRecentSheet(
+          await this.#filesystem.readRecentSheets(current.path),
+          relativePath,
+        );
+        await this.#filesystem.writeRecentSheets(current.path, recent);
+      } catch {
+        // The manuscript is saved; the list is not worth an error.
+      }
+    }
+  }
+
+  /** The list as it stands, for a renderer that has just saved. */
+  async recentSheets(): Promise<readonly string[]> {
+    return this.#filesystem.readRecentSheets(this.#requireOpen().path);
   }
 }
 

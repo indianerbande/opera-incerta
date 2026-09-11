@@ -64,6 +64,7 @@ const snapshot: ProjectSnapshot = {
     'part-1/pre/note.md': 'c'.repeat(32),
   },
   categories: [{ id: 'draft', name: 'Draft', color: '#ffcc00' }],
+  recentSheets: [],
 };
 
 /** A bridge whose behavior each test scripts. */
@@ -1432,5 +1433,111 @@ describe('a sheet a merge has not finished with', () => {
     expect(store.diagnostics()).toEqual([]);
     store.noteText('an edit');
     expect(store.canSave()).toBe(true);
+  });
+});
+
+describe('going back and forward', () => {
+  it('walks the sheets that were opened, in both directions', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.adoptOpenProject();
+    expect(store.canGoBack()).toBe(false);
+
+    await store.selectSheet('preface.md');
+    await store.selectSheet('part-1/scene.md');
+    await store.selectSheet('part-1/pre/note.md');
+
+    await store.step('back');
+    expect(store.openSheet()?.relativePath).toBe('part-1/scene.md');
+    await store.step('back');
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+    expect(store.canGoBack()).toBe(false);
+
+    await store.step('forward');
+    expect(store.openSheet()?.relativePath).toBe('part-1/scene.md');
+    await store.step('forward');
+    expect(store.openSheet()?.relativePath).toBe('part-1/pre/note.md');
+    expect(store.canGoForward()).toBe(false);
+  });
+
+  it('drops what lay ahead when the author goes somewhere else', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.adoptOpenProject();
+    await store.selectSheet('preface.md');
+    await store.selectSheet('part-1/scene.md');
+    await store.step('back');
+
+    // The abandoned branch is gone, as in every browser: forward now means
+    // the sheet that was opened from here, and there is none.
+    await store.selectSheet('part-1/pre/note.md');
+    expect(store.canGoForward()).toBe(false);
+    await store.step('back');
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+  });
+
+  it('steps over a sheet the project no longer has', async () => {
+    // Deleting a sheet re-reads the project, and the history is rebuilt from
+    // what came back — so going back never arrives at nothing.
+    const part1 = library.children[1] as GroupEntry;
+    const withoutScene: ProjectSnapshot = {
+      ...snapshot,
+      library: {
+        ...library,
+        children: [
+          library.children[0] as SheetEntry,
+          {
+            ...part1,
+            children: part1.children.filter((child) => child.relativePath !== 'part-1/scene.md'),
+          },
+        ],
+      },
+      handles: {
+        'preface.md': 'a'.repeat(32),
+        'part-1/pre/note.md': 'c'.repeat(32),
+      },
+    };
+    const store = new WorkspaceStore(
+      fakeBridge({
+        deleteEntry: async () => ({
+          ok: true,
+          value: { snapshot: withoutScene, revealPath: null },
+        }),
+      }),
+    );
+    await store.adoptOpenProject();
+    await store.selectSheet('preface.md');
+    await store.selectSheet('part-1/scene.md');
+    await store.selectSheet('part-1/pre/note.md');
+    await store.deleteEntry('part-1/scene.md');
+
+    // One step back lands one sheet earlier: the deleted one left the
+    // history with it rather than swallowing the step.
+    await store.step('back');
+    expect(store.openSheet()?.relativePath).toBe('preface.md');
+    expect(store.canGoBack()).toBe(false);
+  });
+
+  it('opening the same sheet twice is not a journey', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.adoptOpenProject();
+    await store.selectSheet('preface.md');
+    await store.selectSheet('preface.md');
+
+    expect(store.canGoBack()).toBe(false);
+  });
+
+  it('puts a saved sheet at the front of what was edited recently', async () => {
+    const store = new WorkspaceStore(fakeBridge());
+    await store.adoptOpenProject();
+    expect(store.recentSheets()).toEqual([]);
+
+    await store.selectSheet('preface.md');
+    store.noteText('The bell rang twice.');
+    await store.save();
+    await store.selectSheet('part-1/scene.md');
+    store.noteText('A scene.');
+    await store.save();
+
+    // Most recent first, and opening a sheet is not editing it.
+    expect(store.recentSheets()).toEqual(['part-1/scene.md', 'preface.md']);
   });
 });

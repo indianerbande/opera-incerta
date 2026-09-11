@@ -25,7 +25,13 @@ import type { MenuEntry } from './overlay.js';
       (mousedown)="$event.stopPropagation()"
     >
       @for (entry of entries(); track entry.label) {
-        <button type="button" role="menuitem" class="item" (click)="choose.emit(entry)">
+        <button
+          type="button"
+          role="menuitem"
+          class="item"
+          [disabled]="entry.disabled === true"
+          (click)="choose.emit(entry)"
+        >
           {{ entry.label }}
         </button>
       }
@@ -55,8 +61,11 @@ import type { MenuEntry } from './overlay.js';
       text-align: start;
       cursor: default;
     }
-    .item:hover {
+    .item:hover:not(:disabled) {
       background: var(--wi-row-selected);
+    }
+    .item:disabled {
+      color: var(--wi-muted);
     }
   `,
 })

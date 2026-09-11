@@ -14,6 +14,7 @@
  */
 import {
   readCategories,
+  readRecentSheets,
   readStructureRecord,
   type PageCategory,
   type ProjectRecord,
@@ -146,6 +147,27 @@ export class MemoryProjectFilesystem implements ProjectFilesystem {
     this.#files.set(
       this.#recordPath(path, PROJECT_FILES.categories),
       `${JSON.stringify(categories, null, 2)}\n`,
+    );
+  }
+
+  async readRecentSheets(projectPath: string): Promise<readonly string[]> {
+    const raw = this.#files.get(this.#recordPath(normalize(projectPath), PROJECT_FILES.recent));
+    if (raw === undefined) {
+      return [];
+    }
+    try {
+      return readRecentSheets(JSON.parse(raw));
+    } catch {
+      return [];
+    }
+  }
+
+  async writeRecentSheets(projectPath: string, paths: readonly string[]): Promise<void> {
+    const path = normalize(projectPath);
+    this.#ensureDirectory(joinPath(path, PROJECT_DIRECTORY));
+    this.#files.set(
+      this.#recordPath(path, PROJECT_FILES.recent),
+      `${JSON.stringify(paths, null, 2)}\n`,
     );
   }
 

@@ -8,12 +8,13 @@ import {
 } from '../src/index.js';
 
 describe('project layout constants', () => {
-  it('marks a project with a hidden directory holding three purpose-split files', () => {
+  it('marks a project with a hidden directory holding four purpose-split files', () => {
     expect(PROJECT_DIRECTORY.startsWith('.')).toBe(true);
     expect(Object.values(PROJECT_FILES)).toEqual([
       'project.json',
       'categories.json',
       'structure.json',
+      'recent.json',
     ]);
   });
 

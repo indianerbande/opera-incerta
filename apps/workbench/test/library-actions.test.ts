@@ -51,6 +51,7 @@ const snapshot: ProjectSnapshot = {
   library,
   handles: { 'preface.md': 'a'.repeat(32), 'part-1/scene.md': 'b'.repeat(32) },
   categories: [],
+  recentSheets: [],
 };
 
 /** A store over a bridge that records the library edits it is asked for. */

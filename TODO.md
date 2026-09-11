@@ -8,17 +8,17 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `SPEC.md`
 (product), `TESTING.md` (evidence), and `CONVENTIONS.md` (inherited measures).
 
-**State 2026-09-10:** the library is complete — create, rename, place, delete —
+**State 2026-09-11:** the library is complete — create, rename, place, delete —
 as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, source control (§12) up to and
 including amend and `.gitignore`, the GFM display (§10.7), all four answers
 opening a folder can give (§8.6), the line-number gutter (§10.8), the
 editor zoom (§10.9) and the visual system (§8.8) with its packaged face, its
 two schemes and its eight palettes, its geometry (§8.9) and its regions as
-panels on a canvas (§8.2), finding in the open sheet (§10.11) and
-searching the library (§9.3). `pnpm run check` green on **Node 24**: 8
-projects, **1041 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across forty-three checks,
+panels on a canvas (§8.2), finding in the open sheet (§10.11), searching the
+library (§9.3) and where you have been (§9.4). `pnpm run check` green on
+**Node 24**: 8 projects, **1058 tests**, plus the desktop and asset checks.
+`pnpm run desktop:smoke` green across forty-four checks,
 `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
@@ -54,15 +54,7 @@ has to be consulted to build, verify or change the product.
    turn out to be.
 
 
-2. **Navigation and history** — the next round, decided 2026-09-10. Back and
-   forward through the sheets that were opened, per project, skipping a sheet
-   that is gone; and "recently edited", stored **in the project**
-   (`.opera-incerta/`) rather than installation-locally, because it says
-   something about the manuscript and should be the same on every machine.
-   Both are described in `SPEC.md` §18 and need one specification round of
-   their own before the code.
-
-3. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
+2. **Five list-shaped setting kinds** (`packages/core/src/settings.ts`):
    `density`, `language`, `colorScheme`, `accentPalette` and `fontFamily` are
    the same shape — a key, a list of options, a default — with five interfaces
    and five branches in the dialog. They want one `choice` kind with a

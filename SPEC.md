@@ -1504,6 +1504,52 @@ place, both searches.
 more. A search that returns four thousand rows is not an answer; it is a sign
 that the query was too short.
 
+### 9.4 Where you have been
+
+**Status: Accepted (2026-09-10), written before its implementation; built and
+checked 2026-09-11.**
+
+Two ways back to a sheet, and they are not the same thing.
+
+#### Back and forward
+
+A history of the sheets that were opened, with **back** and **forward** as an
+editor offers for files: a linear list with a position in it. Opening a sheet
+after going back **truncates what lay ahead** — the branch that was abandoned
+is gone, which is the behaviour every browser and every IDE has taught.
+
+- The history holds **sheets, not positions**. Where the cursor was is the
+  editor's own memory (§6, per-document editing state), and going back to a
+  sheet lands where it was left; keeping a second copy of that here would be a
+  second truth about the same thing.
+- A sheet that is **gone is skipped** — deleted, or moved to a new identity —
+  and drops out of the history rather than reappearing as a failure.
+- The history is **per project and transient**: it lives with the window, like
+  the wrap switch of §10.5, and closing the project forgets it. What was
+  opened is not knowledge about the manuscript.
+- It is reached from the **Go menu** and its shortcuts, because the native
+  menu owns accelerators (§8.5) and because a command that only a click can
+  reach is a defect (§8.10).
+
+#### Recently edited
+
+A short list of the sheets that were **saved**, newest first, capped at ten.
+
+- **Saved**, not typed in: a keystroke is not an event worth recording, and a
+  save is a fact the author caused. Creating and renaming do not enter it —
+  they are library edits, and the sheet enters when its text is written.
+- It is **project data** (`.opera-incerta/`, decided 2026-09-10): it says
+  something about the manuscript rather than about this installation, and
+  after weeks away it is where it is looked for, on whichever machine.
+- **What that costs, stated plainly:** the file changes on every save and
+  travels through Git, so it will appear in the change list and can conflict
+  between two machines. It is therefore a **convenience, never a source of
+  truth**: a malformed or conflicted file is discarded and the list starts
+  empty, exactly as an unreadable preference record does (§13, §16). Nothing
+  in the manuscript depends on it.
+- It is reached from the navigator's header, as a menu of the last ten —
+  choosing one opens it, which also puts it into the history above.
+
 ## 10. Editor
 
 ### 10.1 Display model
@@ -2744,10 +2790,10 @@ own specification update before implementation.
   belongs to the manuscript and is the same on every machine and for everyone
   working on it. What a view stores and how it appears beside the project tree
   is the round's own to decide.
-- **Navigation history.** Back and forward through the sheets that were opened,
-  as an IDE offers for files. Cheap to add and easy to get wrong: the history
-  is per project, and a sheet that has been deleted is skipped rather than
-  reopened.
+- ~~**Navigation history.**~~ **Built 2026-09-11** — specified as §9.4 and
+  implemented with it: back and forward through the sheets that were opened,
+  per project and transient, a deleted sheet dropped rather than reopened, and
+  a "recently edited" list of ten in the project beside it.
 - Markdown import as a module, including collision and folder-structure rules.
 - **Highlighting of special files** (project governance and agent-instruction
   files) in the tree and sheet list — wanted (2026-09-10). This requires a **deliberate scanner

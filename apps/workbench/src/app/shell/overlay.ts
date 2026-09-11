@@ -18,6 +18,12 @@ import type { GitBranch, GitIdentity, GitVersions } from '@opera-incerta/desktop
 export interface MenuEntry {
   readonly label: string;
   readonly run: () => void;
+  /**
+   * An entry that says something rather than offering it — the empty
+   * "recently edited" list of SPEC.md §9.4. A menu that showed nothing at all
+   * would look broken; a line that cannot be clicked says why it is empty.
+   */
+  readonly disabled?: boolean;
 }
 
 /** A question with a text field. Confirming hands the text to `action`. */

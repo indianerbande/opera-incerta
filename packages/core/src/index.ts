@@ -114,6 +114,19 @@ export {
   resolveColorScheme,
 } from './appearance.js';
 export type { AccentPalette, ColorScheme, ResolvedColorScheme } from './appearance.js';
+export {
+  EMPTY_HISTORY,
+  RECENT_SHEETS_LIMIT,
+  canGoBack,
+  canGoForward,
+  currentPath,
+  readRecentSheets,
+  stepped,
+  visited,
+  withRecentSheet,
+  withoutSheet,
+} from './navigation.js';
+export type { NavigationHistory } from './navigation.js';
 export { findMatches, lineMatches, matchAt, stepMatch } from './search.js';
 export type { LineMatch, SearchMatch } from './search.js';
 export { LAYOUT_PREFERENCE_KEYS, SETTINGS, SETTINGS_CATEGORIES, settingsOf } from './settings.js';

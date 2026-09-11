@@ -55,6 +55,7 @@ import {
   checkLibraryEdits,
   checkLibrarySearch,
   checkMovingBetweenGroups,
+  checkNavigationAndRecent,
   checkReordering,
   checkWatchedChange,
 } from './checks/library.js';
@@ -201,6 +202,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await expectNoStrayDialog(window, 'checkDocumentFlow');
     await checkSheetSwitch(window);
     await expectNoStrayDialog(window, 'checkSheetSwitch');
+    await checkNavigationAndRecent(smoke, window);
+    await expectNoStrayDialog(window, 'checkNavigationAndRecent');
 
     await checkFrontMatterArea(smoke, window);
     await expectNoStrayDialog(window, 'checkFrontMatterArea');

@@ -8,7 +8,11 @@
  */
 import { computed, signal } from '@angular/core';
 import {
+  EMPTY_HISTORY,
   ancestorPaths,
+  canGoBack,
+  canGoForward,
+  currentPath,
   findCategory,
   findGroup,
   findSheet,
@@ -20,7 +24,11 @@ import {
   readCategories,
   serializeSheet,
   sheetsInGroup,
+  stepped,
   textStatistics,
+  visited,
+  withoutSheet,
+  withRecentSheet,
   withShownSheet,
   type EditorDocument,
   type GroupEntry,
@@ -30,6 +38,7 @@ import {
   type SheetDiagnostic,
   type SheetEntry,
   type SheetMetadata,
+  type NavigationHistory,
   type TextStatistics,
   RefreshCoordinator,
 } from '@opera-incerta/core';
@@ -209,6 +218,15 @@ export class WorkspaceStore {
   );
 
   /** False when the open sheet must not be written back. */
+  /** Where the author has been, this window's lifetime. SPEC.md §9.4. */
+  readonly #history = signal<NavigationHistory>(EMPTY_HISTORY);
+  readonly canGoBack = computed(() => canGoBack(this.#history()));
+  readonly canGoForward = computed(() => canGoForward(this.#history()));
+
+  /** The sheets that were saved most recently, as the project records them. */
+  readonly #recentSheets = signal<readonly string[]>([]);
+  readonly recentSheets = this.#recentSheets.asReadonly();
+
   readonly canSave = computed(() => {
     const open = this.#openSheet();
     return open !== null && open.writable && this.dirty();
@@ -329,6 +347,15 @@ export class WorkspaceStore {
 
   /** Opens a sheet in the editor, expanding the tree down to it. */
   async selectSheet(relativePath: string): Promise<void> {
+    await this.#openSheetAt(relativePath, true);
+  }
+
+  /**
+   * Opens a sheet, recording the journey unless the journey is what asked.
+   * SPEC.md §9.4: going back is a move through the history, not a new entry
+   * in it.
+   */
+  async #openSheetAt(relativePath: string, record: boolean): Promise<void> {
     const library = this.#library();
     const handleId = this.#handles()[relativePath];
     const sheet = library === null ? null : findSheet(library, relativePath);
@@ -364,7 +391,32 @@ export class WorkspaceStore {
       this.#editorDocument.set({ id: handleId, text: parsed.sheet.body });
       this.#expand(ancestorPaths(relativePath));
       this.#watchWhatIsShown();
+      if (record) {
+        this.#history.set(visited(this.#history(), relativePath));
+      }
     });
+  }
+
+  /**
+   * One step through the history, and the sheet it arrives at. SPEC.md §9.4.
+   *
+   * Nothing is checked here: the history holds only sheets the project has,
+   * because every re-read drops the ones it no longer does (`#adopt`). A
+   * second guard in this method could never fail, and a check that cannot
+   * fail is worse than none — it makes the reader believe the case is handled
+   * somewhere it is not.
+   */
+  async step(direction: 'back' | 'forward'): Promise<void> {
+    const moved = stepped(this.#history(), direction);
+    if (moved === this.#history()) {
+      return;
+    }
+    const path = currentPath(moved);
+    if (path === null) {
+      return;
+    }
+    this.#history.set(moved);
+    await this.#openSheetAt(path, false);
   }
 
   /**
@@ -496,6 +548,10 @@ export class WorkspaceStore {
         sheet: { ...open.sheet, metadata, foreignLines, body },
         savedBody: body,
       });
+      // The main process writes the same list to the project (SPEC.md §9.4).
+      // It is kept here as well so the menu answers the save that just
+      // happened rather than the state the project was opened in.
+      this.#recentSheets.set(withRecentSheet(this.#recentSheets(), open.relativePath));
     });
   }
 
@@ -823,6 +879,14 @@ export class WorkspaceStore {
     }
     this.#handles.set(snapshot.handles);
     this.#categories.set(readCategories(snapshot.categories));
+    this.#recentSheets.set(snapshot.recentSheets);
+    // A sheet the project no longer has leaves the history with it, so going
+    // back never arrives at nothing (SPEC.md §9.4).
+    for (const path of this.#history().entries) {
+      if (findSheet(snapshot.library, path) === null) {
+        this.#history.set(withoutSheet(this.#history(), path));
+      }
+    }
     if (!keepOpen) {
       this.#clearOpenSheet();
     }

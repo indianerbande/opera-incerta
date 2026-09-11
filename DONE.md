@@ -6,6 +6,56 @@ documents").
 
 ---
 
+## 2026-09-11 — where you have been: back, forward, and what was saved last
+
+**What was built.** The two ways back to a sheet of `SPEC.md` §9.4, which were
+specified in the same round before any of it was written.
+
+**Back and forward** is a linear history with a position in it, as a browser
+has. It lives in `packages/core/src/navigation.ts` as pure functions — `visited`,
+`stepped`, `canGoBack`, `canGoForward`, `withoutSheet` — so the rule is testable
+without a window: opening the sheet that is already open records nothing (that
+is not a journey), and opening anything else **truncates the forward branch**.
+It is reached from a new **Go menu** with `Cmd/Ctrl+[` and `]`, because the
+native menu owns accelerators (§8.5) and a command only a click can reach is a
+defect (§8.10).
+
+**Recently edited** is the last ten sheets that were **saved** — not typed in,
+not created, not renamed. It is written into the project (`.opera-incerta/recent.json`),
+which was his decision of 2026-09-10 and is the one that costs something: the
+file changes on every save and travels through Git. So it is a convenience and
+never a source of truth — a file a merge left with markers in it reads as an
+empty list rather than as a failure to open the project. It hangs from a button
+in the navigator's header.
+
+**What the round taught, twice.** The first version of `step()` carried a loop
+that dropped a vanished sheet and tried again. It read well and it could not
+fail: `#adopt()` already drops every entry the re-read project no longer has,
+so the loop's body was unreachable. The falsification proved it — the test
+stayed green with the code deliberately broken. A check that cannot fail is
+worse than none, because it tells the reader the case is handled somewhere it
+is not; the loop is gone and the method says why it needs no guard. The test
+that was meant to cover it now deletes a sheet **through the store**, which is
+the path that actually exists.
+
+The second was the menu's position. The first screenshot showed it hanging
+from the pointer, over the header it was opened from — and opened from the
+keyboard, which §8.10 requires, there is no pointer to hang it from at all. It
+is anchored to the button's own rectangle now. **Looking at the screenshot is
+the check**; no assertion in the smoke would have caught it.
+
+**Verification.** `pnpm run check` green, **1058 tests** (17 new: 9 for the
+core rules, 5 in the workspace store, 1 in the filesystem contract against
+both implementations, 1 in the session, 1 on the contract guard, and the menu
+accelerators). `pnpm run desktop:smoke` green across **44 checks** — the new
+one drives back and forward **through the native menu items**, takes a step
+past the end that must do nothing at all, and opens a sheet from the
+navigator's menu. Both new smoke assertions were falsified: with `go/back`
+unwired it gave up waiting for the step, and with the list emptied it reported
+the menu offering nothing but "Nothing saved yet."
+
+---
+
 ## 2026-09-10 — the decision round: everything open, gone through
 
 **What this was.** Not code. He asked to go through everything open, question

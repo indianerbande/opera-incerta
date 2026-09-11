@@ -886,3 +886,92 @@ export async function checkLibrarySearch(smoke: Smoke, window: BrowserWindow): P
       'counted them, opened a row on its line, and left the column width alone',
   );
 }
+
+/**
+ * Where you have been. SPEC.md §9.4.
+ *
+ * Back and forward from the native menu, because the menu owns the
+ * accelerators and a command only a click can reach is a defect (§8.10); then
+ * the navigator's own menu of what was saved last.
+ */
+export async function checkNavigationAndRecent(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  const openTitle = async (): Promise<string> =>
+    (await window.webContents.executeJavaScript(
+      `document.querySelector('.editor wi-panel-header .title')?.textContent?.trim() ?? ''`,
+    )) as string;
+
+  // The scene is open when this check starts; the opening sheet after this.
+  const from = (await openTitle()).replace(' •', '').trim();
+  if (from === '') {
+    throw new Error('no sheet is open when the navigation check starts');
+  }
+  await clickText(window, 'wi-explorer-node .name', 'Smoke Project');
+  await waitUntil('the sheet list to show the top level', async () =>
+    (await sheetTitles(window)).includes('Opening'),
+  );
+  await clickText(window, 'wi-sheet-list .row', 'Opening');
+  await waitUntil('the opening sheet to load', async () => (await openTitle()).startsWith('Opening'));
+
+  clickMenuItem('go/back');
+  await waitUntil(
+    'the step back to reach the sheet before it',
+    async () => (await openTitle()).replace(' •', '').trim() === from,
+  );
+
+  clickMenuItem('go/forward');
+  await waitUntil('the step forward to return', async () => (await openTitle()).startsWith('Opening'));
+
+  // A step past the end is not an error and not a move: the menu item stays
+  // enabled, and the renderer ignores what it cannot do (SPEC.md §9.4).
+  clickMenuItem('go/forward');
+  await rendered(window);
+  if (!(await openTitle()).startsWith('Opening')) {
+    throw new Error(`a step past the end moved the editor to ${JSON.stringify(await openTitle())}`);
+  }
+
+  // What was saved, from the navigator's header. The opening sheet was
+  // written by an earlier check, so the list is not empty.
+  await clickText(window, '.navigator wi-panel-header button.recent', 'Recent');
+  await waitForSelector(window, 'wi-context-menu .item');
+  const listed = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-context-menu .item')]
+       .map((item) => ({ label: item.textContent.trim(), disabled: item.disabled }))`,
+  )) as Array<{ label: string; disabled: boolean }>;
+  if (listed.length === 0 || listed.some((entry) => entry.disabled)) {
+    throw new Error(`the recent menu offers nothing to open: ${JSON.stringify(listed)}`);
+  }
+  if (!listed.some((entry) => entry.label === 'Opening')) {
+    throw new Error(`the sheet that was saved is not in the menu: ${JSON.stringify(listed)}`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-recent.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+
+  await clickText(window, 'wi-context-menu .item', 'Opening');
+  await waitUntil(
+    'the menu to close behind the choice',
+    async () => !(await isVisible(window, 'wi-context-menu')),
+  );
+  if (!(await openTitle()).startsWith('Opening')) {
+    throw new Error('choosing from the recent menu did not open the sheet');
+  }
+
+  // Left as it was found: the checks after this one expect the sheet that was
+  // open when it started, in the group it belongs to.
+  await clickText(window, 'wi-explorer-node .name', 'Part One');
+  await waitUntil('the sheet list to follow the group back', async () =>
+    (await sheetTitles(window)).includes(from),
+  );
+  await clickText(window, 'wi-sheet-list .row', from);
+  await waitUntil(
+    'the sheet that was open to come back',
+    async () => (await openTitle()).replace(' •', '').trim() === from,
+  );
+
+  console.log(
+    'smoke ok: back and forward walked the sheets that were opened, a step past the end ' +
+      'did nothing, and the navigator offered what was saved last',
+  );
+}

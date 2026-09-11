@@ -24,6 +24,7 @@ const snapshot: ProjectSnapshot = {
   library,
   handles: { 'a.md': 'a'.repeat(32) },
   categories: [],
+  recentSheets: [],
 };
 
 function porcelain(...fields: readonly string[]): string {

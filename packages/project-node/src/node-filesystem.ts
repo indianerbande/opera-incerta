@@ -24,6 +24,7 @@ import {
   type ProjectRecord,
   type StructureRecord,
   readCategories,
+  readRecentSheets,
   readStructureRecord,
 } from '@opera-incerta/core';
 import {
@@ -147,6 +148,27 @@ class NodeProjectFilesystem implements ProjectFilesystem {
    * rewrites this file, and an empty record written back would replace the
    * author's arrangement with nothing.
    */
+  /**
+   * The recently edited sheets. SPEC.md §9.4.
+   *
+   * Anything unreadable — a truncated write, a merge that left conflict
+   * markers — is an empty list. The file is a convenience, and a convenience
+   * may never keep a project from opening.
+   */
+  async readRecentSheets(projectPath: string): Promise<readonly string[]> {
+    try {
+      const raw = await readFile(recentFilePath(projectPath), 'utf8');
+      return readRecentSheets(JSON.parse(raw));
+    } catch {
+      return [];
+    }
+  }
+
+  async writeRecentSheets(projectPath: string, paths: readonly string[]): Promise<void> {
+    await mkdir(join(projectPath, PROJECT_DIRECTORY), { recursive: true });
+    await writeJson(recentFilePath(projectPath), paths);
+  }
+
   async readStructure(projectPath: string): Promise<StructureRecord> {
     const raw = await readOptional(structureFilePath(projectPath), 'structure/unreadable');
     return raw === null ? {} : readStructureRecord(parseLeniently(raw));
@@ -272,6 +294,11 @@ export function projectFilePath(projectPath: string): string {
 
 export function structureFilePath(projectPath: string): string {
   return join(projectPath, PROJECT_DIRECTORY, PROJECT_FILES.structure);
+}
+
+/** Where the recently edited sheets are kept. SPEC.md §9.4. */
+export function recentFilePath(projectPath: string): string {
+  return join(projectPath, PROJECT_DIRECTORY, PROJECT_FILES.recent);
 }
 
 export function categoriesFilePath(projectPath: string): string {

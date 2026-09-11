@@ -28,6 +28,10 @@ describe('menu commands', () => {
     expect(MENU_ACCELERATORS['project/close']).toBe('CmdOrCtrl+Shift+W');
     expect(MENU_ACCELERATORS['sheet/save']).toBe('CmdOrCtrl+S');
     expect(MENU_ACCELERATORS['settings/open']).toBe('CmdOrCtrl+,');
+    expect(MENU_ACCELERATORS['editor/find']).toBe('CmdOrCtrl+F');
+    // SPEC.md §9.4: the brackets, as browsers and editors have them.
+    expect(MENU_ACCELERATORS['go/back']).toBe('CmdOrCtrl+[');
+    expect(MENU_ACCELERATORS['go/forward']).toBe('CmdOrCtrl+]');
   });
 
   it('declares the same accelerator in the menu that it documents', () => {

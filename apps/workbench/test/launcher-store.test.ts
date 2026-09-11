@@ -16,6 +16,7 @@ function project(displayName: string): ProjectSnapshot {
     library: { kind: 'group', name: '', relativePath: '.', displayName, children: [] },
     handles: {},
     categories: [],
+    recentSheets: [],
   };
 }
 

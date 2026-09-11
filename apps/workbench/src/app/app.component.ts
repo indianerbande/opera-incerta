@@ -9,7 +9,7 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
-import { visibleOutline } from '@opera-incerta/core';
+import { findSheet, visibleOutline } from '@opera-incerta/core';
 
 import { EditorComponent } from './editor/editor.component.js';
 import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
@@ -117,6 +117,14 @@ import { Localization } from './localization/localization.js';
 
       <section class="navigator" [style.width.px]="layout.columnWidths().navigator">
         <wi-panel-header [verbatimTitle]="store.project()?.displayName ?? null">
+          <button
+            type="button"
+            class="recent"
+            [title]="i18n.t('app.recentTitle')"
+            (click)="openRecentMenu($event)"
+          >
+            {{ i18n.t('app.recent') }}
+          </button>
           @if (layout.navigatorView() === 'sourceControl') {
             <button type="button" (click)="sourceControl.refresh()" [title]="i18n.t('app.refresh')">↻</button>
           } @else {
@@ -589,6 +597,10 @@ export class AppComponent {
         void this.store.save();
       } else if (command === 'editor/find') {
         this.openFind();
+      } else if (command === 'go/back') {
+        void this.store.step('back');
+      } else if (command === 'go/forward') {
+        void this.store.step('forward');
       } else if (command === 'settings/open') {
         this.overlay.set({ kind: 'settings', opener: 'menu' });
       }
@@ -773,6 +785,33 @@ export class AppComponent {
    * A match from the library search: open that sheet, then that line.
    * SPEC.md §9.3 — the same path the outline takes, one step longer.
    */
+  /**
+   * The sheets that were saved most recently, as a menu. SPEC.md §9.4.
+   *
+   * The list is paths; what the author reads is what the library calls them,
+   * and a path the library no longer has is left out rather than offered.
+   *
+   * It hangs under the button rather than at the pointer: a menu at the
+   * pointer would cover the header it was opened from, and opened from the
+   * keyboard (§8.10) there is no pointer to hang it on at all.
+   */
+  protected openRecentMenu(event: Event): void {
+    const button = event.currentTarget as HTMLElement;
+    const at = button.getBoundingClientRect();
+    const library = this.store.library();
+    const entries: MenuEntry[] = [];
+    for (const path of this.store.recentSheets()) {
+      const sheet = library === null ? null : findSheet(library, path);
+      if (sheet !== null) {
+        entries.push({ label: sheet.displayName, run: () => void this.store.selectSheet(path) });
+      }
+    }
+    if (entries.length === 0) {
+      entries.push({ label: this.i18n.t('app.recentEmpty'), run: () => undefined, disabled: true });
+    }
+    this.overlay.set({ kind: 'menu', x: Math.round(at.left), y: Math.round(at.bottom + 4), entries });
+  }
+
   protected async openSearchHit(hit: LibrarySearchHit): Promise<void> {
     await this.store.selectSheet(hit.path);
     // The editor adopts the newly selected document in an effect of its own,

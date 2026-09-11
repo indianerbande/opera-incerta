@@ -16,6 +16,8 @@ export const PROJECT_FILES = {
   project: 'project.json',
   categories: 'categories.json',
   structure: 'structure.json',
+  /** The recently edited sheets of SPEC.md §9.4. */
+  recent: 'recent.json',
 } as const;
 
 /** Sheets are plain Markdown files. SPEC.md §6.1. */
@@ -51,6 +53,14 @@ export interface ProjectFilesystem {
   writeCategories(projectPath: string, categories: readonly PageCategory[]): Promise<void>;
   readStructure(projectPath: string): Promise<StructureRecord>;
   writeStructure(projectPath: string, structure: StructureRecord): Promise<void>;
+  /**
+   * The recently edited sheets, as project-relative paths (SPEC.md §9.4).
+   *
+   * A convenience and never a source of truth: an unreadable or conflicted
+   * file reads as an empty list rather than failing the project.
+   */
+  readRecentSheets(projectPath: string): Promise<readonly string[]>;
+  writeRecentSheets(projectPath: string, paths: readonly string[]): Promise<void>;
   readSheet(absolutePath: string): Promise<string>;
   writeSheet(absolutePath: string, text: string): Promise<void>;
   /** Entry names, sorted. Hidden entries included. Nothing for a missing directory. */

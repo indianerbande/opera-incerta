@@ -4,7 +4,7 @@ Status: Draft 0.3 — normative for implementation; the source gate, the
 desktop production check, the editor spike and the shell smoke have all run in
 this checkout
 
-Date: 2026-09-10
+Date: 2026-09-11
 
 This document defines how Opera Incerta behavior is verified. `SPEC.md` defines
 the behavior; this document defines the **evidence** required to claim that the
@@ -14,7 +14,7 @@ Commands that have actually succeeded in this checkout are listed in
 `AGENTS.md`; the rest of the command list below is still **planned**. A command
 reaches the approved list only by succeeding here (`CONVENTIONS.md` C-T19).
 
-Layer coverage as of 2026-09-10: §2.1, §2.2, §2.3, §2.4, §2.5, §2.6, §2.7,
+Layer coverage as of 2026-09-11: §2.1, §2.2, §2.3, §2.4, §2.5, §2.6, §2.7,
 §2.8, §2.10 and §2.11 are implemented and green — the last of them, §2.11, as
 the record of a spike whose decision has been taken (`SPEC.md` §19). **§2.9
 alone awaits the code it covers**: there are no modules yet, and the registry
@@ -241,10 +241,12 @@ Tests MUST cover:
   directories otherwise compare unequal on macOS (`CONVENTIONS.md` C-F1);
 - **the port's contract, against both implementations** (`SPEC.md` §7):
   creating and reading a project, subprojects one level down, the record
-  fallbacks, round trips of structure, categories and sheets, entries listed
-  with their kind, directories created with their parents, and a file and a
-  directory moved with everything in it — the same suite over the disk and
-  in memory;
+  fallbacks, round trips of structure, categories, sheets and the "recently
+  edited" list — that last one read back as empty when the file holds
+  nonsense, because a convenience may never keep a project from opening
+  (`SPEC.md` §9.4) — entries listed with their kind, directories created with
+  their parents, and a file and a directory moved with everything in it — the
+  same suite over the disk and in memory;
 - a record file that is there and cannot be read failing with
   `structure/unreadable` or `categories/unreadable` rather than reading as
   empty, and records written atomically with no temporary file left behind;
@@ -402,6 +404,14 @@ Component and state tests MUST cover:
   do not overlap themselves, the match at or after the cursor in either
   direction, and both ends wrapping — plus three cases in the adapter contract
   (`§2.6`), so the editor and the double answer alike;
+- the two rules of where you have been (`SPEC.md` §9.4) as pure functions: a
+  history that records what was opened, refuses to record opening what is
+  already open, **truncates the forward branch** when the author goes
+  somewhere else, steps only where there is somewhere to go, and closes over
+  a sheet that is gone with its position following the entries it survives;
+  and a capped "recently edited" list that moves an earlier entry up rather
+  than duplicating it, and reads a malformed stored value as an empty list
+  rather than as a failure;
 - the visual system's rule (`SPEC.md` §8.8): a chosen scheme resolving to
   itself and `system` to what the machine reports, the three schemes and eight
   palettes accepted and anything else refused, and both stored by the layout
@@ -533,6 +543,13 @@ Tests MUST cover:
   at the top, since the check leaves the cursor in the second line and the
   match after it is the one that becomes current, Return and `Shift+Return`
   wrapping at either end, and Escape closing the bar with no mark left behind;
+- where you have been (`SPEC.md` §9.4), driven **through the native menu
+  items** because the menu owns `Cmd/Ctrl+[` and `]`: two sheets opened by
+  clicking, back reaching the earlier one and forward returning, a further
+  step past the end doing nothing at all rather than failing, and the
+  navigator's own menu offering the sheet an earlier check saved — chosen
+  from the menu, it opens, and the menu closes behind the choice. The check
+  leaves the window on the sheet it found open;
 - the regions as panels (`SPEC.md` §8.2), measured in the running workbench:
   the leading rail flush against the window, the first panel eight pixels past
   it, all four panels eight from the top, the same corner, border and lift on
