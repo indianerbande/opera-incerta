@@ -975,3 +975,106 @@ export async function checkNavigationAndRecent(smoke: Smoke, window: BrowserWind
       'did nothing, and the navigator offered what was saved last',
   );
 }
+
+/**
+ * Writing the manuscript out. SPEC.md §15.2.
+ *
+ * Driven through the native menu items and the sheet's own context menu, and
+ * then **read off the disk**: what is checked is the file the author gets,
+ * not the application's belief about it. The save dialog is the one
+ * substitution (`chooseExportDestination`), because a native dialog cannot be
+ * answered from here.
+ */
+export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<void> {
+  const note = async (): Promise<string> =>
+    (await window.webContents.executeJavaScript(
+      `document.querySelector('.note')?.textContent?.trim() ?? ''`,
+    )) as string;
+  const dismissNote = async (): Promise<void> => {
+    await clickText(window, '.note button', 'Dismiss');
+    await waitUntil('the note to go', async () => (await note()) === '');
+  };
+
+  // The whole document, as Markdown, from the File menu.
+  clickMenuItem('export/markdown');
+  await waitUntil('the export to report where it went', async () => (await note()).includes('.md'));
+
+  const markdownPath = join(smoke.exportDirectory, 'Smoke Project.md');
+  if (!existsSync(markdownPath)) {
+    throw new Error(`no file at ${markdownPath}: ${readdirSync(smoke.exportDirectory).join(', ')}`);
+  }
+  const markdown = readFileSync(markdownPath, 'utf8');
+
+  // Front matter is what an export must never carry (SPEC.md §15.1), and the
+  // fixture's sheets both have it.
+  if (markdown.includes('opera-incerta:') || markdown.includes('layout: post')) {
+    throw new Error('the export carried front matter');
+  }
+  // The group became a heading, and the sheet inside it moved down under it.
+  if (!markdown.includes('# Part One')) {
+    throw new Error(`the group did not become a heading: ${markdown.slice(0, 200)}`);
+  }
+  const scene = markdown.indexOf('The Second Bell');
+  const part = markdown.indexOf('# Part One');
+  if (part === -1 || scene === -1 || part > scene) {
+    throw new Error('the sheet does not stand under the group that holds it');
+  }
+  if (!/^###? The Second Bell/mu.test(markdown)) {
+    throw new Error(`the sheet's heading did not move down: ${markdown.slice(scene - 40, scene + 40)}`);
+  }
+  await dismissNote();
+
+  // The same document as a PDF, from its own menu item.
+  clickMenuItem('export/pdf');
+  await waitUntil('the PDF to report where it went', async () => (await note()).includes('.pdf'));
+
+  const pdfPath = join(smoke.exportDirectory, 'Smoke Project.pdf');
+  const pdf = readFileSync(pdfPath);
+  // A PDF, actually set by the application: the header and a plausible size.
+  if (pdf.subarray(0, 5).toString('latin1') !== '%PDF-') {
+    throw new Error(`what was written is not a PDF: ${pdf.subarray(0, 16).toString('latin1')}`);
+  }
+  if (pdf.length < 2000) {
+    throw new Error(`the PDF is ${String(pdf.length)} bytes, which is not a manuscript`);
+  }
+
+  const evidence = join(smoke.evidenceDirectory, 'smoke-export.png');
+  await rendered(window);
+  writeFileSync(evidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${evidence}`);
+  // The PDF itself, beside the screenshots: a set page is evidence only if
+  // somebody can look at it (`AGENTS.md`).
+  const pdfEvidence = join(smoke.evidenceDirectory, 'smoke-export.pdf');
+  writeFileSync(pdfEvidence, pdf);
+  console.log(`smoke evidence: ${pdfEvidence}`);
+  await dismissNote();
+
+  // "From here", off the sheet's own context menu. The scene is the second
+  // sheet, so what comes out must not carry the first.
+  await clickText(window, 'wi-explorer-node .name', 'Part One');
+  await waitUntil('the sheet list to follow the group', async () =>
+    (await sheetTitles(window)).includes('A Scene in Part One'),
+  );
+  await rightClickRowContaining(window, 'A Scene in Part One');
+  await clickText(window, 'wi-context-menu .item', 'Export Markdown from here…');
+  await waitUntil('the excerpt to report where it went', async () => (await note()).includes('.md'));
+
+  const excerpt = readFileSync(markdownPath, 'utf8');
+  if (excerpt.includes('Opera Incerta')) {
+    throw new Error('the excerpt carried the sheet before the one it began at');
+  }
+  // It keeps its place in the book: the group above it comes with it.
+  if (!excerpt.startsWith('# Part One')) {
+    throw new Error(`the excerpt lost the group above it: ${excerpt.slice(0, 120)}`);
+  }
+  if (!excerpt.includes('The Second Bell')) {
+    throw new Error('the excerpt is missing the sheet it began at');
+  }
+  await dismissNote();
+
+  console.log(
+    'smoke ok: the manuscript was written out as Markdown and as a real PDF — groups as ' +
+      'headings, sheets moved down under them, no front matter — and "from here" took the ' +
+      'excerpt with the group above it and nothing before it',
+  );
+}

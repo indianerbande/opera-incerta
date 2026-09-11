@@ -17,8 +17,9 @@ reaches the approved list only by succeeding here (`CONVENTIONS.md` C-T19).
 Layer coverage as of 2026-09-11: §2.1, §2.2, §2.3, §2.4, §2.5, §2.6, §2.7,
 §2.8, §2.10 and §2.11 are implemented and green — the last of them, §2.11, as
 the record of a spike whose decision has been taken (`SPEC.md` §19). **§2.9
-alone awaits the code it covers**: there are no modules yet, and the registry
-arrives with the first of them (`SPEC.md` §15).
+is open in part**: the registry arrived with the first module on 2026-09-11
+(`packages/export`, `SPEC.md` §15.2), and its first two clauses are covered;
+the rest waits for the modules it describes.
 
 ## Tooling
 
@@ -404,6 +405,21 @@ Component and state tests MUST cover:
   do not overlap themselves, the match at or after the cursor in either
   direction, and both ends wrapping — plus three cases in the adapter contract
   (`§2.6`), so the editor and the double answer alike;
+- the export module's assembly and its page (`SPEC.md` §15.2), as pure
+  functions in `packages/export`: the library walked in its recorded order
+  with the root not a heading of its own, a group becoming a heading at its
+  depth and the sheets inside it moving down under it, headings capped at
+  six, a `#` inside a fenced block left alone — the block structure is read
+  for exactly that — an export "from here" keeping the groups above it and
+  dropping what came before, a `from` that names nothing yielding **nothing**
+  rather than the whole manuscript, a sheet whose body never arrived left out
+  without costing the rest, and no front matter anywhere, because the module
+  is handed bodies and never files. And the page it sets: self-contained with
+  no link and no URL in it, unable to execute anything **by two independent
+  means** (the parser escapes it, the content security policy would refuse
+  it), each sheet in its own section so the page break has something to break
+  on, a GFM table rendered as a table while linkify and typographer stay off
+  — the export hands the manuscript on, it does not improve it;
 - the two rules of where you have been (`SPEC.md` §9.4) as pure functions: a
   history that records what was opened, refuses to record opening what is
   already open, **truncates the forward branch** when the author goes
@@ -543,6 +559,19 @@ Tests MUST cover:
   at the top, since the check leaves the cursor in the second line and the
   match after it is the one that becomes current, Return and `Shift+Return`
   wrapping at either end, and Escape closing the bar with no mark left behind;
+- writing the manuscript out (`SPEC.md` §15.2) in the main process: the
+  assembled Markdown written to the file the author named and the short path
+  reported back; a PDF set from the module's own document and its bytes
+  written; a cancelled export writing **nothing at all**; an empty document
+  answered as empty **without sending the author through a save dialog for
+  nothing**; and the offered file name taking the project's name with every
+  character a path would read as structure removed — including the digits a
+  careless character range would have eaten, which is the mistake the first
+  version of that line actually made;
+- the session assembling the manuscript against a **real project on disk**:
+  the parts in the library's order, the group's heading between them, and no
+  front matter in what comes out — read through the codec, which is what
+  makes §15.1's rule structural rather than a later removal;
 - where you have been (`SPEC.md` §9.4), driven **through the native menu
   items** because the menu owns `Cmd/Ctrl+[` and `]`: two sheets opened by
   clicking, back reaching the earlier one and forward returning, a further
@@ -550,6 +579,16 @@ Tests MUST cover:
   navigator's own menu offering the sheet an earlier check saved — chosen
   from the menu, it opens, and the menu closes behind the choice. The check
   leaves the window on the sheet it found open;
+- the export end to end (`SPEC.md` §15.2), driven through the **native menu
+  items** and the sheet's own context menu and then **read off the disk**:
+  the Markdown carries no front matter though both fixture sheets have it,
+  the group stands as a heading above the sheet it holds and that sheet's own
+  heading has moved down, the PDF begins with `%PDF-` and is large enough to
+  be a manuscript rather than an empty page — it is kept beside the
+  screenshots as `smoke-export.pdf`, because a set page is evidence only if
+  somebody can look at it — and "from here" takes the group above the sheet
+  with it while leaving every sheet before it out. The save dialog is the one
+  substitution, since a native dialog cannot be answered from a check;
 - the regions as panels (`SPEC.md` §8.2), measured in the running workbench:
   the leading rail flush against the window, the first panel eight pixels past
   it, all four panels eight from the top, the same corner, border and lift on
@@ -804,9 +843,18 @@ thresholds above were not touched.
 
 Tests MUST prove:
 
-- registration and resolution of modules through their interfaces;
-- that a missing, failing, or slow module cannot crash the core;
-- that export modules strip front matter from their output;
+- registration and resolution of modules through their interfaces — **green
+  since 2026-09-11**: the registry of `packages/export` declares an id and an
+  extension per format and nothing about the surface, and both formats are
+  resolved through it rather than named at the call site;
+- that a missing, failing, or slow module cannot crash the core — **open**,
+  and it stays open honestly: the export module has nothing to be missing and
+  nothing external to fail, so there is nothing here a check could break on
+  yet;
+- that export modules strip front matter from their output — **green since
+  2026-09-11**, at three layers: the module is handed bodies rather than
+  files, the session's assembly is checked against a real project, and the
+  smoke reads the exported file off the disk;
 - that import modules honor the collision rules; and
 - that an AI provider is addressed only through its interface, with request
   construction and response handling tested against recorded responses. The

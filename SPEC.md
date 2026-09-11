@@ -2563,6 +2563,8 @@ translation of the project documents, which remain English.
 
 ## 15. Module concept and extension boundaries
 
+### 15.1 Modules
+
 **Status: Accepted.**
 
 Core requirement: **functionality must be extensible without touching the
@@ -2577,23 +2579,93 @@ core.**
 - When it is unclear whether something is core or module, start as a module —
   that is the safer default.
 
-**Import and export.** Every format is its own module; export modules MUST
-strip front matter from the output.
+**Every format is its own module; export modules MUST strip front matter from
+the output.**
 
-**Decided 2026-09-10 — the order.** Export begins with **PDF through LaTeX**:
-it is the way this author's books are actually set, it is deterministic, and
-it produces something finished rather than something to be finished elsewhere.
-It needs a TeX installation, and where there is none the module is **absent
-rather than broken** — the rule every module follows. DOCX and EPUB follow, in
-that order, for the exchange with editors and for reading. A single Markdown
-export — every sheet in the library's order, front matter stripped — is the
-substrate the others build on and comes with the first of them.
+### 15.2 Export
+
+**Status: Accepted (2026-09-11), written before its implementation.**
+
+**What is exported** is the manuscript as the library orders it (§6.1) — not
+the file tree, the recorded order. Two extents, and they are the same
+assembly with a different starting point:
+
+- **the whole document**, from the first sheet to the last; and
+- **from here**: the sheet the author right-clicked and everything after it.
+  The groups **above** that sheet come with it as headings, so an excerpt
+  keeps its place in the book instead of beginning in mid-air.
+
+**How it is assembled** (decided 2026-09-11):
+
+- **A group becomes a heading** at the depth it sits at, and the headings of
+  the sheets inside it move down by that depth, capped at six. The library's
+  structure becomes the document's structure. A `#` inside a code block is
+  text and is never moved — which is why the shift reads the block structure
+  rather than the lines.
+- **Front matter never appears.** That is §15.1's rule for every export
+  module, and it is the reason the sheet codec (§6.3) hands out a body
+  separate from its metadata.
+- Nothing is renumbered, rewritten or reflowed. What the author typed is what
+  leaves, apart from the heading shift above.
+
+**PDF is set by the application itself**, out of HTML and a print stylesheet.
+
+> **This supersedes the decision of 2026-09-10**, which named LaTeX. Recorded
+> rather than removed, so it is not decided twice: the author revised it on
+> 2026-09-11 on the ground that **this export is not meant to produce a
+> professional print file**, and that the appearance should later be governed
+> by a **stylesheet the author chooses**. A CSS stylesheet is the means for
+> that; LaTeX is not. Setting a book for print stays what it was — work done
+> outside this application, with the author's own typesetting.
+
+The consequences, stated plainly:
+
+- **No external dependency.** No TeX, no pandoc, nothing to install. The
+  export is always there. §15.1's rule that a module is *absent rather than
+  broken* keeps its force for modules that do depend on something; this one
+  gives it no occasion.
+- **The HTML carries no script and reaches nothing.** A content security
+  policy in the document allows its own style and nothing else, the author's
+  text is inserted as text and never as markup, and the window that sets it
+  runs without Node and without a preload. A manuscript is data, not a page
+  to be executed.
+- **The default stylesheet is plain**: a serif from what the system has, a
+  readable measure, each sheet beginning on a new page, page numbers. No
+  title page, no running heads, no print geometry — those are decisions a
+  print file needs and this one does not.
+- **Choosing a stylesheet stays open** (§18). The interface is shaped for it;
+  the choice is not built.
+
+**Markdown is the substrate**: one file, the same assembly, front matter
+stripped. It is what the other formats are built from and is offered in its
+own right, because a single Markdown file is what every other tool can read.
+
+**Both formats are assembled once.** A Markdown file and a PDF that disagreed
+about what the document is would be two documents; the registry of §15.1
+declares only what a format can know about itself — an id and an extension.
+What a format is *called* is not a module's business: the interface has two
+languages (§14.2), and a portable module cannot hold catalogue keys for a
+surface it never sees.
+
+**Named limits of the first version**, so they are not mistaken for defects:
+task boxes (`[ ]`, `[x]`) reach the output as the characters they are — the
+parser knows no task lists and the application's own rule for them serves the
+display (§10.7), not the export. DOCX and EPUB follow in that order, for the
+exchange with editors and for reading.
+
+### 15.3 Import
+
+**Status: Accepted.**
 
 Import begins with a **Markdown folder**: a directory of `.md` files becomes
 groups and sheets, with the collision rules of §6.5 and the folder structure as
 the library's own. Adoption (§8.6) already does half of this for a folder that
 is to *become* the project; import is the other half, for texts that come into
 one that exists.
+
+### 15.4 The assistant
+
+**Status: Accepted.**
 
 **AI integration.** Concrete AI actions never address a vendor directly; they
 address an `AIProvider` interface (input: text or structure plus action type;
@@ -2805,7 +2877,17 @@ own specification update before implementation.
 
 **Phase 4 — extension**
 
-- Export modules (PDF, DOCX, EPUB), each independently testable.
+- ~~Export modules (PDF, DOCX, EPUB)~~ — **PDF and Markdown built 2026-09-11**
+  as `packages/export` (§15.2). **DOCX and EPUB** remain, in that order, over
+  the same assembly.
+- **A stylesheet of one's own for the export** — wanted (2026-09-11), and the
+  reason the PDF is set from HTML at all. The default of §15.2 stands until
+  then; what stays open is where a stylesheet is chosen and kept, and whether
+  a project may carry its own.
+- **Task boxes in the export.** They reach the output as `[ ]` and `[x]`
+  today (§15.2): the parser knows no task lists and the display rule of §10.7
+  is the application's own. Worth a small rule of its own when the export
+  next gets attention.
 - **Reading the text aloud** — wanted (2026-09-10) — as a module over the
   platform's speech synthesis:
   the manuscript is read, never sent anywhere, and the module is absent rather

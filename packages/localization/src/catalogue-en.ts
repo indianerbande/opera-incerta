@@ -350,6 +350,15 @@ export const EN = {
   'menu.openProject': 'Open Project…',
   'menu.save': 'Save',
   'menu.find': 'Find…',
+  'menu.export': 'Export',
   'menu.closeProject': 'Close Project',
   'menu.settings': 'Settings…',
+
+  // Writing the manuscript out. SPEC.md §15.2.
+  'export.markdown': 'Markdown…',
+  'export.pdf': 'PDF…',
+  'export.markdownFromHere': 'Export Markdown from here…',
+  'export.pdfFromHere': 'Export PDF from here…',
+  'export.written': 'Exported to {path}',
+  'export.empty': 'There is no text to export.',
 } as const;

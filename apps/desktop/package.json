@@ -23,6 +23,7 @@
     "@electron-forge/maker-zip": "7.11.2",
     "@opera-incerta/core": "workspace:*",
     "@opera-incerta/desktop-contract": "workspace:*",
+    "@opera-incerta/export": "workspace:*",
     "@opera-incerta/git-node": "workspace:*",
     "@opera-incerta/localization": "workspace:*",
     "@opera-incerta/project-node": "workspace:*",

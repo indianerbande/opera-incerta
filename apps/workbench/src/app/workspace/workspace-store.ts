@@ -43,9 +43,12 @@ import {
   RefreshCoordinator,
 } from '@opera-incerta/core';
 import {
+  isExportOutcome,
   isLibraryEditResult,
   isProjectSnapshot,
   type BridgeResult,
+  type ExportFormatId,
+  type ExportOutcome,
   type LibraryEditResult,
   type OperaIncertaBridge,
   type ProjectSnapshot,
@@ -89,6 +92,15 @@ export class WorkspaceStore {
   readonly #currentForeign = signal<readonly string[]>([]);
   readonly #expanded = signal<ReadonlySet<string>>(new Set(['.']));
   readonly #failure = signal<string | null>(null);
+  /**
+   * Something that went **right** and that the author would otherwise have no
+   * sign of: a file written somewhere they chose (SPEC.md §15.2).
+   *
+   * It holds the outcome, not a sentence. The words belong to whoever has the
+   * catalogue (§14.2) — the store is built with a bridge and nothing else,
+   * and a store that translated would need a language in every test.
+   */
+  readonly #note = signal<ExportOutcome | null>(null);
   readonly #conflict = signal<string | null>(null);
   /**
    * Counts the times the editing state was **deliberately** dropped.
@@ -117,6 +129,7 @@ export class WorkspaceStore {
   readonly project = this.#project.asReadonly();
   readonly openSheet = this.#openSheet.asReadonly();
   readonly failure = this.#failure.asReadonly();
+  readonly note = this.#note.asReadonly();
   /** The sheet whose file changed under unsaved work. SPEC.md §10.6. */
   readonly conflict = this.#conflict.asReadonly();
   /** The project's page categories. SPEC.md §6.6. */
@@ -735,6 +748,30 @@ export class WorkspaceStore {
 
   dismissFailure(): void {
     this.#failure.set(null);
+  }
+
+  dismissNote(): void {
+    this.#note.set(null);
+  }
+
+  /**
+   * Writes the manuscript out. SPEC.md §15.2.
+   *
+   * `from` is a sheet to begin at — the "from here" of its context menu — or
+   * null for the whole document. Everything happens in the main process; what
+   * comes back is where the file went, or that the author changed their mind.
+   *
+   * A cancelled export leaves no note: the author took it back, and being
+   * told so is being told what one just did.
+   */
+  async exportDocument(format: ExportFormatId, from: string | null): Promise<void> {
+    await this.#withBridge(async (bridge) => {
+      const outcome = unwrap(await bridge.exportDocument({ format, from }));
+      if (!isExportOutcome(outcome)) {
+        throw new Error('bridge/malformed');
+      }
+      this.#note.set(outcome.kind === 'cancelled' ? null : outcome);
+    });
   }
 
   /**

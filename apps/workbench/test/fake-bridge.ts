@@ -44,6 +44,7 @@ export function baseBridge(): OperaIncertaBridge {
     gitPush: async () => ({ ok: true, value: null }),
     onMenuCommand: () => () => {},
     searchLibrary: async () => ({ ok: true, value: { hits: [], capped: false } }),
+    exportDocument: async () => notScripted(),
     createSheet: async () => notScripted(),
     createGroup: async () => notScripted(),
     renameSheet: async () => notScripted(),

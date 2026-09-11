@@ -68,6 +68,29 @@ export function installApplicationMenu(actions: MenuActions): void {
         enabled: hasProject,
         click: rendererCommand('sheet/save'),
       },
+      { type: 'separator' },
+      {
+        // Writing the manuscript out. SPEC.md §15.2. A submenu because the
+        // list grows — DOCX and EPUB follow — and a flat File menu with five
+        // exports in it would bury saving.
+        label: words('menu.export'),
+        submenu: [
+          {
+            id: 'menu:export/markdown',
+            label: words('export.markdown'),
+            accelerator: 'CmdOrCtrl+Shift+M',
+            enabled: hasProject,
+            click: rendererCommand('export/markdown'),
+          },
+          {
+            id: 'menu:export/pdf',
+            label: words('export.pdf'),
+            accelerator: 'CmdOrCtrl+Shift+P',
+            enabled: hasProject,
+            click: rendererCommand('export/pdf'),
+          },
+        ],
+      },
       ...(process.platform === 'darwin'
         ? []
         : ([
@@ -211,5 +234,7 @@ export const MENU_ACCELERATORS: Readonly<Record<MenuCommand, string>> = {
   'editor/find': 'CmdOrCtrl+F',
   'go/back': 'CmdOrCtrl+[',
   'go/forward': 'CmdOrCtrl+]',
+  'export/markdown': 'CmdOrCtrl+Shift+M',
+  'export/pdf': 'CmdOrCtrl+Shift+P',
   'settings/open': 'CmdOrCtrl+,',
 };

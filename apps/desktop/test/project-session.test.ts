@@ -96,6 +96,40 @@ describe('resolving handles', () => {
     expect(await session.readSheet(handle)).toBe('Rewritten\n');
   });
 
+  it('assembles the manuscript, front matter left behind', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    const document = await session.assembleDocument(null);
+    expect(document.title).toBe('A Novel');
+    // The fixture's group carries no recorded name, so it is the directory's
+    // own — and it becomes the heading the sheet inside it sits under.
+    expect(document.parts.map((part) => part.kind)).toEqual(['sheet', 'heading', 'sheet']);
+
+    const assembled = document.parts
+      .map((part) => (part.kind === 'heading' ? `# ${part.text}` : part.markdown))
+      .join('\n\n');
+    expect(assembled).toContain('Text');
+    expect(assembled).toContain('Scene text');
+    // The rule of §15.1, and the reason the codec hands out a body.
+    expect(assembled).not.toContain('opera-incerta:');
+    expect(assembled).not.toContain('title: Chapter One');
+  });
+
+  it('assembles from one sheet on, with the group above it', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    const document = await session.assembleDocument('part-1/scene.md');
+
+    // The excerpt keeps its place in the book: the group comes with it, the
+    // chapter before it does not.
+    expect(document.parts.map((part) => part.kind)).toEqual(['heading', 'sheet']);
+    expect(document.parts.some((part) => part.kind === 'sheet' && part.markdown.includes('Text\n'))).toBe(
+      false,
+    );
+  });
+
   it('remembers what was edited, most recent first, and hands it to the window', async () => {
     const session = new ProjectSession();
     const snapshot = await session.open(root);

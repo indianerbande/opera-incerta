@@ -338,6 +338,15 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'menu.openProject': 'Projekt öffnen…',
   'menu.save': 'Speichern',
   'menu.find': 'Suchen…',
+  'menu.export': 'Exportieren',
   'menu.closeProject': 'Projekt schließen',
   'menu.settings': 'Einstellungen…',
+
+  // Writing the manuscript out. SPEC.md §15.2.
+  'export.markdown': 'Markdown…',
+  'export.pdf': 'PDF…',
+  'export.markdownFromHere': 'Markdown ab hier exportieren…',
+  'export.pdfFromHere': 'PDF ab hier exportieren…',
+  'export.written': 'Exportiert nach {path}',
+  'export.empty': 'Es gibt keinen Text zum Exportieren.',
 };

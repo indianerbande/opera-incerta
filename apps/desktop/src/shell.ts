@@ -41,6 +41,7 @@ import {
   isBooleanRequest,
   isLibraryPathRequest,
   isLibraryPlaceRequest,
+  isExportRequest,
   isLibrarySearchRequest,
   isWatchTargetsRequest,
   isProjectPathRequest,
@@ -61,9 +62,10 @@ import {
   createLibraryWatcher,
   createProjectFilesystem,
 } from '@opera-incerta/project-node';
-import { resolveLanguage, type Language } from '@opera-incerta/localization';
+import { resolveLanguage, translate, type Language } from '@opera-incerta/localization';
 import { installApplicationMenu } from './application-menu.js';
 import { failureResult } from './bridge-failure.js';
+import { chooseDestination, runExport, setPdf } from './export.js';
 import {
   ProjectSession,
   ProjectSessionError,
@@ -107,6 +109,11 @@ export interface ShellOptions {
   readonly chooseProjectParent?: () => Promise<string | null>;
   /** Instead of the desktop trash. SPEC.md §6.7. */
   readonly trashItem?: TrashItem;
+  /**
+   * Instead of the native save dialog when the manuscript is exported
+   * (SPEC.md §15.2). Returns the file to write, or null for "cancelled".
+   */
+  readonly chooseExportDestination?: (defaultName: string, extension: string) => Promise<string | null>;
   /**
    * Instead of Electron's user-data directory, for installation-local state
    * (the recent list, the preference record). Set before anything reads it.
@@ -633,6 +640,30 @@ export function startShell(options: ShellOptions = {}): Shell {
   /** Searching the project's text. SPEC.md §9.3. */
   privileged(CHANNELS.searchLibrary, isLibrarySearchRequest, async (request) =>
     session.searchLibrary(request.query),
+  );
+
+  /**
+   * Writing the manuscript out. SPEC.md §15.2.
+   *
+   * The renderer asks for a format and, at most, a sheet to begin at. Where
+   * the file goes is the author's answer to the system's own dialog, and what
+   * comes back is an abbreviated path to read — never one to act on.
+   */
+  privileged(CHANNELS.exportDocument, isExportRequest, async (request) =>
+    runExport(
+      await session.assembleDocument(request.from),
+      request.format,
+      projectWindow,
+      translate(interfaceLanguage, request.format === 'pdf' ? 'export.pdf' : 'export.markdown'),
+      {
+        chooseDestination: async (parent, defaultName, extension, filterName) =>
+          options.chooseExportDestination === undefined
+            ? chooseDestination(parent, defaultName, extension, filterName)
+            : options.chooseExportDestination(defaultName, extension),
+        setPdf,
+        shortPathOf: abbreviatePath,
+      },
+    ),
   );
 
   privileged(CHANNELS.createSheet, isLibraryEditRequest, async (request) =>

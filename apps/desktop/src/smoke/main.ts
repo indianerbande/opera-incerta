@@ -51,6 +51,7 @@ import {
 } from './checks/launcher.js';
 import {
   checkDeletion,
+  checkExport,
   checkExternalChange,
   checkLibraryEdits,
   checkLibrarySearch,
@@ -142,9 +143,15 @@ writeFileSync(
   'utf8',
 );
 
+const exportDirectory = mkdtempSync(join(tmpdir(), 'opera-incerta-smoke-export-'));
+
 const shell = startShell({
   chooseProjectToOpen: () => Promise.resolve(folderToOpen),
   chooseProjectParent: () => Promise.resolve(createParent),
+  // Where an export goes, instead of the native save dialog (SPEC.md §15.2).
+  // The default name the export offered is kept, so the check can read it.
+  chooseExportDestination: (defaultName) =>
+    Promise.resolve(join(exportDirectory, defaultName)),
   // Moved, never destroyed — the property a deletion check proves is the same
   // as with the desktop trash, without leaving rubbish there on every run.
   trashItem: (absolutePath) => rename(absolutePath, join(trashPath, basename(absolutePath))),
@@ -164,6 +171,7 @@ const smoke: Smoke = {
     folderToOpen = absolutePath;
   },
   preferencesPath: join(userDataPath, PREFERENCES_FILE),
+  exportDirectory,
   evidenceDirectory,
   git,
 };
@@ -204,6 +212,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await expectNoStrayDialog(window, 'checkSheetSwitch');
     await checkNavigationAndRecent(smoke, window);
     await expectNoStrayDialog(window, 'checkNavigationAndRecent');
+    await checkExport(smoke, window);
+    await expectNoStrayDialog(window, 'checkExport');
 
     await checkFrontMatterArea(smoke, window);
     await expectNoStrayDialog(window, 'checkFrontMatterArea');

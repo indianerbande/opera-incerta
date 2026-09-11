@@ -85,6 +85,10 @@ async function setUp(overrides: Partial<OperaIncertaBridge> = {}) {
       calls.push(`writeCategories ${String(categories.length)}`);
       return { ok: true, value: snapshot };
     },
+    exportDocument: async (request) => {
+      calls.push(`export ${request.format} ${request.from ?? 'whole'}`);
+      return { ok: true, value: { kind: 'written', shortPath: '~/A Novel.pdf' } };
+    },
     ...overrides,
   };
   const store = new WorkspaceStore(bridge);
@@ -216,14 +220,31 @@ describe('the group menu', () => {
 });
 
 describe('the sheet menu', () => {
-  it('offers rename and delete', async () => {
+  it('offers rename, delete, and the two exports that begin here', async () => {
     const { actions, overlay } = await setUp();
     actions.openSheetMenu('preface.md', 'Preface', at);
     const open = overlay();
+    // SPEC.md §15.2: the whole document is in the File menu; the part that
+    // begins at a sheet belongs to that sheet.
     expect(open?.kind === 'menu' ? open.entries.map((e) => e.label) : []).toEqual([
       'Rename…',
       'Delete Sheet…',
+      'Export Markdown from here…',
+      'Export PDF from here…',
     ]);
+  });
+
+  it('asks for an export that begins at the sheet it was opened on', async () => {
+    const { actions, overlay, calls, store } = await setUp();
+    actions.openSheetMenu('part-1/scene.md', 'A Scene', at);
+    choose(overlay, 'Export PDF from here…');
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // The format and the starting sheet, and nothing else: where the file
+    // goes is the author's answer to the system's own dialog.
+    expect(calls).toEqual(['export pdf part-1/scene.md']);
+    expect(store.note()).toEqual({ kind: 'written', shortPath: '~/A Novel.pdf' });
   });
 
   it('renames a closed sheet on disk', async () => {

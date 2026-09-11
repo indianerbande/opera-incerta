@@ -3,7 +3,7 @@
 Status: Draft 0.4 — the MVP of `SPEC.md` §17 is built and verified, and so
 is everything Phase 2 named
 
-Date: 2026-09-10
+Date: 2026-09-11
 
 This file defines **how** work happens in this repository. `SPEC.md` defines
 **what** is built. `TESTING.md` defines the **evidence** required to claim that
@@ -12,13 +12,14 @@ project works by.
 
 ## Project status
 
-Opera Incerta is a young project with a working product. Eight workspace
-projects (`packages/core`, `packages/desktop-contract`, `packages/localization`,
-`packages/markdown`, `packages/project-node`, `packages/git-node`,
-`apps/workbench`, `apps/desktop`), a sandboxed Electron shell, the versioned
-preload bridge with runtime guards, the workbench regions, the library, the
-editor with its display model and its GFM display, and source control up to
-merging and amending are built, tested and committed.
+Opera Incerta is a young project with a working product. Nine workspace
+projects (`packages/core`, `packages/desktop-contract`, `packages/export`,
+`packages/localization`, `packages/markdown`, `packages/project-node`,
+`packages/git-node`, `apps/workbench`, `apps/desktop`), a sandboxed Electron
+shell, the versioned preload bridge with runtime guards, the workbench
+regions, the library, the editor with its display model and its GFM display,
+source control up to merging and amending, and the first export module are
+built, tested and committed.
 
 `DONE.md` is the record of what exists and why; `TODO.md` is what is open.
 Neither is a summary — read the one that answers the question at hand.
@@ -326,7 +327,7 @@ succeeded in this checkout. The following have:
   preload files;
 - `pnpm run desktop:smoke` launches the shell through its smoke entry
   (`apps/desktop/src/smoke/`, see the `README.md` there), drives the real
-  renderer through forty-four checks, and writes `build/desktop/smoke*.png`;
+  renderer through forty-five checks, and writes `build/desktop/smoke*.png`;
 - `pnpm run spike:editor` runs the editor spike gate of `TESTING.md` §2.8 in a
   real rendering engine and exits non-zero on any failed criterion;
 - `pnpm run spike:parser` runs the parser spike gate of `TESTING.md` §2.11

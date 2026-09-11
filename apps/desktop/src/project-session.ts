@@ -41,6 +41,14 @@ import {
   scanLibrary,
   visibleChildren,
 } from '@opera-incerta/project-node';
+import { documentParts, documentPieces, type DocumentPart } from '@opera-incerta/export';
+
+/** The manuscript as one document, ready for either format. SPEC.md §15.2. */
+export interface AssembledDocument {
+  /** The project's display name, which titles the page. */
+  readonly title: string;
+  readonly parts: readonly DocumentPart[];
+}
 
 /** A refusal by the session, with a stable code and no words of its own. */
 export class ProjectSessionError extends CodedError {
@@ -205,6 +213,38 @@ export class ProjectSession {
       hits: hits.slice(0, SEARCH_RESULT_LIMIT),
       capped: hits.length > SEARCH_RESULT_LIMIT,
     };
+  }
+
+  /**
+   * The manuscript assembled into one document. SPEC.md §15.2.
+   *
+   * The bodies are read here — the export module is pure and never touches a
+   * disk — and each one comes from the codec, which is what keeps front
+   * matter out by construction rather than by stripping it afterwards
+   * (§15.1). A sheet that cannot be read is left out rather than aborting the
+   * export, as the library scan already treats one (§16).
+   */
+  async assembleDocument(from: string | null): Promise<AssembledDocument> {
+    const current = this.#requireOpen();
+    const record = await this.#filesystem.readProject(current.path);
+    const structure = await this.#filesystem.readStructure(current.path);
+    const { root } = await scanLibrary(current.path, record.displayName, this.#filesystem, structure);
+
+    const pieces = documentPieces(root, from);
+    const bodies = new Map<string, string>();
+    for (const piece of pieces) {
+      if (piece.kind !== 'sheet') {
+        continue;
+      }
+      try {
+        const text = await this.#filesystem.readSheet(join(current.path, piece.relativePath));
+        bodies.set(piece.relativePath, parseSheet(text).sheet.body);
+      } catch {
+        continue;
+      }
+    }
+
+    return { title: record.displayName, parts: documentParts(pieces, bodies) };
   }
 
   /** Re-reads the open project, keeping handles for sheets that still exist. */

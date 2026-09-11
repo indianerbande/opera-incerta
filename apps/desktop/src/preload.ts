@@ -60,6 +60,7 @@ const bridge = {
   gitVersions: (request: unknown) => ipcRenderer.invoke(CHANNELS.gitVersions, request),
 
   searchLibrary: (request: unknown) => ipcRenderer.invoke(CHANNELS.searchLibrary, request),
+  exportDocument: (request: unknown) => ipcRenderer.invoke(CHANNELS.exportDocument, request),
   createSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.createSheet, request),
   createGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.createGroup, request),
   renameSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameSheet, request),

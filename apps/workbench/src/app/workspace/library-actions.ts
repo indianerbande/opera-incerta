@@ -57,6 +57,17 @@ export class LibraryActions {
       entries: [
         { label: this.#i18n.t('library.menu.rename'), run: () => this.askToRenameSheet(path, name) },
         { label: this.#i18n.t('library.menu.deleteSheet'), run: () => this.askToDeleteSheet(path, name) },
+        // Exporting from this sheet on. SPEC.md §15.2: the whole document is
+        // in the File menu, and the part that begins here belongs to the
+        // sheet that begins it.
+        {
+          label: this.#i18n.t('export.markdownFromHere'),
+          run: () => void this.#store.exportDocument('markdown', path),
+        },
+        {
+          label: this.#i18n.t('export.pdfFromHere'),
+          run: () => void this.#store.exportDocument('pdf', path),
+        },
       ],
       x: at.x,
       y: at.y,

@@ -434,6 +434,13 @@ import { Localization } from './localization/localization.js';
         <button type="button" (click)="store.dismissFailure()">{{ i18n.t('app.dismiss') }}</button>
       </div>
     }
+
+    @if (exportNote(); as note) {
+      <div class="note" role="status">
+        <span>{{ note }}</span>
+        <button type="button" (click)="store.dismissNote()">{{ i18n.t('app.dismiss') }}</button>
+      </div>
+    }
   `,
   styles: `
     /*
@@ -530,7 +537,8 @@ import { Localization } from './localization/localization.js';
       border-color: var(--wi-accent);
       background: var(--wi-accent-soft);
     }
-    .failure {
+    .failure,
+    .note {
       position: fixed;
       right: 12px;
       bottom: 12px;
@@ -543,6 +551,10 @@ import { Localization } from './localization/localization.js';
       background: var(--wi-panel);
       box-shadow: var(--wi-panel-shadow);
       font: 12px var(--wi-sans);
+    }
+    /* Something that went right wears the accent, not the danger colour. */
+    .note {
+      border-color: var(--wi-accent);
     }
   `,
 })
@@ -601,6 +613,10 @@ export class AppComponent {
         void this.store.step('back');
       } else if (command === 'go/forward') {
         void this.store.step('forward');
+      } else if (command === 'export/markdown') {
+        void this.store.exportDocument('markdown', null);
+      } else if (command === 'export/pdf') {
+        void this.store.exportDocument('pdf', null);
       } else if (command === 'settings/open') {
         this.overlay.set({ kind: 'settings', opener: 'menu' });
       }
@@ -785,6 +801,23 @@ export class AppComponent {
    * A match from the library search: open that sheet, then that line.
    * SPEC.md §9.3 — the same path the outline takes, one step longer.
    */
+  /**
+   * What an export has to say, in the interface's language. SPEC.md §15.2.
+   *
+   * The store holds the outcome; the words are here, where the catalogue is
+   * (§14.2). The keys are literal, which is what the localization test
+   * requires and what keeps a key from being assembled out of a variable.
+   */
+  protected readonly exportNote = computed(() => {
+    const note = this.store.note();
+    if (note === null) {
+      return null;
+    }
+    return note.kind === 'written'
+      ? this.i18n.t('export.written', { path: note.shortPath })
+      : this.i18n.t('export.empty');
+  });
+
   /**
    * The sheets that were saved most recently, as a menu. SPEC.md §9.4.
    *

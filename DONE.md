@@ -6,6 +6,77 @@ documents").
 
 ---
 
+## 2026-09-11 — export: the manuscript as one file, and as a set page
+
+**What was built.** `SPEC.md` §15.2, specified in this round before any of it
+was written — and it is the first **module** (§15.1), which is why
+`packages/export` exists and why `TESTING.md` §2.9 is no longer entirely open.
+
+**One assembly, two formats.** The library in its recorded order becomes one
+document: **a group turns into a heading at its depth**, and the headings of
+the sheets inside it move down under it, capped at six. A `#` inside a fenced
+block is text and never moves — the shift reads the block structure for
+exactly that reason. Front matter never appears, and not because it is
+stripped: the module is handed **bodies**, which is what the codec of §6.3 has
+been handing out since the beginning. Markdown and PDF are built from the same
+list of parts, because a Markdown file and a PDF that disagreed about what the
+document is would be two documents.
+
+**From here** is the same assembly with a different starting point, on the
+sheet's own context menu. The groups *above* that sheet come with it, so an
+excerpt keeps its place in the book instead of beginning in mid-air; a `from`
+that names nothing yields nothing, rather than the whole manuscript by
+accident.
+
+**The decision that changed, and why it is written down.** On 2026-09-10 he
+chose PDF through LaTeX. On 2026-09-11, asked how the PDF should be set, he
+answered: **with a CSS stylesheet, one to be chosen later, and this export is
+not meant to produce a professional print file.** That supersedes LaTeX, and
+§15.2 records the reversal rather than quietly replacing it. The consequence
+is worth having: the PDF is set by the application itself out of HTML, so the
+export has **no external dependency at all** — no TeX, no pandoc, nothing to
+install, nothing to be absent. Setting a book for print stays what it was:
+work done outside this application.
+
+He also answered the other half of that question with "eigener Schreiber" —
+against pandoc. Carried across to HTML, that is what was built: markdown-it,
+already this project's parser, with `html: false`, `linkify` off and
+`typographer` off. **The export hands the manuscript to someone else**, so a
+GFM table arrives as a table — unlike the editor, which shows what stands in
+the file. But nothing the author typed is improved on the way out.
+
+**An exported manuscript cannot execute anything**, and that is claimed twice
+over: the parser escapes markup, and the document's own content security
+policy allows its style and nothing else. Either alone would be a sentence
+resting on one line of code.
+
+**Three things this round taught.**
+
+A character class wrote itself wrong. `[ -<>:"/\\|?*]` reads as a **range**
+from space to `<` — every digit and most punctuation — and a project called
+"Book 2 of 3" would have been offered as "Book of". The test that caught it is
+now the one that names it.
+
+`assembleMarkdown` trusted its input to arrive trimmed, which it did, from the
+one caller that existed. A test calling it directly found the second newline.
+It trims for itself now.
+
+And the first PDF was **looked at**, which is the only reason the third thing
+was found: the lines ran to about ninety-five characters across the page. A
+measure was set. Nothing in the suite would have said a word about it.
+
+**Verification.** `pnpm run check` green, **1084 tests** (26 new: 15 in the
+new module, 8 in the main process, 2 in the workbench, 1 on the contract
+guard). `pnpm run desktop:smoke` green across **45 checks** — the new one
+drives both exports through the **native menu items** and the sheet's own
+context menu, then reads the files **off the disk**: no front matter though
+both fixture sheets have it, the group standing as a heading above the sheet
+whose own heading moved down, a PDF that begins with `%PDF-`, and an excerpt
+that took the group above it and nothing before it. Five unit falsifications
+and two smoke falsifications, each red for its own reason. The set page is
+kept as `build/desktop/smoke-export.pdf`, because a page nobody can look at is
+not evidence.
+
 ## 2026-09-11 — where you have been: back, forward, and what was saved last
 
 **What was built.** The two ways back to a sheet of `SPEC.md` §9.4, which were

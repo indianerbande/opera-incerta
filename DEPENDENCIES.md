@@ -150,6 +150,13 @@ display model rather than a decoration on top of it.
   their nesting, code blocks, thematic breaks — for the GFM display of
   `SPEC.md` §10.7. Run in its CommonMark preset with HTML, linkify, and the
   typographer off.
+  **Since 2026-09-11 it renders as well**, in `packages/export`: the export
+  of §15.2 sets its PDF from HTML. That one runs the **full** preset, so a
+  GFM table reaches the exported document as a table — the export hands the
+  manuscript to someone else, unlike the editor, which shows what stands in
+  the file. `html: false` stays, and linkify and the typographer stay off:
+  an export may not improve the author's text, and a manuscript is data,
+  never a page to be executed.
 - **Why external:** the line-based rules of the core see no containers
   (§10.1); a conformant block parser is a mature algorithm, not a
   well-bounded implementation of our own.
@@ -170,7 +177,8 @@ display model rather than a decoration on top of it.
   rule — the second deviation the spike measured, settled here rather than
   by a third-party plugin.
 - **Evidence:** `packages/markdown/test`, the presentation tests of the
-  core, and the GFM check of the smoke (`TESTING.md` §2.7).
+  core, the GFM check of the smoke (`TESTING.md` §2.7), and
+  `packages/export/test` for the rendered document.
 
 ## Accepted — the standard oracle (tests only)
 

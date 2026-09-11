@@ -22,8 +22,13 @@ import type {
   GroupEntry,
   PageCategory,
 } from '@opera-incerta/core';
+// The export module's own vocabulary, transported as it stands: the contract
+// names the types it carries with the packages' own (SPEC.md §16), so that
+// neither side casts and a format added there is a compile error here.
+import { isExportFormatId, type ExportFormatId } from '@opera-incerta/export';
 
 export type { GitBranch, GitIdentity, GitRemote, GitTracking } from '@opera-incerta/core';
+export type { ExportFormatId } from '@opera-incerta/export';
 
 /**
  * The guards below are built from a few combinators, so that every request
@@ -133,6 +138,7 @@ export const CHANNELS = {
   gitVersions: 'opera-incerta:git/versions',
   menuCommand: 'opera-incerta:menu/command',
   searchLibrary: 'opera-incerta:library/search',
+  exportDocument: 'opera-incerta:export/document',
   createSheet: 'opera-incerta:sheet/create',
   createGroup: 'opera-incerta:group/create',
   renameSheet: 'opera-incerta:sheet/rename',
@@ -320,6 +326,8 @@ export const MENU_COMMANDS = [
   'editor/find',
   'go/back',
   'go/forward',
+  'export/markdown',
+  'export/pdf',
   'settings/open',
 ] as const;
 
@@ -551,6 +559,55 @@ export const isLibrarySearchResult: Guard<LibrarySearchResult> = shape<LibrarySe
   hits: arrayOf(isLibrarySearchHit),
   capped: isBoolean,
 });
+
+/**
+ * An export of the manuscript. SPEC.md §15.2.
+ *
+ * `from` names a sheet to begin at — the "from here" of the sheet's own
+ * context menu — or is null for the whole document. The renderer names a
+ * sheet by its path inside the project, as every other library request does;
+ * it never names the file that is written, which the author chooses in the
+ * system's own dialog.
+ */
+export interface ExportRequest {
+  readonly format: ExportFormatId;
+  readonly from: string | null;
+}
+
+export const isExportRequest: Guard<ExportRequest> = (value): value is ExportRequest => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const from = value['from'];
+  return isExportFormatId(value['format']) && (from === null || isNotEmpty(from));
+};
+
+/**
+ * What an export reports back.
+ *
+ * `empty` is its own answer rather than a failure: asking to export a part of
+ * the manuscript that holds no text is not a fault, and writing a file with
+ * nothing in it would be the worse reply.
+ */
+export type ExportOutcome =
+  | { readonly kind: 'written'; readonly shortPath: string }
+  | { readonly kind: 'cancelled' }
+  | { readonly kind: 'empty' };
+
+export const isExportOutcome: Guard<ExportOutcome> = (value): value is ExportOutcome => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  switch (value['kind']) {
+    case 'written':
+      return isNotEmpty(value['shortPath']);
+    case 'cancelled':
+    case 'empty':
+      return true;
+    default:
+      return false;
+  }
+};
 
 /** A chosen location, with a short form for display. */
 export interface ChosenLocation {
@@ -822,6 +879,14 @@ export interface OperaIncertaBridge {
    * act on by itself.
    */
   searchLibrary(request: LibrarySearchRequest): Promise<BridgeResult<LibrarySearchResult>>;
+  /**
+   * Writes the manuscript out in one format. SPEC.md §15.2.
+   *
+   * Assembling, setting and writing all happen in the main process: the
+   * renderer asks for a format and, at most, a sheet to begin at, and learns
+   * only where the file went — in a form fit to read, never one to act on.
+   */
+  exportDocument(request: ExportRequest): Promise<BridgeResult<ExportOutcome>>;
   /** Re-reads the open project from disk, after an external change. */
   reopenProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   closeProject(): Promise<BridgeResult<null>>;

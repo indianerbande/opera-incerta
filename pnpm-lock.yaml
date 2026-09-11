@@ -35,6 +35,9 @@ importers:
       '@opera-incerta/desktop-contract':
         specifier: workspace:*
         version: link:../../packages/desktop-contract
+      '@opera-incerta/export':
+        specifier: workspace:*
+        version: link:../../packages/export
       '@opera-incerta/git-node':
         specifier: workspace:*
         version: link:../../packages/git-node
@@ -120,6 +123,21 @@ importers:
       '@opera-incerta/core':
         specifier: workspace:*
         version: link:../core
+      '@opera-incerta/export':
+        specifier: workspace:*
+        version: link:../export
+
+  packages/export:
+    dependencies:
+      '@opera-incerta/core':
+        specifier: workspace:*
+        version: link:../core
+      '@opera-incerta/markdown':
+        specifier: workspace:*
+        version: link:../markdown
+      markdown-it:
+        specifier: 15.0.1
+        version: 15.0.1
 
   packages/git-node:
     dependencies:

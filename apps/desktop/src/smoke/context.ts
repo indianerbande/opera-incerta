@@ -37,6 +37,12 @@ export interface Smoke {
   chooseFolder(absolutePath: string): void;
   /** The preference record the shell writes under the smoke's user-data directory. */
   readonly preferencesPath: string;
+  /**
+   * Where an export lands, instead of asking with a native save dialog
+   * (SPEC.md §15.2). The file the shell writes appears here under the name
+   * the export offered.
+   */
+  readonly exportDirectory: string;
   /** `build/desktop/`, where the screenshots (`smoke-*.png`) are written. */
   readonly evidenceDirectory: string;
   /** Runs git in a directory and returns its stdout. Throws on a non-zero exit. */
