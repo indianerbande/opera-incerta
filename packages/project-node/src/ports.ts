@@ -20,6 +20,16 @@ export const PROJECT_FILES = {
   recent: 'recent.json',
 } as const;
 
+/**
+ * Directories inside {@link PROJECT_DIRECTORY}.
+ *
+ * `styles` holds the author's own export stylesheets (SPEC.md §15.2): a set
+ * made for this book belongs to the book, and travels with it.
+ */
+export const PROJECT_DIRECTORIES = {
+  styles: 'styles',
+} as const;
+
 /** Sheets are plain Markdown files. SPEC.md §6.1. */
 export const SHEET_EXTENSION = '.md';
 
@@ -61,6 +71,18 @@ export interface ProjectFilesystem {
    */
   readRecentSheets(projectPath: string): Promise<readonly string[]>;
   writeRecentSheets(projectPath: string, paths: readonly string[]): Promise<void>;
+  /**
+   * The author's own export stylesheets, by name, sorted (SPEC.md §15.2).
+   *
+   * A project with no such directory has none — that is the ordinary case,
+   * not a failure — and a file the naming rule cannot read is left out rather
+   * than offered.
+   */
+  listStylesheets(projectPath: string): Promise<readonly string[]>;
+  /** The CSS of one, or null when the project does not have it. */
+  readStylesheet(projectPath: string, name: string): Promise<string | null>;
+  /** Writes one, creating the directory. Overwrites deliberately. */
+  writeStylesheet(projectPath: string, name: string, css: string): Promise<void>;
   readSheet(absolutePath: string): Promise<string>;
   writeSheet(absolutePath: string, text: string): Promise<void>;
   /** Entry names, sorted. Hidden entries included. Nothing for a missing directory. */

@@ -7,11 +7,13 @@ import {
   computed,
   effect,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import { findSheet, visibleOutline } from '@opera-incerta/core';
 
 import { EditorComponent } from './editor/editor.component.js';
+import { ExportDialogComponent } from './export/export-dialog.component.js';
 import { FrontMatterBlockComponent } from './editor/front-matter.component.js';
 import { ExplorerNodeComponent } from './library/explorer.component.js';
 import {
@@ -79,6 +81,7 @@ import { Localization } from './localization/localization.js';
     ContextMenuComponent,
     DensitySwitchComponent,
     EditorComponent,
+    ExportDialogComponent,
     FindBarComponent,
     FrontMatterBlockComponent,
     ExplorerNodeComponent,
@@ -364,6 +367,18 @@ import { Localization } from './localization/localization.js';
           (cancel)="overlay.set(null)"
         />
       }
+      @if (open.kind === 'export') {
+        <wi-export-dialog
+          [own]="store.stylesheets()"
+          [initial]="layout.exportStylesheet()"
+          [fetchedCss]="fetchedCss()"
+          (requestCss)="fetchCss($event)"
+          (save)="saveStylesheet($event)"
+          (run)="runExport(open.from, $event)"
+          (close)="overlay.set(null)"
+        />
+      }
+
       @if (open.kind === 'ignore') {
         <wi-text-editor
           [title]="i18n.t('app.ignore.title')"
@@ -614,9 +629,10 @@ export class AppComponent {
       } else if (command === 'go/forward') {
         void this.store.step('forward');
       } else if (command === 'export/markdown') {
+        // Markdown carries no stylesheet, so it opens no dialog (SPEC.md §15.2).
         void this.store.exportDocument('markdown', null);
       } else if (command === 'export/pdf') {
-        void this.store.exportDocument('pdf', null);
+        void this.openExportDialog(null);
       } else if (command === 'settings/open') {
         this.overlay.set({ kind: 'settings', opener: 'menu' });
       }
@@ -843,6 +859,37 @@ export class AppComponent {
       entries.push({ label: this.i18n.t('app.recentEmpty'), run: () => undefined, disabled: true });
     }
     this.overlay.set({ kind: 'menu', x: Math.round(at.left), y: Math.round(at.bottom + 4), entries });
+  }
+
+  /**
+   * Opens the stylesheet dialog for a PDF. SPEC.md §15.2.
+   *
+   * The project's own sheets are fetched first: a dialog that listed them a
+   * moment later would make the author choose from a list that changed under
+   * them.
+   */
+  protected async openExportDialog(from: string | null): Promise<void> {
+    this.fetchedCss.set(null);
+    await this.store.loadStylesheets();
+    this.overlay.set({ kind: 'export', from });
+  }
+
+  /** The CSS the dialog asked for, for editing or for copying. */
+  protected readonly fetchedCss = signal<string | null>(null);
+
+  protected async fetchCss(name: string): Promise<void> {
+    this.fetchedCss.set(await this.store.readStylesheet(name));
+  }
+
+  protected async saveStylesheet(sheet: { name: string; css: string }): Promise<void> {
+    await this.store.writeStylesheet(sheet.name, sheet.css);
+  }
+
+  /** Confirming the dialog: remember the choice, then export with it. */
+  protected async runExport(from: string | null, stylesheet: string): Promise<void> {
+    this.overlay.set(null);
+    this.layout.setExportStylesheet(stylesheet);
+    await this.store.exportDocument('pdf', from, stylesheet);
   }
 
   protected async openSearchHit(hit: LibrarySearchHit): Promise<void> {

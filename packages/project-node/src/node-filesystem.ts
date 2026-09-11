@@ -24,10 +24,14 @@ import {
   type ProjectRecord,
   type StructureRecord,
   readCategories,
+  isUsableStylesheetName,
   readRecentSheets,
   readStructureRecord,
+  stylesheetFileName,
+  stylesheetNameOf,
 } from '@opera-incerta/core';
 import {
+  PROJECT_DIRECTORIES,
   PROJECT_DIRECTORY,
   PROJECT_FILES,
   SHEET_EXTENSION,
@@ -169,6 +173,42 @@ class NodeProjectFilesystem implements ProjectFilesystem {
     await writeJson(recentFilePath(projectPath), paths);
   }
 
+  /** The author's own export stylesheets. SPEC.md §15.2. */
+  async listStylesheets(projectPath: string): Promise<readonly string[]> {
+    let entries: readonly string[];
+    try {
+      entries = await readdir(stylesDirectoryPath(projectPath));
+    } catch {
+      // No directory is the ordinary case: a project has none until the
+      // author duplicates one.
+      return [];
+    }
+    return entries
+      .map((entry) => stylesheetNameOf(entry))
+      .filter((name): name is string => name !== null)
+      .sort((left, right) => left.localeCompare(right));
+  }
+
+  async readStylesheet(projectPath: string, name: string): Promise<string | null> {
+    if (!isUsableStylesheetName(name)) {
+      return null;
+    }
+    try {
+      return await readFile(join(stylesDirectoryPath(projectPath), stylesheetFileName(name)), 'utf8');
+    } catch {
+      return null;
+    }
+  }
+
+  async writeStylesheet(projectPath: string, name: string, css: string): Promise<void> {
+    if (!isUsableStylesheetName(name)) {
+      throw new CodedError('stylesheet/name', 'stylesheet/name');
+    }
+    const directory = stylesDirectoryPath(projectPath);
+    await mkdir(directory, { recursive: true });
+    await writeAtomically(join(directory, stylesheetFileName(name)), css, randomUUID());
+  }
+
   async readStructure(projectPath: string): Promise<StructureRecord> {
     const raw = await readOptional(structureFilePath(projectPath), 'structure/unreadable');
     return raw === null ? {} : readStructureRecord(parseLeniently(raw));
@@ -299,6 +339,11 @@ export function structureFilePath(projectPath: string): string {
 /** Where the recently edited sheets are kept. SPEC.md §9.4. */
 export function recentFilePath(projectPath: string): string {
   return join(projectPath, PROJECT_DIRECTORY, PROJECT_FILES.recent);
+}
+
+/** Where the author's own export stylesheets live. SPEC.md §15.2. */
+export function stylesDirectoryPath(projectPath: string): string {
+  return join(projectPath, PROJECT_DIRECTORY, PROJECT_DIRECTORIES.styles);
 }
 
 export function categoriesFilePath(projectPath: string): string {

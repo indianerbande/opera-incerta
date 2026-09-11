@@ -48,6 +48,13 @@ export type {
 } from './presentation.js';
 
 export {
+  STYLESHEET_NAME_LIMIT,
+  isUsableStylesheetName,
+  stylesheetFileName,
+  stylesheetNameOf,
+} from './stylesheet-naming.js';
+
+export {
   ancestorPaths,
   withShownSheet,
   findGroup,

@@ -1541,3 +1541,78 @@ describe('going back and forward', () => {
     expect(store.recentSheets()).toEqual(['part-1/scene.md', 'preface.md']);
   });
 });
+
+describe('the author’s own export stylesheets (SPEC.md §15.2)', () => {
+  it('lists what the project has, and adopts the list a write returns', async () => {
+    const written: Array<{ name: string; css: string }> = [];
+    const store = new WorkspaceStore(
+      fakeBridge({
+        listStylesheets: async () => ({ ok: true, value: ['My Novel'] }),
+        writeStylesheet: async (request) => {
+          written.push(request);
+          return { ok: true, value: ['Another', 'My Novel'] };
+        },
+      }),
+    );
+    await store.adoptOpenProject();
+    expect(store.stylesheets()).toEqual([]);
+
+    await store.loadStylesheets();
+    expect(store.stylesheets()).toEqual(['My Novel']);
+
+    // The write answers with the list, so the dialog never has to ask again
+    // and can never show one that is a moment out of date.
+    await store.writeStylesheet('Another', 'body { color: teal; }');
+    expect(written).toEqual([{ name: 'Another', css: 'body { color: teal; }' }]);
+    expect(store.stylesheets()).toEqual(['Another', 'My Novel']);
+  });
+
+  it('reads one back for editing, and a missing one as nothing', async () => {
+    const store = new WorkspaceStore(
+      fakeBridge({
+        readStylesheet: async (request) => ({
+          ok: true,
+          value: request.name === 'My Novel' ? 'body { color: teal; }' : null,
+        }),
+      }),
+    );
+    await store.adoptOpenProject();
+
+    expect(await store.readStylesheet('My Novel')).toBe('body { color: teal; }');
+    expect(await store.readStylesheet('Gone')).toBeNull();
+  });
+
+  it('sends the chosen stylesheet with the export', async () => {
+    const asked: unknown[] = [];
+    const store = new WorkspaceStore(
+      fakeBridge({
+        exportDocument: async (request) => {
+          asked.push(request);
+          return { ok: true, value: { kind: 'written', shortPath: '~/A Novel.pdf' } };
+        },
+      }),
+    );
+    await store.adoptOpenProject();
+    await store.exportDocument('pdf', null, 'My Novel');
+
+    expect(asked).toEqual([{ format: 'pdf', from: null, stylesheet: 'My Novel' }]);
+  });
+
+  it('sends none for Markdown, which carries no stylesheet', async () => {
+    const asked: unknown[] = [];
+    const store = new WorkspaceStore(
+      fakeBridge({
+        exportDocument: async (request) => {
+          asked.push(request);
+          return { ok: true, value: { kind: 'empty' } };
+        },
+      }),
+    );
+    await store.adoptOpenProject();
+    await store.exportDocument('markdown', null);
+
+    expect(asked).toEqual([{ format: 'markdown', from: null, stylesheet: null }]);
+    // An empty document is reported rather than silently doing nothing.
+    expect(store.note()).toEqual({ kind: 'empty' });
+  });
+});

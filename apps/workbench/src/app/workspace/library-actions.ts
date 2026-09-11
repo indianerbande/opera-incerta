@@ -65,8 +65,10 @@ export class LibraryActions {
           run: () => void this.#store.exportDocument('markdown', path),
         },
         {
+          // A PDF is set with a stylesheet, so it asks which (SPEC.md §15.2);
+          // the shell owns that dialog, and this says what it is for.
           label: this.#i18n.t('export.pdfFromHere'),
-          run: () => void this.#store.exportDocument('pdf', path),
+          run: () => this.#overlay.set({ kind: 'export', from: path }),
         },
       ],
       x: at.x,

@@ -1024,8 +1024,53 @@ export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<
   }
   await dismissNote();
 
-  // The same document as a PDF, from its own menu item.
+  // The same document as a PDF. It is set with a stylesheet, so its menu
+  // item opens the dialog first (SPEC.md §15.2).
   clickMenuItem('export/pdf');
+  await waitForSelector(window, 'wi-export-dialog');
+
+  const listed = (await window.webContents.executeJavaScript(
+    `[...document.querySelectorAll('wi-export-dialog .sheet .label')].map((e) => e.textContent.trim())`,
+  )) as string[];
+  // The four supplied ones, and none of the author's yet.
+  if (listed.join('|') !== 'Manuscript|Typescript|Reading|Plain') {
+    throw new Error(`the dialog offers ${JSON.stringify(listed)}`);
+  }
+
+  // Duplicate the typescript, which is the one whose difference is legible in
+  // the PDF: double-spaced and monospaced.
+  await clickText(window, 'wi-export-dialog .sheet .label', 'Typescript');
+  await clickText(window, 'wi-export-dialog button.duplicate', 'Duplicate');
+  await waitForSelector(window, 'wi-export-dialog input.name');
+  await window.webContents.executeJavaScript(
+    `(() => {
+       const field = document.querySelector('wi-export-dialog input.name');
+       field.value = 'Smoke Set';
+       field.dispatchEvent(new Event('input', { bubbles: true }));
+     })()`,
+  );
+  await clickText(window, 'wi-export-dialog button.go', 'Create');
+  await waitUntil('the copy to appear in the list', async () =>
+    ((await window.webContents.executeJavaScript(
+      `[...document.querySelectorAll('wi-export-dialog .sheet .label')].map((e) => e.textContent.trim())`,
+    )) as string[]).includes('Smoke Set'),
+  );
+
+  // It is a file in the project, which is what makes it travel with the book.
+  const stylePath = join(smoke.projectPath, '.opera-incerta', 'styles', 'Smoke Set.css');
+  if (!existsSync(stylePath)) {
+    throw new Error(`the duplicate was not written to ${stylePath}`);
+  }
+  if (!readFileSync(stylePath, 'utf8').includes('line-height: 2')) {
+    throw new Error('the duplicate did not take the CSS of the sheet it was copied from');
+  }
+
+  const dialogEvidence = join(smoke.evidenceDirectory, 'smoke-export-stylesheet.png');
+  await rendered(window);
+  writeFileSync(dialogEvidence, (await window.webContents.capturePage()).toPNG());
+  console.log(`smoke evidence: ${dialogEvidence}`);
+
+  await clickText(window, 'wi-export-dialog button.go', 'Export');
   await waitUntil('the PDF to report where it went', async () => (await note()).includes('.pdf'));
 
   const pdfPath = join(smoke.exportDirectory, 'Smoke Project.pdf');
@@ -1036,6 +1081,12 @@ export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<
   }
   if (pdf.length < 2000) {
     throw new Error(`the PDF is ${String(pdf.length)} bytes, which is not a manuscript`);
+  }
+  // And it was set with the stylesheet that was chosen, not the default: the
+  // typescript is monospaced, and a PDF names the fonts it uses.
+  const fonts = pdf.toString('latin1');
+  if (!fonts.includes('Courier') || fonts.includes('Georgia')) {
+    throw new Error('the PDF was not set with the chosen stylesheet');
   }
 
   const evidence = join(smoke.evidenceDirectory, 'smoke-export.png');
@@ -1074,7 +1125,8 @@ export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<
 
   console.log(
     'smoke ok: the manuscript was written out as Markdown and as a real PDF — groups as ' +
-      'headings, sheets moved down under them, no front matter — and "from here" took the ' +
-      'excerpt with the group above it and nothing before it',
+      'headings, sheets moved down under them, no front matter — set with a stylesheet the ' +
+      'author duplicated into the project, and "from here" took the excerpt with the group ' +
+      'above it and nothing before it',
   );
 }

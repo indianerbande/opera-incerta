@@ -43,6 +43,8 @@ import {
   isLibraryPlaceRequest,
   isExportRequest,
   isLibrarySearchRequest,
+  isStylesheetRequest,
+  isWriteStylesheetRequest,
   isWatchTargetsRequest,
   isProjectPathRequest,
   isWriteSheetRequest,
@@ -653,6 +655,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     runExport(
       await session.assembleDocument(request.from),
       request.format,
+      await session.resolveStylesheet(request.stylesheet),
       projectWindow,
       translate(interfaceLanguage, request.format === 'pdf' ? 'export.pdf' : 'export.markdown'),
       {
@@ -664,6 +667,17 @@ export function startShell(options: ShellOptions = {}): Shell {
         shortPathOf: abbreviatePath,
       },
     ),
+  );
+
+  /** The author's own export stylesheets. SPEC.md §15.2. */
+  privileged(CHANNELS.listStylesheets, acceptsNothing, async () => session.listStylesheets());
+
+  privileged(CHANNELS.readStylesheet, isStylesheetRequest, async (request) =>
+    session.readStylesheet(request.name),
+  );
+
+  privileged(CHANNELS.writeStylesheet, isWriteStylesheetRequest, async (request) =>
+    session.writeStylesheet(request.name, request.css),
   );
 
   privileged(CHANNELS.createSheet, isLibraryEditRequest, async (request) =>

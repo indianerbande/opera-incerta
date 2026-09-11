@@ -13,14 +13,19 @@
  * from the real thing tests nothing.
  */
 import {
+  CodedError,
+  isUsableStylesheetName,
   readCategories,
   readRecentSheets,
   readStructureRecord,
+  stylesheetFileName,
+  stylesheetNameOf,
   type PageCategory,
   type ProjectRecord,
   type StructureRecord,
 } from '@opera-incerta/core';
 import {
+  PROJECT_DIRECTORIES,
   PROJECT_DIRECTORY,
   PROJECT_FILES,
   type DirectoryEntry,
@@ -169,6 +174,43 @@ export class MemoryProjectFilesystem implements ProjectFilesystem {
       this.#recordPath(path, PROJECT_FILES.recent),
       `${JSON.stringify(paths, null, 2)}\n`,
     );
+  }
+
+  /** The author's own export stylesheets. SPEC.md §15.2. */
+  async listStylesheets(projectPath: string): Promise<readonly string[]> {
+    const directory = this.#stylesPath(normalize(projectPath));
+    const names: string[] = [];
+    for (const path of this.#files.keys()) {
+      if (parentOf(path) !== directory) {
+        continue;
+      }
+      const name = stylesheetNameOf(path.slice(directory.length + 1));
+      if (name !== null) {
+        names.push(name);
+      }
+    }
+    return names.sort((left, right) => left.localeCompare(right));
+  }
+
+  async readStylesheet(projectPath: string, name: string): Promise<string | null> {
+    if (!isUsableStylesheetName(name)) {
+      return null;
+    }
+    const path = joinPath(this.#stylesPath(normalize(projectPath)), stylesheetFileName(name));
+    return this.#files.get(path) ?? null;
+  }
+
+  async writeStylesheet(projectPath: string, name: string, css: string): Promise<void> {
+    if (!isUsableStylesheetName(name)) {
+      throw new CodedError('stylesheet/name', 'stylesheet/name');
+    }
+    const directory = this.#stylesPath(normalize(projectPath));
+    this.#ensureDirectory(directory);
+    this.#files.set(joinPath(directory, stylesheetFileName(name)), css);
+  }
+
+  #stylesPath(projectPath: string): string {
+    return joinPath(joinPath(projectPath, PROJECT_DIRECTORY), PROJECT_DIRECTORIES.styles);
   }
 
   async readStructure(projectPath: string): Promise<StructureRecord> {

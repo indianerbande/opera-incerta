@@ -55,6 +55,10 @@ import {
 } from '@opera-incerta/desktop-contract';
 import { toBridgeFailure, unwrap, unwrapAs, unwrapSnapshot } from './bridge.js';
 
+/** A list of names, checked at the boundary like everything else (§16). */
+const isNameList = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+
 export interface OpenSheet {
   readonly relativePath: string;
   readonly handleId: string;
@@ -101,6 +105,8 @@ export class WorkspaceStore {
    * and a store that translated would need a language in every test.
    */
   readonly #note = signal<ExportOutcome | null>(null);
+  /** The author's own export stylesheets, by name. SPEC.md §15.2. */
+  readonly #stylesheets = signal<readonly string[]>([]);
   readonly #conflict = signal<string | null>(null);
   /**
    * Counts the times the editing state was **deliberately** dropped.
@@ -755,6 +761,39 @@ export class WorkspaceStore {
   }
 
   /**
+   * The author's own export stylesheets, by name. SPEC.md §15.2.
+   *
+   * The supplied four are not here: the dialog has them from the module, and
+   * carrying them over the bridge would be sending the application its own
+   * constants.
+   */
+  readonly stylesheets = this.#stylesheets.asReadonly();
+
+  async loadStylesheets(): Promise<void> {
+    await this.#withBridge(async (bridge) => {
+      this.#stylesheets.set(unwrapAs(await bridge.listStylesheets(), isNameList, 'stylesheets'));
+    });
+  }
+
+  /** The CSS of one of the author's own, for editing or for copying. */
+  async readStylesheet(name: string): Promise<string | null> {
+    let css: string | null = null;
+    await this.#withBridge(async (bridge) => {
+      const answer = unwrap(await bridge.readStylesheet({ name }));
+      css = typeof answer === 'string' ? answer : null;
+    });
+    return css;
+  }
+
+  async writeStylesheet(name: string, css: string): Promise<void> {
+    await this.#withBridge(async (bridge) => {
+      this.#stylesheets.set(
+        unwrapAs(await bridge.writeStylesheet({ name, css }), isNameList, 'stylesheets'),
+      );
+    });
+  }
+
+  /**
    * Writes the manuscript out. SPEC.md §15.2.
    *
    * `from` is a sheet to begin at — the "from here" of its context menu — or
@@ -764,9 +803,13 @@ export class WorkspaceStore {
    * A cancelled export leaves no note: the author took it back, and being
    * told so is being told what one just did.
    */
-  async exportDocument(format: ExportFormatId, from: string | null): Promise<void> {
+  async exportDocument(
+    format: ExportFormatId,
+    from: string | null,
+    stylesheet: string | null = null,
+  ): Promise<void> {
     await this.#withBridge(async (bridge) => {
-      const outcome = unwrap(await bridge.exportDocument({ format, from }));
+      const outcome = unwrap(await bridge.exportDocument({ format, from, stylesheet }));
       if (!isExportOutcome(outcome)) {
         throw new Error('bridge/malformed');
       }

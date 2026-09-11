@@ -31,6 +31,7 @@ describe('readPreferences', () => {
       editorWordWrap: false,
       editorLineNumbers: true,
       editorZoom: 125,
+      exportStylesheet: 'My Novel',
       showBlankLines: true,
       showDeeperOutline: true,
       showFrontMatter: true,
@@ -39,6 +40,18 @@ describe('readPreferences', () => {
     };
 
     expect(readPreferences(stored)).toEqual({ ...stored, version: PREFERENCES_VERSION });
+  });
+
+  it('keeps a remembered stylesheet name without checking it here', () => {
+    // The record is read before a project is open, so a name cannot be
+    // checked against a list yet. It falls back at the moment of use
+    // (SPEC.md §15.2) rather than being silently rewritten here.
+    expect(readPreferences({ exportStylesheet: 'Not In This Project' }).exportStylesheet).toBe(
+      'Not In This Project',
+    );
+    // But a value that is not a name at all is the default.
+    expect(readPreferences({ exportStylesheet: 42 }).exportStylesheet).toBe('manuscript');
+    expect(readPreferences({ exportStylesheet: '' }).exportStylesheet).toBe('manuscript');
   });
 
   it('costs one setting, not the whole record, when a value is bad', () => {

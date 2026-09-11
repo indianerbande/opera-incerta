@@ -130,6 +130,35 @@ describe('resolving handles', () => {
     );
   });
 
+  it('keeps the author’s own stylesheets in the project, and resolves a choice', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+    expect(await session.listStylesheets()).toEqual([]);
+
+    await session.writeStylesheet('My Novel', 'body { color: teal; }');
+    expect(await session.listStylesheets()).toEqual(['My Novel']);
+    // It is a file in the project, which is what makes it travel with the
+    // manuscript (SPEC.md §15.2).
+    expect(
+      await readFile(join(root, PROJECT_DIRECTORY, 'styles', 'My Novel.css'), 'utf8'),
+    ).toBe('body { color: teal; }');
+
+    expect(await session.resolveStylesheet('My Novel')).toBe('body { color: teal; }');
+    // A supplied id comes from the module, never from the project.
+    expect(await session.resolveStylesheet('typescript')).toContain('line-height: 2');
+  });
+
+  it('falls back rather than failing when a remembered stylesheet is gone', async () => {
+    const session = new ProjectSession();
+    await session.open(root);
+
+    // The project changed, or the file was deleted. It is never a reason not
+    // to export (SPEC.md §15.2).
+    const css = await session.resolveStylesheet('Gone With The Other Project');
+    expect(css).toBe(await session.resolveStylesheet(null));
+    expect(css).toContain('Georgia');
+  });
+
   it('remembers what was edited, most recent first, and hands it to the window', async () => {
     const session = new ProjectSession();
     const snapshot = await session.open(root);

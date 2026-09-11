@@ -234,17 +234,29 @@ describe('the sheet menu', () => {
     ]);
   });
 
-  it('asks for an export that begins at the sheet it was opened on', async () => {
+  it('exports Markdown from the sheet at once, carrying no stylesheet', async () => {
     const { actions, overlay, calls, store } = await setUp();
     actions.openSheetMenu('part-1/scene.md', 'A Scene', at);
-    choose(overlay, 'Export PDF from here…');
+    choose(overlay, 'Export Markdown from here…');
     await Promise.resolve();
     await Promise.resolve();
 
     // The format and the starting sheet, and nothing else: where the file
     // goes is the author's answer to the system's own dialog.
-    expect(calls).toEqual(['export pdf part-1/scene.md']);
+    expect(calls).toEqual(['export markdown part-1/scene.md']);
     expect(store.note()).toEqual({ kind: 'written', shortPath: '~/A Novel.pdf' });
+  });
+
+  it('asks which stylesheet before a PDF, and exports nothing yet', async () => {
+    const { actions, overlay, calls } = await setUp();
+    actions.openSheetMenu('part-1/scene.md', 'A Scene', at);
+    choose(overlay, 'Export PDF from here…');
+    await Promise.resolve();
+
+    // A PDF is set with a stylesheet, so the dialog comes first — carrying
+    // the extent, so confirming it is the whole of the decision (§15.2).
+    expect(overlay()).toEqual({ kind: 'export', from: 'part-1/scene.md' });
+    expect(calls).toEqual([]);
   });
 
   it('renames a closed sheet on disk', async () => {

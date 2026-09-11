@@ -75,6 +75,15 @@ export interface WorkbenchPreferences {
    * lists: it is set where it is used, and remembered like a column width.
    */
   readonly editorZoom: number;
+  /**
+   * Which stylesheet last set a PDF. SPEC.md §15.2.
+   *
+   * Installation-local on purpose: it is a habit, not a property of the
+   * manuscript — unlike the stylesheets themselves, which live in the
+   * project. A name that resolves to nothing falls back to the default, so a
+   * remembered one from another project costs nothing.
+   */
+  readonly exportStylesheet: string;
   readonly showBlankLines: boolean;
   readonly showDeeperOutline: boolean;
   /**
@@ -105,6 +114,9 @@ export const DEFAULT_PREFERENCES: WorkbenchPreferences = {
   editorWordWrap: DEFAULT_EDITOR_WORD_WRAP,
   editorLineNumbers: DEFAULT_EDITOR_LINE_NUMBERS,
   editorZoom: DEFAULT_EDITOR_ZOOM,
+  // The literal, not the module's constant: the core knows no modules
+  // (SPEC.md §15.1). `packages/export` holds the two together with a test.
+  exportStylesheet: 'manuscript',
   showBlankLines: false,
   showFrontMatter: false,
   frontMatterWritable: false,
@@ -172,6 +184,13 @@ export function readPreferences(value: unknown): WorkbenchPreferences {
     editorZoom: clampEditorZoom(
       typeof stored['editorZoom'] === 'number' ? stored['editorZoom'] : DEFAULT_PREFERENCES.editorZoom,
     ),
+    // Not checked against the project's list: the record is read before a
+    // project is open, and an unknown name falls back at the moment of use
+    // rather than being silently rewritten here (SPEC.md §15.2).
+    exportStylesheet:
+      typeof stored['exportStylesheet'] === 'string' && stored['exportStylesheet'] !== ''
+        ? stored['exportStylesheet']
+        : DEFAULT_PREFERENCES.exportStylesheet,
     showBlankLines: boolean_(stored['showBlankLines'], DEFAULT_PREFERENCES.showBlankLines),
     showFrontMatter: boolean_(stored['showFrontMatter'], DEFAULT_PREFERENCES.showFrontMatter),
     frontMatterWritable: boolean_(

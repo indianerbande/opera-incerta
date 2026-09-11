@@ -6,6 +6,59 @@ documents").
 
 ---
 
+## 2026-09-11 — four stylesheets, and the author's own
+
+**What was built.** The open half of the export round, and the reason the PDF
+is set from HTML at all: `SPEC.md` §15.2 gained a section, written before the
+code.
+
+**Four supplied sheets**, which cannot be changed — a default one can edit
+into uselessness is not a default. `manuscript` (a serif, a measure),
+`typescript` (monospaced and double-spaced, the shape a manuscript is sent in
+to be marked up), `reading` (larger, and **no page break between sheets** — a
+break is a courtesy to a binder and an interruption to a reader), and `plain`
+(sans-serif and close-set). What they share is one block of rules, kept apart
+so that a difference between them is a difference that was meant.
+
+**The author's own** come from **duplicating one under a new name**, never
+from an empty file — a stylesheet written from nothing is an afternoon of
+finding out which rules Chromium's printer honours. They live in
+`.opera-incerta/styles/<name>.css`: by the rule applied twice before (§9.4,
+§18), a set made for this book belongs to the book and travels with it.
+**Which one was last used is installation-local**, because that is a habit
+rather than a property of the manuscript — and a remembered name that names
+nothing falls back to `manuscript` rather than failing.
+
+The list, the duplication and the editing are **one dialog, shown when a PDF
+is exported**. Not the settings: the choice belongs to the moment of use. Its
+three modes are its own state rather than three overlays, because the shell
+allows one overlay at a time (§8.7) and a prompt that replaced this dialog
+would lose what the author had chosen in it.
+
+**Two placements this round had to argue for.** The naming rule lives in the
+**core**, not in the export module: the file store needs it too, and a
+dependency from `project-node` to a module would turn the architecture around.
+And the default's *name* is a literal in the core's preference record, because
+the core knows no modules — with a test in the module holding the two
+together, so they cannot drift.
+
+**The character range, again.** Writing `[ -<>:"/\\|?*]` into a file put
+**real control characters** into it — the same shape of mistake as the export
+file name the day before. The naming rule is now a **list of characters** plus
+a code-point test, with a comment saying why: a range written inline is how
+`[ -<]` — space to `<`, which is every digit — gets into a file without
+anyone seeing it.
+
+**Verification.** `pnpm run check` green, **1106 tests** (22 new).
+`pnpm run desktop:smoke` green across **45 checks**: the PDF's menu item opens
+the dialog, which offers the four and none of the author's; the typescript is
+duplicated as "Smoke Set"; the copy appears in the list **and** as a file in
+the project carrying the CSS it came from; and that the choice reaches the
+page is read **out of the PDF**, which names the fonts it uses — `Courier` in
+the file, `Georgia` not. Two smoke falsifications, each red for its own
+reason. The set page is kept as `build/desktop/smoke-export.pdf` and the
+dialog as `smoke-export-stylesheet.png`.
+
 ## 2026-09-11 — export: the manuscript as one file, and as a set page
 
 **What was built.** `SPEC.md` §15.2, specified in this round before any of it

@@ -2629,12 +2629,54 @@ The consequences, stated plainly:
   text is inserted as text and never as markup, and the window that sets it
   runs without Node and without a preload. A manuscript is data, not a page
   to be executed.
-- **The default stylesheet is plain**: a serif from what the system has, a
-  readable measure, each sheet beginning on a new page, page numbers. No
-  title page, no running heads, no print geometry — those are decisions a
-  print file needs and this one does not.
-- **Choosing a stylesheet stays open** (§18). The interface is shaped for it;
-  the choice is not built.
+- **The stylesheets are plain**: a serif from what the system has, a readable
+  measure, page numbers. No title page, no running heads, no print geometry —
+  those are decisions a print file needs and this one does not.
+
+#### The stylesheet is chosen, and may be the author's own
+
+**Status: Accepted (2026-09-11), written before its implementation.**
+
+Four are **supplied with the application** and cannot be changed, because a
+default one can edit into uselessness is not a default:
+
+| id | What it is for |
+| --- | --- |
+| `manuscript` | The default. A serif, a measure of about 34em, each sheet on a new page. |
+| `typescript` | A publisher's typescript for editing: monospaced, double-spaced, wide margins to write in. |
+| `reading` | For reading on a screen: larger, flowing, **no page break between sheets**. |
+| `plain` | Sans-serif and close-set, for a working print of the whole thing. |
+
+Beside them, the author's own. The way to one is to **duplicate a supplied
+sheet under a new name and edit it** — never to start from an empty file,
+because a stylesheet written from nothing is a afternoon of finding out which
+rules Chromium's printer honours.
+
+- **An author's stylesheet lives in the project**, in
+  `.opera-incerta/styles/<name>.css`. The rule this follows is the one
+  already applied twice (§9.4, §18): does it say something about *this
+  manuscript*, or about *this installation*? A set made for this book belongs
+  to the book, and is the same on every machine and for everyone working on
+  it.
+- **Which one was last used is installation-local** (§13), because it is a
+  habit rather than a property of the manuscript. A remembered name that
+  names nothing — the project changed, the file was deleted — **falls back to
+  `manuscript`**, exactly as an unreadable preference does (§16). It is never
+  a failure to export.
+- The list, the duplication and the editing are all in **one dialog, shown
+  when a PDF is exported**. Not in the settings: the choice belongs to the
+  moment of use, and an author who wants a different set this once should not
+  have to go looking for a preference. Markdown carries no stylesheet and
+  therefore opens no dialog.
+- A stylesheet is **CSS and nothing else** — no script, no import, nothing
+  fetched. It is inserted into the document's own `<style>`, under the same
+  content security policy as everything else there, so a rule that tried to
+  load something simply does not load it.
+
+**Two things a stylesheet cannot decide**, because Chromium's printer owns
+them and a rule would silently do nothing: the **page margins**, which
+`printToPDF`'s own option overrides, and the **page numbers**, which would
+need `@page` margin boxes it does not implement.
 
 **Markdown is the substrate**: one file, the same assembly, front matter
 stripped. It is what the other formats are built from and is offered in its
@@ -2880,10 +2922,11 @@ own specification update before implementation.
 - ~~Export modules (PDF, DOCX, EPUB)~~ — **PDF and Markdown built 2026-09-11**
   as `packages/export` (§15.2). **DOCX and EPUB** remain, in that order, over
   the same assembly.
-- **A stylesheet of one's own for the export** — wanted (2026-09-11), and the
-  reason the PDF is set from HTML at all. The default of §15.2 stands until
-  then; what stays open is where a stylesheet is chosen and kept, and whether
-  a project may carry its own.
+- ~~**A stylesheet of one's own for the export**~~ — **built 2026-09-11**:
+  four supplied sheets, and the author's own by duplicating one, kept in the
+  project (§15.2). What stays open beside it: **a preview** of what a
+  stylesheet does before the PDF is set, and whether a project may name a
+  **default** of its own rather than only the installation remembering one.
 - **Task boxes in the export.** They reach the output as `[ ]` and `[x]`
   today (§15.2): the parser knows no task lists and the display rule of §10.7
   is the application's own. Worth a small rule of its own when the export

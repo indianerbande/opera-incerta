@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { DEFAULT_STYLESHEET as MANUSCRIPT, builtInStylesheet } from '@opera-incerta/export';
 import { exportFileName, runExport, type ExportDependencies } from '../src/export.js';
 import type { AssembledDocument } from '../src/project-session.js';
 
@@ -42,7 +43,7 @@ function dependencies(
 
 describe('writing the manuscript out (SPEC.md §15.2)', () => {
   it('writes the assembled Markdown, and says where it went', async () => {
-    const outcome = await runExport(document, 'markdown', null, 'Markdown', dependencies());
+    const outcome = await runExport(document, 'markdown', MANUSCRIPT, null, 'Markdown', dependencies());
 
     expect(outcome).toEqual({ kind: 'written', shortPath: '~/A Novel.md' });
     expect(await readFile(join(directory, 'A Novel.md'), 'utf8')).toBe(
@@ -50,25 +51,28 @@ describe('writing the manuscript out (SPEC.md §15.2)', () => {
     );
   });
 
-  it('sets a PDF from the document and writes the bytes it gets back', async () => {
+  it('sets a PDF from the document, with the stylesheet it was given', async () => {
     let printed = '';
-    const outcome = await runExport(document, 'pdf', null, 'PDF', {
+    const outcome = await runExport(document, 'pdf', builtInStylesheet('typescript'), null, 'PDF', {
       ...dependencies(),
-      setPdf: async (html) => {
+      setPdf: async (html: string) => {
         printed = html;
         return Buffer.from('%PDF-1.7', 'utf8');
       },
     });
 
     expect(outcome).toEqual({ kind: 'written', shortPath: '~/A Novel.pdf' });
-    // What is set is the module's own document: its style, no script.
+    // What is set is the module's own document: its style, no script — and
+    // the style is the one chosen, not the default (SPEC.md §15.2).
     expect(printed).toContain('<h1>Part One</h1>');
     expect(printed).toContain(`default-src 'none'`);
+    expect(printed).toContain('line-height: 2');
+    expect(printed).not.toContain('Georgia');
     expect(await readFile(join(directory, 'A Novel.pdf'), 'utf8')).toBe('%PDF-1.7');
   });
 
   it('writes nothing at all when the author changes their mind', async () => {
-    const outcome = await runExport(document, 'markdown', null, 'Markdown', {
+    const outcome = await runExport(document, 'markdown', MANUSCRIPT, null, 'Markdown', {
       ...dependencies(),
       chooseDestination: async () => null,
     });
@@ -80,7 +84,7 @@ describe('writing the manuscript out (SPEC.md §15.2)', () => {
 
   it('reports an empty document rather than writing one', async () => {
     let asked = false;
-    const outcome = await runExport({ title: 'A Novel', parts: [] }, 'pdf', null, 'PDF', {
+    const outcome = await runExport({ title: 'A Novel', parts: [] }, 'pdf', MANUSCRIPT, null, 'PDF', {
       ...dependencies(),
       chooseDestination: async () => {
         asked = true;

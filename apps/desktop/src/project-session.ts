@@ -41,7 +41,14 @@ import {
   scanLibrary,
   visibleChildren,
 } from '@opera-incerta/project-node';
-import { documentParts, documentPieces, type DocumentPart } from '@opera-incerta/export';
+import {
+  DEFAULT_STYLESHEET,
+  builtInStylesheet,
+  documentParts,
+  documentPieces,
+  isBuiltInStylesheetId,
+  type DocumentPart,
+} from '@opera-incerta/export';
 
 /** The manuscript as one document, ready for either format. SPEC.md §15.2. */
 export interface AssembledDocument {
@@ -245,6 +252,39 @@ export class ProjectSession {
     }
 
     return { title: record.displayName, parts: documentParts(pieces, bodies) };
+  }
+
+  /** The author's own export stylesheets, by name. SPEC.md §15.2. */
+  async listStylesheets(): Promise<readonly string[]> {
+    return this.#filesystem.listStylesheets(this.#requireOpen().path);
+  }
+
+  async readStylesheet(name: string): Promise<string | null> {
+    return this.#filesystem.readStylesheet(this.#requireOpen().path, name);
+  }
+
+  /** Writes one and hands back the list it belongs to, already refreshed. */
+  async writeStylesheet(name: string, css: string): Promise<readonly string[]> {
+    const current = this.#requireOpen();
+    await this.#filesystem.writeStylesheet(current.path, name, css);
+    return this.#filesystem.listStylesheets(current.path);
+  }
+
+  /**
+   * The CSS a chosen stylesheet resolves to. SPEC.md §15.2.
+   *
+   * A supplied id first, then the project's own, then the default. A name
+   * that resolves to nothing — the project changed, the file was deleted —
+   * **falls back rather than failing**: it is never a reason not to export.
+   */
+  async resolveStylesheet(name: string | null): Promise<string> {
+    if (name === null) {
+      return DEFAULT_STYLESHEET;
+    }
+    if (isBuiltInStylesheetId(name)) {
+      return builtInStylesheet(name);
+    }
+    return (await this.readStylesheet(name)) ?? DEFAULT_STYLESHEET;
   }
 
   /** Re-reads the open project, keeping handles for sheets that still exist. */

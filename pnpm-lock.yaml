@@ -80,6 +80,9 @@ importers:
       '@opera-incerta/desktop-contract':
         specifier: workspace:*
         version: link:../../packages/desktop-contract
+      '@opera-incerta/export':
+        specifier: workspace:*
+        version: link:../../packages/export
       '@opera-incerta/localization':
         specifier: workspace:*
         version: link:../../packages/localization

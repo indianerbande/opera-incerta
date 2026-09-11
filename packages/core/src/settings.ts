@@ -342,4 +342,9 @@ export const LAYOUT_PREFERENCE_KEYS: readonly (keyof WorkbenchPreferences)[] = [
   // The zoom of SPEC.md §10.9 is set where it is used — a slider in the
   // status bar — and remembered like a width, not listed in the dialog.
   'editorZoom',
+  // Likewise the export stylesheet of SPEC.md §15.2: it is chosen in the
+  // export dialog, at the moment of use, and remembered afterwards. Listing
+  // it in the settings would put the choice in two places, and the settings
+  // copy could name a stylesheet the open project does not have.
+  'exportStylesheet',
 ];

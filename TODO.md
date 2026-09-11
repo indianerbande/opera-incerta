@@ -18,9 +18,11 @@ two schemes and its eight palettes, its geometry (§8.9) and its regions as
 panels on a canvas (§8.2), finding in the open sheet (§10.11), searching the
 library (§9.3), where you have been (§9.4), and **export** (§15.2) — the
 manuscript as one Markdown file or as a PDF the application sets itself, whole
-or from a sheet on. `pnpm run check` green on **Node 24**: 9 projects,
-**1084 tests**, plus the desktop and asset checks. `pnpm run desktop:smoke`
-green across forty-five checks, `pnpm run spike:editor` 7/7.
+or from a sheet on, set with one of four supplied stylesheets or one the
+author duplicated into the project. `pnpm run check` green on **Node 24**: 9
+projects, **1106 tests**, plus the desktop and asset checks.
+`pnpm run desktop:smoke` green across forty-five checks,
+`pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `SPEC.md` §17 are built and checked. What remains
 open are the parts of §15 that this stage deliberately excludes — import, the
@@ -69,8 +71,7 @@ These need no further decision from him — `SPEC.md` says what they are:
 
 - **The editor's own context menu** (§10.10).
 - **Export**: DOCX and EPUB, in that order, over the assembly §15.2 already
-  has. PDF and Markdown were built 2026-09-11; a **stylesheet the author
-  chooses** for the PDF is the open half of that round (§18).
+  has. PDF, Markdown and the chosen stylesheet were built 2026-09-11.
   **Import**: a Markdown folder.
 - **The AI assistant** (§15): Anthropic's provider first and preselected, the
   key in the system keychain, the wide scope confirmed per request, and what

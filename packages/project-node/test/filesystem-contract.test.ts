@@ -113,6 +113,31 @@ for (const [name, make] of subjects) {
       expect(await filesystem.isDirectory(join(root, PROJECT_DIRECTORY))).toBe(true);
     });
 
+    it('keeps the author\'s own stylesheets, and offers only what it can read', async () => {
+      const { filesystem, root } = subject;
+      // A project has none until the author duplicates one — the ordinary
+      // case, not a failure (SPEC.md §15.2).
+      expect(await filesystem.listStylesheets(root)).toEqual([]);
+      expect(await filesystem.readStylesheet(root, 'Mine')).toBeNull();
+
+      await filesystem.writeStylesheet(root, 'Mine', 'body { color: red; }');
+      await filesystem.writeStylesheet(root, 'Another', 'body { color: blue; }');
+      expect(await filesystem.listStylesheets(root)).toEqual(['Another', 'Mine']);
+      expect(await filesystem.readStylesheet(root, 'Mine')).toBe('body { color: red; }');
+
+      // The folder is the author's; whatever else is in it is not offered.
+      await filesystem.writeSheet(
+        join(root, PROJECT_DIRECTORY, 'styles', 'notes.txt'),
+        'not a stylesheet',
+      );
+      expect(await filesystem.listStylesheets(root)).toEqual(['Another', 'Mine']);
+
+      // A name a path would read as structure never becomes a file.
+      await expect(filesystem.writeStylesheet(root, '../escape', 'x')).rejects.toMatchObject({
+        code: 'stylesheet/name',
+      });
+    });
+
     it('round-trips a sheet, and needs its directory to exist', async () => {
       const { filesystem, root } = subject;
       await filesystem.writeSheet(join(root, 'a.md'), 'Größe\n');

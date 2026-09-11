@@ -75,6 +75,8 @@ export class LayoutState {
   readonly #editorWordWrap = signal(DEFAULT_PREFERENCES.editorWordWrap);
   readonly #editorLineNumbers = signal(DEFAULT_PREFERENCES.editorLineNumbers);
   readonly #editorZoom = signal(DEFAULT_PREFERENCES.editorZoom);
+  /** Which stylesheet last set a PDF. SPEC.md §15.2, §13. */
+  readonly #exportStylesheet = signal(DEFAULT_PREFERENCES.exportStylesheet);
 
   constructor(bridge: OperaIncertaBridge | null = null) {
     this.#bridge = bridge;
@@ -104,6 +106,7 @@ export class LayoutState {
   readonly editorLineNumbers = this.#editorLineNumbers.asReadonly();
   /** The editor's zoom, in whole percent. SPEC.md §10.9. */
   readonly editorZoom = this.#editorZoom.asReadonly();
+  readonly exportStylesheet = this.#exportStylesheet.asReadonly();
   /** The four editor settings as the editor takes them. SPEC.md §13, §10.8. */
   readonly editorTypography = computed<EditorTypography>(() => ({
     fontFamily: this.#editorFontFamily(),
@@ -156,6 +159,7 @@ export class LayoutState {
     this.#editorWordWrap.set(preferences.editorWordWrap);
     this.#editorLineNumbers.set(preferences.editorLineNumbers);
     this.#editorZoom.set(preferences.editorZoom);
+    this.#exportStylesheet.set(preferences.exportStylesheet);
   }
 
   /** The record as it currently stands. */
@@ -170,6 +174,7 @@ export class LayoutState {
       editorWordWrap: this.#editorWordWrap(),
       editorLineNumbers: this.#editorLineNumbers(),
       editorZoom: this.#editorZoom(),
+      exportStylesheet: this.#exportStylesheet(),
       columnWidths: this.#columnWidths(),
       navigatorView: this.#navigatorView(),
       secondaryView: this.#secondaryView(),
@@ -240,6 +245,20 @@ export class LayoutState {
       return;
     }
     this.#editorZoom.set(next);
+    this.#store();
+  }
+
+  /**
+   * Remembers the stylesheet that was just used. SPEC.md §15.2.
+   *
+   * Installation-local, because it is a habit rather than a property of the
+   * manuscript — the stylesheets themselves live in the project.
+   */
+  setExportStylesheet(name: string): void {
+    if (name === this.#exportStylesheet()) {
+      return;
+    }
+    this.#exportStylesheet.set(name);
     this.#store();
   }
 

@@ -57,6 +57,13 @@ export type Overlay =
   | ({ readonly kind: 'confirmation' } & Confirmation)
   /** The `.gitignore` being edited. SPEC.md §12. */
   | { readonly kind: 'ignore'; readonly text: string }
+  /**
+   * Choosing the stylesheet a PDF is set with. SPEC.md §15.2.
+   *
+   * It carries what the export will need afterwards — the extent — so that
+   * confirming the dialog is the whole of the decision.
+   */
+  | { readonly kind: 'export'; readonly from: string | null }
   /** The branch list. SPEC.md §12. */
   | { readonly kind: 'branches'; readonly branches: readonly GitBranch[] }
   /** A conflicted file being decided. SPEC.md §12. */

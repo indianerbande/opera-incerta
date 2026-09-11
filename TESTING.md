@@ -242,7 +242,10 @@ Tests MUST cover:
   directories otherwise compare unequal on macOS (`CONVENTIONS.md` C-F1);
 - **the port's contract, against both implementations** (`SPEC.md` §7):
   creating and reading a project, subprojects one level down, the record
-  fallbacks, round trips of structure, categories, sheets and the "recently
+  fallbacks, round trips of the author's own export stylesheets — written,
+  listed and read back, with a file the naming rule cannot read left out and
+  a name a path would read as structure refused — round trips of structure,
+  categories, sheets and the "recently
   edited" list — that last one read back as empty when the file holds
   nonsense, because a convenience may never keep a project from opening
   (`SPEC.md` §9.4) — entries listed with their kind, directories created with
@@ -405,6 +408,21 @@ Component and state tests MUST cover:
   do not overlap themselves, the match at or after the cursor in either
   direction, and both ends wrapping — plus three cases in the adapter contract
   (`§2.6`), so the editor and the double answer alike;
+- the four supplied stylesheets (`SPEC.md` §15.2): each one carries a
+  measure, a family and the shared block rules; each differs where it says it
+  differs — the typescript double-spaced and monospaced, the reading one
+  breaking no pages; **none of them imports, fetches or names a URL**, which
+  is what keeps an exported manuscript off the network; and a chosen one is
+  what the document carries. The core's preference record names the default
+  as a literal, because the core knows no modules, and a test in the module
+  holds the two together;
+- naming a stylesheet of one's own, in the core beside the rule: a plain name
+  becomes a file and reads back; everything a path would read as structure is
+  **refused rather than corrected** — the opposite choice from a sheet's
+  title (§6.4), and for the opposite reason; a leading dot, padding and an
+  over-long name are refused; a control character is refused, which is what
+  the character range was there for; and the digits survive, which a careless
+  range would have eaten;
 - the export module's assembly and its page (`SPEC.md` §15.2), as pure
   functions in `packages/export`: the library walked in its recorded order
   with the root not a heading of its own, a group becoming a heading at its
@@ -568,6 +586,12 @@ Tests MUST cover:
   character a path would read as structure removed — including the digits a
   careless character range would have eaten, which is the mistake the first
   version of that line actually made;
+- the author's own stylesheets in the session, against a **real project on
+  disk**: one is written into `.opera-incerta/styles/` as a file, which is
+  what makes it travel with the manuscript; a choice resolves to the
+  project's own CSS, a supplied id to the module's; and a remembered name the
+  project no longer has **falls back to the default rather than failing** —
+  it is never a reason not to export;
 - the session assembling the manuscript against a **real project on disk**:
   the parts in the library's order, the group's heading between them, and no
   front matter in what comes out — read through the codec, which is what
@@ -588,7 +612,14 @@ Tests MUST cover:
   screenshots as `smoke-export.pdf`, because a set page is evidence only if
   somebody can look at it — and "from here" takes the group above the sheet
   with it while leaving every sheet before it out. The save dialog is the one
-  substitution, since a native dialog cannot be answered from a check;
+  substitution, since a native dialog cannot be answered from a check.
+  The PDF's own menu item opens the **stylesheet dialog** first: it offers
+  the four supplied sheets and none of the author's, one is duplicated under
+  a new name, and the copy appears both in the list and as a file in
+  `.opera-incerta/styles/` carrying the CSS it was copied from. That the
+  choice actually reaches the page is read **out of the PDF**, which names
+  the fonts it uses: the typescript is monospaced, so `Courier` is in the
+  file and `Georgia` is not;
 - the regions as panels (`SPEC.md` §8.2), measured in the running workbench:
   the leading rail flush against the window, the first panel eight pixels past
   it, all four panels eight from the top, the same corner, border and lift on

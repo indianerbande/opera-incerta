@@ -26,6 +26,7 @@ import type {
 // names the types it carries with the packages' own (SPEC.md §16), so that
 // neither side casts and a format added there is a compile error here.
 import { isExportFormatId, type ExportFormatId } from '@opera-incerta/export';
+import { isUsableStylesheetName as usableStylesheetName } from '@opera-incerta/core';
 
 export type { GitBranch, GitIdentity, GitRemote, GitTracking } from '@opera-incerta/core';
 export type { ExportFormatId } from '@opera-incerta/export';
@@ -62,6 +63,16 @@ function arrayOf<T>(guard: Guard<T>): Guard<readonly T[]> {
 function literal<T extends string>(expected: T): Guard<T> {
   return (value): value is T => value === expected;
 }
+
+/**
+ * A usable stylesheet name (SPEC.md §15.2), as a guard.
+ *
+ * The rule lives in the core; this wraps it so the shape combinators can use
+ * it like every other field guard, and so a name that a path would read as
+ * structure is refused **at the boundary** rather than deeper in.
+ */
+const isStylesheetName: Guard<string> = (value): value is string =>
+  typeof value === 'string' && usableStylesheetName(value);
 
 /** An object with every listed field passing its guard. Extra fields are ignored. */
 function shape<T extends object>(fields: { readonly [K in keyof T]-?: Guard<T[K]> }): Guard<T> {
@@ -139,6 +150,9 @@ export const CHANNELS = {
   menuCommand: 'opera-incerta:menu/command',
   searchLibrary: 'opera-incerta:library/search',
   exportDocument: 'opera-incerta:export/document',
+  listStylesheets: 'opera-incerta:export/stylesheets',
+  readStylesheet: 'opera-incerta:export/read-stylesheet',
+  writeStylesheet: 'opera-incerta:export/write-stylesheet',
   createSheet: 'opera-incerta:sheet/create',
   createGroup: 'opera-incerta:group/create',
   renameSheet: 'opera-incerta:sheet/rename',
@@ -572,6 +586,14 @@ export const isLibrarySearchResult: Guard<LibrarySearchResult> = shape<LibrarySe
 export interface ExportRequest {
   readonly format: ExportFormatId;
   readonly from: string | null;
+  /**
+   * Which stylesheet sets the PDF (SPEC.md §15.2): a supplied id, or the name
+   * of one in the project. A name that resolves to nothing falls back to the
+   * default rather than failing — it is never a reason not to export.
+   *
+   * Markdown carries no stylesheet and ignores this.
+   */
+  readonly stylesheet: string | null;
 }
 
 export const isExportRequest: Guard<ExportRequest> = (value): value is ExportRequest => {
@@ -579,8 +601,34 @@ export const isExportRequest: Guard<ExportRequest> = (value): value is ExportReq
     return false;
   }
   const from = value['from'];
-  return isExportFormatId(value['format']) && (from === null || isNotEmpty(from));
+  const stylesheet = value['stylesheet'];
+  return (
+    isExportFormatId(value['format']) &&
+    (from === null || isNotEmpty(from)) &&
+    (stylesheet === null || isNotEmpty(stylesheet))
+  );
 };
+
+/** Naming one of the author's own stylesheets. SPEC.md §15.2. */
+export interface StylesheetRequest {
+  readonly name: string;
+}
+
+export const isStylesheetRequest: Guard<StylesheetRequest> = shape<StylesheetRequest>({
+  name: isStylesheetName,
+});
+
+/** Writing one. The name is checked again in the main process. */
+export interface WriteStylesheetRequest {
+  readonly name: string;
+  readonly css: string;
+}
+
+export const isWriteStylesheetRequest: Guard<WriteStylesheetRequest> =
+  shape<WriteStylesheetRequest>({
+    name: isStylesheetName,
+    css: isString,
+  });
 
 /**
  * What an export reports back.
@@ -887,6 +935,16 @@ export interface OperaIncertaBridge {
    * only where the file went — in a form fit to read, never one to act on.
    */
   exportDocument(request: ExportRequest): Promise<BridgeResult<ExportOutcome>>;
+  /**
+   * The author's own export stylesheets, by name (SPEC.md §15.2).
+   *
+   * The supplied four are not here: the renderer has them from the module
+   * itself, and sending them over the bridge would be sending the
+   * application its own constants.
+   */
+  listStylesheets(): Promise<BridgeResult<readonly string[]>>;
+  readStylesheet(request: StylesheetRequest): Promise<BridgeResult<string | null>>;
+  writeStylesheet(request: WriteStylesheetRequest): Promise<BridgeResult<readonly string[]>>;
   /** Re-reads the open project from disk, after an external change. */
   reopenProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   closeProject(): Promise<BridgeResult<null>>;

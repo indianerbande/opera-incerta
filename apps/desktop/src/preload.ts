@@ -61,6 +61,9 @@ const bridge = {
 
   searchLibrary: (request: unknown) => ipcRenderer.invoke(CHANNELS.searchLibrary, request),
   exportDocument: (request: unknown) => ipcRenderer.invoke(CHANNELS.exportDocument, request),
+  listStylesheets: () => ipcRenderer.invoke(CHANNELS.listStylesheets),
+  readStylesheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.readStylesheet, request),
+  writeStylesheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.writeStylesheet, request),
   createSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.createSheet, request),
   createGroup: (request: unknown) => ipcRenderer.invoke(CHANNELS.createGroup, request),
   renameSheet: (request: unknown) => ipcRenderer.invoke(CHANNELS.renameSheet, request),

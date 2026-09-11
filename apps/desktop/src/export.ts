@@ -135,6 +135,7 @@ export interface ExportDependencies {
 export async function runExport(
   document: AssembledDocument,
   format: ExportFormatId,
+  stylesheet: string,
   parent: BaseWindow | null,
   filterName: string,
   dependencies: ExportDependencies,
@@ -158,7 +159,7 @@ export async function runExport(
     await writeFile(chosen, assembleMarkdown(document.parts), 'utf8');
   } else {
     const pdf = await dependencies.setPdf(
-      documentHtml({ title: document.title, parts: document.parts }),
+      documentHtml({ title: document.title, parts: document.parts, stylesheet }),
     );
     await writeFile(chosen, pdf);
   }
