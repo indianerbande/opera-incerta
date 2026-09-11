@@ -16,7 +16,7 @@
   "dependencies": {
     "@angular/common": "22.1.4",
     "@angular/core": "22.1.4",
-    "@angular/platform-browser": "22.1.4",
+    "@angular/platform-browser": "22.1.5",
     "@codemirror/commands": "6.8.1",
     "@codemirror/state": "6.5.2",
     "@codemirror/view": "6.38.1",
