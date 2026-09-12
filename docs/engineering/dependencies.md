@@ -301,7 +301,7 @@ the decision the outcome asks for is in `roadmap.md` §2.1.
 - **commonmark.js 0.31.2** — BSD-2-Clause, with `entities` (BSD-2) and
   `mdurl`, `minimist` (MIT). The reference implementation: 652 of 652;
   source positions; 9.5 ms; 4 packages, 1 MB. **No GFM.**
-- **marked 18.0.11** — MIT, zero dependencies, full GFM, 11 ms. **587 of 652**:
+- **marked 18.0.12** — MIT, zero dependencies, full GFM, 11 ms. **592 of 652**:
   tabs, list tightness, and the finer link rules. A renderer, not a
   reference; it cannot be the oracle.
 - **micromark 4.0.2 with mdast-util-from-markdown 2.0.3** — MIT. 648 of 652

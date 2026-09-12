@@ -14,7 +14,7 @@
     "@types/commonmark": "0.27.10",
     "commonmark": "0.31.2",
     "markdown-it": "15.0.1",
-    "marked": "18.0.11",
+    "marked": "18.0.12",
     "mdast-util-from-markdown": "2.0.3",
     "mdast-util-gfm": "3.1.0",
     "micromark": "4.0.2",

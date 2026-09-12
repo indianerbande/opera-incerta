@@ -41,6 +41,13 @@ three conformance failures of each candidate. The exit code is the verdict.
 
 Bold marks what fails a threshold.
 
+**Re-measured 2026-09-12.** A weekly dependency update moved `marked` to
+**18.0.12**. The spike was re-run against it: conformance rose to **592 of
+652** (90.8 %), and every other criterion, every other candidate, and the
+verdict are unchanged. The table above records the run of 2026-09-04 and is
+left as it was measured — a dated measurement that is edited afterwards is no
+longer a measurement.
+
 **Criterion 1.** marked fails on tabs, on list tightness, and on the
 finer link rules; it is a renderer, not a reference. micromark's four
 failures are all link destinations with backslash escapes or unusual
