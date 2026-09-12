@@ -296,7 +296,7 @@ Follow `docs/engineering/testing.md`. In particular:
 - visually inspect every intentional user-interface change; and
 - keep generated output out of source directories.
 
-**Node 24, and nothing else.** Electron 44 carries Node 24.18.1 inside it, so
+**Node 24, and nothing else.** Electron 44 carries Node 24.20.0 inside it, so
 24 is the runtime the application actually runs on; building and testing on
 anything else means checking against a runtime that is never shipped. All three
 declarations say so — `.node-version`, `engines`, and `devEngines` with

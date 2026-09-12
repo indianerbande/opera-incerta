@@ -219,7 +219,7 @@ display model rather than a decoration on top of it.
 
 ## Accepted — desktop shell
 
-### Electron 44.0.0
+### Electron 44.3.0
 
 - **Capability:** the desktop application shell: native windows, lifecycle,
   menus, dialogs, and a Chromium renderer with a process boundary that can be
@@ -315,8 +315,11 @@ the decision the outcome asks for is in `roadmap.md` §2.1.
 
 ### Node — 24, because Electron says so
 
-Electron 44.0.0 bundles Node **24.18.1** (Chrome 152, V8 15.2), measured with
-`ELECTRON_RUN_AS_NODE=1`. That is the runtime the application runs on, so it is
+Electron 44.3.0 bundles Node **24.20.0** (Chrome 152.0.7977.78, V8 15.2),
+measured with `ELECTRON_RUN_AS_NODE=1` on 2026-09-12. None of the three
+releases from 44.0.0 announced a Node.js change in its notes; the runtime had
+moved two minors regardless, which is why this number is measured and not
+read. That is the runtime the application runs on, so it is
 the runtime the toolchain is held to: `engines` and `devEngines` both say
 `^24.15.0`, and `devEngines.onFail` is `error`, so a wrong runtime stops the
 command instead of printing a line nobody reads.
