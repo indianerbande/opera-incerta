@@ -342,6 +342,16 @@ export async function typeText(window: BrowserWindow, text: string): Promise<voi
   await rendered(window);
 }
 
+/**
+ * The platform's own command modifier: `cmd` on macOS, `control` elsewhere.
+ *
+ * Every accelerator this application declares is `CmdOrCtrl`, and so is every
+ * editing key the platform owns. A check that hard-codes `cmd` passes on
+ * macOS and moves the cursor nowhere on Linux — which is exactly what the
+ * first continuous-integration run found, in `checkCutTakesPrefix`.
+ */
+export const COMMAND_MODIFIER = process.platform === 'darwin' ? 'cmd' : 'control';
+
 export async function pressKey(
   window: BrowserWindow,
   keyCode: string,
@@ -377,7 +387,7 @@ export async function placeCursorInEditor(window: BrowserWindow): Promise<void> 
   }
   window.webContents.sendInputEvent({ type: 'mouseDown', x: point.x, y: point.y, clickCount: 1 });
   window.webContents.sendInputEvent({ type: 'mouseUp', x: point.x, y: point.y, clickCount: 1 });
-  await pressKey(window, 'End', ['cmd']);
+  await pressKey(window, 'End', [COMMAND_MODIFIER]);
 }
 
 /** Presses the navigator's reload button, as the author would. */

@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type BrowserWindow, clipboard } from 'electron';
 import {
+  COMMAND_MODIFIER,
   clickMenuItem,
   clickText,
   editorContains,
@@ -55,7 +56,7 @@ export async function checkHeadingGestures(window: BrowserWindow): Promise<void>
   // Start a fresh line at the very end, the way an author would before
   // writing. The fixture's last line closes a fenced block, where a dot
   // command deliberately does nothing.
-  await pressKey(window, 'End', ['cmd']);
+  await pressKey(window, 'End', [COMMAND_MODIFIER]);
   await pressKey(window, 'Return');
   await typeText(window, '.h3 Typed heading');
 
@@ -328,7 +329,7 @@ export async function checkGfmDisplay(smoke: Smoke, window: BrowserWindow): Prom
 
   // Undo what was typed, so the checks after this one find the sheet as it was.
   for (let attempt = 0; attempt < 80 && (await editorContains(window, 'A quoted line')); attempt += 1) {
-    await pressKey(window, 'z', ['cmd']);
+    await pressKey(window, 'z', [COMMAND_MODIFIER]);
   }
   if (await editorContains(window, 'A quoted line')) {
     throw new Error('undo did not take the typed markup back out');
@@ -436,8 +437,12 @@ export async function checkCutTakesPrefix(
   lineStartModifiers: readonly string[],
   lineEndKey: string,
 ): Promise<void> {
-  // A fresh heading at the end of the document.
-  await pressKey(window, lineEndKey, ['cmd']);
+  // A fresh heading at the end of the document. The modifiers are the
+  // caller's, not `cmd`: this line was macOS-only for as long as the check
+  // had only ever run on macOS, and on Linux it moved the cursor nowhere —
+  // so the heading was appended to the previous line instead of starting a
+  // new one. The first run on another platform found it.
+  await pressKey(window, lineEndKey, lineStartModifiers);
   await pressKey(window, 'Return');
   await typeText(window, '.h2 Cut me');
 
@@ -762,7 +767,7 @@ export async function checkLineNumbers(smoke: Smoke, window: BrowserWindow): Pro
   console.log(`smoke evidence: ${evidence}`);
 
   for (let attempt = 0; attempt < 80 && (await editorContains(window, 'onwards and')); attempt += 1) {
-    await pressKey(window, 'z', ['cmd']);
+    await pressKey(window, 'z', [COMMAND_MODIFIER]);
   }
   if (await editorContains(window, 'onwards and')) {
     throw new Error('undo did not take the long line back out');
