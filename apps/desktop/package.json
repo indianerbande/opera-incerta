@@ -27,7 +27,7 @@
     "@opera-incerta/git-node": "workspace:*",
     "@opera-incerta/localization": "workspace:*",
     "@opera-incerta/project-node": "workspace:*",
-    "electron": "44.0.0",
+    "electron": "44.3.0",
     "esbuild": "0.28.2"
   }
 }
