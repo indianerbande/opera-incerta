@@ -2,7 +2,7 @@
 
 [English](../en/platforms.md) | **Deutsch**
 
-Aktualisiert: 2026-09-11 · Veröffentlichung: `v0.1.0-beta.1`
+Aktualisiert: 2026-09-12 · Veröffentlichung: `v0.1.0-beta.1`
 
 Dieses Dokument hält fest, **was auf welchem Betriebssystem tatsächlich gebaut
 und geprüft wurde**. Es ist bewusst ein Protokoll und keine Absichtserklärung:
@@ -16,13 +16,25 @@ Betriebssystem ein Nachweis.
 | macOS arm64 | grün | grün | **nicht gelaufen** | **nicht erfolgt** |
 | macOS x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
 | Windows x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
-| Ubuntu / Debian x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
+| Ubuntu 24.04 x64 | grün (CI) | grün (CI, 45 Prüfungen) | **nicht gelaufen** | **nicht erfolgt** |
 | Ubuntu / Debian arm64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
 
 **Für keine Plattform existiert ein natives Paket.** `pnpm run desktop:package`
 und `pnpm run desktop:make` sind über Electron Forge eingerichtet und wurden
-nie ausgeführt. Alles bisher Geprüfte wurde auf macOS arm64 geprüft, aus einem
-Quell-Checkout.
+nie ausgeführt.
+
+Die Ubuntu-Zeile ist aus der **kontinuierlichen Integration** gefüllt
+(2026-09-12), nicht von einem Menschen an einer Maschine: Der Quellprüfstand
+und alle 45 Schreibtischprüfungen laufen auf `ubuntu-24.04` aus einem sauberen
+Checkout durch. Das ist ein echter Nachweis für den Quellbau und für das
+Verhalten der Anwendung unter X11 — und kein Nachweis für ein Paket, eine
+Installation oder den Durchgang von Hand weiter unten. Diese Unterscheidung
+wird gehalten, denn sie ist der ganze Sinn dieser Tabelle.
+
+Der erste Lauf hat sich gelohnt: Er fand zwei macOS-Annahmen, die wochenlang
+grün gewesen waren — einen hart kodierten `cmd`-Modifier in der
+Schreibtischprüfung und eine Export-Zusicherung, die einen Schriftnamen las,
+den nur ein Mac sicher hat.
 
 Das ist der ehrliche Stand einer Quell-Beta und der Grund, warum diese Beta
 als Quellcode statt als Download verteilt wird.
