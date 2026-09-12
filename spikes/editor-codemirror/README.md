@@ -1,7 +1,9 @@
 # Editor spike — CodeMirror 6
 
 Status: Completed 2026-09-01, all six criteria passed; the component is
-accepted in `specification.md` §5.4
+accepted in `specification.md` §5.4. The adapter contract of `testing.md` §2.8
+joined the run afterwards as criterion 7, so `pnpm run spike:editor` now
+reports 7/7.
 
 This spike answers one question: can CodeMirror 6 carry the display model of
 `specification.md` §10 — paragraph-level heading formatting at different sizes, a gutter
@@ -35,6 +37,14 @@ proving nothing. The exit code is the verdict.
 
 Thresholds were fixed in `testing.md` §2.8 before the spike ran
 (`conventions.md` C-T14).
+
+**Re-measured 2026-09-12.** A grouped dependency update moved the three
+packages to `@codemirror/state` 6.7.4, `@codemirror/view` 6.43.11, and
+`@codemirror/commands` 6.11.0 — five minor releases on `view`, in the
+component the author looks at all day. All seven criteria were re-run against
+them: 7/7, with typing latency at a median of 6.1 ms and a p95 of 6.7 ms over
+112,020 characters. The table above records the run of 2026-09-01 and is left
+as it was measured.
 
 ## What it also demonstrated
 

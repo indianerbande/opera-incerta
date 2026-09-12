@@ -117,7 +117,7 @@ obligations, and those notices ship with the application
 
 ## Accepted — editing surface
 
-### CodeMirror 6 (`@codemirror/state` 6.5.2, `@codemirror/view` 6.38.1, `@codemirror/commands` 6.8.1)
+### CodeMirror 6 (`@codemirror/state` 6.7.4, `@codemirror/view` 6.43.11, `@codemirror/commands` 6.11.0)
 
 - **Capability:** the text editing surface: a document model with transactions,
   decoration-based rendering, gutters, variable line heights, undo history, and
@@ -136,9 +136,14 @@ obligations, and those notices ship with the application
   The component renders and reports edits; it never owns Markdown semantics,
   and it never persists anything. Replacing it means reimplementing that
   interface, not rewriting the display model.
-- **Evidence:** the spike gate of `testing.md` §2.8, all six criteria passed in
-  a real rendering engine on 2026-09-01. Run it with `pnpm run spike:editor`;
+- **Evidence:** the spike gate of `testing.md` §2.8 in a real rendering
+  engine. Six criteria were accepted on 2026-09-01; the adapter contract of
+  §2.8 joined them afterwards as criterion 7, and all seven were re-run
+  against these versions on 2026-09-12. Run it with `pnpm run spike:editor`;
   the measurements are recorded in `spikes/editor-codemirror/README.md`.
+  **No workflow runs it** — a CodeMirror update can therefore pass CI without
+  the editor contract having executed, which is why the update gate above
+  requires it by hand (`roadmap.md`).
 
 **Why not Monaco**, the obvious alternative: Monaco is built for
 source code and assumes a uniform line height. Opera Incerta shows H1 at 45 px
