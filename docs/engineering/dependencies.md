@@ -76,15 +76,18 @@ obligations, and those notices ship with the application
 
 ## Accepted — renderer
 
-### Angular 22.1.4 (`@angular/core`, `@angular/common`, `@angular/platform-browser`)
+### Angular 22.1.5 (`@angular/core`, `@angular/common`, `@angular/platform-browser`)
 
 - **Capability:** the workbench user interface: components, templates,
   reactivity through Signals, and zoneless change detection.
 - **Why external:** a mature component and rendering framework is far outside
   what this project should own.
 - **License:** MIT.
-- **Impact:** ships inside the packaged application. The scaffold bundle is
-  about 104 kB raw / 31 kB transfer.
+- **Impact:** ships inside the packaged application. The renderer's initial
+  bundle is **303.79 kB raw / 96.75 kB transfer**, with the app component as a
+  435.09 kB lazy chunk, measured with `pnpm run workbench:build` on
+  2026-09-12. (This line long carried the 104 kB of the first scaffold; the
+  scaffold has not existed for months.)
 - **Offline behavior:** fully local; no runtime network access.
 - **Boundary:** Angular owns UI composition only. Domain rules live in
   `packages/core` and never import Angular; the desktop bridge is reached
@@ -92,7 +95,7 @@ obligations, and those notices ship with the application
 - **Evidence:** `pnpm run workbench:build` produces the renderer bundle;
   `apps/workbench/test` covers the layout contract without a framework harness.
 
-### `@angular/build` 22.1.6, `@angular/cli` 22.1.6, `@angular/compiler` 22.1.4, `@angular/compiler-cli` 22.1.4
+### `@angular/build` 22.1.7, `@angular/cli` 22.1.7, `@angular/compiler` 22.1.5, `@angular/compiler-cli` 22.1.5
 
 - **Capability:** the application builder and ahead-of-time compiler.
 - **License:** MIT.
