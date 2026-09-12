@@ -141,9 +141,9 @@ obligations, and those notices ship with the application
   §2.8 joined them afterwards as criterion 7, and all seven were re-run
   against these versions on 2026-09-12. Run it with `pnpm run spike:editor`;
   the measurements are recorded in `spikes/editor-codemirror/README.md`.
-  **No workflow runs it** — a CodeMirror update can therefore pass CI without
-  the editor contract having executed, which is why the update gate above
-  requires it by hand (`roadmap.md`).
+  Continuous integration runs it beside the desktop check, under a virtual
+  display, so that an automated CodeMirror update cannot reach a green pull
+  request without the editor contract having executed.
 
 **Why not Monaco**, the obvious alternative: Monaco is built for
 source code and assumes a uniform line height. Opera Incerta shows H1 at 45 px
@@ -323,8 +323,8 @@ the decision the outcome asks for is in `roadmap.md` §2.1.
 
 ### Node — 24, because Electron says so
 
-Electron 44.3.0 bundles Node **24.20.0** (Chrome 152.0.7977.78, V8 15.2),
-measured with `ELECTRON_RUN_AS_NODE=1` on 2026-09-12. None of the three
+Electron 44.3.0 bundles Node **24.20.0** (Chrome 152.0.7977.78,
+V8 15.2.124.19-electron.0), measured with `ELECTRON_RUN_AS_NODE=1` on 2026-09-12. None of the three
 releases from 44.0.0 announced a Node.js change in its notes; the runtime had
 moved two minors regardless, which is why this number is measured and not
 read. That is the runtime the application runs on, so it is
@@ -431,8 +431,13 @@ cannot propose something the gate would have to reject
   those separately and this filter does not touch them.
 
 `pnpm run check:dependencies` enforces the same rules from the other side, so
-they hold whoever made the change — bot, contributor, or maintainer. What it
-proves, and how it was falsified, is in `testing.md` §2.13.
+they hold whoever made the change — bot, contributor, or maintainer. It also
+compares **this document** with what is installed: every version named beside
+a package here, every override declared in `pnpm-workspace.yaml`, and the
+runtime the Electron section attributes to the shell, which it obtains by
+running the installed binary. A bot changes manifests and leaves sentences
+alone, and a sentence nobody re-reads is how a record stops being true. What
+the check proves, and how it was falsified, is in `testing.md` §2.13.
 
 **No update is merged because its version number is newer.** The pull request
 has to pass the gate, and a change that touches the editor, the export, or the

@@ -39,7 +39,9 @@ git diff --check
 ```
 
 Changes to the editor's display model also require `pnpm run spike:editor`,
-which runs the adapter contract in a real rendering engine. Changes to the
+which runs the adapter contract in a real rendering engine. Continuous
+integration runs it too, so a pull request that moves CodeMirror cannot go
+green without it. Changes to the
 visual system require **looking at** the screenshots the desktop check writes
 to `build/desktop/` — an assertion cannot tell you that a line ran to
 ninety-five characters.
