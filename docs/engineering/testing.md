@@ -1012,6 +1012,38 @@ Both gates were falsified when they were written: a link was pointed at a
 document that does not exist, a translated page was emptied, and a token shape
 was planted in a scratch file. Each was red, and red for its own reason.
 
+### 2.13 What an automated update must not break
+
+**Added 2026-09-12**, after a dependency bot opened five separate pull
+requests for packages that are one Angular release. `pnpm run
+check:dependencies` proves:
+
+- **every dependency is pinned exactly**, in every workspace package. A range
+  lets the manifest and the lockfile disagree about what is installed;
+- **no package sits at two versions** across the workspace, which would make
+  the result depend on where a build was started;
+- **the families that are one release move together** — the Angular framework
+  packages, and its build tooling; and
+- **a major version cannot rise without a person**. The accepted majors are a
+  list in the script, and the failure says what a major actually is: not a
+  dependency update but a round of its own, with the specification read and
+  the gates run.
+
+It then runs `pnpm peers check`, which is the part that catches the
+TypeScript–Angular coupling: `@angular/compiler-cli` accepts
+`typescript >=6.0 <6.1`, and a minor TypeScript update is exactly the kind of
+thing a bot proposes.
+
+**`strict-peer-dependencies` is not that protection, which was verified
+rather than assumed.** With it set in `.npmrc`, installing TypeScript 5.9.2
+against that range **succeeded**, with a warning an install prints and a log
+swallows. `pnpm peers check` exits non-zero on the same state. The gate uses
+the one that fails.
+
+Falsified in four ways when written: an Angular package moved out of step with
+its family, a caret crept into a range, an Electron major, and a TypeScript
+major. Each was red, and each said what to do about it.
+
 ## 3. Fixture catalog
 
 All fixtures are original to this project and live under `examples/`.

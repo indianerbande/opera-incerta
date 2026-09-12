@@ -18,8 +18,9 @@
   },
   "scripts": {
     "build": "pnpm --recursive --sort --if-present run build",
-    "check": "pnpm run build && pnpm run typecheck:tests && pnpm run test && pnpm run check:desktop-production && pnpm run check:assets && pnpm run check:documentation && pnpm run check:public-source",
+    "check": "pnpm run build && pnpm run typecheck:tests && pnpm run test && pnpm run check:desktop-production && pnpm run check:assets && pnpm run check:dependencies && pnpm run check:documentation && pnpm run check:public-source",
     "check:assets": "node scripts/check-assets.mjs",
+    "check:dependencies": "node scripts/check-dependencies.mjs && pnpm peers check",
     "check:desktop-production": "node scripts/check-desktop-production.mjs",
     "check:documentation": "node scripts/check-documentation.mjs",
     "check:public-source": "node scripts/check-public-source.mjs",
