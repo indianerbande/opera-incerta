@@ -6,6 +6,130 @@ documents").
 
 ---
 
+## 2026-09-12 — the first grouped updates, and the record they would have aged
+
+**What this was.** Five automated pull requests merged: `pnpm/action-setup`
+6.1.0, `marked` 18.0.12, the Angular group (framework 22.1.5, build tooling
+22.1.7), Electron 44.3.0, and the CodeMirror group (`state` 6.7.4, `view`
+6.43.11, `commands` 6.11.0). The four single Angular pull requests that
+existed before the guard were gone: the bot closed them itself and re-proposed
+them as one group, which is what the grouping was for.
+
+**The guard did its job, and it is only half the guard.** `pnpm run check`
+passed on every one of them, which is the interesting part: the shapes the bot
+now proposes are shapes our own `check:dependencies` accepts. But two things
+it cannot see turned up in a single afternoon.
+
+*No workflow runs `spike:editor` or `spike:parser`.* The CodeMirror update
+moves `@codemirror/view` five minor releases in the component the author looks
+at all day, and CI goes green without the editor's adapter contract executing
+once. The rule that says to run it lives in `CONTRIBUTING.md`, where a bot
+cannot read it. It was run by hand here — 7/7, typing latency 6.1 ms median
+against a 16 ms threshold — and `roadmap.md` §1.3 now holds the omission.
+
+*Nothing compares the versions in the prose with the versions in the
+manifests.* `dependencies.md` names each dependency's version in its heading,
+and a bot changes manifests only. Three of the five would have left the record
+naming a version that is not installed, with every check green.
+
+**What the record actually got wrong, once it was read.**
+
+- Angular's entry claimed the renderer weighs *"about 104 kB raw / 31 kB
+  transfer"*. That was the first scaffold. `pnpm run workbench:build` reports
+  **303.79 kB raw / 96.75 kB transfer** for the initial bundle, plus a
+  435.09 kB lazy chunk. The number had been decoration for months.
+- None of the three Electron releases between 44.0.0 and 44.3.0 announced a
+  Node.js change in its notes. `ELECTRON_RUN_AS_NODE=1` says the bundled Node
+  went **24.18.1 → 24.20.0** regardless. The line is written as a measurement
+  precisely so that reading cannot replace measuring; this time it mattered.
+- The editor spike's README and the dependency record both still said *"all
+  six criteria"* after the adapter contract joined the run as criterion 7.
+
+**Dated measurements were not edited.** Both spike READMEs carry a result
+table with a date on it. The re-runs are recorded beside them instead: a
+measurement edited after the fact is no longer a measurement.
+
+**Evidence.** `pnpm run check` green on each pull request and on `main`
+afterwards — **1106 tests**; `desktop:smoke` **45 checks, exit 0** on macOS
+against Electron 44.3.0 and again on the combined state; `spike:editor` 7/7
+against the new CodeMirror; `pnpm audit --prod` clean; the smoke screenshots
+looked at, with the gutter and the wrapped line checked under
+`@codemirror/view` 6.43.11.
+
+**What was learned.** The bot rebased the CodeMirror branch itself while the
+others were merging, and its rebase produced a tree identical to the one made
+here — so its commit was kept and the record commit set on top of it, rather
+than overwriting equivalent work to keep authorship tidy. And the lesson
+underneath the whole round: a gate that keeps the build from breaking does not
+keep the written record from quietly ceasing to be true. That needs its own
+check, and it is now written down as one.
+
+---
+
+## 2026-09-12 — an automated update cannot break Electron, Angular, or TypeScript
+
+**What this was.** The first dependency-bot run opened five separate pull
+requests for packages that are one Angular release. Merged one at a time they
+would have left `@angular/core` and `@angular/common` at different versions,
+and nothing in the gate would have noticed.
+
+**The protection we thought we had was not one.** `@angular/compiler-cli`
+accepts `typescript >=6.0 <6.1`, and a minor TypeScript update is exactly what
+a bot proposes. `strict-peer-dependencies` was already set in `.npmrc` and
+looked like the answer. It is not, and that was verified rather than assumed:
+installing TypeScript 5.9.2 against that range **succeeded**, with a warning
+that an install prints and a log swallows. `pnpm peers check` exits non-zero on
+the same state, so the gate runs it.
+
+**Three layers, holding whoever made the change.** `check:dependencies` proves
+every dependency is pinned exactly in every package, that no package sits at
+two versions in one workspace, that the Angular framework and its build tooling
+each move as one release, and that a **major** cannot rise without a person
+editing the accepted number — where the failure message explains that a major
+is not a dependency update but a round of its own. `dependabot.yml` groups what
+is one release into one pull request and does not propose majors for Electron,
+Angular, TypeScript, Vitest, or `@types/node` at all; security advisories are
+unaffected, because GitHub raises those separately.
+
+**Falsified four ways:** an Angular package out of step with its family, a
+caret in a range, an Electron major, a TypeScript major. Each red, each with a
+message saying what to do.
+
+**What was learned.** After the TypeScript experiment, `pnpm run check` failed
+locally with a type error that does not exist on `main` — a polluted
+`node_modules` that `--frozen-lockfile` does not clear. Only
+`rm -rf node_modules` and a fresh install was honest. A local red can lie
+exactly as a local green can.
+
+---
+
+## 2026-09-12 — the desktop check runs in CI, and CI runs where it helps
+
+**What this was.** Three corrections to the workflow that went in with the
+documentation round, each found by the first runs on Linux.
+
+**The sandbox.** Chromium's SUID helper must be owned by root with mode 4755,
+which an npm install cannot produce and Ubuntu 24.04 enforces. The workflow now
+does what a package manager would, rather than passing `--no-sandbox`: the
+check has to prove the behaviour that ships. The failure was exactly the one
+our own platform matrix had written down in advance.
+
+**Two macOS assumptions in the desktop check**, green for weeks because the
+check had only ever run on macOS: a hard-coded `cmd` modifier in five places,
+now one `COMMAND_MODIFIER`; and an export assertion that read a font name only
+a Mac is certain to have. Removing the second surfaced a real product
+boundary — the supplied export stylesheets name system fonts — which is now
+stated in both project-status documents instead of being implied.
+
+**The trigger.** Pull requests only. A push to `main` has already been through
+the gate on the machine it came from.
+
+**Evidence.** The source gate and all 45 desktop checks pass on ubuntu-24.04.
+The platform matrix records that, and records that it is evidence for the
+source build and not for a package or an installation.
+
+---
+
 ## 2026-09-11 — the repository becomes something a stranger can read
 
 **What this was.** Not product code. The software had been working for a
