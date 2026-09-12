@@ -46,6 +46,13 @@ them: 7/7, with typing latency at a median of 6.1 ms and a p95 of 6.7 ms over
 112,020 characters. The table above records the run of 2026-09-01 and is left
 as it was measured.
 
+**First measurement in continuous integration, 2026-09-12.** The spike now
+runs on every pull request, under `xvfb` on a shared `ubuntu-24.04` runner:
+7/7, typing latency **median 7.9 ms, p95 9.9 ms** against the 16 ms threshold.
+That is the number to compare future runs against — slower than a developer's
+machine, as expected, and with the p95 at about three fifths of the threshold
+rather than against it.
+
 ## What it also demonstrated
 
 The renderer bundle imports `@opera-incerta/core` for its heading transform.

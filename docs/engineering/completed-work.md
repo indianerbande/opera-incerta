@@ -55,8 +55,11 @@ the document says everything worth saying. A version never mentioned is never
 caught, and no check makes a record complete — only a person does.
 
 **Evidence.** `pnpm run check` green, **1106 tests**; `desktop:smoke` 45
-checks; `spike:editor` 7/7 locally and now in CI, where its measured latency
-is on the record for the first time.
+checks; `spike:editor` 7/7 locally and 7/7 on the runner. Its first measured
+latency in continuous integration: **median 7.9 ms, p95 9.9 ms** against the
+16 ms threshold, where a developer's machine reports 6.1 and 6.7. The shared
+runner is slower, and not nearly enough to make the threshold the thing under
+test. That figure is in the spike's README as the baseline for the next run.
 
 ---
 
