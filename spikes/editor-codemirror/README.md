@@ -46,12 +46,27 @@ them: 7/7, with typing latency at a median of 6.1 ms and a p95 of 6.7 ms over
 112,020 characters. The table above records the run of 2026-09-01 and is left
 as it was measured.
 
-**First measurement in continuous integration, 2026-09-12.** The spike now
-runs on every pull request, under `xvfb` on a shared `ubuntu-24.04` runner:
-7/7, typing latency **median 7.9 ms, p95 9.9 ms** against the 16 ms threshold.
-That is the number to compare future runs against — slower than a developer's
-machine, as expected, and with the p95 at about three fifths of the threshold
-rather than against it.
+**First measurements in continuous integration, 2026-09-12.** The spike now
+runs on every pull request, under `xvfb` on a shared `ubuntu-24.04` runner.
+Two runs of identical code, both 7/7:
+
+| run | median | p95 | threshold |
+| --- | --- | --- | --- |
+| first | 7.9 ms | 9.9 ms | 16 ms |
+| second | 10 ms | 13 ms | 16 ms |
+
+The first run alone looked like a comfortable three fifths of the threshold.
+The second, on the same commit, sat at four fifths. **The variance between two
+runs is larger than the difference between the runner and a developer's
+machine** (6.1 ms median, 6.7 ms p95), so a single CI measurement says very
+little, and this criterion is closer to its threshold here than any local run
+suggests.
+
+That is worth knowing before it fails rather than after. If it does fail on a
+runner while passing locally, the answer is to raise the threshold **for the
+runner** and record why — not to delete the criterion, and not to re-run until
+it is green. What the threshold protects is the author's typing, and the
+author does not type on a shared runner.
 
 ## What it also demonstrated
 

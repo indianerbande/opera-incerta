@@ -55,11 +55,19 @@ the document says everything worth saying. A version never mentioned is never
 caught, and no check makes a record complete — only a person does.
 
 **Evidence.** `pnpm run check` green, **1106 tests**; `desktop:smoke` 45
-checks; `spike:editor` 7/7 locally and 7/7 on the runner. Its first measured
-latency in continuous integration: **median 7.9 ms, p95 9.9 ms** against the
-16 ms threshold, where a developer's machine reports 6.1 and 6.7. The shared
-runner is slower, and not nearly enough to make the threshold the thing under
-test. That figure is in the spike's README as the baseline for the next run.
+checks; `spike:editor` 7/7 locally and 7/7 on the runner, twice.
+
+**And the reason one measurement is not a baseline.** The first CI run
+reported a p95 of 9.9 ms against the 16 ms threshold, which was written down
+as comfortable. The second run, on the same commit, reported **13 ms**. The
+variance between two runs of identical code is larger than the gap between the
+runner and a developer's machine (6.7 ms p95), so the criterion sits closer to
+its threshold in CI than any local run suggests. Both figures are in the
+spike's README, with the reassurance removed: if it ever fails on a runner
+while passing locally, the threshold is raised for the runner and the reason
+recorded — not the criterion deleted, and not the job re-run until it is
+green. What the threshold protects is the author's typing, and the author does
+not type on a shared runner.
 
 ---
 
