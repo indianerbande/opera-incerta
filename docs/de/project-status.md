@@ -126,6 +126,21 @@ Umschreiben der Geschichte gibt es bewusst nicht.
   gemerkt werden.
 - Jede Handlung ohne Zeigegerät erreichbar.
 
+## Bekannte Grenzen des Gebauten
+
+- **Die mitgelieferten Export-Stylesheets nennen Systemschriften.** Georgia,
+  Courier New und Helvetica Neue sind nicht überall installiert — auf einer
+  nackten Linux-Maschine fällt das exportierte PDF auf das zurück, was das
+  System hat. Das Layout hält; die Schrift ist womöglich nicht die genannte.
+  Schriften mit dem Export mitzuliefern ist offene Arbeit. (Die Schrift der
+  *Anwendung* selbst ist mitgeliefert und davon nicht berührt.)
+- **Aufgabenkästchen erreichen einen Export als die Zeichen `[ ]` und `[x]`.**
+- **Ein Stylesheet kann Seitenränder und Seitenzahlen des PDF nicht setzen**;
+  die gehören dem Drucker.
+- **Die Konfliktauflösung entscheidet je Region, nicht innerhalb einer.**
+- **Das Umordnen hat noch keine Entsprechung auf der Tastatur** — es ist die
+  eine Handlung, die nur ein Ziehen ist.
+
 ## Noch nicht gebaut
 
 Diese Dinge sind spezifiziert und bewusst abwesend, nicht vergessen:

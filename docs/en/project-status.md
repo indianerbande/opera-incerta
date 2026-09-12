@@ -115,6 +115,20 @@ or history rewrite.
   remembered.
 - Every action reachable without a pointer.
 
+## Known boundaries of what is built
+
+- **The supplied export stylesheets name system fonts.** Georgia, Courier New
+  and Helvetica Neue are not installed everywhere — on a bare Linux machine
+  the exported PDF falls back to whatever the system has. The layout holds;
+  the typeface may not be the one named. Packaging fonts with the export is
+  open work. (The *application's* own typeface is packaged and unaffected.)
+- **Task boxes reach an export as the characters `[ ]` and `[x]`.**
+- **A stylesheet cannot set the PDF's page margins or page numbers**; the
+  printer owns those.
+- **Conflict resolution decides per region, not within one.**
+- **Reordering has no keyboard equivalent yet** — it is the one operation
+  that is a drag and nothing else.
+
 ## Not built yet
 
 These are specified and deliberately absent, not forgotten:

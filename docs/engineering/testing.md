@@ -617,9 +617,12 @@ Tests MUST cover:
   the four supplied sheets and none of the author's, one is duplicated under
   a new name, and the copy appears both in the list and as a file in
   `.opera-incerta/styles/` carrying the CSS it was copied from. That the
-  choice actually reaches the page is read **out of the PDF**, which names
-  the fonts it uses: the typescript is monospaced, so `Courier` is in the
-  file and `Georgia` is not;
+  choice actually reaches the page is **not** re-proven here — it is proven
+  against the HTML in the main process's own tests. The first version of this
+  check read font names out of the PDF, which held only on a machine that has
+  Courier and Georgia installed; the first Linux run found that, and the
+  assertion went. What the smoke owns is the chain: dialog, duplicate, a file
+  in the project, and a real PDF;
 - the regions as panels (`specification.md` §8.2), measured in the running workbench:
   the leading rail flush against the window, the first panel eight pixels past
   it, all four panels eight from the top, the same corner, border and lift on

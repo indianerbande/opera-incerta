@@ -1082,12 +1082,13 @@ export async function checkExport(smoke: Smoke, window: BrowserWindow): Promise<
   if (pdf.length < 2000) {
     throw new Error(`the PDF is ${String(pdf.length)} bytes, which is not a manuscript`);
   }
-  // And it was set with the stylesheet that was chosen, not the default: the
-  // typescript is monospaced, and a PDF names the fonts it uses.
-  const fonts = pdf.toString('latin1');
-  if (!fonts.includes('Courier') || fonts.includes('Georgia')) {
-    throw new Error('the PDF was not set with the chosen stylesheet');
-  }
+  // That the **chosen** stylesheet reaches the page is proven in
+  // `apps/desktop/test/export.test.ts`, against the HTML itself. It is
+  // deliberately not re-proven here by reading font names out of the PDF:
+  // that assertion held only on a machine that happens to have Courier and
+  // Georgia installed, and the first Linux run said so. What this check owns
+  // is the chain — dialog, duplicate, project file, a real PDF — not the
+  // rendering of a typeface the host may not have.
 
   const evidence = join(smoke.evidenceDirectory, 'smoke-export.png');
   await rendered(window);
