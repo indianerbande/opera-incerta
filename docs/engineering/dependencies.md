@@ -404,3 +404,25 @@ Source control uses the locally installed `git` executable through
   `document.fonts.check('16px "IBM Plex Sans"')` in the running application,
   which is what proves the packaged bytes actually arrive over the renderer
   protocol rather than merely sitting in the build.
+
+## Automated updates
+
+Dependency updates arrive weekly through a bot, and are shaped so that it
+cannot propose something the gate would have to reject
+(`.github/dependabot.yml`):
+
+- **Packages that are one release come as one pull request** — all of
+  `@angular/*`, all of Electron and its packaging tools, all of CodeMirror,
+  and TypeScript together with the `@types` that follow it.
+- **Major versions are not proposed at all** for Electron, Angular,
+  TypeScript, Vitest, and `@types/node`. A major moves an API or a runtime and
+  needs a round of its own. Security advisories are unaffected: GitHub raises
+  those separately and this filter does not touch them.
+
+`pnpm run check:dependencies` enforces the same rules from the other side, so
+they hold whoever made the change — bot, contributor, or maintainer. What it
+proves, and how it was falsified, is in `testing.md` §2.13.
+
+**No update is merged because its version number is newer.** The pull request
+has to pass the gate, and a change that touches the editor, the export, or the
+packaging needs the evidence its own round would need.

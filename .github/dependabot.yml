@@ -1,3 +1,6 @@
+# Dependency updates, shaped so that a bot cannot propose something the gate
+# would have to reject. See scripts/check-dependencies.mjs for the rules it is
+# shaped around, and docs/engineering/dependencies.md for the update policy.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,6 +12,48 @@ updates:
       timezone: Europe/Vienna
     open-pull-requests-limit: 5
     versioning-strategy: increase
+
+    # Packages that are one release are updated as one pull request. Without
+    # this, Angular arrives as five separate proposals whose versions disagree
+    # — which is exactly what happened on the first run, and what
+    # `check:dependencies` refuses.
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
+      electron:
+        patterns:
+          - "electron"
+          - "@electron-forge/*"
+      codemirror:
+        patterns:
+          - "@codemirror/*"
+      typescript-and-types:
+        patterns:
+          - "typescript"
+          - "@types/*"
+
+    # A major version is not a dependency update: it moves an API or a
+    # runtime, and it needs a round of its own with the specification read and
+    # the gates run. The bot does not open those; a person decides when.
+    #
+    # Security advisories are unaffected — GitHub raises those separately and
+    # they are not filtered by this list.
+    ignore:
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@electron-forge/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      # Node's own types follow the runtime this project pins, not npm.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
