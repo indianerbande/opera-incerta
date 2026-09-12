@@ -72,6 +72,11 @@ has to be consulted to build, verify or change the product.
   SHA was available offline. An unverified pin looks like diligence and is a
   guess, so the step is a comment in `.github/workflows/check.yml` until
   somebody verifies one.
+- **Continuous integration runs on pull requests only** (decided
+  2026-09-12). A push to `main` has already been through the gate on the
+  machine it came from; what the workflow protects is a change arriving from
+  somewhere else. If the project ever gains a second committer, this is the
+  first line to revisit.
 - **The website is not linked** from the documentation. The address was not
   settled when the public documentation was written; adding it is one line per
   place.

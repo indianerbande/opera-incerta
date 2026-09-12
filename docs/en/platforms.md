@@ -101,6 +101,12 @@ namespaces.
 application files by hand. The build host needs `sudo`, `dpkg`, and
 `fakeroot`.
 
+The same requirement bites in continuous integration, where Electron comes
+from an npm install rather than from a package manager: the workflow gives the
+helper that ownership itself before running the desktop check. It does **not**
+pass `--no-sandbox`, which would make the check run under conditions the
+shipped application never has.
+
 ## The manual pass after installing
 
 Automated checks end where the installer begins. On a machine with **no Node

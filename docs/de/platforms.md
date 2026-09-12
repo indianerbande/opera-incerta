@@ -108,6 +108,12 @@ Benutzernamensräume einschränken.
 Anwendungsdateien von Hand zu reparieren. Das Bau-Wirtssystem braucht `sudo`,
 `dpkg` und `fakeroot`.
 
+Dieselbe Anforderung beißt in der kontinuierlichen Integration, wo Electron
+aus einer npm-Installation statt von einem Paketmanager kommt: Der Workflow
+verschafft dem Hilfsprogramm diese Besitzverhältnisse selbst, bevor er die
+Schreibtischprüfung fährt. Er übergibt **nicht** `--no-sandbox` — dann liefe
+die Prüfung unter Bedingungen, welche die ausgelieferte Anwendung nie hat.
+
 ## Der Durchgang von Hand nach der Installation
 
 Automatische Prüfungen enden dort, wo der Installer beginnt. Auf einer
