@@ -2,7 +2,7 @@
 
 **English** | [Deutsch](../de/platforms.md)
 
-Updated: 2026-09-11 · Release: `v0.1.0-beta.1`
+Updated: 2026-09-12 · Release: `v0.1.0-beta.1`
 
 This document records **what has actually been built and verified on which
 operating system**. It is deliberately a record rather than an intention: an
@@ -16,13 +16,23 @@ only.
 | macOS arm64 | green | green | **not run** | **not done** |
 | macOS x64 | not run | not run | **not run** | **not done** |
 | Windows x64 | not run | not run | **not run** | **not done** |
-| Ubuntu / Debian x64 | not run | not run | **not run** | **not done** |
+| Ubuntu 24.04 x64 | green (CI) | green (CI, 45 checks) | **not run** | **not done** |
 | Ubuntu / Debian arm64 | not run | not run | **not run** | **not done** |
 
 **No native package exists for any platform.** `pnpm run desktop:package` and
 `pnpm run desktop:make` are configured through Electron Forge and have never
-been executed. Everything verified so far was verified on macOS arm64, from a
-source checkout.
+been executed.
+
+The Ubuntu row is filled in from **continuous integration** (2026-09-12), not
+from a person at a machine: the source gate and all 45 desktop checks pass on
+`ubuntu-24.04` from a clean checkout. That is real evidence for the source
+build and for the application's behaviour under X11, and it is not evidence
+for a package, an installation, or the manual pass below. The distinction is
+kept because it is the whole point of this table.
+
+Its first run was worth having: it found two macOS assumptions that had been
+green for weeks — a hard-coded `cmd` modifier in the desktop check, and an
+export assertion that read a font name only a Mac was certain to have.
 
 This is the honest state of a source beta, and it is the reason the beta is
 distributed as source rather than as a download.
@@ -100,6 +110,12 @@ namespaces.
 **The sandbox is never disabled**, and the user is never asked to repair
 application files by hand. The build host needs `sudo`, `dpkg`, and
 `fakeroot`.
+
+The same requirement bites in continuous integration, where Electron comes
+from an npm install rather than from a package manager: the workflow gives the
+helper that ownership itself before running the desktop check. It does **not**
+pass `--no-sandbox`, which would make the check run under conditions the
+shipped application never has.
 
 ## The manual pass after installing
 

@@ -1,10 +1,11 @@
 name: Source check
 
+# Pull requests only. A push to `main` has already been through the gate on
+# the machine it came from; running it again here would cost minutes to learn
+# what the author already knew. What this protects is the change that arrives
+# from somewhere else.
 on:
   pull_request:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -64,6 +65,25 @@ jobs:
         run: |
           git config --global user.email "check@opera-incerta.invalid"
           git config --global user.name "Opera Incerta Check"
+      # Chromium refuses to run without its SUID sandbox helper, and the
+      # helper must be owned by root with the setuid bit — which an npm
+      # install cannot produce and Ubuntu 24.04 enforces. A real installation
+      # gets this from its package manager (docs/en/platforms.md); here we do
+      # the same thing by hand.
+      #
+      # **Not** `--no-sandbox`: the check would then run under conditions the
+      # shipped application never has, and "the sandbox is never disabled" is
+      # a rule this project states in its own documentation.
+      - name: Give Chromium's sandbox helper the ownership it requires
+        run: |
+          helper="$(find node_modules -type f -name chrome-sandbox -path '*electron*' -print -quit)"
+          if [ -z "$helper" ]; then
+            echo "no chrome-sandbox found; did the Electron runtime install?" >&2
+            exit 1
+          fi
+          echo "preparing $helper"
+          sudo chown root:root "$helper"
+          sudo chmod 4755 "$helper"
       - name: Run the desktop check under a virtual display
         run: xvfb-run --auto-servernum pnpm run desktop:smoke
       # Uploading the screenshots as an artifact is worth adding, but only
