@@ -45,14 +45,26 @@ the two named at the end, which belong to the packaging round:
 - `desktop:start` — unpackaged development launch;
 - `desktop:smoke` — build and smoke-test the packaged shell;
 - `spike:editor` — the editor gate of §2.8 in a real rendering engine;
-- `spike:parser` — the parser gate of §2.11 against the fetched CommonMark
-  examples;
+- `spike:parser` — the parser comparison of §2.11 against the fetched
+  CommonMark examples;
 - `check` — the complete gate: build, boundary checks, typecheck, tests; and
 - `desktop:package` / `desktop:make` — host-native artifacts, **not yet run
   here** (`AGENTS.md`).
 
-All of these MUST run locally after dependency installation and MUST NOT
-require network access.
+All of these MUST run locally after dependency installation, and none except
+`spike:parser` may require network access. That spike downloads the CommonMark
+examples once and caches them, which is one of two reasons it is not a gate;
+the other is that its exit code is a **verdict on a comparison** — zero only
+if some candidate passes every criterion, and none does, which was the
+finding. It is a measuring instrument, not a check.
+
+**What continuous integration runs** (`.github/workflows/check.yml`, on pull
+requests): `security:audit-production` and `check` in a Node job, and
+`desktop:smoke` followed by `spike:editor` under a virtual display in a job
+with a real Electron. The editor spike belongs there because a dependency
+update can move CodeMirror without a person ever running it — the rule
+requiring it lives in `CONTRIBUTING.md`, where an automated pull request
+cannot read it.
 
 ## 1. Testing principles
 
@@ -1043,6 +1055,34 @@ the one that fails.
 Falsified in four ways when written: an Angular package moved out of step with
 its family, a caret crept into a range, an Electron major, and a TypeScript
 major. Each was red, and each said what to do about it.
+
+**Extended 2026-09-12**, after the first grouped updates were merged. The
+gate above keeps a bot from proposing something that would not build. It says
+nothing about the documents, and a bot changes manifests only — so three of
+the five merged updates would have left `dependencies.md` naming versions that
+are not installed, with every check green. The check therefore also proves
+that **the record matches what is installed**:
+
+- **Every version named beside a package in `dependencies.md` is that
+  package's installed version.** A version stands beside a package when it
+  follows the package's name on the same line, backticked or not; a heading
+  that names one version and several packages applies that version to each of
+  them. Names as prose are resolved through a short alias list, which is what
+  lets `commonmark.js` mean `commonmark` without loosening the match.
+- **Every override in `pnpm-workspace.yaml` appears in the document**, key and
+  value, exactly as it is declared.
+- **The runtime the document attributes to Electron is the runtime the
+  installed Electron reports.** The document's sentence is the claim; the
+  answer comes from running the installed binary with
+  `ELECTRON_RUN_AS_NODE=1`. This is the one figure no manifest holds, and it
+  is the one that drifted: none of the three releases between Electron 44.0.0
+  and 44.3.0 announced a Node.js change, and Node moved 24.18.1 → 24.20.0
+  anyway.
+
+The rule is deliberately one-directional. It proves that what the document
+*says* is true; it cannot prove that the document says everything worth
+saying. A version the document never mentions is not caught, and no check can
+make a record complete — only a person can.
 
 ## 3. Fixture catalog
 

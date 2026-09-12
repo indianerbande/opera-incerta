@@ -86,6 +86,19 @@ jobs:
           sudo chmod 4755 "$helper"
       - name: Run the desktop check under a virtual display
         run: xvfb-run --auto-servernum pnpm run desktop:smoke
+      # The editor's adapter contract runs in a real rendering engine, and
+      # nothing else here can speak for it. An automated update moves
+      # CodeMirror without a person present; `CONTRIBUTING.md` asks for this
+      # spike when the editor's display model changes, and an automated pull
+      # request cannot read `CONTRIBUTING.md`.
+      #
+      # Its sixth criterion is a latency threshold — 16 ms, measured over 200
+      # keystrokes in a 112,000-character document. That is a real threshold
+      # on a shared runner; if it ever fails here while passing on a
+      # developer's machine, the answer is to say so in the threshold, not to
+      # delete the criterion.
+      - name: Run the editor contract in a real rendering engine
+        run: xvfb-run --auto-servernum pnpm run spike:editor
       # Uploading the screenshots as an artifact is worth adding, but only
       # with a SHA that has been verified against the action's repository.
       # An unverified pin is worse than none: it looks like diligence and is

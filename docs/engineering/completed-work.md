@@ -6,6 +6,63 @@ documents").
 
 ---
 
+## 2026-09-12 — the record has to answer for itself now
+
+**What this was.** The two holes the previous round exposed, closed.
+
+**The editor contract runs in continuous integration.** `spike:editor` now
+runs beside the desktop check under a virtual display. It is the only thing
+that can speak for the editor after a CodeMirror update, and the rule asking
+for it lived in `CONTRIBUTING.md`, where an automated pull request cannot read
+it. Its sixth criterion is a 16 ms latency threshold on a shared runner; the
+comment beside the step says that if it ever fails there while passing on a
+developer's machine, the answer is to change the threshold and say so, not to
+delete the criterion.
+
+**The parser spike is not, and the previous entry overstated that.**
+`spike:parser` returns zero only if some candidate passes **every** criterion,
+and none does — that was the finding of the comparison, not a defect. Its exit
+code is a verdict, not a pass or a fail, and it downloads the CommonMark
+examples once before it can run at all. It is a measuring instrument. Putting
+it in a gate would have meant either a permanently red job or quietly
+weakening what it measures. `testing.md` now says which of the two spikes is a
+gate and why the other cannot be.
+
+**`check:dependencies` compares the record with reality.** A version standing
+beside a package name in `dependencies.md` must be that package's installed
+version — in a heading or in a sentence, backticked or bare; a heading naming
+one version and several packages gives it to each. Every override in
+`pnpm-workspace.yaml` must appear in the document, key and value on one line.
+And the runtime the document attributes to Electron is checked by **running
+the installed binary** with `ELECTRON_RUN_AS_NODE=1`, because that figure
+exists in no manifest and is exactly the one that had drifted.
+
+Prose names are resolved through an alias list holding a single entry, so that
+`commonmark.js` can mean `commonmark`. The list is short on purpose: every
+entry is a place where the match had to be loosened, and a long one would mean
+the check is guessing rather than comparing.
+
+**Falsified six ways**, each red for its own reason: a heading naming the
+wrong version; a stale version in a body list; a single version covering
+several packages, which named all three; an override recorded wrongly; the
+runtime claim wrong — reporting the very drift found the day before; and the
+runtime sentence deleted, which fails rather than passing silently, because a
+check that a missing claim satisfies is not a check.
+
+**What the check cannot do, stated in `testing.md` rather than left to be
+discovered.** It proves that what the document says is true. It cannot prove
+the document says everything worth saying. A version never mentioned is never
+caught, and no check makes a record complete — only a person does.
+
+**Evidence.** `pnpm run check` green, **1106 tests**; `desktop:smoke` 45
+checks; `spike:editor` 7/7 locally and 7/7 on the runner. Its first measured
+latency in continuous integration: **median 7.9 ms, p95 9.9 ms** against the
+16 ms threshold, where a developer's machine reports 6.1 and 6.7. The shared
+runner is slower, and not nearly enough to make the threshold the thing under
+test. That figure is in the spike's README as the baseline for the next run.
+
+---
+
 ## 2026-09-12 — the first grouped updates, and the record they would have aged
 
 **What this was.** Five automated pull requests merged: `pnpm/action-setup`

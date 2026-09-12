@@ -65,31 +65,6 @@ has to be consulted to build, verify or change the product.
    has an occasion and pays for itself the moment it happens.
 
 
-3. **Two holes in the guard against automated updates.** The gate added on
-   2026-09-11 keeps a bot from proposing a combination that would not build.
-   Merging the first grouped updates on 2026-09-12 showed what it still does
-   not cover:
-
-   - **No workflow runs `spike:editor` or `spike:parser`.** A CodeMirror
-     update reaches a green CI without the editor's adapter contract having
-     executed once — and CodeMirror is the component the author looks at all
-     day. The rule that says to run it lives in `CONTRIBUTING.md`, where a bot
-     cannot read it. The editor spike needs a real rendering engine, so it
-     belongs beside the desktop check under `xvfb-run` rather than in the
-     Node job.
-   - **Nothing compares the versions in the prose with the manifests.**
-     `dependencies.md` names each dependency's version in its heading, and a
-     bot changes manifests only. Three of the five updates merged that day
-     would have left the record stating a version that is not installed, and
-     every check would have stayed green. `check:dependencies` can read the
-     headings and compare them, which makes the record falsifiable instead of
-     merely well-intentioned.
-
-   Both are cheap. Both are the same failure the gate was built against, one
-   level down: the build cannot break, but the written record can quietly
-   stop being true.
-
-
 ## 2. Small, and left open on purpose
 
 - **The artifact upload in CI is not wired.** Uploading the desktop check's

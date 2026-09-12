@@ -16,13 +16,22 @@
  * This file covers what remains:
  *
  * 1. every dependency is pinned exactly, in every package;
- * 2. the packages that are one release move together; and
+ * 2. the packages that are one release move together;
  * 3. a **major** version cannot rise without somebody editing this file —
- *    which is where they are told that a major needs its own round.
+ *    which is where they are told that a major needs its own round; and
+ * 4. the record in `dependencies.md` says what is actually installed.
+ *
+ * The fourth was added after the first grouped updates were merged. A bot
+ * changes manifests and not sentences, and three of those five updates would
+ * have left the document naming versions that are not installed — with every
+ * check green. A gate that keeps the build from breaking does nothing about a
+ * record that quietly stops being true.
  */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -160,6 +169,150 @@ for (const [name, accepted] of Object.entries(ACCEPTED_MAJORS)) {
   }
 }
 
+// 4. The record must say what is installed.
+//
+// `dependencies.md` names a version beside nearly every package it describes.
+// An automated update changes the manifest and leaves the sentence, and a
+// reader has no reason to doubt a sentence. So the two are compared.
+
+const RECORD = 'docs/engineering/dependencies.md';
+
+/**
+ * Prose names that are not package names.
+ *
+ * Deliberately short. Every entry here is a place where the match had to be
+ * loosened, and a long list would mean the check is guessing rather than
+ * comparing.
+ */
+const PROSE_ALIASES = new Map([['commonmark.js', 'commonmark']]);
+
+const VERSION_TOKEN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u;
+
+/** One installed version per package name. */
+const installed = new Map();
+for (const [name, places] of everywhere) {
+  installed.set(name, places[0][1]);
+}
+
+/** A word as prose writes it — backticked, bolded, or followed by a comma. */
+function clean(word) {
+  return word.replace(/^[`*_("']+/u, '').replace(/[`*_,.;:)"']+$/u, '');
+}
+
+/** The installed package a word names, or null if it names none. */
+function packageNamed(word) {
+  const bare = clean(word);
+  const named = PROSE_ALIASES.get(bare) ?? PROSE_ALIASES.get(bare.toLowerCase()) ?? bare;
+  if (installed.has(named)) {
+    return named;
+  }
+  return installed.has(named.toLowerCase()) ? named.toLowerCase() : null;
+}
+
+const recordPath = join(repositoryRoot, RECORD);
+const record = readFileSync(recordPath, 'utf8');
+
+record.split('\n').forEach((line, index) => {
+  const where = `${RECORD}:${String(index + 1)}`;
+  const words = line.split(/\s+/u).map(clean).filter((word) => word.length > 0);
+  const versions = [];
+
+  // A version stands beside the package whose name precedes it.
+  for (let i = 1; i < words.length; i += 1) {
+    if (!VERSION_TOKEN.test(words[i])) {
+      continue;
+    }
+    versions.push(words[i]);
+    const name = packageNamed(words[i - 1]);
+    if (name !== null && installed.get(name) !== words[i]) {
+      failures.push(
+        `${where}: the record says ${name} ${words[i]}, ` +
+          `installed is ${String(installed.get(name))}`,
+      );
+    }
+  }
+
+  // A heading naming one version and several packages gives it to each.
+  if (line.startsWith('### ') && versions.length === 1) {
+    for (const [, backticked] of line.matchAll(/`([^`]+)`/gu)) {
+      const name = packageNamed(backticked);
+      if (name !== null && installed.get(name) !== versions[0]) {
+        failures.push(
+          `${where}: the heading gives ${name} version ${versions[0]}, ` +
+            `installed is ${String(installed.get(name))}`,
+        );
+      }
+    }
+  }
+});
+
+// Every override the workspace declares must be in the record, key and value
+// on one line. An override is a decision about somebody else's dependency;
+// unrecorded, it is indistinguishable from an accident.
+const workspace = readFileSync(join(repositoryRoot, 'pnpm-workspace.yaml'), 'utf8');
+const overridesBlock = /^overrides:\n((?:[ \t].*\n|\n)*)/mu.exec(workspace);
+for (const [, key, value] of (overridesBlock?.[1] ?? '').matchAll(
+  /^\s+'([^']+)':\s*'([^']+)'$/gmu,
+)) {
+  const stated = record
+    .split('\n')
+    .some((line) => line.includes(key) && line.includes(value));
+  if (!stated) {
+    failures.push(
+      `${RECORD}: pnpm-workspace.yaml overrides '${key}' to '${value}', ` +
+        'and the record does not say so on any one line',
+    );
+  }
+}
+
+// The runtime inside Electron is the one figure no manifest holds, and it is
+// the one that drifted: none of the three releases between 44.0.0 and 44.3.0
+// announced a Node.js change, and Node moved two minors anyway. The document
+// makes the claim; the installed binary answers it.
+const RUNTIME_CLAIM =
+  /Electron\s+(\d+\.\d+\.\d+\S*?)\s+bundles\s+Node\s+\*\*([\d.]+)\*\*\s+\(Chrome\s+([\d.]+),\s+V8\s+([0-9A-Za-z.-]+)\)/u;
+const claim = RUNTIME_CLAIM.exec(record);
+if (claim === null) {
+  failures.push(
+    `${RECORD}: no sentence of the form "Electron <version> bundles Node ` +
+      '**<version>** (Chrome <version>, V8 <version>)". That sentence is what ' +
+      'this check compares against the installed binary; without it the ' +
+      'runtime is unrecorded.',
+  );
+} else {
+  const [, statedElectron, statedNode, statedChrome, statedV8] = claim;
+  try {
+    const electronBinary = createRequire(
+      pathToFileURL(join(repositoryRoot, 'apps/desktop/package.json')),
+    )('electron');
+    const reported = JSON.parse(
+      execFileSync(electronBinary, ['-p', 'JSON.stringify(process.versions)'], {
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+        encoding: 'utf8',
+      }),
+    );
+    const claimed = {
+      electron: statedElectron,
+      node: statedNode,
+      chrome: statedChrome,
+      v8: statedV8,
+    };
+    for (const [part, said] of Object.entries(claimed)) {
+      if (reported[part] !== said) {
+        failures.push(
+          `${RECORD}: the record says Electron carries ${part} ${said}, ` +
+            `the installed binary reports ${String(reported[part])}`,
+        );
+      }
+    }
+  } catch (error) {
+    failures.push(
+      `could not ask the installed Electron what it carries (${String(error)}). ` +
+        'The record claims a runtime; something has to answer for it.',
+    );
+  }
+}
+
 if (failures.length > 0) {
   console.error('dependency check failed:');
   for (const failure of failures) {
@@ -170,5 +323,6 @@ if (failures.length > 0) {
 
 console.log(
   `dependency check passed: ${String(everywhere.size)} external dependencies, all pinned exactly, ` +
-    'families aligned, majors as accepted',
+    'families aligned, majors as accepted, and the record in dependencies.md ' +
+    'naming the versions that are installed — down to the runtime inside Electron',
 );

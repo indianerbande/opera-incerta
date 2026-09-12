@@ -46,7 +46,9 @@ git diff --check
 
 Änderungen am Anzeigemodell des Editors verlangen zusätzlich
 `pnpm run spike:editor`, was den Adaptervertrag in einer echten
-Rendering-Maschine ausführt. Änderungen am visuellen System verlangen, die
+Rendering-Maschine ausführt. Die fortlaufende Integration führt ihn ebenfalls
+aus, sodass ein Pull Request, der CodeMirror bewegt, ohne ihn nicht grün
+werden kann. Änderungen am visuellen System verlangen, die
 Screenshots **anzusehen**, welche die Schreibtischprüfung nach
 `build/desktop/` schreibt — keine Zusicherung sagt Ihnen, dass eine Zeile über
 fünfundneunzig Zeichen lief.
