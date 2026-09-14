@@ -19,7 +19,7 @@ allowBuilds:
   # the package's `install-electron` command. Should a future version bring
   # the script back, it is allowed here.
   electron: true
-  # Optional native helpers of transitive packaging dependencies. Writers IDE
+  # Optional native helpers of transitive packaging dependencies. Opera Incerta
   # does not use them, and building them would add compiler toolchain
   # requirements to every checkout.
   '@parcel/watcher': false
