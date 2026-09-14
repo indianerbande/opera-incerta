@@ -6,6 +6,28 @@ documents").
 
 ---
 
+## 2026-09-14 — references to documents by their old names
+
+**What this was.** Comments and engineering documents still named working
+documents as they were called before they moved under `docs/`: `SPEC.md` in
+the Forge configuration and six times in the workbench stylesheet,
+`CONVENTIONS.md` in the Forge configuration, and `PLATFORMS.md` in four
+places. None of them is a link, so the documentation check could not see them.
+
+**What changed.** Each now names the current file. Two statements said the
+platform matrix would be created with the first packaging round; it exists as
+`docs/en/platforms.md`, so `conventions.md` C-P5 and the roadmap's packaging
+item now say that the round records the first evidence in it. The repository
+layout in `specification.md` §5.2 still showed every document at the root and
+lacked three packages, `scripts/` and `spikes/`; it now shows the layout as it
+is. This entry and the ones below keep the old names, because they record what
+the files were called at the time.
+
+**Evidence.** A search for the six old names outside this file finds nothing;
+`pnpm run check` green, **1106 tests**.
+
+---
+
 ## 2026-09-14 — the repository went public, and its alerts were answered
 
 **What this was.** The repository became public. Private vulnerability

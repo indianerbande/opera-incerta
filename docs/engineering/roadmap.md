@@ -130,9 +130,10 @@ follows them.
   rewrites more than the last commit. Conflict resolution decides **per
   region**; deciding *within* a region — keeping half of each version — would
   need a merge editor, and is a separate question.
-- **`PLATFORMS.md` and the native build matrix** — written with the first
-  packaging round (`conventions.md` C-P5, C-P6). What that round has to
-  establish, so that it does not have to be rediscovered:
+- **The first packaging round, and the evidence for the platform matrix** —
+  the matrix exists ([`docs/en/platforms.md`](../en/platforms.md)) and has no
+  native row filled in yet (`conventions.md` C-P5, C-P6). What that round has
+  to establish, so that it does not have to be rediscovered:
   - **Host-native, one clean checkout per host.** No cross-compilation is
     claimed. Install with the lockfile under the pinned Node 24 *before* the
     release gate: native maker helpers compiled under a different runtime

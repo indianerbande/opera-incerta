@@ -1,5 +1,5 @@
 /*
- * The visual system. SPEC.md §8.8.
+ * The visual system. specification.md §8.8.
  *
  * Every colour and every face of the workbench is named here and read as
  * `var(--wi-…)` everywhere else: a colour literal in a component is a defect,
@@ -12,7 +12,7 @@
 
 /* The interface face, packaged rather than borrowed from the system: an
  * interface that looks different on every machine cannot be designed
- * (SPEC.md §8.8). Sources, licence and pinned bytes: `assets/ibm-plex/`. */
+ * (specification.md §8.8). Sources, licence and pinned bytes: `assets/ibm-plex/`. */
 @font-face {
   font-family: 'IBM Plex Sans';
   src: url('/fonts/ibm-plex/IBMPlexSans-Regular.woff2') format('woff2');
@@ -83,7 +83,7 @@
   --wi-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --wi-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
-  /* The geometry of SPEC.md §8.9: three radii, one scale, one height. */
+  /* The geometry of specification.md §8.9: three radii, one scale, one height. */
   --wi-radius-control: 7px;
   --wi-radius-panel: 10px;
   --wi-radius-dialog: 16px;
@@ -341,7 +341,7 @@ body {
 /*
  * Keyboard focus is never removed. It is the accent itself rather than the
  * soft ring the other application uses: at these smaller controls a 20 %
- * outline is too faint to find (SPEC.md §8.9).
+ * outline is too faint to find (specification.md §8.9).
  */
 :focus-visible {
   outline: 2px solid var(--wi-accent);
@@ -353,7 +353,7 @@ body {
  * The dialog itself (`wi-dialog`) draws the backdrop and the panel; these
  * rules reach the content projected into it, which a component's own
  * encapsulated styles cannot. One place for the chrome, so a dialog cannot
- * misplace it (SPEC.md §8.7, §8.9).
+ * misplace it (specification.md §8.7, §8.9).
  *
  * The heading and the actions row **bleed** to the panel's edges rather than
  * each dialog being rebuilt around a header and a footer element: eleven
@@ -430,7 +430,7 @@ wi-dialog button:hover:not(:disabled) {
   background: var(--wi-accent-soft);
 }
 
-/* The one button that carries the action, last in its row (SPEC.md §8.9). */
+/* The one button that carries the action, last in its row (specification.md §8.9). */
 wi-dialog button.primary {
   border-color: var(--wi-accent-strong);
   background: var(--wi-accent);

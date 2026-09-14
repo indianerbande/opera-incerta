@@ -265,7 +265,7 @@ display model rather than a decoration on top of it.
 - **Boundary:** a replaceable packaging adapter configured in
   `apps/desktop/forge.config.cjs`. The ZIP maker is the starting point because
   it adds no platform-specific build tooling; native installers are accepted
-  separately with `PLATFORMS.md` (`conventions.md` C-P9).
+  separately with the [platform matrix](../en/platforms.md) (`conventions.md` C-P9).
 - **Evidence:** none yet — `pnpm run desktop:package` and `desktop:make` have
   not been run in this checkout, and no command may be reported as approved
   before it has succeeded here (`conventions.md` C-T19).

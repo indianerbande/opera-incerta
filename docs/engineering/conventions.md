@@ -505,7 +505,8 @@ listed explicitly rather than discovered per bug report. **Adopted** (`specifica
 **C-P5 — A fixed native verification sequence plus recorded evidence.** Each
 target host runs the same command sequence after a clean checkout, and the
 release step writes a host-local hash and size manifest. **Adopted as a task**:
-`PLATFORMS.md` is created with the first packaging round.
+the sequence and the matrix it fills in stand in the platform matrix
+(`docs/en/platforms.md`); the first packaging round records the first evidence.
 
 **C-P6 — A manual post-install checklist.** Install, launch, open/edit/save/
 close/reopen, export, exercise external tooling, confirm offline operation, and

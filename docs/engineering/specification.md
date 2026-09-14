@@ -187,12 +187,16 @@ inside the repository are.
 ```text
 opera-incerta/
 ├── AGENTS.md            working process and invariants
-├── specification.md              this document
-├── testing.md           required validation evidence
-├── conventions.md       inherited design and handling measures
-├── dependencies.md      dependency purpose, license, boundary (from first dependency)
-├── PLATFORMS.md         native build and verification matrix (from first packaging)
-├── roadmap.md / completed-work.md    open and completed work (from first implementation round)
+├── README.md, CONTRIBUTING.md, SECURITY.md   public entry points, each with a German pair
+├── docs/
+│   ├── en/, de/         user documentation, release notes, platform matrix (platforms.md)
+│   └── engineering/
+│       ├── specification.md   this document
+│       ├── testing.md         required validation evidence
+│       ├── conventions.md     inherited design and handling measures
+│       ├── dependencies.md    dependency purpose, license, boundary
+│       ├── roadmap.md         open work
+│       └── completed-work.md  completed work, with its reasoning
 ├── package.json         workspace root, pinned engines, check scripts
 ├── pnpm-workspace.yaml
 ├── apps/
@@ -201,8 +205,13 @@ opera-incerta/
 ├── packages/
 │   ├── core/            portable domain: codec, transforms, pure rules
 │   ├── desktop-contract/ versioned IPC contract shared by main and renderer
+│   ├── markdown/        markdown-it tokens translated into the core's block model
+│   ├── export/          assembles the library into one document and renders it
+│   ├── localization/    English and German catalogues
 │   ├── project-node/    Node.js project/filesystem adapter
 │   └── git-node/        Node.js Git adapter (process wrapper)
+├── scripts/             repository checks run by `pnpm run check`
+├── spikes/              the editor and parser spikes
 └── examples/            original fixture projects
 ```
 
