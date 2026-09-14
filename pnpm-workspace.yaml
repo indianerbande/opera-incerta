@@ -11,6 +11,10 @@ overrides:
   # the workspace policy rejects as an exotic subdependency. The Electron fork
   # is published to the registry under this version.
   '@electron/rebuild@3.7.2>@electron/node-gyp': '10.2.0-electron.2'
+  # external-editor 3.1.0, reached through the Forge CLI's prompts, asks for
+  # tmp ^0.0.33, which has two published advisories. It calls tmpNameSync and
+  # nothing else, and 0.2.7 keeps that function. See dependencies.md.
+  'external-editor@3.1.0>tmp': '0.2.7'
 
 allowBuilds:
   esbuild: true

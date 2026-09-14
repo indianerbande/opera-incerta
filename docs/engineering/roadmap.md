@@ -158,6 +158,12 @@ follows them.
     namespaces. The sandbox is never disabled and the user is never asked to
     repair application files by hand. The build host needs `sudo`, `dpkg` and
     `fakeroot`.
+  - **The advisories accepted for the packaging tools** (`dependencies.md`,
+    "Advisories accepted for the packaging tools"): confirm that
+    `@electron/rebuild` extracts nothing for this application and that the
+    packager opens only the checksum-verified Electron archive, and check
+    whether a Forge release has left tar 6 and extract-zip behind. Dismissed
+    alerts stay dismissed until someone does.
   - **The manual post-install pass**, on a machine with no Node installed:
     install, launch, open/edit/save/close/reopen, export, exercise source
     control, confirm it works with no network, and uninstall without leaving

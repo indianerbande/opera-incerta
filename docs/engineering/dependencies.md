@@ -279,12 +279,67 @@ from a Git repository. The workspace policy rejects exotic subdependencies, and
 the Electron fork is published to the registry under this version. Recorded in
 `pnpm-workspace.yaml` with the same reasoning.
 
+### Override: `external-editor@3.1.0>tmp` → `0.2.7`
+
+`external-editor`, reached through the prompts of the Forge CLI, asks for a
+tmp release from 2016 that carries two published advisories (GHSA-52f5-9888-hmc6,
+GHSA-ph9p-34f9-6g65). It calls one function of tmp, `tmpNameSync`, and the
+current release keeps that function with the same signature. 0.2.6 was tried
+first and carries an advisory of its own (GHSA-7c78-jf6q-g5cm); 0.2.7 has none.
+
+**Evidence**, 2026-09-14: `pnpm audit` no longer reports tmp. The installed
+`external-editor` was run against tmp 0.2.7 with a no-op editor: it created its
+temporary file, read the text back, and removed the file.
+
 ### Ignored native builds: `@parcel/watcher`, `lmdb`, `msgpackr-extract`
 
 Optional native helpers of transitive packaging dependencies. Opera Incerta does
 not use them, and building them would require a compiler toolchain in every
 checkout. Set to `false` explicitly so the decision is visible rather than a
 recurring installation prompt.
+
+## Advisories accepted for the packaging tools
+
+GitHub's dependency alerts were switched on when the repository became public
+(2026-09-14). They reported advisories in two packages that only the packaging
+tools pull in. Electron Forge 7.11.2 is the current release and still requires
+both, so no update removes them. They are dismissed as a tolerable risk, for
+the reasons below, and **reassessed in the first packaging round**, which is
+the first time either package would run.
+
+Nothing here reaches the application. `pnpm run security:audit-production`,
+which covers what ships, reports no advisory.
+
+### tar 6.2.1 — twelve advisories, one critical
+
+Reached through `@electron/rebuild` and its `@electron/node-gyp`. Advisories:
+GHSA-23hp-3jrh-7fpw, GHSA-34x7-hfp2-rc4v, GHSA-83g3-92jg-28cx,
+GHSA-8qq5-rm4j-mr97, GHSA-8x88-c5mf-7j5w, GHSA-9ppj-qmqm-q256,
+GHSA-qffp-2rhf-9h96, GHSA-r292-9mhp-454m, GHSA-r6q2-hw4h-h46w,
+GHSA-gvwx-54wh-qm9j, GHSA-vmf3-w455-68vh, GHSA-w8wr-v893-vjvp. All concern
+extracting a crafted archive.
+
+- **When it runs.** `@electron/rebuild` extracts header and toolchain archives
+  to compile native modules against Electron. The desktop application has no
+  runtime dependencies at all and therefore no native module to compile, so
+  on reading the code there is nothing for it to extract. This is a reading,
+  not a measurement: packaging has not been run.
+- **Why not forced.** The fixed releases are tar 7, a major version with a
+  changed interface that `@electron/rebuild` 3.7.2 was not written against.
+  Whether it still works can only be shown by packaging, which has not been
+  run on any host.
+
+### extract-zip 2.0.1 — two advisories, no fixed release
+
+Reached through `@electron/packager`. Advisories: GHSA-7pqw-9j4j-h8q3 and
+GHSA-jmr9-qjv8-65gv, both about symbolic links inside a crafted ZIP.
+
+- **When it runs.** The packager unpacks the Electron release archive into
+  the output directory. `@electron/get` downloads that archive and checks it
+  against Electron's published SHA-256 sums first, so the only ZIP it opens is
+  Electron's own.
+- **Why not replaced.** No fixed version exists, and replacing the unpacking
+  inside the packager is not a change this project should own.
 
 ## Open candidates — not accepted
 

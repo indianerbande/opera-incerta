@@ -6,6 +6,42 @@ documents").
 
 ---
 
+## 2026-09-14 — the repository went public, and its alerts were answered
+
+**What this was.** The repository became public. Private vulnerability
+reporting, which `SECURITY.md` and the issue template link to, was off until
+then because GitHub offers it only on public repositories. It is on now,
+together with dependency alerts, secret scanning, and push protection. Secret
+scanning found nothing.
+
+**The dependency alerts found sixteen advisories**, all in packages that only
+the packaging tools pull in. The production audit was and is clean.
+
+- **tmp** is fixed. An override moves `external-editor` to tmp 0.2.7. The first
+  choice, 0.2.6, turned out to carry an advisory of its own, which `pnpm audit`
+  showed after the install; that is why the evidence is the audit and not the
+  version number. The installed `external-editor` was then run against the new
+  tmp with a no-op editor, and wrote, read back, and removed its file.
+- **tar and extract-zip** are accepted and the alerts dismissed as a tolerable
+  risk. Forge 7.11.2 is the current release and requires both. tar's fixed
+  releases are a major version `@electron/rebuild` was not written for;
+  extract-zip has no fixed release. `dependencies.md` records when each one
+  runs: `@electron/rebuild` has no native module to compile in this
+  application, and the packager opens only the Electron archive that
+  `@electron/get` has checked against Electron's SHA-256 sums, which the Forge
+  configuration does not switch off. The first is a reading of the code, not a
+  measurement, and says so. The roadmap's packaging round now has to confirm
+  both.
+
+**Also.** A comment in `pnpm-workspace.yaml` still carried the project's
+earlier working name, and was corrected.
+
+**Evidence.** `pnpm audit` reports only the two accepted packages;
+`security:audit-production` reports nothing; `pnpm run check` green,
+**1106 tests**.
+
+---
+
 ## 2026-09-14 — a moved entry was checked before its record was written
 
 **What this was.** The desktop check failed once in continuous integration,
