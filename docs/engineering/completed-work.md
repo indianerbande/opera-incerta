@@ -6,6 +6,21 @@ documents").
 
 ---
 
+## 2026-09-14 — continuous integration fetches the tags
+
+**What this was.** Both jobs of `check.yml` check out with `fetch-depth: 0`.
+The build identity of the previous round is what `git describe` says, and
+`actions/checkout` clones one commit without tags by default. `git describe`
+needs the tag and the commits between it and the build to count the distance,
+so fetching the tags alone would not have been enough.
+
+**Evidence.** Locally, a clone with `--depth 1 --no-tags` describes the same
+commit as `38c78a8`, a full clone as `v0.1.0-beta.1-7-g38c78a8`. On the pull
+request, the CI log of the desktop job shows the build line with the tag, and
+the launcher check compares it with `git describe` on the runner.
+
+---
+
 ## 2026-09-14 — the application names the build it is
 
 **What this was.** The beta number was not going to be raised on every push
