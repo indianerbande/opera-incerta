@@ -6,6 +6,37 @@ documents").
 
 ---
 
+## 2026-09-14 — a moved entry was checked before its record was written
+
+**What this was.** The desktop check failed once in continuous integration,
+on the Angular 22.1.6 update, with "the record still holds the sheet in its
+old group". The same commit was green locally, and the update had nothing to
+do with it.
+
+**The cause is in the check, not in the application.** `placeEntry` moves the
+file first and writes `structure.json` after, as every operation does. The
+check waited for the file to arrive and then read the record at once. The
+wait for the editor that sat between them did not help: the sheet was open
+before the drag, so that wait was already satisfied. On a slower runner the
+check read the record between the two writes. The group move further down had
+the same gap.
+
+**The fix.** Both moves now also wait for the last thing the operation writes:
+the destination group's order naming the entry. The assertions after it are
+unchanged, so an application that forgot to update the old group would still
+fail them.
+
+**Falsified** with a 1.5-second pause inserted between the file move and the
+record write. The old check failed with the message seen in continuous
+integration. The corrected check passed all 45 checks with the pause in place.
+With only the second wait removed, it failed on the group move with "the moved
+group lost its display name". The pause was then removed.
+
+**Evidence.** `pnpm run check` green, **1106 tests**; `desktop:smoke` green,
+45 checks.
+
+---
+
 ## 2026-09-12 — the record has to answer for itself now
 
 **What this was.** The two holes the previous round exposed, closed.

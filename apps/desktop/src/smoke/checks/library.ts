@@ -416,6 +416,15 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
   await waitUntil('the sheet to arrive in the group', () =>
     existsSync(join(projectPath, 'part-three', 'a-brand-new-scene.md')),
   );
+  // The file moves first and the record follows (`placeEntry`), so a file in
+  // its new place says nothing yet about `structure.json`. The last thing the
+  // move writes is the destination's order; once that names the sheet, the
+  // record is finished and the assertions below read what it decided. Waiting
+  // for the editor does not do this: the sheet was open before the drag.
+  // A slower runner found the gap on 2026-09-14.
+  await waitUntil('the record to place the sheet in the group', () =>
+    orderOf(projectPath, 'part-three').includes('a-brand-new-scene.md'),
+  );
   await waitUntil('the editor to follow the sheet', async () =>
     (await headerTitle(window, 'Renamed While Open')) !== null,
   );
@@ -443,6 +452,11 @@ export async function checkMovingBetweenGroups(smoke: Smoke, window: BrowserWind
   await dragTo(smoke, window, source, { x: target.x, y: target.y });
   await waitUntil('the group to arrive with its sheet', () =>
     existsSync(join(projectPath, 'part-two', 'part-three', 'a-brand-new-scene.md')),
+  );
+  // The same gap as above: the record is finished when the destination's
+  // order names the group.
+  await waitUntil('the record to place the group in its new parent', () =>
+    orderOf(projectPath, 'part-two').includes('part-three'),
   );
   await waitUntil('the editor to follow the group', async () =>
     (await headerTitle(window, 'Renamed While Open')) !== null,
