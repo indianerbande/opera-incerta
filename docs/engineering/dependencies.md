@@ -60,7 +60,7 @@ obligations, and those notices ship with the application
 - **Evidence:** `pnpm run desktop:build` produces `dist/main.cjs` and
   `dist/preload.cjs`; `pnpm run desktop:smoke` launches them.
 
-### @types/node 24.13.3
+### @types/node 24.13.4
 
 - **Capability:** type declarations for Node.js APIs in the main process and
   the Node adapters.
