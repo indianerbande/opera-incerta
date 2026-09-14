@@ -68,6 +68,7 @@ import {
   checkPanes,
 } from './checks/panes.js';
 import { checkAppearance, checkSettings } from './checks/settings.js';
+import { checkBuildIdentityInLauncher, checkBuildIdentityInSettings } from './checks/build-identity.js';
 import { expectNoStrayDialog } from './harness.js';
 import {
   checkAmendAndIgnore,
@@ -173,6 +174,7 @@ const smoke: Smoke = {
   preferencesPath: join(userDataPath, PREFERENCES_FILE),
   exportDirectory,
   evidenceDirectory,
+  repositoryRoot,
   git,
 };
 
@@ -187,6 +189,7 @@ async function run(launcher: BrowserWindow): Promise<void> {
   forwardConsole(launcher);
 
   try {
+    await checkBuildIdentityInLauncher(smoke, launcher);
     const window = await checkLauncherAndOpen(smoke, launcher);
     forwardConsole(window);
 
@@ -223,6 +226,8 @@ async function run(launcher: BrowserWindow): Promise<void> {
     await expectNoStrayDialog(window, 'checkPanes');
     await checkSettings(smoke, window);
     await expectNoStrayDialog(window, 'checkSettings');
+    await checkBuildIdentityInSettings(smoke, window);
+    await expectNoStrayDialog(window, 'checkBuildIdentityInSettings');
     await checkLineNumbers(smoke, window);
     await expectNoStrayDialog(window, 'checkLineNumbers');
     await checkZoom(smoke, window);

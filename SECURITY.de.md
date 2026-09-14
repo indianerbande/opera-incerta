@@ -17,8 +17,9 @@ Repository:
 
 https://github.com/indianerbande/opera-incerta/security/advisories/new
 
-Nennen Sie den betroffenen Commit, das Betriebssystem, die Schritte zur
-Reproduktion und die erwartete Auswirkung. Entfernen Sie Manuskriptinhalte,
+Nennen Sie den betroffenen Build — die Zeile am Fuß des Startfensters oder in
+der Fußleiste der Einstellungen, oder den Commit, aus dem Sie gebaut haben —,
+das Betriebssystem, die Schritte zur Reproduktion und die erwartete Auswirkung. Entfernen Sie Manuskriptinhalte,
 Zugangsdaten, persönliche Pfade und andere vertrauliche Daten aus der Meldung,
 sofern sie zur Reproduktion nicht zwingend nötig sind — und wenn ein
 Manuskript zwingend nötig ist, kürzen Sie es auf den kleinsten Text, der das

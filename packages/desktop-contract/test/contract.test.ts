@@ -3,6 +3,7 @@ import {
   CHANNELS,
   CONTRACT_VERSION,
   MAX_DOCUMENT_BYTES,
+  isBuildIdentity,
   isChannelName,
   isDocumentHandle,
   isGitReport,
@@ -38,6 +39,27 @@ describe('channel inventory', () => {
   it('has a positive integer version', () => {
     expect(Number.isInteger(CONTRACT_VERSION)).toBe(true);
     expect(CONTRACT_VERSION).toBeGreaterThan(0);
+  });
+});
+
+describe('isBuildIdentity', () => {
+  it('accepts what git describe writes, a build without a revision, and an unreadable record', () => {
+    expect(isBuildIdentity({ version: '0.1.0-beta.1', revision: 'v0.1.0-beta.1-7-g0381bfe' })).toBe(true);
+    expect(isBuildIdentity({ version: '0.1.0-beta.1', revision: 'v0.1.0-beta.1-7-g0381bfe-dirty' })).toBe(true);
+    expect(isBuildIdentity({ version: '0.1.0-beta.1', revision: '0381bfe' })).toBe(true);
+    expect(isBuildIdentity({ version: '0.1.0-beta.1', revision: null })).toBe(true);
+    expect(isBuildIdentity({ version: null, revision: null })).toBe(true);
+  });
+
+  it('refuses a record that is not a build identity', () => {
+    expect(isBuildIdentity({ version: '0.1.0-beta.1' })).toBe(false);
+    expect(isBuildIdentity({ version: '', revision: null })).toBe(false);
+    expect(isBuildIdentity({ version: '0.1.0', revision: '<b>v1</b>' })).toBe(false);
+    expect(isBuildIdentity({ version: '0.1.0', revision: 'v1 and more' })).toBe(false);
+    expect(isBuildIdentity({ version: '0.1.0', revision: 'v'.repeat(101) })).toBe(false);
+    expect(isBuildIdentity({ version: 1, revision: null })).toBe(false);
+    expect(isBuildIdentity('v0.1.0-beta.1')).toBe(false);
+    expect(isBuildIdentity(null)).toBe(false);
   });
 });
 

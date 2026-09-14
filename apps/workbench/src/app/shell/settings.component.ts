@@ -21,6 +21,7 @@ import {
 } from '@opera-incerta/core';
 import type { GitIdentity, GitIdentityReport } from '@opera-incerta/desktop-contract';
 import type { MessageKey } from '@opera-incerta/localization';
+import { BuildIdentityComponent } from './build-identity.component.js';
 import { LayoutState } from './layout-state.js';
 import { DialogComponent } from './dialog.component.js';
 import { Localization } from '../localization/localization.js';
@@ -44,7 +45,7 @@ import { Localization } from '../localization/localization.js';
 @Component({
   selector: 'wi-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DialogComponent],
+  imports: [BuildIdentityComponent, DialogComponent],
   host: { '(keydown.tab)': 'keepFocusInside($event)', '(keydown.shift.tab)': 'keepFocusInside($event)' },
   template: `
     <wi-dialog [label]="i18n.t('settings.title')" width="min(720px, calc(100vw - 48px))" maxHeight="min(560px, calc(100vh - 48px))" (dismiss)="close.emit()">
@@ -237,6 +238,7 @@ import { Localization } from '../localization/localization.js';
       </div>
       <div class="actions">
         <button type="button" class="reset" (click)="layout.resetPreferences()">{{ i18n.t('settings.reset') }}</button>
+        <wi-build-identity class="build-identity" />
         <span class="spacer"></span>
         <span class="hint">{{ i18n.t('settings.applyNote') }}</span>
       </div>
@@ -256,6 +258,12 @@ import { Localization } from '../localization/localization.js';
       width: 150px;
       padding-inline-end: 8px;
       border-inline-end: 1px solid var(--wi-separator);
+    }
+    /* Which build is running (specification.md §16), beside the one action of
+     * the footer: under the category list it had to wrap inside the revision. */
+    .build-identity {
+      flex: none;
+      margin-inline-start: 12px;
     }
     .category {
       display: flex;

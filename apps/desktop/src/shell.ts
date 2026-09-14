@@ -66,6 +66,7 @@ import {
 } from '@opera-incerta/project-node';
 import { resolveLanguage, translate, type Language } from '@opera-incerta/localization';
 import { installApplicationMenu } from './application-menu.js';
+import { BUILD_IDENTITY_FILE, aboutPanelOptions, readBuildIdentity } from './build-identity.js';
 import { failureResult } from './bridge-failure.js';
 import { chooseDestination, runExport, setPdf } from './export.js';
 import {
@@ -352,6 +353,12 @@ export function startShell(options: ShellOptions = {}): Shell {
   }
 
   ipcMain.handle(CHANNELS.contractVersion, () => CONTRACT_VERSION);
+
+  // Which build this is, read once: the record beside the bundle does not
+  // change while the application runs (specification.md §16).
+  const buildIdentity = readBuildIdentity(join(currentDirectory, BUILD_IDENTITY_FILE));
+  app.setAboutPanelOptions(aboutPanelOptions(buildIdentity));
+  ipcMain.handle(CHANNELS.buildIdentity, () => buildIdentity);
 
   const trashItem: TrashItem = options.trashItem ?? ((path) => shell.trashItem(path));
   // One filesystem for the shell and the session: every access to the disk

@@ -45,6 +45,8 @@ export interface Smoke {
   readonly exportDirectory: string;
   /** `build/desktop/`, where the screenshots (`smoke-*.png`) are written. */
   readonly evidenceDirectory: string;
+  /** This checkout, for what the smoke asks of the repository it was built from. */
+  readonly repositoryRoot: string;
   /** Runs git in a directory and returns its stdout. Throws on a non-zero exit. */
   git(cwd: string, argv: readonly string[]): string;
 }

@@ -39,6 +39,10 @@ export const DE: Readonly<Record<keyof typeof EN, string>> = {
   'app.conflict.confirm': 'Datei laden',
   'app.dismiss': 'Ausblenden',
 
+  'build.revision': 'Build {revision}',
+  'build.withoutRevision': 'Version {version}, außerhalb eines Git-Checkouts gebaut',
+  'build.unknown': 'Build unbekannt',
+
   'common.cancel': 'Abbrechen',
   'common.close': 'Schließen',
   'common.open': 'Öffnen',

@@ -19,6 +19,7 @@ export function baseBridge(): OperaIncertaBridge {
   return {
     contractVersion: async () => 1,
     windowRole: async () => 'project',
+    buildIdentity: async () => ({ version: '0.0.0-test', revision: null }),
     currentProject: async () => ({ ok: true, value: null }),
     recentProjects: async () => ({ ok: true, value: [] }),
     openProjectPath: async () => ({ ok: true, value: null }),

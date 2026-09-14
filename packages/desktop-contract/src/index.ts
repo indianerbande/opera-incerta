@@ -110,6 +110,7 @@ export const BRIDGE_GLOBAL = 'operaIncerta';
 export const CHANNELS = {
   contractVersion: 'opera-incerta:contract-version',
   windowRole: 'opera-incerta:window/role',
+  buildIdentity: 'opera-incerta:application/build-identity',
   openProject: 'opera-incerta:project/open',
   createProject: 'opera-incerta:project/create',
   adoptProject: 'opera-incerta:project/adopt',
@@ -359,6 +360,36 @@ export function isMenuCommand(value: unknown): value is MenuCommand {
  * query string the page could rewrite.
  */
 export type WindowRole = 'welcome' | 'project';
+
+/**
+ * Which build of the application is running. specification.md §16.
+ *
+ * Written when the desktop application is built, not asked of Git at run
+ * time: an installed application has no checkout to ask. `revision` is what
+ * `git describe --tags --always --dirty` said in the checkout that was built —
+ * the last tag, the commits since it, and the commit — and `null` for a build
+ * made outside a Git checkout, such as an unpacked source archive. `version`
+ * is the workspace version, and `null` only when the record could not be read.
+ */
+export interface BuildIdentity {
+  readonly version: string | null;
+  readonly revision: string | null;
+}
+
+/**
+ * The characters `git describe` produces and a version string uses, bounded.
+ *
+ * The value is shown as text, never as markup; the bound is there so that a
+ * record that is not what it claims to be is refused rather than shown.
+ */
+const BUILD_WORD = /^[0-9A-Za-z][0-9A-Za-z._+-]{0,99}$/u;
+const isBuildWord: Guard<string> = (value): value is string =>
+  typeof value === 'string' && BUILD_WORD.test(value);
+
+export const isBuildIdentity: Guard<BuildIdentity> = shape<BuildIdentity>({
+  version: nullable(isBuildWord),
+  revision: nullable(isBuildWord),
+});
 
 /** One entry of the recent-projects list. specification.md §8.6. */
 export interface RecentProjectEntry {
@@ -891,6 +922,8 @@ export interface OperaIncertaBridge {
   contractVersion(): Promise<number>;
   /** Which window this renderer is. */
   windowRole(): Promise<WindowRole>;
+  /** Which build is running, for the author to quote in a report (specification.md §16). */
+  buildIdentity(): Promise<BuildIdentity>;
   /** The project already open, for a project window that has just loaded. */
   currentProject(): Promise<BridgeResult<ProjectSnapshot | null>>;
   recentProjects(): Promise<BridgeResult<readonly RecentProjectEntry[]>>;

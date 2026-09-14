@@ -344,6 +344,10 @@ Benutzerdatenverzeichnis Ihres Betriebssystems.
 - [Projektstatus](project-status.md) — was gebaut ist und was nicht.
 - [Aus dem Quellcode bauen](build-from-source.md) — starten und prüfen.
 - [Ein Problem melden](https://github.com/indianerbande/opera-incerta/issues)
-  — mit Version, Betriebssystem und den Schritten.
+  — mit Build, Betriebssystem und den Schritten. Der Build ist die Zeile am
+  Fuß des Startfensters und in der Fußleiste der Einstellungen, zum Beispiel
+  `Build v0.1.0-beta.1-7-g0381bfe`; sie lässt sich markieren und kopieren.
+  Builds von `v0.1.0-beta.1` selbst zeigen sie noch nicht; nennen Sie dann
+  die Marke.
 - [Sicherheitsrichtlinie](../../SECURITY.de.md) — für alles, was nicht
   öffentlich stehen sollte.

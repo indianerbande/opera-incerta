@@ -41,6 +41,11 @@ export const EN = {
   'app.conflict.confirm': 'Load the file',
   'app.dismiss': 'Dismiss',
 
+  // --- which build is running (specification.md §16) --------------------------
+  'build.revision': 'Build {revision}',
+  'build.withoutRevision': 'Version {version}, built outside a Git checkout',
+  'build.unknown': 'Build unknown',
+
   // --- shared buttons --------------------------------------------------------
   'common.cancel': 'Cancel',
   'common.close': 'Close',

@@ -6,6 +6,45 @@ documents").
 
 ---
 
+## 2026-09-14 — the application names the build it is
+
+**What this was.** The beta number was not going to be raised on every push
+(decided the same day: it would mean a release round per push and say little),
+so a report needed another way to say which build it is about. The launcher's
+foot and the settings dialog's footer now show `Build` and what
+`git describe --tags --always --dirty` said in the checkout that was built.
+The macOS About panel shows the workspace version with the revision as its
+build number; it used to show `0.0.0`, the version of the unpublished desktop
+package. The bug report template and both security policies ask for that line.
+
+**How.** `apps/desktop/tools/write-build-identity.mjs` runs at the end of the
+desktop build and writes `dist/build-identity.json` beside the bundle. The
+main process reads it once, validates it with the contract's new
+`isBuildIdentity`, and answers the new `buildIdentity` channel; a missing or
+malformed record becomes an unknown build rather than a failed start. The
+renderer's `wi-build-identity` asks the bridge, checks the answer, and shows
+one selectable line that never wraps. Adding a channel is not a breaking
+change, so the contract version stays 3.
+
+**Decided without asking.** Where it shows: the launcher, because it is there
+without a project, and the settings dialog, because an author looks there. The
+first placement, under the settings categories, wrapped the revision inside
+`-6-` at 150 pixels; a revision broken across two lines is copied wrongly, so
+it moved into the footer and is `nowrap`. The script asks Git only when this
+repository is the checkout root: in a copy placed inside another repository it
+had taken that repository's tag.
+
+**Falsified.** Three desktop checks each red for their own reason — a revision
+the build altered, a line that cannot be selected, a settings dialog without
+the line while the launcher kept it — and the guard, the fallback, and the
+wording each broken once under their unit tests. The script was run inside
+another repository, as its own checkout, and without `git` on the path.
+
+**Evidence.** `pnpm run check` green, **1118 tests**; `desktop:smoke` green,
+**47 checks**. Both screenshots looked at, in English and in German.
+
+---
+
 ## 2026-09-14 — references to documents by their old names
 
 **What this was.** Comments and engineering documents still named working

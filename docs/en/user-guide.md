@@ -327,6 +327,9 @@ operating system provides.
 - [Project status](project-status.md) — what is built and what is not.
 - [Build from source](build-from-source.md) — running and verifying it.
 - [Report a problem](https://github.com/indianerbande/opera-incerta/issues) —
-  with the version, your operating system, and the steps.
+  with the build, your operating system, and the steps. The build is the line
+  at the foot of the launcher and in the footer of the settings dialog, for
+  example `Build v0.1.0-beta.1-7-g0381bfe`; it can be selected and copied.
+  Builds of `v0.1.0-beta.1` itself do not show it yet; name the tag instead.
 - [Security policy](../../SECURITY.md) — for anything that should not be
   posted publicly.

@@ -159,6 +159,13 @@ follows them.
     namespaces. The sandbox is never disabled and the user is never asked to
     repair application files by hand. The build host needs `sudo`, `dpkg` and
     `fakeroot`.
+  - **Build from a checkout with its tags.** The build identity
+    (`specification.md` §16) is what `git describe` says in the checkout that
+    was built. A shallow clone without tags — the default checkout in
+    continuous integration — gives the bare commit, which is still exact but
+    no longer names the release. A packaged artifact should name it, so the
+    packaging checkout fetches the tags. On Windows and Linux the menu has no
+    About item; the identity is in the launcher and the settings dialog there.
   - **The advisories accepted for the packaging tools** (`dependencies.md`,
     "Advisories accepted for the packaging tools"): confirm that
     `@electron/rebuild` extracts nothing for this application and that the

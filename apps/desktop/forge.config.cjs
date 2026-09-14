@@ -15,6 +15,7 @@ module.exports = {
     ignore: [
       /^\/src/,
       /^\/test/,
+      /^\/tools/,
       /^\/tsconfig.*\.json$/,
       /^\/node_modules/,
     ],

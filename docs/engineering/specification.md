@@ -1113,7 +1113,8 @@ Whenever no project is loaded, the welcome window shows:
   marked "not found"; clicking it offers "Remove from list" instead of failing
   hard;
 - "Open…" and "New…" buttons;
-- an empty state with only the buttons and one explanatory line.
+- an empty state with only the buttons and one explanatory line;
+- at its foot, which build is running (§16).
 
 The list updates on every successful open, create, or adopt through one shared
 endpoint — recording the entry and presenting the window happen there rather
@@ -2462,7 +2463,9 @@ lines;
 *Outline* — the deeper levels; *Front matter* — the three switches of §10.4;
 *Page categories* — a way into the manager of §6.6, because an author looks
 here for it, marked as project data; *Source control* — the commit identity
-of §12, edited in place and written into this repository only. Every
+of §12, edited in place and written into this repository only. The footer
+beside Reset names the running build (§16); it is information, not a
+preference, and has no place in the registry. Every
 installation-local preference that is not workbench layout MUST be in the
 registry, and a test enforces it, so a preference cannot appear without a
 place in the dialog. The registry names the keys of its words, never the
@@ -2812,6 +2815,26 @@ controlled by the rules above and by the privacy settings (§13).
 - Destructive actions (restore a snapshot, discard changes, delete a category)
   require an explicit confirmation naming what will be lost.
 - The application MUST NOT write to a file it failed to fully read.
+- **The build names itself** (built 2026-09-14). A report is only useful when
+  it says which build it is about, and a version number cannot say that
+  between releases: every push to `main` would otherwise need a new one. The
+  desktop build therefore records what `git describe --tags --always --dirty`
+  says in the checkout it builds — the last tag, the commits since, the
+  commit, and `-dirty` for uncommitted changes — beside the bundle, together
+  with the workspace version. The main process reads that record once; the
+  launcher's foot and the settings dialog's footer show it as one selectable
+  line, `Build v0.1.0-beta.1-7-g0381bfe`, and the macOS About panel shows the
+  version with the revision as its build number. The desktop package's own
+  version stays `0.0.0`, which the About panel used to show.
+  - It is written at build time because an installed application has no
+    checkout to ask.
+  - Git is asked about **this** repository only. A source archive unpacked
+    inside another repository would otherwise be given that repository's
+    commit; such a build, and one made without Git, records no revision and
+    the line says `Version 0.1.0-beta.1, built outside a Git checkout`.
+  - A record that is missing or malformed does not stop the application. The
+    main process validates it with the contract's guard, and an unreadable
+    one reads `Build unknown`.
 
 ## 17. MVP acceptance criteria
 

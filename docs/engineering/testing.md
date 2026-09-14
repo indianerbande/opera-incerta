@@ -537,6 +537,21 @@ Tests MUST cover:
   pointed `GIT_CONFIG_GLOBAL` at an empty file first, the identity question
   follows, its answer is read back with `git config --local`, and the global
   file is still empty;
+- which build is running (`specification.md` §16): the launcher, before
+  anything is opened, and the settings dialog, opened from the menu, each show
+  `Build` followed by what `git describe --tags --always --dirty` says in this
+  checkout **at the time of the check** — asked of Git, not read from the
+  record the build wrote, because comparing the record with itself would pass
+  a wrong record — and the line can be selected. Falsified 2026-09-14 three
+  ways: a build script appending `-x` to the revision failed the launcher
+  check with both lines quoted; `user-select: none` on the line failed it for
+  selection; and removing the line from the settings dialog alone passed the
+  launcher check and failed the settings check. The build script itself was
+  run in a copy placed inside another repository (no revision; with its guard
+  removed it took the other repository's tag), as its own checkout (a
+  revision), and with no `git` on the path (no revision). Unit tests cover the
+  contract guard, the main process's fallback for a missing or malformed
+  record, the About panel options, and the wording in both languages;
 - opening a folder that is not a project, all three answers through the real
   launcher (`specification.md` §8.6): a folder holding two Markdown files and no
   project raises the adoption question, and until it is answered nothing is

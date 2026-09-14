@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject } from '@angular/core';
 import { Localization, systemLanguageTag } from '../localization/localization.js';
 import { startAppearance } from '../shell/appearance.js';
+import { BuildIdentityComponent } from '../shell/build-identity.component.js';
 import { LayoutState } from '../shell/layout-state.js';
 import { resolveBridge } from '../workspace/bridge.js';
 import { LauncherStore } from '../workspace/launcher-store.js';
@@ -18,7 +19,7 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
   // The same root element as the workbench: index.html holds one, and exactly
   // one of the two components is ever bootstrapped into it (specification.md §8.5).
   selector: 'wi-root',
-  imports: [NewProjectDialogComponent, OpenFolderQuestionComponent],
+  imports: [BuildIdentityComponent, NewProjectDialogComponent, OpenFolderQuestionComponent],
   providers: [{ provide: Localization, useFactory: () => inject(WelcomeComponent).i18n }],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -71,6 +72,10 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
       @if (launcher.failure(); as code) {
         <p class="failure" role="alert">{{ message(code) }}</p>
       }
+
+      <footer>
+        <wi-build-identity />
+      </footer>
     </div>
 
     @if (launcher.question(); as question) {
@@ -222,6 +227,10 @@ import { OpenFolderQuestionComponent } from './open-folder-question.component.js
     }
     .failure {
       color: var(--wi-danger);
+    }
+    /* Last in the column whether or not there is a recent list above it. */
+    footer {
+      margin-top: auto;
     }
   `,
 })

@@ -16,11 +16,12 @@ private vulnerability-reporting form for this repository:
 
 https://github.com/indianerbande/opera-incerta/security/advisories/new
 
-Include the affected commit, the operating system, the steps to reproduce, and
-the expected impact. Remove manuscript content, access tokens, personal paths,
-and other confidential data from the report unless they are essential to
-reproducing the problem — and if a manuscript is essential, reduce it to the
-smallest text that still shows the behaviour.
+Include the affected build — the line at the foot of the launcher or in the
+settings dialog's footer, or the commit you built from — the operating system,
+the steps to reproduce, and the expected impact. Remove manuscript content,
+access tokens, personal paths, and other confidential data from the report
+unless they are essential to reproducing the problem — and if a manuscript is
+essential, reduce it to the smallest text that still shows the behaviour.
 
 The maintainers will acknowledge a usable report, investigate it, and
 coordinate disclosure according to severity and available evidence. Because

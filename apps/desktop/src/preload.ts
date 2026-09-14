@@ -20,6 +20,7 @@ import {
 const bridge = {
   contractVersion: () => ipcRenderer.invoke(CHANNELS.contractVersion),
   windowRole: () => ipcRenderer.invoke(CHANNELS.windowRole),
+  buildIdentity: () => ipcRenderer.invoke(CHANNELS.buildIdentity),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
   createProject: (request: unknown) => ipcRenderer.invoke(CHANNELS.createProject, request),
   adoptProject: (request: unknown) => ipcRenderer.invoke(CHANNELS.adoptProject, request),
