@@ -161,11 +161,11 @@ follows them.
     `fakeroot`.
   - **Build from a checkout with its tags.** The build identity
     (`specification.md` §16) is what `git describe` says in the checkout that
-    was built. A shallow clone without tags — the default checkout in
-    continuous integration — gives the bare commit, which is still exact but
-    no longer names the release. A packaged artifact should name it, so the
-    packaging checkout fetches the tags. On Windows and Linux the menu has no
-    About item; the identity is in the launcher and the settings dialog there.
+    was built. A shallow clone without tags gives the bare commit, which is
+    still exact but no longer names the release. Continuous integration
+    fetches the whole history since 2026-09-14; a packaging checkout has to do
+    the same. On Windows and Linux the menu has no About item; the identity is
+    in the launcher and the settings dialog there.
   - **The advisories accepted for the packaging tools** (`dependencies.md`,
     "Advisories accepted for the packaging tools"): confirm that
     `@electron/rebuild` extracts nothing for this application and that the
