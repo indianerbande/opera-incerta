@@ -2,7 +2,7 @@
 
 [English](../en/platforms.md) | **Deutsch**
 
-Aktualisiert: 2026-09-12 · Veröffentlichung: `v0.1.0-beta.1`
+Aktualisiert: 2026-09-14 · Veröffentlichung: `v0.1.0-beta.1`
 
 Dieses Dokument hält fest, **was auf welchem Betriebssystem tatsächlich gebaut
 und geprüft wurde**. Es ist bewusst ein Protokoll und keine Absichtserklärung:
@@ -16,7 +16,7 @@ Betriebssystem ein Nachweis.
 | macOS arm64 | grün | grün | **nicht gelaufen** | **nicht erfolgt** |
 | macOS x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
 | Windows x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
-| Ubuntu 24.04 x64 | grün (CI) | grün (CI, 45 Prüfungen) | **nicht gelaufen** | **nicht erfolgt** |
+| Ubuntu 24.04 x64 | grün (CI) | grün (CI, 47 Prüfungen) | **nicht gelaufen** | **nicht erfolgt** |
 | Ubuntu / Debian arm64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
 
 **Für keine Plattform existiert ein natives Paket.** `pnpm run desktop:package`
@@ -24,9 +24,9 @@ und `pnpm run desktop:make` sind über Electron Forge eingerichtet und wurden
 nie ausgeführt.
 
 Die Ubuntu-Zeile ist aus der **kontinuierlichen Integration** gefüllt
-(2026-09-12), nicht von einem Menschen an einer Maschine: Der Quellprüfstand
-und alle 45 Schreibtischprüfungen laufen auf `ubuntu-24.04` aus einem sauberen
-Checkout durch. Das ist ein echter Nachweis für den Quellbau und für das
+(zuletzt 2026-09-14), nicht von einem Menschen an einer Maschine: Der
+Quellprüfstand und alle 47 Schreibtischprüfungen laufen auf `ubuntu-24.04` aus
+einem sauberen Checkout durch. Das ist ein echter Nachweis für den Quellbau und für das
 Verhalten der Anwendung unter X11 — und kein Nachweis für ein Paket, eine
 Installation oder den Durchgang von Hand weiter unten. Diese Unterscheidung
 wird gehalten, denn sie ist der ganze Sinn dieser Tabelle.

@@ -6,7 +6,7 @@ Status: Public source beta
 
 Current release: `v0.1.0-beta.1`
 
-Updated: 2026-09-11
+Updated: 2026-09-14
 
 This document states the current product maturity and the boundaries of the
 beta. It is not a development diary. Product requirements live in the
@@ -41,8 +41,8 @@ Claims in this document rest on gates that run in this checkout:
 
 | Gate | What it does | Current result |
 | --- | --- | --- |
-| `pnpm run check` | Builds nine workspace projects, type-checks test code, runs every suite, verifies the packaged desktop boundary, the hash-pinned assets, and this documentation | green, **1106 tests** |
-| `pnpm run desktop:smoke` | Launches the real Electron shell and drives the real renderer with real input events, reading results from disk and from Git | green, **45 checks** |
+| `pnpm run check` | Builds nine workspace projects, type-checks test code, runs every suite, verifies the packaged desktop boundary, the hash-pinned assets, and this documentation | green, **1118 tests** |
+| `pnpm run desktop:smoke` | Launches the real Electron shell and drives the real renderer with real input events, reading results from disk and from Git | green, **47 checks** |
 | `pnpm run spike:editor` | Runs the editor adapter contract in a real rendering engine | green, 7/7 |
 
 The desktop check is the one that matters most for a claim about behaviour:

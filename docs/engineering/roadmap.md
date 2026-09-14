@@ -8,7 +8,7 @@ its verification result, and its lesson, in the same round (`AGENTS.md`,
 This file is not a source of truth. Those are `AGENTS.md` (process), `specification.md`
 (product), `testing.md` (evidence), and `conventions.md` (inherited measures).
 
-**State 2026-09-11 (third round of the day):** the library is complete —
+**State 2026-09-14:** the library is complete —
 create, rename, place, delete — as are the front matter area (§10.4), page categories (§6.6), the conflict rule
 of §10.6 with the watcher that triggers it, source control (§12) up to and
 including amend and `.gitignore`, the GFM display (§10.7), all four answers
@@ -19,10 +19,10 @@ panels on a canvas (§8.2), finding in the open sheet (§10.11), searching the
 library (§9.3), where you have been (§9.4), and **export** (§15.2) — the
 manuscript as one Markdown file or as a PDF the application sets itself, whole
 or from a sheet on, set with one of four supplied stylesheets or one the
-author duplicated into the project. `pnpm run check` green on **Node 24**: 9
-projects, **1106 tests**, plus the desktop and asset checks.
-`pnpm run desktop:smoke` green across forty-five checks,
-`pnpm run spike:editor` 7/7.
+author duplicated into the project — and the application names the build it
+is (§16). `pnpm run check` green on **Node 24**: 9 projects, **1118 tests**,
+plus the desktop and asset checks. `pnpm run desktop:smoke` green across
+forty-seven checks, `pnpm run spike:editor` 7/7.
 
 All sixteen MVP criteria of `specification.md` §17 are built and checked. What remains
 open are the parts of §15 that this stage deliberately excludes — import, the

@@ -6,7 +6,7 @@ Status: Öffentliche Quell-Beta
 
 Aktuelle Veröffentlichung: `v0.1.0-beta.1`
 
-Aktualisiert: 2026-09-11
+Aktualisiert: 2026-09-14
 
 Dieses Dokument nennt den Reifegrad des Produkts und die Grenzen der Beta. Es
 ist kein Entwicklungstagebuch. Die Produktanforderungen stehen in der
@@ -46,8 +46,8 @@ Checkout laufen:
 
 | Prüfstand | Was er tut | Ergebnis |
 | --- | --- | --- |
-| `pnpm run check` | Baut neun Workspace-Projekte, prüft die Typen des Testcodes, führt jede Prüfsammlung aus, verifiziert die Grenze der paketierten Anwendung, die per Hash festgelegten Medien und diese Dokumentation | grün, **1106 Tests** |
-| `pnpm run desktop:smoke` | Startet die echte Electron-Hülle und treibt den echten Renderer mit echten Eingabeereignissen; liest die Ergebnisse von der Platte und aus Git | grün, **45 Prüfungen** |
+| `pnpm run check` | Baut neun Workspace-Projekte, prüft die Typen des Testcodes, führt jede Prüfsammlung aus, verifiziert die Grenze der paketierten Anwendung, die per Hash festgelegten Medien und diese Dokumentation | grün, **1118 Tests** |
+| `pnpm run desktop:smoke` | Startet die echte Electron-Hülle und treibt den echten Renderer mit echten Eingabeereignissen; liest die Ergebnisse von der Platte und aus Git | grün, **47 Prüfungen** |
 | `pnpm run spike:editor` | Führt den Adaptervertrag des Editors in einer echten Rendering-Maschine aus | grün, 7/7 |
 
 Die Schreibtischprüfung wiegt für eine Aussage über Verhalten am schwersten:

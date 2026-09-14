@@ -2,7 +2,7 @@
 
 **English** | [Deutsch](../de/platforms.md)
 
-Updated: 2026-09-12 · Release: `v0.1.0-beta.1`
+Updated: 2026-09-14 · Release: `v0.1.0-beta.1`
 
 This document records **what has actually been built and verified on which
 operating system**. It is deliberately a record rather than an intention: an
@@ -16,16 +16,16 @@ only.
 | macOS arm64 | green | green | **not run** | **not done** |
 | macOS x64 | not run | not run | **not run** | **not done** |
 | Windows x64 | not run | not run | **not run** | **not done** |
-| Ubuntu 24.04 x64 | green (CI) | green (CI, 45 checks) | **not run** | **not done** |
+| Ubuntu 24.04 x64 | green (CI) | green (CI, 47 checks) | **not run** | **not done** |
 | Ubuntu / Debian arm64 | not run | not run | **not run** | **not done** |
 
 **No native package exists for any platform.** `pnpm run desktop:package` and
 `pnpm run desktop:make` are configured through Electron Forge and have never
 been executed.
 
-The Ubuntu row is filled in from **continuous integration** (2026-09-12), not
-from a person at a machine: the source gate and all 45 desktop checks pass on
-`ubuntu-24.04` from a clean checkout. That is real evidence for the source
+The Ubuntu row is filled in from **continuous integration** (last run
+2026-09-14), not from a person at a machine: the source gate and all 47
+desktop checks pass on `ubuntu-24.04` from a clean checkout. That is real evidence for the source
 build and for the application's behaviour under X11, and it is not evidence
 for a package, an installation, or the manual pass below. The distinction is
 kept because it is the whole point of this table.
