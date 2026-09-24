@@ -265,7 +265,10 @@ export function isSafeRemoteUrl(value: string): boolean {
   if (/^[\w.-]+@[\w.-]+:[^\s]+$/u.test(address)) {
     return true;
   }
-  return address.startsWith('/');
+  // Absolute drive paths and UNC shares are local Git transports on Windows.
+  // A drive-relative path (C:book) or a Win32 device namespace is not one.
+  return address.startsWith('/') || /^[A-Za-z]:[/\\]/u.test(address) ||
+    /^\\\\[A-Za-z0-9_-][A-Za-z0-9._-]*\\[^\\/:*?"<>|\r\n]+(?:\\|$)/u.test(address);
 }
 
 /**

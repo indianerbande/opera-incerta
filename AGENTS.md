@@ -4,7 +4,7 @@ Status: Draft 0.5 — the MVP of `docs/engineering/specification.md` §17 is
 built and verified, everything Phase 2 named is built, and the repository is
 prepared for publication
 
-Date: 2026-09-11
+Date: 2026-09-24
 
 This file defines **how** work happens in this repository. `docs/engineering/specification.md` defines
 **what** is built. `docs/engineering/testing.md` defines the **evidence** required to claim that
@@ -306,9 +306,10 @@ the version was pinned exactly, and a warning that is always there is a warning
 nobody reads: forty runs of this project happened on Node 26 before anyone
 looked.
 
-This machine has no version manager, so nothing reads `.node-version` by
-itself. Homebrew keeps the runtimes side by side, and the one to use is
-selected per shell:
+`.node-version` does not select a runtime without a version manager. On
+Windows, use an extracted Node 24 ZIP and prepend its directory to `$env:PATH`
+in native PowerShell. On Linux, select Node 24 with the host runtime tooling.
+On macOS with Homebrew, select it per shell:
 
 ```
 export PATH="/opt/homebrew/opt/node@24/bin:$PATH"
@@ -350,8 +351,11 @@ succeeded in this checkout. The following have:
   2026-09-10: the launcher appeared, and closing it ended the session with
   exit code 0, which is the window model of `docs/engineering/specification.md` §8.5 doing its work.
 
-Not yet run here, and therefore not approved: `pnpm run desktop:package` and
-`desktop:make`. Both belong to the packaging round (`docs/engineering/roadmap.md` §3).
+Windows x64, 2026-09-24: `desktop:package` and `desktop:make` succeeded;
+the application directory and development ZIP passed the actual ASAR gate.
+This is not evidence for macOS/Linux packaging, a signed installer, or manual
+installation acceptance. Per-system evidence lives in `docs/en/platforms.md`.
+`desktop:smoke` runs the development shell, not a Forge distribution.
 
 ## Documentation discipline
 

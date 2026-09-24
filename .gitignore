@@ -2,6 +2,7 @@ node_modules/
 .pnpm-store/
 dist/
 build/
+apps/desktop/out/
 coverage/
 .angular/
 .DS_Store

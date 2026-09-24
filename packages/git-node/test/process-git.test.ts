@@ -346,6 +346,7 @@ describe('against a real repository', () => {
     await systemGitRunner.run(['config', 'user.email', 'test@example.invalid'], root);
     await systemGitRunner.run(['config', 'user.name', 'Test'], root);
     await systemGitRunner.run(['config', 'commit.gpgsign', 'false'], root);
+    await systemGitRunner.run(['config', 'core.autocrlf', 'false'], root);
   });
 
   afterEach(async () => {
@@ -623,7 +624,7 @@ describe('against a real repository', () => {
 
       // A second working copy, standing in for the other machine.
       clone = join(await mkdtemp(join(tmpdir(), 'opera-incerta-clone-')), 'clone');
-      await systemGitRunner.run(['clone', remote, clone], tmpdir());
+      await systemGitRunner.run(['clone', '--config', 'core.autocrlf=false', remote, clone], tmpdir());
       await systemGitRunner.run(['config', 'user.email', 'other@example.invalid'], clone);
       await systemGitRunner.run(['config', 'user.name', 'Other'], clone);
       await systemGitRunner.run(['config', 'commit.gpgsign', 'false'], clone);

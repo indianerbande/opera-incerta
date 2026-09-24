@@ -3,7 +3,7 @@
 Status: Accepted toolchain, shell stack, editing surface, the test-time
 standard oracle, and the Markdown parser for the GFM display (2026-09-04)
 
-Date: 2026-09-01
+Date: 2026-09-24
 
 This file records why each direct dependency exists, its license, its runtime
 impact, the boundary that makes it replaceable, and the evidence required to
@@ -266,9 +266,10 @@ display model rather than a decoration on top of it.
   `apps/desktop/forge.config.cjs`. The ZIP maker is the starting point because
   it adds no platform-specific build tooling; native installers are accepted
   separately with the [platform matrix](../en/platforms.md) (`conventions.md` C-P9).
-- **Evidence:** none yet — `pnpm run desktop:package` and `desktop:make` have
-  not been run in this checkout, and no command may be reported as approved
-  before it has succeeded here (`conventions.md` C-T19).
+- **Evidence:** Windows x64 package and ZIP verified on 2026-09-24. The
+  post-package gate reads the actual ASAR using the installed packager's
+  archive reader; no new dependency was added. Other hosts and native
+  installers remain unverified; see the platform matrix.
 
 ## Workspace resolution decisions
 
@@ -305,7 +306,9 @@ GitHub's dependency alerts were switched on when the repository became public
 tools pull in. Electron Forge 7.11.2 is the current release and still requires
 both, so no update removes them. They are dismissed as a tolerable risk, for
 the reasons below, and **reassessed in the first packaging round**, which is
-the first time either package would run.
+the first time either package would run. The Windows development ZIP has
+since been built (2026-09-24); this is not a security reassessment or release
+approval. The advisory review remains open for distribution.
 
 Nothing here reaches the application. `pnpm run security:audit-production`,
 which covers what ships, reports no advisory.

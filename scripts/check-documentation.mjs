@@ -17,7 +17,7 @@
  */
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -156,7 +156,8 @@ for (const [english, german] of languagePairs) {
       continue;
     }
     const text = readFileSync(full, 'utf8');
-    const expected = relative(dirname(join(repositoryRoot, from)), join(repositoryRoot, to));
+    const expected = relative(dirname(join(repositoryRoot, from)), join(repositoryRoot, to))
+      .split(sep).join('/');
     if (!text.includes(`(${expected})`)) {
       fail(from, `does not link to its translation at ${expected}`);
     }

@@ -9,7 +9,7 @@ Maschine zu einer laufenden Anwendung — und dann zu einer geprüften.
 
 - **Node.js 24.15.0** oder eine neuere 24.x-Ausgabe. Das Repository legt die
   Linie in `package.json` und `.node-version` fest.
-- **pnpm 11.24.0**, am einfachsten über Corepack, das Node mitbringt.
+- **pnpm 11.24.0**, separat unter Node 24 installiert.
 - **Git**, zum Klonen und weil die Versionsverwaltung der Anwendung das `git`
   des Systems aufruft.
 - Etwa 1,5 GB Plattenplatz für Abhängigkeiten und die Electron-Laufzeit.
@@ -18,13 +18,26 @@ Um die Anwendung aus dem Quellcode zu starten, braucht es keine
 Übersetzerwerkzeuge, kein Python und keine native Bauumgebung. Sie nativ zu
 paketieren braucht mehr; siehe die [Plattformmatrix](platforms.md).
 
+## Laufzeit nach Betriebssystem auswählen
+
+- **Windows / PowerShell:** Node 24 als ZIP entpacken und für diese Sitzung
+  auswählen: `$env:PATH = "C:\tools\node-v24.15.0-win-x64;$env:PATH"`.
+  Den Beispielpfad durch den tatsächlichen Entpackpfad ersetzen. Nicht in WSL bauen.
+- **macOS / Homebrew:** `export PATH="/opt/homebrew/opt/node@24/bin:$PATH"`
+  auf Apple Silicon; bei anderer Installation deren tatsächlichen Pfad verwenden.
+- **Linux:** Node 24 über die vorhandene Laufzeitverwaltung auswählen.
+  Desktop-Prüfungen benötigen eine Anzeige (in CI Xvfb) und eine funktionsfähige
+  Chromium-Sandbox; siehe [Plattformmatrix](platforms.md).
+
+Danach `node --version` (24.x) und `pnpm --version` (11.24.0) prüfen.
+`.node-version` allein schaltet die Laufzeit nicht um.
+
 ## Klonen und installieren
 
 ```shell
 git clone https://github.com/indianerbande/opera-incerta.git
 cd opera-incerta
-corepack enable
-corepack prepare pnpm@11.24.0 --activate
+npm install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
 
@@ -107,7 +120,7 @@ pnpm run desktop:package   # ein Anwendungsverzeichnis
 pnpm run desktop:make      # ein verteilbarer Installer oder ein Archiv
 ```
 
-**Beides wurde auf keinem Wirtssystem ausgeführt.** Lesen Sie vorher die
+**Unter Windows x64 am 24.09.2026 erfolgreich: Anwendungsverzeichnis und ZIP.** Lesen Sie vorher die
 [Plattformmatrix](platforms.md): Dort stehen die Abfolge je Wirtssystem, die
 Voraussetzungen und der Durchgang von Hand danach. Ein Paket muss auf der
 Plattform gebaut werden, für die es gedacht ist.

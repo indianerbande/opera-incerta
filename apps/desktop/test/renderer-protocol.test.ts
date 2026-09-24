@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { resolve, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   RENDERER_ENTRY_URL,
@@ -46,7 +46,7 @@ describe('resolveRendererAsset', () => {
         const resolved = resolveRendererAsset(ROOT, url(path));
         if (resolved !== null) {
           // A refusal is preferred, but containment is the actual requirement.
-          expect(resolved.startsWith(`${ROOT}/`)).toBe(true);
+          expect(resolved.startsWith(`${ROOT}${sep}`)).toBe(true);
         }
       });
     }

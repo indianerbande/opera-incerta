@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { join } from 'node:path';
 import type { Disposable, LibraryWatcher } from '@opera-incerta/project-node';
 import { ProjectWatch } from '../src/project-watch.js';
 
@@ -61,8 +62,8 @@ describe('what the main process watches', () => {
       sheet: 'part-1/scene.md',
     });
 
-    expect(spy.directories).toEqual(['/book/part-1']);
-    expect(spy.files).toEqual(['/book/part-1/scene.md']);
+    expect(spy.directories).toEqual([join('/book', 'part-1')]);
+    expect(spy.files).toEqual([join('/book', 'part-1', 'scene.md')]);
   });
 
   it('takes the project root as a group like any other', () => {
@@ -81,7 +82,7 @@ describe('what the main process watches', () => {
 
     // Otherwise every click leaves a watcher behind, reporting a group nobody
     // is looking at.
-    expect(spy.disposed).toEqual(['/book/part-1', '/book/part-1/scene.md']);
+    expect(spy.disposed).toEqual([join('/book', 'part-1'), join('/book', 'part-1', 'scene.md')]);
     expect(watch.count).toBe(1);
   });
 

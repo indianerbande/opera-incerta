@@ -2,42 +2,41 @@
 
 [English](../en/platforms.md) | **Deutsch**
 
-Aktualisiert: 2026-09-14 · Veröffentlichung: `v0.1.0-beta.1`
+Aktualisiert: 2026-09-24 · Veröffentlichung: `v0.1.0-beta.1`
 
 Dieses Dokument hält fest, **was auf welchem Betriebssystem tatsächlich gebaut
 und geprüft wurde**. Es ist bewusst ein Protokoll und keine Absichtserklärung:
 Ein auf einem Betriebssystem gebautes Artefakt ist nur für dieses
 Betriebssystem ein Nachweis.
 
-## Der Stand, unverblümt
+## Nachweise nach Betriebssystem
 
-| Plattform | Quellprüfstand | Schreibtischprüfung | Natives Paket | Installiert und durchgespielt |
-| --- | --- | --- | --- | --- |
-| macOS arm64 | grün | grün | **nicht gelaufen** | **nicht erfolgt** |
-| macOS x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
-| Windows x64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
-| Ubuntu 24.04 x64 | grün (CI) | grün (CI, 47 Prüfungen) | **nicht gelaufen** | **nicht erfolgt** |
-| Ubuntu / Debian arm64 | nicht gelaufen | nicht gelaufen | **nicht gelaufen** | **nicht erfolgt** |
+Die Windows-Ergebnisse enthalten die lokalen Korrekturen vom 24.09.2026,
+nicht nur den unveränderten Beta-Tag. macOS und Linux wurden für diese
+Korrekturen nicht erneut geprüft.
 
-**Für keine Plattform existiert ein natives Paket.** `pnpm run desktop:package`
-und `pnpm run desktop:make` sind über Electron Forge eingerichtet und wurden
-nie ausgeführt.
+| Plattform | Datum | Quellcode-Prüfung | Entwicklungs-Smoke | Natives Paket | Installationsabnahme |
+| --- | --- | --- | --- | --- | --- |
+| Windows 11 x64, Build 26200 | 2026-09-24 | 1119 Tests, Editor 7/7 | 47/47 | Anwendungsverzeichnis und ZIP; ASAR geprüft | offen |
+| macOS arm64 | bis 2026-09-14 dokumentiert | grün, historisch | grün, historisch | nicht ausgeführt | offen |
+| macOS x64 | — | nicht ausgeführt | nicht ausgeführt | nicht ausgeführt | offen |
+| Ubuntu 24.04 x64 | 2026-09-14 | grün, CI | 47/47, CI unter X11 | nicht ausgeführt | offen |
+| Ubuntu / Debian arm64 | — | nicht ausgeführt | nicht ausgeführt | nicht ausgeführt | offen |
 
-Die Ubuntu-Zeile ist aus der **kontinuierlichen Integration** gefüllt
-(zuletzt 2026-09-14), nicht von einem Menschen an einer Maschine: Der
-Quellprüfstand und alle 47 Schreibtischprüfungen laufen auf `ubuntu-24.04` aus
-einem sauberen Checkout durch. Das ist ein echter Nachweis für den Quellbau und für das
-Verhalten der Anwendung unter X11 — und kein Nachweis für ein Paket, eine
-Installation oder den Durchgang von Hand weiter unten. Diese Unterscheidung
-wird gehalten, denn sie ist der ganze Sinn dieser Tabelle.
+Windows: Node 24.15.0, pnpm 11.24.0, native PowerShell. Der Desktop-Smoke
+startet die Entwicklungsversion, keine Forge-Distribution. Der Paketcheck
+prüft dagegen das tatsächliche ASAR: Main/Preload, Buildkennung, Renderer,
+Schriften, Icons, Lizenzhinweise und Projektlizenz müssen dem Build entsprechen.
+Smoke-Code und unerwartete Dateien sind verboten; die Version muss dem
+Workspace entsprechen. Ausgabe: `build/packages/`.
 
-Der erste Lauf hat sich gelohnt: Er fand zwei macOS-Annahmen, die wochenlang
-grün gewesen waren — einen hart kodierten `cmd`-Modifier in der
-Schreibtischprüfung und eine Export-Zusicherung, die einen Schriftnamen las,
-den nur ein Mac sicher hat.
-
-Das ist der ehrliche Stand einer Quell-Beta und der Grund, warum diese Beta
-als Quellcode statt als Download verteilt wird.
+Vier beschädigte Kopien falsifizieren diesen Check: fehlender Renderer,
+verändertes Main-Bundle, mitgelieferter Smoke-Code und falsche Version.
+Jede scheitert am vorgesehenen Grund; das unveränderte Artefakt besteht.
+Die manuelle Installationsabnahme bleibt auf allen Plattformen offen.
+Die paketierte Windows-Anwendung wurde mit isoliertem Arbeitsverzeichnis
+und Testprojekt gestartet: Renderer, Projektöffnung, Bearbeitung und
+Speichern auf die Platte bestanden; der Screenshot wurde angesehen.
 
 ## Warum ein Wirtssystem nicht für ein anderes bürgen kann
 
@@ -66,6 +65,7 @@ pnpm --version          # muss 11.24.0 sein
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm run desktop:smoke
+pnpm run spike:editor
 pnpm run desktop:make
 ```
 
@@ -87,44 +87,30 @@ pnpm --filter @opera-incerta/desktop exec install-electron
 
 ## Anforderungen je Plattform
 
-### macOS
-
-Erzeugt eine `.app` sowie DMG und ZIP. Entwicklungsbauten sind **nur ad-hoc
-signiert**: Sie laufen auf der Maschine, die sie gebaut hat, und sind nicht
-verteilbar. Eine öffentliche Veröffentlichung braucht Signierung und
-Beglaubigung mit einer Apple Developer ID; beides ist noch nicht eingerichtet.
-Das Erzeugen eines DMG kann die Xcode-Kommandozeilenwerkzeuge brauchen.
-
 ### Windows
 
-Erzeugt ein Anwendungsverzeichnis und einen Squirrel-Installer. Aus nativem
-PowerShell oder der Eingabeaufforderung bauen, **nie aus WSL** — ein
-WSL-Bau erzeugt Linux-Binärdateien mit Windows-Pfaden und scheitert auf eine
-Weise, die einen Nachmittag kostet.
+Nativ in PowerShell oder Eingabeaufforderung bauen, nicht unter WSL.
+Node 24 aus einem entpackten ZIP oder vorhandenen Versionsmanager auswählen;
+andere Node-Installationen getrennt halten. Bridge-Pfade verwenden `/`,
+native Dateipfade die Windows-Schreibweise. Git-Testvorlagen legen ihre
+Zeilenendenregel selbst fest, ohne die globale Git-Konfiguration zu ändern.
+Der konfigurierte Maker erzeugt ein unsigniertes Entwicklungs-ZIP.
+Squirrel-Installer und Herausgebersignatur sind noch offen.
 
-Node 24 gehört in ein entpacktes ZIP, das über den vollen Pfad aufgerufen
-wird. Die MSI-Installer verschiedener Hauptversionen ersetzen einander und
-taugen nicht als nebeneinander laufende Baulaufzeit.
+### macOS
 
-Ein öffentlicher Installer braucht eine Herausgebersignatur, die noch nicht
-eingerichtet ist.
+Der konfigurierte Maker zielt auf Anwendungsbundle und ZIP. Native Paketierung
+wurde hier noch nicht verifiziert. DMG, Developer-ID-Signierung und
+Beglaubigung bleiben Verteilungsaufgaben.
 
 ### Debian und Ubuntu
 
-Erzeugt ein DEB, bewusst statt eines portablen Archivs. Chromiums
-Sandbox-Hilfsprogramm muss `root:root` gehören und den Modus `4755` tragen,
-und nur ein Paketmanager kann das auf Systemen herstellen, die unprivilegierte
-Benutzernamensräume einschränken.
-
-**Die Sandbox wird nie abgeschaltet**, und niemand wird gebeten,
-Anwendungsdateien von Hand zu reparieren. Das Bau-Wirtssystem braucht `sudo`,
-`dpkg` und `fakeroot`.
-
-Dieselbe Anforderung beißt in der kontinuierlichen Integration, wo Electron
-aus einer npm-Installation statt von einem Paketmanager kommt: Der Workflow
-verschafft dem Hilfsprogramm diese Besitzverhältnisse selbst, bevor er die
-Schreibtischprüfung fährt. Er übergibt **nicht** `--no-sandbox` — dann liefe
-die Prüfung unter Bedingungen, welche die ausgelieferte Anwendung nie hat.
+CI verwendet eine virtuelle X11-Anzeige und bereitet Electrons Sandbox-Helfer
+vor. Die Sandbox wird nie abgeschaltet. Der ZIP-Maker stellt nicht Eigentümer
+`root:root` und Modus `4755` her, die Systeme mit eingeschränkten unprivilegierten
+Benutzernamensräumen benötigen. Linux-ZIP ist deshalb keine unterstützte
+Endnutzerverteilung. DEB-Maker und Installationstests sind offen; diese Runde
+benötigt `sudo`, `dpkg` und `fakeroot` auf dem Bauhost.
 
 ## Der Durchgang von Hand nach der Installation
 

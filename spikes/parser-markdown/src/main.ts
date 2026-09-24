@@ -9,7 +9,7 @@
  */
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -416,8 +416,12 @@ interface InstalledPackage {
 const ACCEPTED_LICENSES = /^(MIT|ISC|BSD-2-Clause|BSD-3-Clause|Apache-2\.0|0BSD)$/u;
 
 function criterionFootprint(): Verdict[] {
+  const pnpmCli = process.env['npm_execpath'];
+  if (pnpmCli === undefined) {
+    throw new Error('Run this comparison through pnpm run spike:parser');
+  }
   const listed = JSON.parse(
-    execFileSync('pnpm', ['list', '--json', '--depth', 'Infinity', '--dev'], {
+    execFileSync(process.execPath, [pnpmCli, 'list', '--json', '--depth', 'Infinity', '--dev'], {
       cwd: here,
       encoding: 'utf8',
     }),
@@ -480,16 +484,29 @@ function criterionFootprint(): Verdict[] {
 }
 
 function directorySize(path: string): number {
-  return Number(execFileSync('du', ['-sk', path], { encoding: 'utf8' }).split('\t')[0]);
+  // Logical file bytes, not filesystem allocation blocks; do not follow links
+  // into other packages (their bytes are counted by the dependency closure).
+  let bytes = 0;
+  for (const entry of readdirSync(path, { withFileTypes: true })) {
+    const child = join(path, entry.name);
+    if (entry.isDirectory()) bytes += directorySize(child) * 1024;
+    else if (entry.isFile()) bytes += statSync(child).size;
+  }
+  return bytes / 1024;
 }
 
 /** Whether the lockfile resolved this package from the registry, by integrity. */
 function resolvedFromRegistry(lockfile: string, key: string): boolean {
-  const index = lockfile.indexOf(`\n  ${key}:\n`);
+  // Scoped package keys are quoted by pnpm; checkout line endings vary by host.
+  const normalized = lockfile.replaceAll('\r\n', '\n');
+  const index = [key, `'${key}'`, `"${key}"`]
+    .map((candidate) => normalized.indexOf(`\n  ${candidate}:\n`))
+    .find((position) => position !== -1) ?? -1;
   if (index === -1) {
     return false;
   }
-  const resolution = lockfile.slice(index, lockfile.indexOf('\n\n', index));
+  const end = normalized.indexOf('\n\n', index);
+  const resolution = normalized.slice(index, end === -1 ? undefined : end);
   return resolution.includes('resolution: {integrity:') && !resolution.includes('tarball:');
 }
 

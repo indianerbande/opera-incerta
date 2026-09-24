@@ -130,10 +130,10 @@ follows them.
   rewrites more than the last commit. Conflict resolution decides **per
   region**; deciding *within* a region — keeping half of each version — would
   need a merge editor, and is a separate question.
-- **The first packaging round, and the evidence for the platform matrix** —
-  the matrix exists ([`docs/en/platforms.md`](../en/platforms.md)) and has no
-  native row filled in yet (`conventions.md` C-P5, C-P6). What that round has
-  to establish, so that it does not have to be rediscovered:
+- **Native installers and the remaining platform evidence** —
+  macOS/Linux native packaging, signed distributions and manual installation
+  acceptance remain open ([`docs/en/platforms.md`](../en/platforms.md),
+  `conventions.md` C-P5, C-P6). Requirements for the remaining round:
   - **Host-native, one clean checkout per host.** No cross-compilation is
     claimed. Install with the lockfile under the pinned Node 24 *before* the
     release gate: native maker helpers compiled under a different runtime

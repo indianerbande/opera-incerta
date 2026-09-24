@@ -6,6 +6,66 @@ documents").
 
 ---
 
+## 2026-09-24 — native Windows corrections and platform-specific evidence
+
+**What changed.** The first Windows run exposed fifteen source-test failures:
+native paths were used for a deliberately POSIX-shaped memory filesystem,
+disk assertions assumed Unix separators, and Git fixtures inherited the
+host's CRLF policy. Tests now use the relevant path grammar and fixtures set
+their own line-ending policy without changing global Git settings. The
+documentation checker normalizes generated links to URL separators.
+
+Two application defects were confirmed: discarding a nested sheet returned
+backslashes across the bridge and left its unsaved editor buffer stale;
+publishing to a local Windows drive was rejected as an unsafe remote. Discard
+now returns project paths with slashes. Absolute drive paths and UNC shares
+are accepted, while drive-relative paths and device namespaces stay rejected.
+The new remote regression test failed before the fix and passed after it.
+
+The first Forge archive omitted the renderer and assets, included smoke code,
+and carried version 0.0.0. Packaging now includes only production bundles,
+the renderer and its assets/notices, the project license and the workspace
+version. The shell resolves its renderer inside the application archive when
+packaged. Output lives under ignored build/packages. A post-package ASAR gate
+compares actual bytes and rejects extra files. No dependency was added.
+
+The parser comparison invokes pnpm through the current Node executable and
+measures logical file bytes without Unix du. Quoted scoped lockfile keys and
+CRLF are recognized; the old implementation failed the quoted-key fixture,
+and the corrected implementation passes LF/CRLF while still refusing tarballs
+and missing keys. Its nonzero comparison verdict
+does not mean the Windows process failed to execute.
+
+**Evidence, Windows 11 x64 build 26200; Node 24.15.0, pnpm 11.24.0.**
+The source gate passes 1119 tests across nine projects. The real desktop smoke
+passes 47/47, including discard, publish, pull, merge and export; the editor
+spike passes 7/7 with typing latency p95 6.6 ms. Forge produces the application
+directory and unsigned ZIP. Its 31-file ASAR passes; four damaged archive
+copies fail specifically for missing renderer, changed main bytes, leaked
+smoke code and wrong version. The original still passes afterwards.
+
+Artifact: `Opera Incerta-win32-x64-0.1.0-beta.1.zip`, 158,996,976 bytes;
+SHA-256: `5fbf876822df77eadc291e2f0f137225e56fb7bcf9fb07c1847eb05e7e380e41`.
+Built from `f99e197` with this round's local corrections, not the clean beta tag.
+
+The packaged executable launches from an isolated working directory and user
+data directory, opens an original fixture, accepts editing and saves the
+change to disk. The packaged screenshot and the smoke discard/merge screenshots
+were inspected. Logs, screenshots and the artifact manifest live under ignored
+build/windows-validation; the ZIP lives under build/packages/make.
+
+**Boundaries and lesson.** English/German source instructions, platform matrix,
+project status and engineering records now separate current Windows evidence,
+historical macOS/Linux source and smoke results, archive checks and manual
+installation acceptance. The configured maker is ZIP; DMG, Squirrel and DEB
+are future work, not existing installers. Other hosts were not rerun. Signing
+and the full manual installation/offline/uninstallation pass remain open.
+A green source build cannot prove a distribution contains its renderer, and
+a macOS test cannot prove Windows path and line-ending behavior. These local
+corrections are separate from the published beta tag.
+
+---
+
 ## 2026-09-14 — continuous integration fetches the tags
 
 **What this was.** Both jobs of `check.yml` check out with `fetch-depth: 0`.

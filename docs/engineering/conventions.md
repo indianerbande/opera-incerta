@@ -4,7 +4,7 @@ Status: Reference — the design and handling measures this project works by,
 inherited from the author's earlier work and binding here in the form recorded
 below
 
-Date: 2026-09-01
+Date: 2026-09-24
 
 This file collects the rules that govern **how the product is designed and how
 work is handled**, as opposed to what the product does. Each entry states the
@@ -639,6 +639,14 @@ was done; the flows were untested only because they could not be reached
 without rendering. **Adopted** (`specification.md` §8.7, `testing.md` §2.6).
 
 ## B.2 Filesystem and data
+
+**C-F5 — A native path is not a transport path.** Windows `path.relative`
+returns backslashes. Normalize at the main-process boundary before returning
+project-relative identities; otherwise a discard restores the file but fails
+to forget the editor buffer identified with slashes. Tests use the path grammar
+of their subject: native disk paths, POSIX virtual paths, URL paths in Markdown.
+Git fixtures own their line-ending policy instead of inheriting the user's.
+Learned in the native Windows run on 2026-09-24.
 
 **C-F1 — Compare canonically resolved paths.** Temporary directories and
 symlinked system paths resolve differently depending on how the path was

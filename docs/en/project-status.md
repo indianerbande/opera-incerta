@@ -6,7 +6,7 @@ Status: Public source beta
 
 Current release: `v0.1.0-beta.1`
 
-Updated: 2026-09-14
+Updated: 2026-09-24
 
 This document states the current product maturity and the boundaries of the
 beta. It is not a development diary. Product requirements live in the
@@ -25,7 +25,7 @@ empty application shell.
 The beta label makes two promises deliberately weaker than a stable release:
 
 1. **There are no signed installers.** The source can produce native packages,
-   but that has not been run on any host yet, and Apple Developer ID signing
+   with a Windows x64 development ZIP verified on 2026-09-24; Apple Developer ID signing
    and notarisation and Windows publisher signing are outstanding. The beta is
    distributed as source.
 2. **Named capabilities are specified but not built.** Import, the AI
@@ -37,11 +37,12 @@ for contributions. It is not yet an officially signed binary distribution.
 
 ## What the evidence actually is
 
-Claims in this document rest on gates that run in this checkout:
+These results are from Windows x64 on 2026-09-24. Historical macOS and Linux
+evidence is recorded separately in the [platform matrix](platforms.md):
 
 | Gate | What it does | Current result |
 | --- | --- | --- |
-| `pnpm run check` | Builds nine workspace projects, type-checks test code, runs every suite, verifies the packaged desktop boundary, the hash-pinned assets, and this documentation | green, **1118 tests** |
+| `pnpm run check` | Builds nine workspace projects, type-checks test code, runs every suite, verifies the packaged desktop boundary, the hash-pinned assets, and this documentation | green, **1119 tests** |
 | `pnpm run desktop:smoke` | Launches the real Electron shell and drives the real renderer with real input events, reading results from disk and from Git | green, **47 checks** |
 | `pnpm run spike:editor` | Runs the editor adapter contract in a real rendering engine | green, 7/7 |
 
@@ -149,15 +150,10 @@ These are specified and deliberately absent, not forgotten:
 
 ## Native platform status
 
-**No native package has been built on any host yet.** `desktop:package` and
-`desktop:make` are configured and have not been run. All development and
-verification so far happened on macOS arm64.
-
-This is the largest gap between this beta and a binary release, and it is
-recorded plainly in the [platform matrix](platforms.md) rather than softened.
-What a packaging round has to establish — per-host sequence, signing,
-Linux sandbox ownership, and the artifact manifest — is written down there in
-advance, so that the first run follows a plan rather than discovering one.
+Windows x64 produced a verified application directory and ZIP on 2026-09-24.
+The packaged application opened, edited and saved an isolated fixture. Native
+installers, signing and manual installation acceptance remain open. Historical
+macOS/Linux evidence is recorded separately in the [platform matrix](platforms.md).
 
 ## Accessibility
 

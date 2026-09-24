@@ -107,6 +107,8 @@ function prepareProject(): string {
   git(destination, ['config', 'user.email', 'smoke@opera-incerta.invalid']);
   git(destination, ['config', 'user.name', 'Opera Incerta Smoke']);
   git(destination, ['config', 'commit.gpgsign', 'false']);
+  // Fixture bytes must not depend on the author's global Git configuration.
+  git(destination, ['config', 'core.autocrlf', 'false']);
   return destination;
 }
 

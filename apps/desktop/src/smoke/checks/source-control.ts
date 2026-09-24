@@ -466,7 +466,7 @@ export async function checkFetchAndPull(smoke: Smoke, window: BrowserWindow): Pr
   }
 
   const elsewhere = join(mkdtempSync(join(tmpdir(), 'opera-incerta-elsewhere-')), 'clone');
-  smoke.git(smoke.projectPath, ['clone', remote, elsewhere]);
+  smoke.git(smoke.projectPath, ['clone', '--config', 'core.autocrlf=false', remote, elsewhere]);
   for (const setting of [
     ['user.email', 'other@opera-incerta.invalid'],
     ['user.name', 'The Other Machine'],

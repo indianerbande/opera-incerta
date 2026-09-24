@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STYLESHEET as MANUSCRIPT, builtInStylesheet } from '@opera-incerta/export';
 import { exportFileName, runExport, type ExportDependencies } from '../src/export.js';
@@ -36,7 +36,7 @@ function dependencies(
       return join(directory, defaultName);
     },
     setPdf: async (html) => Buffer.from(`%PDF-1.7 of ${String(html.length)} bytes`, 'utf8'),
-    shortPathOf: (path) => `~/${path.split('/').pop() ?? ''}`,
+    shortPathOf: (path) => `~/${basename(path)}`,
     ...overrides,
   };
 }

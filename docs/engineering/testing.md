@@ -4,7 +4,7 @@ Status: Draft 0.3 — normative for implementation; the source gate, the
 desktop production check, the editor spike and the shell smoke have all run in
 this checkout
 
-Date: 2026-09-11
+Date: 2026-09-24
 
 This document defines how Opera Incerta behavior is verified. `specification.md` defines
 the behavior; this document defines the **evidence** required to claim that the
@@ -27,12 +27,12 @@ the rest waits for the modules it describes.
 | --- | --- | --- |
 | Portable core, adapters, contracts | Vitest | Fast, no Electron, no display |
 | Angular workbench components | Vitest with the Angular testing utilities | Component behavior, not pixel snapshots |
-| Electron shell | A launched packaged-application smoke test | Bridge, security boundary, real file round trip |
+| Electron shell | A launched development shell plus separate distribution checks | Bridge, security boundary, real file round trip |
 | Type safety | `tsc` over source and test projects | Test code is type-checked too |
 | Packaging | Electron Forge per host platform | Host-native; see `specification.md` §5.1 |
 
-The root scripts, one per gate. All of them have run in this checkout except
-the two named at the end, which belong to the packaging round:
+The root scripts, one per gate. Results are host-specific; see
+[`../en/platforms.md`](../en/platforms.md) for dates and systems:
 
 - `build` — build every workspace package;
 - `typecheck` — build sources and type-check test projects;
@@ -43,13 +43,13 @@ the two named at the end, which belong to the packaging round:
 - `check:assets` — verify hash-pinned icon and font assets, their licenses, and
   their notices;
 - `desktop:start` — unpackaged development launch;
-- `desktop:smoke` — build and smoke-test the packaged shell;
+- `desktop:smoke` — build and smoke-test the development shell;
 - `spike:editor` — the editor gate of §2.8 in a real rendering engine;
 - `spike:parser` — the parser comparison of §2.11 against the fetched
   CommonMark examples;
 - `check` — the complete gate: build, boundary checks, typecheck, tests; and
-- `desktop:package` / `desktop:make` — host-native artifacts, **not yet run
-  here** (`AGENTS.md`).
+- `desktop:package` / `desktop:make` — host-native artifacts, verified on Windows x64
+  on 2026-09-24; macOS/Linux packaging and installation acceptance remain open.
 
 All of these MUST run locally after dependency installation, and none except
 `spike:parser` may require network access. That spike downloads the CommonMark
@@ -484,6 +484,30 @@ rather than a boundary, which is what the double exists to reveal. The suite is
 itself falsified by a test: a deliberately broken adapter must fail it.
 
 ### 2.7 Desktop shell and packaging
+
+**Platform evidence (2026-09-24).** Source tests, development-shell smoke,
+packaged payload verification, packaged launch and manual installer acceptance
+are separate results, recorded per operating system and architecture in
+`docs/en/platforms.md`. Historical macOS or Linux results do not validate a
+new Windows change, nor does Windows validate those hosts.
+
+The shared filesystem contract uses the virtual filesystem's POSIX join for
+its virtual paths and the host join for actual disk paths. Watcher and export
+tests compare native paths, while Markdown links and bridge paths use `/`.
+Git fixtures set `core.autocrlf=false` locally, including at clone time, so
+the author's global configuration cannot change test bytes. The real smoke
+checks that discarding also forgets unsaved editor text, and publishes to a
+host-native absolute remote path. Windows drive and UNC remote acceptance,
+and refusal of drive-relative and device paths, are covered in the core.
+
+`scripts/check-packaged-app.cjs` runs from Forge's `postPackage` hook. It
+reads the actual ASAR using the installed packager's archive reader, compares
+every renderer asset, notice, production bundle, build identity and project
+licence byte-for-byte with the build inputs, verifies the workspace version
+and entry point, and refuses extra files (including smoke, source and module
+trees). The check must be falsified against damaged archive copies. Packaged
+launch must additionally prove that the application loads without the source
+checkout's renderer. Neither check substitutes for the manual release pass.
 
 The shell is checked by the desktop smoke: `apps/desktop/src/smoke/`, run
 by `pnpm run desktop:smoke`. It starts the real shell through `startShell`
@@ -949,6 +973,12 @@ Criterion 7 is measured with a YAML parser that is a candidate in its own
 right, on the same footprint and license terms. Criterion 3 is the
 cross-check of §2.2 in the form it can take today: the display transform
 against an implementation of the standard it claims to follow.
+
+Since 2026-09-24 the runner launches the pnpm CLI through the active Node
+executable and counts logical file bytes without following dependency links,
+instead of invoking Unix `du`. Reported sizes are therefore portable logical
+sizes, not allocation sizes comparable with the older measurements. Registry
+checks recognize quoted scoped lockfile keys and both LF and CRLF.
 
 A failing criterion means the candidate is not accepted. It does not mean the
 criterion is relaxed.

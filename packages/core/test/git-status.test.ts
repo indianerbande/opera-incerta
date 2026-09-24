@@ -145,6 +145,14 @@ describe('touchesWorkingTree', () => {
 });
 
 describe('isSafeRemoteUrl', () => {
+  it('accepts absolute Windows drives and UNC shares, but not drive-relative or device paths', () => {
+    expect(isSafeRemoteUrl('C:\\Backups\\My book.git')).toBe(true);
+    expect(isSafeRemoteUrl('D:/Backups/book.git')).toBe(true);
+    expect(isSafeRemoteUrl('\\\\server\\share\\book.git')).toBe(true);
+    expect(isSafeRemoteUrl('C:book.git')).toBe(false);
+    expect(isSafeRemoteUrl('\\\\?\\C:\\book.git')).toBe(false);
+    expect(isSafeRemoteUrl('\\\\.\\pipe\\name')).toBe(false);
+  });
   it('accepts the addresses people actually use', () => {
     expect(isSafeRemoteUrl('https://github.com/someone/book.git')).toBe(true);
     expect(isSafeRemoteUrl('http://git.example.invalid/book.git')).toBe(true);

@@ -1,6 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join as nativeJoin, posix } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   PROJECT_DIRECTORY,
@@ -18,6 +18,7 @@ import {
 interface Subject {
   readonly filesystem: ProjectFilesystem;
   readonly root: string;
+  readonly join: typeof nativeJoin;
   cleanup(): Promise<void>;
 }
 
@@ -25,10 +26,11 @@ const subjects: ReadonlyArray<readonly [string, () => Promise<Subject>]> = [
   [
     'over the disk',
     async () => {
-      const root = await canonicalPath(await mkdtemp(join(tmpdir(), 'opera-incerta-contract-')));
+      const root = await canonicalPath(await mkdtemp(nativeJoin(tmpdir(), 'opera-incerta-contract-')));
       return {
         filesystem: createProjectFilesystem(),
         root,
+        join: nativeJoin,
         cleanup: () => rm(root, { recursive: true, force: true }),
       };
     },
@@ -38,7 +40,7 @@ const subjects: ReadonlyArray<readonly [string, () => Promise<Subject>]> = [
     async () => {
       const filesystem = createMemoryFilesystem();
       await filesystem.createDirectory('/books/here');
-      return { filesystem, root: '/books/here', cleanup: async () => undefined };
+      return { filesystem, root: '/books/here', join: posix.join, cleanup: async () => undefined };
     },
   ],
 ];
@@ -46,6 +48,8 @@ const subjects: ReadonlyArray<readonly [string, () => Promise<Subject>]> = [
 for (const [name, make] of subjects) {
   describe(`the project filesystem ${name}`, () => {
     let subject: Subject;
+    // The virtual filesystem has POSIX paths; the disk has host-native paths.
+    const join = (...parts: string[]): string => subject.join(...parts);
     beforeEach(async () => {
       subject = await make();
     });

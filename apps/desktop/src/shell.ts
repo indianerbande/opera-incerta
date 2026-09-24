@@ -14,7 +14,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { basename, dirname, join, relative } from 'node:path';
+import { basename, dirname, join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   BrowserWindow,
@@ -93,7 +93,9 @@ const currentDirectory = __dirname;
  * assets into a `browser/` subdirectory of its configured output path. Nothing
  * outside this directory is reachable through the renderer protocol.
  */
-const RENDERER_ROOT = join(currentDirectory, '..', '..', '..', 'build', 'workbench', 'browser');
+const RENDERER_ROOT = app.isPackaged
+  ? join(app.getAppPath(), 'renderer')
+  : join(currentDirectory, '..', '..', '..', 'build', 'workbench', 'browser');
 
 /**
  * What an entry point may substitute. Every field is optional; the production
@@ -1001,7 +1003,7 @@ export function startShell(options: ShellOptions = {}): Shell {
     }
 
     return [...new Set([...tracked, ...toTrash])]
-      .map((path) => relative(projectPath, join(root, path)))
+      .map((path) => relative(projectPath, join(root, path)).split(sep).join('/'))
       .filter((path) => path !== '' && !path.startsWith('..'));
   });
 

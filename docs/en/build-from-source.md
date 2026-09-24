@@ -9,7 +9,7 @@ a running application, and then to a verified one.
 
 - **Node.js 24.15.0** or a newer 24.x release. The repository pins the line
   in `package.json` and `.node-version`.
-- **pnpm 11.24.0**, most easily through Corepack, which ships with Node.
+- **pnpm 11.24.0**, installed separately under Node 24.
 - **Git**, for cloning and because the application's source-control features
   call the system `git`.
 - Roughly 1.5 GB of disk for dependencies and the Electron runtime.
@@ -18,13 +18,26 @@ No compiler toolchain, Python, or native build environment is needed to run
 the application from source. Packaging it natively needs more; see the
 [platform matrix](platforms.md).
 
+## Select the runtime for your operating system
+
+- **Windows / PowerShell:** extract the Node 24 ZIP and select it for this
+  session: `$env:PATH = "C:\tools\node-v24.15.0-win-x64;$env:PATH"`.
+  Replace the example path with the actual extraction path. Do not build in WSL.
+- **macOS / Homebrew:** `export PATH="/opt/homebrew/opt/node@24/bin:$PATH"`
+  on Apple Silicon; use the actual path for other installations.
+- **Linux:** select Node 24 with the host's runtime management.
+  Desktop checks require a display (Xvfb in CI) and a working Chromium
+  sandbox; see the [platform matrix](platforms.md).
+
+Then check `node --version` (24.x) and `pnpm --version` (11.24.0).
+`.node-version` alone does not switch the runtime.
+
 ## Clone and install
 
 ```shell
 git clone https://github.com/indianerbande/opera-incerta.git
 cd opera-incerta
-corepack enable
-corepack prepare pnpm@11.24.0 --activate
+npm install --global pnpm@11.24.0
 pnpm install --frozen-lockfile
 ```
 
@@ -104,7 +117,7 @@ pnpm run desktop:package   # an application directory
 pnpm run desktop:make      # a distributable installer or archive
 ```
 
-**These have not been run on any host yet.** Read the [platform
+**Application directory and ZIP succeeded on Windows x64 on 2026-09-24.** Read the [platform
 matrix](platforms.md) before you start: it records the per-host sequence, the
 prerequisites, and the manual pass afterwards. A package must be built on the
 platform it is for.

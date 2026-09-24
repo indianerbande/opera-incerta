@@ -3,7 +3,7 @@
 Status: Draft 0.4 — §6 to §14 are built and verified; §15, §18 and §19
 hold what is not
 
-Date: 2026-09-10
+Date: 2026-09-24
 
 Product name: Opera Incerta
 
@@ -176,6 +176,24 @@ project. Real manuscript content MUST NOT be used as test data.
 Node.js and pnpm versions are pinned in the root manifest once the workspace
 exists, and the packaging path MUST fail early and clearly on an unsupported
 runtime rather than silently downloading one (`conventions.md` C-P1).
+
+**Native artifacts (2026-09-24).** The implemented Forge maker produces a
+development ZIP on each supported host; it is not a signed installer.
+`desktop:package` produces an application directory and `desktop:make` wraps
+it in a ZIP, both under `build/packages/`. The packaged renderer lives inside
+the application archive, beside the production bundles, and is loaded from
+that location without a checkout. Its assets and notices are included, the
+smoke bundle and development sources are excluded, and the distribution uses
+the workspace version. A post-package check MUST inspect the actual archive
+and compare its payload with the build inputs. A successful source build is
+not evidence of a complete package. Native installer formats, signing and
+manual release acceptance remain separate work, per `docs/en/platforms.md`.
+
+Earlier platform documentation described DMG, Squirrel and DEB as though they
+were implemented. Those are distribution intentions, not existing makers;
+the 2026-09-24 Windows run established the distinction. Linux ZIP output is
+not a supported end-user installation where sandbox-helper permissions need
+a package manager. The sandbox is never disabled to make an archive run.
 
 ### 5.2 Repository layout
 
@@ -2253,6 +2271,11 @@ accepted shapes are therefore named rather than filtered: `https`, `http`,
 path. Everything else is refused with a reason. Recent git refuses the `ext::`
 transport itself, which is a second line rather than a substitute: it depends
 on the machine's configuration, and this check does not.
+
+Absolute local paths include Windows drive roots and UNC shares. Drive-relative
+paths and Win32 device namespaces are not accepted as remotes. Paths returned
+across the bridge, including the sheets affected by a discard, use `/` on
+every system; native separators stay in the filesystem adapter.
 
 **Push** runs against the resolved repository root using the system Git
 credentials. A missing remote or failed

@@ -6,7 +6,7 @@ Status: Öffentliche Quell-Beta
 
 Aktuelle Veröffentlichung: `v0.1.0-beta.1`
 
-Aktualisiert: 2026-09-14
+Aktualisiert: 2026-09-24
 
 Dieses Dokument nennt den Reifegrad des Produkts und die Grenzen der Beta. Es
 ist kein Entwicklungstagebuch. Die Produktanforderungen stehen in der
@@ -27,7 +27,7 @@ Die Kennzeichnung als Beta macht zwei Zusagen bewusst schwächer als eine
 stabile Veröffentlichung:
 
 1. **Es gibt keine signierten Installer.** Der Quellcode kann native Pakete
-   erzeugen, aber das wurde auf keinem Wirtssystem durchgeführt, und die
+   erzeugen; das Windows-x64-Entwicklungs-ZIP wurde am 24.09.2026 geprüft. Die
    Signierung und Beglaubigung bei Apple sowie die Herausgebersignatur bei
    Windows stehen aus. Die Beta wird als Quellcode verteilt.
 2. **Benannte Fähigkeiten sind spezifiziert, aber nicht gebaut.** Import,
@@ -42,11 +42,12 @@ Binärverteilung.
 ## Worauf die Aussagen tatsächlich beruhen
 
 Die Behauptungen dieses Dokuments stützen sich auf Prüfstände, die in diesem
-Checkout laufen:
+Windows-Checkout laufen (24.09.2026). Historische macOS- und Linux-Nachweise
+stehen getrennt in der [Plattformmatrix](platforms.md):
 
 | Prüfstand | Was er tut | Ergebnis |
 | --- | --- | --- |
-| `pnpm run check` | Baut neun Workspace-Projekte, prüft die Typen des Testcodes, führt jede Prüfsammlung aus, verifiziert die Grenze der paketierten Anwendung, die per Hash festgelegten Medien und diese Dokumentation | grün, **1118 Tests** |
+| `pnpm run check` | Baut neun Workspace-Projekte, prüft die Typen des Testcodes, führt jede Prüfsammlung aus, verifiziert die Grenze der paketierten Anwendung, die per Hash festgelegten Medien und diese Dokumentation | grün, **1119 Tests** |
 | `pnpm run desktop:smoke` | Startet die echte Electron-Hülle und treibt den echten Renderer mit echten Eingabeereignissen; liest die Ergebnisse von der Platte und aus Git | grün, **47 Prüfungen** |
 | `pnpm run spike:editor` | Führt den Adaptervertrag des Editors in einer echten Rendering-Maschine aus | grün, 7/7 |
 
@@ -163,17 +164,11 @@ Diese Dinge sind spezifiziert und bewusst abwesend, nicht vergessen:
 
 ## Stand der nativen Plattformen
 
-**Auf keinem Wirtssystem wurde bisher ein natives Paket gebaut.**
-`desktop:package` und `desktop:make` sind eingerichtet und wurden nicht
-ausgeführt. Entwicklung und Prüfung fanden bisher ausschließlich auf macOS
-arm64 statt.
-
-Das ist die größte Lücke zwischen dieser Beta und einer Binärveröffentlichung,
-und sie steht unverblümt in der [Plattformmatrix](platforms.md), statt
-beschönigt zu werden. Was eine Paketierungsrunde zu klären hat — die Abfolge
-je Wirtssystem, die Signierung, die Besitzverhältnisse der Linux-Sandbox und
-das Verzeichnis der Artefakte — ist dort im Voraus festgehalten, damit der
-erste Lauf einem Plan folgt, statt einen zu entdecken.
+Windows x64 hat am 24.09.2026 ein geprüftes Anwendungsverzeichnis und ZIP
+erzeugt. Die paketierte Anwendung wurde mit einem isolierten Testprojekt
+geöffnet, bearbeitet und gespeichert. Native Installer, Signierung und
+manuelle Installationsabnahme sind weiterhin offen. macOS- und Linux-Nachweise
+sind historisch und stehen getrennt in der [Plattformmatrix](platforms.md).
 
 ## Barrierefreiheit
 

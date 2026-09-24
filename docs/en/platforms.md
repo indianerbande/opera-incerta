@@ -2,40 +2,40 @@
 
 **English** | [Deutsch](../de/platforms.md)
 
-Updated: 2026-09-14 · Release: `v0.1.0-beta.1`
+Updated: 2026-09-24 · Release: `v0.1.0-beta.1`
 
 This document records **what has actually been built and verified on which
 operating system**. It is deliberately a record rather than an intention: an
 artifact built on one operating system is evidence for that operating system
 only.
 
-## Current state, stated plainly
+## Evidence by operating system
 
-| Platform | Source gate | Desktop check | Native package | Installed and exercised |
-| --- | --- | --- | --- | --- |
-| macOS arm64 | green | green | **not run** | **not done** |
-| macOS x64 | not run | not run | **not run** | **not done** |
-| Windows x64 | not run | not run | **not run** | **not done** |
-| Ubuntu 24.04 x64 | green (CI) | green (CI, 47 checks) | **not run** | **not done** |
-| Ubuntu / Debian arm64 | not run | not run | **not run** | **not done** |
+The Windows results include the local corrections of 2026-09-24, not just
+the unchanged beta tag. macOS and Linux have not been rerun for these changes.
 
-**No native package exists for any platform.** `pnpm run desktop:package` and
-`pnpm run desktop:make` are configured through Electron Forge and have never
-been executed.
+| Platform | Date | Source gate | Development smoke | Native package | Installation acceptance |
+| --- | --- | --- | --- | --- | --- |
+| Windows 11 x64, build 26200 | 2026-09-24 | 1119 tests, editor 7/7 | 47/47 | application directory and ZIP; ASAR checked | not done |
+| macOS arm64 | recorded by 2026-09-14 | green, historical | green, historical | not run | not done |
+| macOS x64 | — | not run | not run | not run | not done |
+| Ubuntu 24.04 x64 | 2026-09-14 | green, CI | 47/47, CI under X11 | not run | not done |
+| Ubuntu / Debian arm64 | — | not run | not run | not run | not done |
 
-The Ubuntu row is filled in from **continuous integration** (last run
-2026-09-14), not from a person at a machine: the source gate and all 47
-desktop checks pass on `ubuntu-24.04` from a clean checkout. That is real evidence for the source
-build and for the application's behaviour under X11, and it is not evidence
-for a package, an installation, or the manual pass below. The distinction is
-kept because it is the whole point of this table.
+Windows: Node 24.15.0, pnpm 11.24.0, native PowerShell. The desktop smoke
+launches the development shell, not a Forge distribution. The package check
+instead verifies the actual ASAR: main/preload, build identity, renderer,
+fonts, icons, notices and project license must match the build. Smoke code
+and unexpected files are forbidden; the version must match the workspace.
+Output: `build/packages/`.
 
-Its first run was worth having: it found two macOS assumptions that had been
-green for weeks — a hard-coded `cmd` modifier in the desktop check, and an
-export assertion that read a font name only a Mac was certain to have.
-
-This is the honest state of a source beta, and it is the reason the beta is
-distributed as source rather than as a download.
+Four damaged copies falsify this check: missing renderer, changed main
+bundle, leaked smoke code and wrong version. Each fails for the intended
+reason; the unchanged artifact passes. Manual installation acceptance
+remains open on every platform.
+The packaged Windows application was launched with an isolated working
+directory and fixture: renderer, project opening, editing and saving to
+disk passed; the screenshot was inspected.
 
 ## Why one host cannot vouch for another
 
@@ -61,6 +61,7 @@ pnpm --version          # must be 11.24.0
 pnpm install --frozen-lockfile
 pnpm run check
 pnpm run desktop:smoke
+pnpm run spike:editor
 pnpm run desktop:make
 ```
 
@@ -81,41 +82,29 @@ pnpm --filter @opera-incerta/desktop exec install-electron
 
 ## Per-platform requirements
 
-### macOS
-
-Produces a `.app` plus DMG and ZIP. Development builds are **ad-hoc signed
-only**: they run on the machine that built them and are not distributable.
-A public release needs Apple Developer ID signing and notarisation, neither of
-which is configured yet. Creating a DMG may need the Xcode command line tools.
-
 ### Windows
 
-Produces an application directory plus a Squirrel installer. Build from native
-PowerShell or the command prompt, **never from WSL** — a WSL build produces
-Linux binaries with Windows paths and fails in ways that waste an afternoon.
+Build in native PowerShell or the command prompt, not WSL. Select Node 24
+from an extracted ZIP or an existing version manager; keep other Node
+installations separate. Bridge paths use `/`; native disk paths use Windows
+syntax. Git fixtures set their own line-ending policy without changing
+global Git configuration. The configured maker produces an unsigned
+development ZIP. A Squirrel installer and publisher signing remain open.
 
-Node 24 belongs in an extracted ZIP invoked by its full path. The MSI
-installers of different major versions replace one another and are useless as
-a side-by-side build runtime.
+### macOS
 
-A public installer needs a publisher signature, which is not configured yet.
+The configured maker targets an application bundle and ZIP. Native packaging
+has not been verified here. DMG creation, Developer ID signing and
+notarisation remain distribution work.
 
 ### Debian and Ubuntu
 
-Produces a DEB, deliberately rather than a portable archive. Chromium's
-sandbox helper must be owned `root:root` with mode `4755`, and only a package
-manager can establish that on systems that restrict unprivileged user
-namespaces.
-
-**The sandbox is never disabled**, and the user is never asked to repair
-application files by hand. The build host needs `sudo`, `dpkg`, and
-`fakeroot`.
-
-The same requirement bites in continuous integration, where Electron comes
-from an npm install rather than from a package manager: the workflow gives the
-helper that ownership itself before running the desktop check. It does **not**
-pass `--no-sandbox`, which would make the check run under conditions the
-shipped application never has.
+CI uses a virtual X11 display and prepares Electron's sandbox helper.
+The sandbox is never disabled. The ZIP maker does not establish `root:root`
+ownership and mode `4755` needed on systems that restrict unprivileged user
+namespaces. A Linux ZIP is therefore not a supported end-user distribution.
+A DEB maker and installation tests remain open; that round needs `sudo`,
+`dpkg` and `fakeroot` on the build host.
 
 ## The manual pass after installing
 
