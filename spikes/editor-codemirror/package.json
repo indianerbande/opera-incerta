@@ -10,9 +10,9 @@
     "spike": "electron dist/main.cjs"
   },
   "devDependencies": {
-    "@codemirror/commands": "6.11.0",
-    "@codemirror/state": "6.7.4",
-    "@codemirror/view": "6.43.11",
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/state": "6.7.5",
+    "@codemirror/view": "6.43.12",
     "@opera-incerta/core": "workspace:*",
     "@opera-incerta/workbench": "workspace:*",
     "electron": "44.3.0",
